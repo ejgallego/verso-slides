@@ -5,6 +5,7 @@ Author: David Thrane Christiansen
 -/
 module
 public import Verso.Doc
+public import Verso.Output.Html
 public import VersoSlides.ImgSrc
 public import VersoManual.Html.CssFile
 public import VersoSlidesVendored
@@ -176,7 +177,7 @@ public structure Config where
   -/
   extraCss : Array CssFile := #[]
   /-- Extra elements to add to the page's {lit}`head` tag. -/
-  extraHead : Array Html := #[]
+  extraHead : Array Verso.Output.Html := #[]
   extraJs : Array String := #[]
   /--
   Math prelude evaluated once before any math on the page is rendered.
