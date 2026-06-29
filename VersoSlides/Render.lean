@@ -497,6 +497,7 @@ def renderFullHtml (config : Config) (title : String) (slidesBody : Html) (custo
       <link rel="stylesheet" href={{s!"{libPrefix}/table.css"}} />
       <link rel="stylesheet" href={{s!"{libPrefix}/katex/dist/katex.min.css"}} />
       {{ customCss.map fun css => {{ <style>{{Html.text false css}}</style> }} }}
+      {{config.extraHead}}
     </head>
     <body>
       <div class="reveal">
