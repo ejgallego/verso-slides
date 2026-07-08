@@ -16,6 +16,7 @@ class TestPrettyVirAssets:
         assert "./lean-vir/js/vir-runtime.js" in body
         assert "./lean-vir/wasm/vir-upstream.wasm" in body
         assert "VersoSlides.Pretty.formatJsonSegmentsJsonForVir" in body
+        assert "VersoSlides.Pretty.formatCompatSegmentsForVir" in body
 
     def test_pretty_vir_not_loaded_by_default(self, code_doc: BeautifulSoup):
         """The bootstrap remains opt-in until the VIR package assets are supplied."""
@@ -73,7 +74,8 @@ class TestPrettyVirBridge:
                     formatJsonSegmentsJson: () => JSON.stringify({
                         ok: true,
                         segments: [{ text: "from-vir", tags: [] }]
-                    })
+                    }),
+                    formatCompatSegments: () => [{ text: "from-object", tags: [] }]
                 };
                 const measurer = {
                     spaceWidth: 10,
@@ -84,13 +86,15 @@ class TestPrettyVirBridge:
                 return {
                     js: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "js"),
                     vir: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir"),
-                    timed: formatToHtmlTimed([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir")
+                    object: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-object"),
+                    timed: formatToHtmlTimed([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-object")
                 };
             }"""
         )
         assert result["js"] == "hello world"
         assert result["vir"] == "from-vir"
-        assert result["timed"]["html"] == "from-vir"
+        assert result["object"] == "from-object"
+        assert result["timed"]["html"] == "from-object"
         assert result["timed"]["durationMs"] >= 0
 
     def test_format_to_html_falls_back_on_invalid_vir_segments(self, code_url: str, page: Page):
@@ -129,7 +133,8 @@ class TestPrettyVirComparisonPanel:
                     formatJsonSegmentsJson: () => JSON.stringify({
                         ok: true,
                         segments: [{ text: "from-vir", tags: [] }]
-                    })
+                    }),
+                    formatCompatSegments: () => [{ text: "from-object", tags: [] }]
                 };
             }"""
         )
@@ -140,7 +145,7 @@ class TestPrettyVirComparisonPanel:
         tactic.click()
 
         expect(panel.locator(".pretty-compare")).to_be_visible()
-        assert panel.locator(".pretty-compare-pane").count() == 2
+        assert panel.locator(".pretty-compare-pane").count() == 3
         assert block.evaluate("el => el.classList.contains('pretty-compare-active')")
         pane_boxes = panel.locator(".pretty-compare-pane").evaluate_all(
             """panes => panes.map(pane => {
@@ -149,11 +154,17 @@ class TestPrettyVirComparisonPanel:
             })"""
         )
         assert pane_boxes[0]["right"] <= pane_boxes[1]["left"]
+        assert pane_boxes[1]["right"] <= pane_boxes[2]["left"]
         assert abs(pane_boxes[0]["top"] - pane_boxes[1]["top"]) <= 1
+        assert abs(pane_boxes[1]["top"] - pane_boxes[2]["top"]) <= 1
         expect(panel.locator('[data-pretty-backend="js"] .pretty-compare-header')).to_contain_text("JS")
-        expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-header')).to_contain_text("VIR")
+        expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-header')).to_contain_text("VIR JSON")
+        expect(panel.locator('[data-pretty-backend="vir-object"] .pretty-compare-header')).to_contain_text("VIR object")
         expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-body')).to_contain_text(
             "from-vir"
+        )
+        expect(panel.locator('[data-pretty-backend="vir-object"] .pretty-compare-body')).to_contain_text(
+            "from-object"
         )
         timing_texts = panel.locator(".pretty-compare-time").all_inner_texts()
         assert all("ms" in text for text in timing_texts)

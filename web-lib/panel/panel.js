@@ -542,7 +542,14 @@
 
     /**
      * @param {HTMLElement} container
-     * @return {{ jsBody: HTMLElement, jsTime: HTMLElement, virBody: HTMLElement, virTime: HTMLElement }}
+     * @return {{
+     *   jsBody: HTMLElement,
+     *   jsTime: HTMLElement,
+     *   virJsonBody: HTMLElement,
+     *   virJsonTime: HTMLElement,
+     *   virObjectBody: HTMLElement,
+     *   virObjectTime: HTMLElement
+     * }}
      */
     function setupPrettyComparison(container) {
         container.innerHTML =
@@ -552,28 +559,45 @@
             '<div class="pretty-compare-body"></div>' +
             "</div>" +
             '<div class="pretty-compare-pane" data-pretty-backend="vir">' +
-            '<div class="pretty-compare-header"><span>VIR</span><span class="pretty-compare-time"></span></div>' +
+            '<div class="pretty-compare-header"><span>VIR JSON</span><span class="pretty-compare-time"></span></div>' +
+            '<div class="pretty-compare-body"></div>' +
+            "</div>" +
+            '<div class="pretty-compare-pane" data-pretty-backend="vir-object">' +
+            '<div class="pretty-compare-header"><span>VIR object</span><span class="pretty-compare-time"></span></div>' +
             '<div class="pretty-compare-body"></div>' +
             "</div>" +
             "</div>";
         var jsPane = /** @type {HTMLElement} */ (
             container.querySelector('[data-pretty-backend="js"]')
         );
-        var virPane = /** @type {HTMLElement} */ (
+        var virJsonPane = /** @type {HTMLElement} */ (
             container.querySelector('[data-pretty-backend="vir"]')
+        );
+        var virObjectPane = /** @type {HTMLElement} */ (
+            container.querySelector('[data-pretty-backend="vir-object"]')
         );
         return {
             jsBody: /** @type {HTMLElement} */ (jsPane.querySelector(".pretty-compare-body")),
             jsTime: /** @type {HTMLElement} */ (jsPane.querySelector(".pretty-compare-time")),
-            virBody: /** @type {HTMLElement} */ (virPane.querySelector(".pretty-compare-body")),
-            virTime: /** @type {HTMLElement} */ (virPane.querySelector(".pretty-compare-time")),
+            virJsonBody: /** @type {HTMLElement} */ (
+                virJsonPane.querySelector(".pretty-compare-body")
+            ),
+            virJsonTime: /** @type {HTMLElement} */ (
+                virJsonPane.querySelector(".pretty-compare-time")
+            ),
+            virObjectBody: /** @type {HTMLElement} */ (
+                virObjectPane.querySelector(".pretty-compare-body")
+            ),
+            virObjectTime: /** @type {HTMLElement} */ (
+                virObjectPane.querySelector(".pretty-compare-time")
+            ),
         };
     }
 
     /**
      * @param {HTMLElement} body
      * @param {*} goalsData
-     * @param {"js" | "vir"} backend
+     * @param {"js" | "vir" | "vir-object"} backend
      * @param {HTMLElement} timeEl
      */
     function renderGoalsPane(body, goalsData, backend, timeEl) {
@@ -595,7 +619,8 @@
         if (comparing) {
             var panes = setupPrettyComparison(panel);
             renderGoalsPane(panes.jsBody, goalsData, "js", panes.jsTime);
-            renderGoalsPane(panes.virBody, goalsData, "vir", panes.virTime);
+            renderGoalsPane(panes.virJsonBody, goalsData, "vir", panes.virJsonTime);
+            renderGoalsPane(panes.virObjectBody, goalsData, "vir-object", panes.virObjectTime);
             return;
         }
 
@@ -610,7 +635,7 @@
     /**
      * @param {HTMLElement} body
      * @param {*} fmtData
-     * @param {"js" | "vir"} backend
+     * @param {"js" | "vir" | "vir-object"} backend
      * @param {HTMLElement} timeEl
      */
     function renderSignaturePane(body, fmtData, backend, timeEl) {
@@ -642,7 +667,8 @@
         if (comparing) {
             var panes = setupPrettyComparison(sigCode);
             renderSignaturePane(panes.jsBody, fmtData, "js", panes.jsTime);
-            renderSignaturePane(panes.virBody, fmtData, "vir", panes.virTime);
+            renderSignaturePane(panes.virJsonBody, fmtData, "vir", panes.virJsonTime);
+            renderSignaturePane(panes.virObjectBody, fmtData, "vir-object", panes.virObjectTime);
             return;
         }
 

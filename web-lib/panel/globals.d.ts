@@ -29,7 +29,9 @@ interface VersoPrettyVirBridge {
     compare?: boolean;
     runtime?: VersoPrettyVirRuntime;
     exportName?: string;
+    objectExportName?: string;
     formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string;
+    formatCompatSegments?: (fmt: unknown, width: number, indent: number) => unknown;
     ready?: Promise<unknown>;
     status?: string;
     error?: unknown;
@@ -45,6 +47,7 @@ interface VersoPrettyVirConfig {
     debugWasm?: boolean;
     irPackageUrl?: string;
     exportName?: string;
+    objectExportName?: string;
 }
 
 interface Window {
@@ -65,7 +68,7 @@ declare function formatToHtmlWithBackend(
     annotations: Record<string, any>,
     pixelWidth: number,
     measurer: DOMMeasurer,
-    backend: "auto" | "js" | "vir",
+    backend: "auto" | "js" | "vir" | "vir-object",
 ): string | null;
 
 declare function formatToHtmlTimed(
@@ -73,7 +76,7 @@ declare function formatToHtmlTimed(
     annotations: Record<string, any>,
     pixelWidth: number,
     measurer: DOMMeasurer,
-    backend: "auto" | "js" | "vir",
+    backend: "auto" | "js" | "vir" | "vir-object",
 ): { html: string | null; durationMs: number };
 
 /** pretty.js — create a DOM-based measurer for pixel-accurate text width measurement (global). */

@@ -12,7 +12,8 @@
      *   wasmDebugUrl?: string,
      *   debugWasm?: boolean,
      *   irPackageUrl?: string,
-     *   exportName?: string
+     *   exportName?: string,
+     *   objectExportName?: string
      * }} PrettyVirConfig
      *
      * @typedef {{
@@ -20,7 +21,9 @@
      *   compare?: boolean,
      *   runtime?: { call: (name: string, ...args: *[]) => * },
      *   exportName?: string,
+     *   objectExportName?: string,
      *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
+     *   formatCompatSegments?: (fmt: *, width: number, indent: number) => *,
      *   ready?: Promise<*>,
      *   status?: string,
      *   error?: *,
@@ -53,6 +56,10 @@
     bridge.status = "loading";
     bridge.exportName =
         config.exportName || bridge.exportName || "VersoSlides.Pretty.formatJsonSegmentsJsonForVir";
+    bridge.objectExportName =
+        config.objectExportName ||
+        bridge.objectExportName ||
+        "VersoSlides.Pretty.formatCompatSegmentsForVir";
     root.__versoPrettyVir = bridge;
 
     bridge.ready = import(config.runtimeUrl || fromScript("./lean-vir/js/vir-runtime.js"))
@@ -73,6 +80,11 @@
             bridge.formatJsonSegmentsJson = function (fmtJson, width, indent) {
                 if (!bridge.exportName) throw new Error("missing VIR pretty export name");
                 return runtime.call(bridge.exportName, fmtJson, width, indent);
+            };
+            bridge.formatCompatSegments = function (fmt, width, indent) {
+                if (!bridge.objectExportName)
+                    throw new Error("missing VIR object pretty export name");
+                return runtime.call(bridge.objectExportName, fmt, width, indent);
             };
             return runtime;
         })
