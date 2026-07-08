@@ -796,7 +796,10 @@ scripts/build-vir-pretty-demo.sh
 ```
 
 The script expects a lean-vir checkout at `/tmp/lean-vir`, or at
-`$LEAN_VIR_DIR`. It rebuilds the fixture deck, generates
+`$LEAN_VIR_DIR`. Build the lean-vir release wasm first with
+`npm run build:demo:release`; the script refuses to publish if
+`vir-upstream.wasm` is byte-identical to the debug companion
+`vir-upstream.dev.wasm`. It rebuilds the fixture deck, generates
 `lib/verso-pretty.irpkg`, copies `vir-upstream.wasm`, bundles the
 lean-vir browser runtime into a single minified
 `lib/lean-vir/js/vir-runtime.js`, and enables the JavaScript, VIR JSON,

@@ -82,6 +82,27 @@ fi
 mkdir -p "$lib_dir/lean-vir/wasm" "$(dirname "$report_path")"
 rm -rf "$lib_dir/lean-vir/js"
 mkdir -p "$lib_dir/lean-vir/js"
+release_wasm="$lean_vir_dir/web/public/vir-upstream.wasm"
+debug_wasm="$lean_vir_dir/web/public/vir-upstream.dev.wasm"
+
+if [[ ! -f "$release_wasm" ]]; then
+  echo "release wasm not found: $release_wasm" >&2
+  echo "run npm run build:demo:release in $lean_vir_dir" >&2
+  exit 1
+fi
+if [[ ! -f "$debug_wasm" ]]; then
+  echo "debug wasm companion not found: $debug_wasm" >&2
+  echo "run npm run build:demo:release in $lean_vir_dir" >&2
+  exit 1
+fi
+if cmp -s "$release_wasm" "$debug_wasm"; then
+  echo "refusing to publish a dev/unstripped wasm as vir-upstream.wasm" >&2
+  echo "release and debug wasm artifacts are byte-identical:" >&2
+  echo "  $release_wasm" >&2
+  echo "  $debug_wasm" >&2
+  echo "run npm run build:demo:release in $lean_vir_dir" >&2
+  exit 1
+fi
 
 (cd "$lean_vir_dir" && lake exe vir_irpkg \
   "$lib_dir/verso-pretty.irpkg" \
@@ -90,7 +111,7 @@ mkdir -p "$lib_dir/lean-vir/js"
   VersoSlides.Pretty.formatJsonSegmentsJsonForVir \
   VersoSlides.Pretty.formatCompatSegmentsForVir)
 
-cp "$lean_vir_dir/web/public/vir-upstream.wasm" "$lib_dir/lean-vir/wasm/vir-upstream.wasm"
+cp "$release_wasm" "$lib_dir/lean-vir/wasm/vir-upstream.wasm"
 
 "$esbuild" "$lean_vir_dir/web/src/vir-runtime.js" \
   --bundle \
