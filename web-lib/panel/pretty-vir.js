@@ -13,7 +13,7 @@
      *   debugWasm?: boolean,
      *   fetchCache?: RequestCache,
      *   irPackageUrl?: string,
-     *   exportName?: string,
+     *   jsonExportName?: string,
      *   formatExportName?: string
      * }} PrettyVirConfig
      *
@@ -21,7 +21,7 @@
      *   enabled?: boolean,
      *   compare?: boolean,
      *   runtime?: { call: (name: string, ...args: *[]) => * },
-     *   exportName?: string,
+     *   jsonExportName?: string,
      *   formatExportName?: string,
      *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
      *   formatSegments?: (fmt: *, width: number, indent: number) => *,
@@ -55,8 +55,10 @@
     bridge.enabled = true;
     bridge.compare = config.compare === true || bridge.compare === true;
     bridge.status = "loading";
-    bridge.exportName =
-        config.exportName || bridge.exportName || "VersoSlides.Pretty.formatJsonSegmentsJsonForVir";
+    bridge.jsonExportName =
+        config.jsonExportName ||
+        bridge.jsonExportName ||
+        "VersoSlides.Pretty.formatJsonSegmentsJsonForVir";
     bridge.formatExportName =
         config.formatExportName ||
         bridge.formatExportName ||
@@ -91,8 +93,8 @@
             bridge.runtime = runtime;
             bridge.status = "ready";
             bridge.formatJsonSegmentsJson = function (fmtJson, width, indent) {
-                if (!bridge.exportName) throw new Error("missing VIR pretty export name");
-                return runtime.call(bridge.exportName, fmtJson, width, indent);
+                if (!bridge.jsonExportName) throw new Error("missing VIR JSON pretty export name");
+                return runtime.call(bridge.jsonExportName, fmtJson, width, indent);
             };
             bridge.formatSegments = function (fmt, width, indent) {
                 if (!bridge.formatExportName)

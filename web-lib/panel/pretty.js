@@ -33,7 +33,7 @@
  * @typedef {{
  *   enabled?: boolean,
  *   runtime?: { call: (name: string, ...args: *[]) => * },
- *   exportName?: string,
+ *   jsonExportName?: string,
  *   formatExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
  *   formatSegments?: (fmt: *, width: number, indent: number) => *,
@@ -111,6 +111,11 @@ function deserializeFormat(json) {
 /**
  * Convert the compact serialized `Std.Format` tree to lean-vir's direct
  * object-ABI representation for `Std.Format`.
+ *
+ * The object ABI uses Lean's generated constructor field names rather than
+ * the compact JSON node names: `nest` stores `{ indent, f }`, `append` stores
+ * `{ arg1, arg2 }`, `group` stores `{ arg1, behavior }`, and `tag` stores
+ * `{ arg1, arg2 }`. Nat/Int fields cross this ABI as decimal strings.
  * @param {*} json
  * @return {*}
  */
@@ -646,7 +651,7 @@ function tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer) {
             rendered = bridge.formatJsonSegmentsJson(fmtString, width, indent);
         } else if (bridge.runtime && typeof bridge.runtime.call === "function") {
             rendered = bridge.runtime.call(
-                bridge.exportName || "VersoSlides.Pretty.formatJsonSegmentsJsonForVir",
+                bridge.jsonExportName || "VersoSlides.Pretty.formatJsonSegmentsJsonForVir",
                 fmtString,
                 width,
                 indent,
