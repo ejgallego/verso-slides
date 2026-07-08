@@ -765,13 +765,12 @@ path is only used when a page provides a ready
 `window.__versoPrettyVir` bridge.
 
 The renderer writes `lib/pretty-vir.js` next to `lib/pretty.js`, but
-it does not load it by default. Once a lean-vir SDK and package built
-for the same Lean toolchain are available, unpack or copy the SDK tree
-under `lib/lean-vir/`, preserving its `js/` and `wasm/`
-subdirectories, and put the generated package next to `pretty-vir.js`:
+it does not load it by default. To opt in manually, provide a lean-vir
+browser runtime and package built for the same Lean toolchain:
 
 - `lib/lean-vir/js/vir-runtime.js`
-- `lib/lean-vir/js/runtime/…` and other nested SDK modules
+- any nested JavaScript modules imported by that runtime, unless
+  `vir-runtime.js` has been bundled into one file
 - `lib/lean-vir/wasm/vir-upstream.wasm`
 - `lib/verso-pretty.irpkg`, exporting
   `VersoSlides.Pretty.formatJsonSegmentsJsonForVir` and

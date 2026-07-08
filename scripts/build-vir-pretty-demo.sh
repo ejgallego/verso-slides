@@ -13,6 +13,8 @@ usage() {
 Usage: scripts/build-vir-pretty-demo.sh [options]
 
 Build the VIR pretty-printer demo deck under _test/code.
+Run npm run build:demo:release in the lean-vir checkout first; this script
+refuses to publish if vir-upstream.wasm matches vir-upstream.dev.wasm.
 
 Options:
   --lean-vir-dir DIR   lean-vir checkout to use (default: $LEAN_VIR_DIR or /tmp/lean-vir)
