@@ -27,40 +27,6 @@ public structure Segment where
   tags : Array Nat
 deriving Repr, BEq, Inhabited, ToJson, FromJson
 
-/--
-Temporary object-ABI boundary for `Std.Format`.
-
-This mirrors `Std.Format`, but its `group` constructor stores an ordinary
-`Std.Format.FlattenBehavior` instead of the `optParam` field used by
-`Std.Format.group`. Once VIR classifies `optParam α default` as `α`, this can
-be replaced by direct `Std.Format` arguments.
--/
-public inductive CompatFormat where
-  | nil
-  | line
-  | align (force : Bool)
-  | text (text : String)
-  | nest (indent : Int) (body : CompatFormat)
-  | append (left right : CompatFormat)
-  | group (body : CompatFormat) (behavior : Std.Format.FlattenBehavior)
-  | tag (tagId : Nat) (body : CompatFormat)
-deriving Inhabited
-
-namespace CompatFormat
-
-/-- Convert the temporary object-ABI format representation to `Std.Format`. -/
-public partial def toFormat : CompatFormat → Std.Format
-  | .nil => Std.Format.nil
-  | .line => Std.Format.line
-  | .align force => Std.Format.align force
-  | .text s => Std.Format.text s
-  | .nest indent body => Std.Format.nest indent body.toFormat
-  | .append left right => left.toFormat ++ right.toFormat
-  | .group body behavior => Std.Format.group body.toFormat behavior
-  | .tag tagId body => Std.Format.tag tagId body.toFormat
-
-end CompatFormat
-
 private structure PrettyState where
   segments : Array Segment := #[]
   column : Nat := 0
@@ -102,18 +68,10 @@ public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0) :
   let act : PrettyM Unit := Std.Format.prettyM f width indent
   (act.run {}).2.segments
 
-/--
-Render the temporary object-ABI representation through Lean's `Std.Format`
-pretty-printer.
--/
-public def formatCompatSegments (f : CompatFormat) (width : Nat) (indent : Nat := 0) :
+/-- VIR entrypoint wrapper with no optional parameters. -/
+public def formatSegmentsForVir (f : Std.Format) (width indent : Nat) :
     Array Segment :=
-  formatSegments f.toFormat width indent
-
-/-- VIR entrypoint wrapper for the temporary object-ABI `Std.Format` mirror. -/
-public def formatCompatSegmentsForVir (f : CompatFormat) (width indent : Nat) :
-    Array Segment :=
-  formatCompatSegments f width indent
+  formatSegments f width indent
 
 /-- Render a `Std.Format` to plain text. Useful for tests and comparison. -/
 public def formatPlain (f : Std.Format) (width : Nat) (indent : Nat := 0) : String :=

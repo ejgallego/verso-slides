@@ -16,7 +16,7 @@ class TestPrettyVirAssets:
         assert "./lean-vir/js/vir-runtime.js" in body
         assert "./lean-vir/wasm/vir-upstream.wasm" in body
         assert "VersoSlides.Pretty.formatJsonSegmentsJsonForVir" in body
-        assert "VersoSlides.Pretty.formatCompatSegmentsForVir" in body
+        assert "VersoSlides.Pretty.formatSegmentsForVir" in body
 
     def test_pretty_vir_not_loaded_by_default(self, code_doc: BeautifulSoup):
         """The bootstrap remains opt-in until the VIR package assets are supplied."""
@@ -75,7 +75,7 @@ class TestPrettyVirBridge:
                         ok: true,
                         segments: [{ text: "from-vir", tags: [] }]
                     }),
-                    formatCompatSegments: () => [{ text: "from-object", tags: [] }]
+                    formatSegments: () => [{ text: "from-format", tags: [] }]
                 };
                 const measurer = {
                     spaceWidth: 10,
@@ -86,15 +86,15 @@ class TestPrettyVirBridge:
                 return {
                     js: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "js"),
                     vir: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir"),
-                    object: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-object"),
-                    timed: formatToHtmlTimed([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-object")
+                    format: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-format"),
+                    timed: formatToHtmlTimed([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-format")
                 };
             }"""
         )
         assert result["js"] == "hello world"
         assert result["vir"] == "from-vir"
-        assert result["object"] == "from-object"
-        assert result["timed"]["html"] == "from-object"
+        assert result["format"] == "from-format"
+        assert result["timed"]["html"] == "from-format"
         assert result["timed"]["durationMs"] >= 0
 
     def test_format_to_html_falls_back_on_invalid_vir_segments(self, code_url: str, page: Page):
@@ -134,7 +134,7 @@ class TestPrettyVirComparisonPanel:
                         ok: true,
                         segments: [{ text: "from-vir", tags: [] }]
                     }),
-                    formatCompatSegments: () => [{ text: "from-object", tags: [] }]
+                    formatSegments: () => [{ text: "from-format", tags: [] }]
                 };
             }"""
         )
@@ -185,12 +185,12 @@ class TestPrettyVirComparisonPanel:
         assert abs(after_width - before_width) > 20
         expect(panel.locator('[data-pretty-backend="js"] .pretty-compare-header')).to_contain_text("JS")
         expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-header')).to_contain_text("VIR JSON")
-        expect(panel.locator('[data-pretty-backend="vir-object"] .pretty-compare-header')).to_contain_text("VIR object")
+        expect(panel.locator('[data-pretty-backend="vir-format"] .pretty-compare-header')).to_contain_text("VIR Format")
         expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-body')).to_contain_text(
             "from-vir"
         )
-        expect(panel.locator('[data-pretty-backend="vir-object"] .pretty-compare-body')).to_contain_text(
-            "from-object"
+        expect(panel.locator('[data-pretty-backend="vir-format"] .pretty-compare-body')).to_contain_text(
+            "from-format"
         )
         timing_texts = panel.locator(".pretty-compare-time").all_inner_texts()
         assert all("ms" in text for text in timing_texts)

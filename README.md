@@ -12,7 +12,7 @@ The [demo slides](./Demo.lean) can be seen at
 
 The VIR-backed pretty-printer prototype demo is published at
 <https://x80.org/vir-verso-slides-demo/>. Keep this URL stable for
-comparing the JavaScript, VIR JSON, and VIR object rendering modes.
+comparing the JavaScript, VIR JSON, and VIR `Std.Format` rendering modes.
 
 ## Requirements
 
@@ -774,7 +774,7 @@ browser runtime and package built for the same Lean toolchain:
 - `lib/lean-vir/wasm/vir-upstream.wasm`
 - `lib/verso-pretty.irpkg`, exporting
   `VersoSlides.Pretty.formatJsonSegmentsJsonForVir` and
-  `VersoSlides.Pretty.formatCompatSegmentsForVir`
+  `VersoSlides.Pretty.formatSegmentsForVir`
 
 Then opt in with:
 
@@ -802,7 +802,7 @@ The script expects a lean-vir checkout at `/tmp/lean-vir`, or at
 `lib/verso-pretty.irpkg`, copies `vir-upstream.wasm`, bundles the
 lean-vir browser runtime into a single minified
 `lib/lean-vir/js/vir-runtime.js`, and enables the JavaScript, VIR JSON,
-and VIR object comparison panes. To publish the stable demo URL:
+and VIR `Std.Format` comparison panes. To publish the stable demo URL:
 
 ```
 scripts/build-vir-pretty-demo.sh --publish
