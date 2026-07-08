@@ -25,7 +25,11 @@
 }
 
 .code-with-panel.pretty-compare-active {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 3fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows:
+        minmax(4em, var(--compare-code-ratio, 1fr))
+        auto
+        minmax(0, var(--compare-panel-ratio, 2fr));
 }
 
 /* Code block inside panel — override standalone margins/shadow */
@@ -74,6 +78,21 @@
     overflow-x: auto;
 }
 
+.pretty-compare-active > code.hl.lean.block {
+    border-radius: 6px 6px 0 0;
+}
+
+.pretty-compare-active > .panel-divider {
+    width: auto;
+    height: 4px;
+    cursor: row-resize;
+}
+
+.pretty-compare-active > .panel-cell {
+    min-height: 0;
+    border-radius: 0 0 6px 6px;
+}
+
 /* Focus/hover highlights are drawn as one contiguous SVG path per element
    (see drawElementOutline in panel.js). A plain CSS outline is unusable here:
    when a tactic wraps across lines, Firefox and Safari draw a separate closed
@@ -115,6 +134,17 @@
 }
 .panel-collapsed > code.hl.lean.block {
     border-radius: 6px;
+}
+
+.pretty-compare-active.panel-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto 0;
+}
+
+.pretty-compare-active.panel-collapsed > .panel-divider {
+    width: auto;
+    height: 2px;
+    cursor: s-resize;
 }
 
 /* Panel content styling — monospace by default, except case labels */
@@ -191,12 +221,14 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.6em;
+    align-items: stretch;
+    min-height: 100%;
     min-width: 0;
 }
 
 .info-panel .pretty-compare-pane {
     min-width: 0;
-    overflow-x: auto;
+    overflow: auto;
     border-left: 2px solid rgba(128, 128, 128, 0.35);
     padding-left: 0.5em;
 }

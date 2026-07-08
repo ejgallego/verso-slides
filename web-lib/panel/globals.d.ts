@@ -45,6 +45,7 @@ interface VersoPrettyVirConfig {
     wasmUrl?: string;
     wasmDebugUrl?: string;
     debugWasm?: boolean;
+    fetchCache?: RequestCache;
     irPackageUrl?: string;
     exportName?: string;
     objectExportName?: string;

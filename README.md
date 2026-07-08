@@ -774,7 +774,8 @@ subdirectories, and put the generated package next to `pretty-vir.js`:
 - `lib/lean-vir/js/runtime/…` and other nested SDK modules
 - `lib/lean-vir/wasm/vir-upstream.wasm`
 - `lib/verso-pretty.irpkg`, exporting
-  `VersoSlides.Pretty.formatJsonSegmentsJsonForVir`
+  `VersoSlides.Pretty.formatJsonSegmentsJsonForVir` and
+  `VersoSlides.Pretty.formatCompatSegmentsForVir`
 
 Then opt in with:
 
@@ -787,6 +788,27 @@ slidesMain
 `pretty-vir.js` loads the runtime asynchronously. Until it reaches the
 ready state, or if loading fails, `formatToHtml` keeps using the
 existing synchronous JavaScript formatter.
+
+For the static comparison demo, use:
+
+```
+scripts/build-vir-pretty-demo.sh
+```
+
+The script expects a lean-vir checkout at `/tmp/lean-vir`, or at
+`$LEAN_VIR_DIR`. It rebuilds the fixture deck, generates
+`lib/verso-pretty.irpkg`, copies `vir-upstream.wasm`, bundles the
+lean-vir browser runtime into a single minified
+`lib/lean-vir/js/vir-runtime.js`, and enables the JavaScript, VIR JSON,
+and VIR object comparison panes. To publish the stable demo URL:
+
+```
+scripts/build-vir-pretty-demo.sh --publish
+```
+
+By default, `--publish` syncs to
+`x80.org:/srv/www/vir-verso-slides-demo/`, which is served at
+<https://x80.org/vir-verso-slides-demo/>.
 
 ## Themes
 

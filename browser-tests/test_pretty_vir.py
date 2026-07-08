@@ -122,7 +122,7 @@ class TestPrettyVirBridge:
 
 class TestPrettyVirComparisonPanel:
     def test_tactic_panel_can_show_js_and_vir_side_by_side(self, code_url: str, page: Page):
-        """Comparison mode splits rich goal rendering into JS and VIR panes."""
+        """Comparison mode gives the three renderers a full-width row."""
         slide = goto_slide_by_title(page, code_url, "Proof")
         page.evaluate(
             """() => {
@@ -147,12 +147,21 @@ class TestPrettyVirComparisonPanel:
         expect(panel.locator(".pretty-compare")).to_be_visible()
         assert panel.locator(".pretty-compare-pane").count() == 3
         assert block.evaluate("el => el.classList.contains('pretty-compare-active')")
-        pane_boxes = panel.locator(".pretty-compare-pane").evaluate_all(
-            """panes => panes.map(pane => {
-                const rect = pane.getBoundingClientRect();
-                return { left: rect.left, right: rect.right, top: rect.top };
-            })"""
+        layout = block.evaluate(
+            """block => {
+                const box = el => {
+                    const rect = el.getBoundingClientRect();
+                    return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+                };
+                return {
+                    code: box(block.querySelector("code.hl.lean.block")),
+                    panel: box(block.querySelector(".info-panel")),
+                    panes: [...block.querySelectorAll(".pretty-compare-pane")].map(box)
+                };
+            }"""
         )
+        pane_boxes = layout["panes"]
+        assert layout["code"]["bottom"] <= layout["panel"]["top"]
         assert pane_boxes[0]["right"] <= pane_boxes[1]["left"]
         assert pane_boxes[1]["right"] <= pane_boxes[2]["left"]
         assert abs(pane_boxes[0]["top"] - pane_boxes[1]["top"]) <= 1

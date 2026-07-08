@@ -11,6 +11,7 @@
      *   wasmUrl?: string,
      *   wasmDebugUrl?: string,
      *   debugWasm?: boolean,
+     *   fetchCache?: RequestCache,
      *   irPackageUrl?: string,
      *   exportName?: string,
      *   objectExportName?: string
@@ -67,11 +68,23 @@
             if (typeof runtimeModule.createVirRuntime !== "function") {
                 throw new Error("lean-vir runtime module does not export createVirRuntime");
             }
+            var fetchCache = config.fetchCache || "default";
+            /** @param {string | URL} path */
+            function fetchBytes(path) {
+                if (typeof runtimeModule.fetchBytes === "function") {
+                    return runtimeModule.fetchBytes(path, { cache: fetchCache });
+                }
+                return fetch(path, { cache: fetchCache }).then(function (response) {
+                    if (!response.ok) throw new Error("failed to load " + path);
+                    return response.arrayBuffer();
+                });
+            }
             return runtimeModule.createVirRuntime({
                 wasmUrl: config.wasmUrl || fromScript("./lean-vir/wasm/vir-upstream.wasm"),
                 wasmDebugUrl: config.wasmDebugUrl,
                 debugWasm: config.debugWasm === true,
                 irPackageUrl: config.irPackageUrl || fromScript("./verso-pretty.irpkg"),
+                fetchBytes: fetchBytes,
             });
         })
         .then(function (runtime) {
