@@ -801,32 +801,13 @@
         divider.addEventListener("mousedown", function (e) {
             e.preventDefault();
             dragging = true;
-            document.body.style.cursor = block.classList.contains("pretty-compare-active")
-                ? "row-resize"
-                : "col-resize";
+            document.body.style.cursor = "col-resize";
             document.body.style.userSelect = "none";
         });
 
         document.addEventListener("mousemove", function (e) {
             if (!dragging) return;
             var rect = block.getBoundingClientRect();
-
-            if (block.classList.contains("pretty-compare-active")) {
-                var y = e.clientY - rect.top;
-                var rowPct = y / rect.height;
-
-                if (rowPct > 0.95) {
-                    block.classList.add("panel-collapsed");
-                } else {
-                    block.classList.remove("panel-collapsed");
-                    var codeRowFr = Math.max(0.15, Math.min(0.75, rowPct));
-                    var panelRowFr = 1 - codeRowFr;
-                    block.style.setProperty("--compare-code-ratio", codeRowFr + "fr");
-                    block.style.setProperty("--compare-panel-ratio", panelRowFr + "fr");
-                }
-                return;
-            }
-
             var x = e.clientX - rect.left;
             var pct = x / rect.width;
 

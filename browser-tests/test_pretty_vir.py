@@ -122,7 +122,7 @@ class TestPrettyVirBridge:
 
 class TestPrettyVirComparisonPanel:
     def test_tactic_panel_can_show_js_and_vir_side_by_side(self, code_url: str, page: Page):
-        """Comparison mode gives the three renderers a full-width row."""
+        """Comparison mode keeps the vertical split and renders three horizontal panes."""
         slide = goto_slide_by_title(page, code_url, "Proof")
         page.evaluate(
             """() => {
@@ -140,7 +140,7 @@ class TestPrettyVirComparisonPanel:
         )
         block = slide.locator(".code-with-panel").first
         panel = block.locator(".info-panel")
-        tactic = block.locator(".tactic").first
+        tactic = block.locator(".tactic .keyword").first
         expect(tactic).to_be_visible()
         tactic.click()
 
@@ -151,7 +151,7 @@ class TestPrettyVirComparisonPanel:
             """block => {
                 const box = el => {
                     const rect = el.getBoundingClientRect();
-                    return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+                    return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width };
                 };
                 return {
                     code: box(block.querySelector("code.hl.lean.block")),
@@ -161,11 +161,28 @@ class TestPrettyVirComparisonPanel:
             }"""
         )
         pane_boxes = layout["panes"]
-        assert layout["code"]["bottom"] <= layout["panel"]["top"]
+        assert layout["code"]["right"] <= layout["panel"]["left"]
         assert pane_boxes[0]["right"] <= pane_boxes[1]["left"]
         assert pane_boxes[1]["right"] <= pane_boxes[2]["left"]
         assert abs(pane_boxes[0]["top"] - pane_boxes[1]["top"]) <= 1
         assert abs(pane_boxes[1]["top"] - pane_boxes[2]["top"]) <= 1
+        before_width = layout["panel"]["width"]
+        block_box = block.bounding_box()
+        divider_box = block.locator(".panel-divider").bounding_box()
+        assert block_box is not None
+        assert divider_box is not None
+        page.mouse.move(
+            divider_box["x"] + divider_box["width"] / 2,
+            divider_box["y"] + divider_box["height"] / 2,
+        )
+        page.mouse.down()
+        page.mouse.move(
+            block_box["x"] + block_box["width"] * 0.35,
+            divider_box["y"] + divider_box["height"] / 2,
+        )
+        page.mouse.up()
+        after_width = panel.evaluate("el => el.getBoundingClientRect().width")
+        assert abs(after_width - before_width) > 20
         expect(panel.locator('[data-pretty-backend="js"] .pretty-compare-header')).to_contain_text("JS")
         expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-header')).to_contain_text("VIR JSON")
         expect(panel.locator('[data-pretty-backend="vir-object"] .pretty-compare-header')).to_contain_text("VIR object")
