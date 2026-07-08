@@ -27,6 +27,7 @@ interface VersoPrettyVirRuntime {
 interface VersoPrettyVirBridge {
     enabled?: boolean;
     compare?: boolean;
+    backend?: "auto" | "js" | "vir" | "vir-format";
     runtime?: VersoPrettyVirRuntime;
     jsonExportName?: string;
     formatExportName?: string;
@@ -41,6 +42,7 @@ interface VersoPrettyVirBridge {
 interface VersoPrettyVirConfig {
     enabled?: boolean;
     compare?: boolean;
+    backend?: "auto" | "js" | "vir" | "vir-format";
     runtimeUrl?: string;
     wasmUrl?: string;
     wasmDebugUrl?: string;

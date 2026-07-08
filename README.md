@@ -788,6 +788,12 @@ slidesMain
 ready state, or if loading fails, `formatToHtml` keeps using the
 existing synchronous JavaScript formatter.
 
+When comparison mode is disabled, the panel can select a specific
+renderer with `window.__versoPrettyVirConfig.backend`. Supported
+values are `"auto"`, `"js"`, `"vir"` for the JSON boundary, and
+`"vir-format"` for the direct `Std.Format` boundary. Comparison mode
+continues to render all three panes side by side.
+
 For the static comparison demo, use:
 
 ```
