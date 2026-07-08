@@ -1,4 +1,9 @@
 {
+    "scripts": {
+        "format:check": "prettier --check web-lib/**/*.js web-lib/**/*.d.ts web-lib/**/*.json package.json",
+        "format:write": "prettier --write web-lib/**/*.js web-lib/**/*.d.ts web-lib/**/*.json package.json",
+        "typecheck:panel": "tsc -p web-lib/panel/jsconfig.json"
+    },
     "devDependencies": {
         "prettier": "3.7.4",
         "typescript": "5.7.2"

@@ -25,6 +25,7 @@
             });
 
         document.querySelectorAll(".code-with-panel").forEach(setupBlock);
+        refreshPanelWhenPrettyVirReady();
 
         Reveal.on("fragmentshown", onFragmentShown);
         Reveal.on("fragmenthidden", onFragmentHidden);
@@ -32,6 +33,17 @@
         Reveal.on("resize", function () {
             document.querySelectorAll(".code-with-panel").forEach(function (el) {
                 redrawFocusOutline(/** @type {PanelBlock} */ (el));
+            });
+        });
+    }
+
+    function refreshPanelWhenPrettyVirReady() {
+        var root = /** @type {Window} */ (window);
+        var bridge = root.__versoPrettyVir;
+        if (!bridge || !bridge.ready || typeof bridge.ready.then !== "function") return;
+        bridge.ready.then(function () {
+            document.querySelectorAll(".info-panel").forEach(function (panel) {
+                reflowPanel(/** @type {InfoPanel} */ (panel));
             });
         });
     }
@@ -415,6 +427,7 @@
 
         // Store the source element for reflow on resize
         panel._richFormatSource = null;
+        setPrettyComparisonActive(panel, false);
 
         /** @type {string | null} */
         var html = "";
@@ -431,12 +444,7 @@
                     panel._richFormatSource = ts;
                     try {
                         var goalsData = JSON.parse(richFmt);
-                        var result = goalsToHtml(goalsData);
-                        // Pass 1: insert structural HTML so table layout computes cell widths
-                        panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                        // Pass 2: measure actual .type cell widths and format expressions
-                        var measurer = getPanelMeasurer(panel);
-                        fillReflowedSpans(panel, result.formats, measurer);
+                        renderGoalsFormat(panel, goalsData);
                         html = null; // already set innerHTML
                     } catch (e) {
                         html = '<span class="hl lean">' + ts.innerHTML + "</span>";
@@ -458,18 +466,14 @@
         if (html !== null) panel.innerHTML = html;
 
         // Check for reflowable signature format data in hover content
-        var sigCode = panel.querySelector("code[data-rich-format]");
+        var sigCode = /** @type {HTMLElement | null} */ (
+            panel.querySelector("code[data-rich-format]")
+        );
         if (sigCode && typeof formatToHtml === "function") {
             try {
                 var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
                 panel._richFormatSource = sigCode;
-                var measurer = getPanelMeasurer(panel);
-                var width =
-                    panel.clientWidth -
-                    parseFloat(getComputedStyle(panel).paddingLeft || "0") -
-                    parseFloat(getComputedStyle(panel).paddingRight || "0");
-                var rendered = formatToHtml(fmtData.fmt, fmtData.annotations, width, measurer);
-                sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
+                renderSignatureFormat(panel, sigCode, fmtData);
             } catch (e) {
                 // Fall back to plain text signature on error
                 panel._richFormatSource = null;
@@ -495,6 +499,164 @@
     }
 
     /**
+     * @param {HTMLElement} panel
+     * @param {boolean} active
+     */
+    function setPrettyComparisonActive(panel, active) {
+        var block = panel.closest(".code-with-panel");
+        if (block) block.classList.toggle("pretty-compare-active", active);
+    }
+
+    /**
+     * @return {boolean}
+     */
+    function prettyComparisonEnabled() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyVirConfig;
+        var bridge = root.__versoPrettyVir;
+        return !!((config && config.compare === true) || (bridge && bridge.compare === true));
+    }
+
+    /**
+     * @param {HTMLElement} el
+     * @return {number}
+     */
+    function contentWidth(el) {
+        var style = getComputedStyle(el);
+        return (
+            el.clientWidth -
+            parseFloat(style.paddingLeft || "0") -
+            parseFloat(style.paddingRight || "0")
+        );
+    }
+
+    /**
+     * @param {number} ms
+     * @return {string}
+     */
+    function formatTiming(ms) {
+        if (!Number.isFinite(ms)) return "";
+        if (ms < 0.1) return "<0.1 ms";
+        return ms.toFixed(ms < 10 ? 1 : 0) + " ms";
+    }
+
+    /**
+     * @param {HTMLElement} container
+     * @return {{ jsBody: HTMLElement, jsTime: HTMLElement, virBody: HTMLElement, virTime: HTMLElement }}
+     */
+    function setupPrettyComparison(container) {
+        container.innerHTML =
+            '<div class="pretty-compare">' +
+            '<div class="pretty-compare-pane" data-pretty-backend="js">' +
+            '<div class="pretty-compare-header"><span>JS</span><span class="pretty-compare-time"></span></div>' +
+            '<div class="pretty-compare-body"></div>' +
+            "</div>" +
+            '<div class="pretty-compare-pane" data-pretty-backend="vir">' +
+            '<div class="pretty-compare-header"><span>VIR</span><span class="pretty-compare-time"></span></div>' +
+            '<div class="pretty-compare-body"></div>' +
+            "</div>" +
+            "</div>";
+        var jsPane = /** @type {HTMLElement} */ (
+            container.querySelector('[data-pretty-backend="js"]')
+        );
+        var virPane = /** @type {HTMLElement} */ (
+            container.querySelector('[data-pretty-backend="vir"]')
+        );
+        return {
+            jsBody: /** @type {HTMLElement} */ (jsPane.querySelector(".pretty-compare-body")),
+            jsTime: /** @type {HTMLElement} */ (jsPane.querySelector(".pretty-compare-time")),
+            virBody: /** @type {HTMLElement} */ (virPane.querySelector(".pretty-compare-body")),
+            virTime: /** @type {HTMLElement} */ (virPane.querySelector(".pretty-compare-time")),
+        };
+    }
+
+    /**
+     * @param {HTMLElement} body
+     * @param {*} goalsData
+     * @param {"js" | "vir"} backend
+     * @param {HTMLElement} timeEl
+     */
+    function renderGoalsPane(body, goalsData, backend, timeEl) {
+        var start = performance.now();
+        var result = goalsToHtml(goalsData);
+        body.innerHTML = '<span class="hl lean">' + result.html + "</span>";
+        var measurer = getPanelMeasurer(body);
+        fillReflowedSpans(body, result.formats, measurer, backend);
+        timeEl.textContent = formatTiming(performance.now() - start);
+    }
+
+    /**
+     * @param {HTMLElement} panel
+     * @param {*} goalsData
+     */
+    function renderGoalsFormat(panel, goalsData) {
+        var comparing = prettyComparisonEnabled() && typeof formatToHtmlTimed === "function";
+        setPrettyComparisonActive(panel, comparing);
+        if (comparing) {
+            var panes = setupPrettyComparison(panel);
+            renderGoalsPane(panes.jsBody, goalsData, "js", panes.jsTime);
+            renderGoalsPane(panes.virBody, goalsData, "vir", panes.virTime);
+            return;
+        }
+
+        var result = goalsToHtml(goalsData);
+        // Pass 1: insert structural HTML so table layout computes cell widths.
+        panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
+        // Pass 2: measure actual .type cell widths and format expressions.
+        var measurer = getPanelMeasurer(panel);
+        fillReflowedSpans(panel, result.formats, measurer);
+    }
+
+    /**
+     * @param {HTMLElement} body
+     * @param {*} fmtData
+     * @param {"js" | "vir"} backend
+     * @param {HTMLElement} timeEl
+     */
+    function renderSignaturePane(body, fmtData, backend, timeEl) {
+        var measurer = getPanelMeasurer(body);
+        var timed = formatToHtmlTimed(
+            fmtData.fmt,
+            fmtData.annotations,
+            contentWidth(body),
+            measurer,
+            backend,
+        );
+        timeEl.textContent = formatTiming(timed.durationMs);
+        body.innerHTML =
+            '<span class="reflowed">' +
+            (timed.html === null
+                ? '<span class="pretty-compare-unavailable">unavailable</span>'
+                : timed.html) +
+            "</span>";
+    }
+
+    /**
+     * @param {HTMLElement} panel
+     * @param {HTMLElement} sigCode
+     * @param {*} fmtData
+     */
+    function renderSignatureFormat(panel, sigCode, fmtData) {
+        var comparing = prettyComparisonEnabled() && typeof formatToHtmlTimed === "function";
+        setPrettyComparisonActive(panel, comparing);
+        if (comparing) {
+            var panes = setupPrettyComparison(sigCode);
+            renderSignaturePane(panes.jsBody, fmtData, "js", panes.jsTime);
+            renderSignaturePane(panes.virBody, fmtData, "vir", panes.virTime);
+            return;
+        }
+
+        var measurer = getPanelMeasurer(panel);
+        var rendered = formatToHtml(
+            fmtData.fmt,
+            fmtData.annotations,
+            contentWidth(panel),
+            measurer,
+        );
+        sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
+    }
+
+    /**
      * Reflow the panel's rich format content at current width.
      * @param {InfoPanel} panel
      */
@@ -507,20 +669,9 @@
             var parsed = JSON.parse(richFmt);
             // Detect whether this is goal data (array) or signature format data (has "fmt" key)
             if (Array.isArray(parsed) && typeof goalsToHtml === "function") {
-                var result = goalsToHtml(parsed);
-                panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                var measurer = getPanelMeasurer(panel);
-                fillReflowedSpans(panel, result.formats, measurer);
+                renderGoalsFormat(panel, parsed);
             } else if (parsed.fmt && typeof formatToHtml === "function") {
-                var measurer = getPanelMeasurer(panel);
-                var width =
-                    panel.clientWidth -
-                    parseFloat(getComputedStyle(panel).paddingLeft || "0") -
-                    parseFloat(getComputedStyle(panel).paddingRight || "0");
-                source.innerHTML =
-                    '<span class="reflowed">' +
-                    formatToHtml(parsed.fmt, parsed.annotations, width, measurer) +
-                    "</span>";
+                renderSignatureFormat(panel, /** @type {HTMLElement} */ (source), parsed);
             }
         } catch (e) {
             // Fall back to pre-rendered HTML on error
@@ -608,6 +759,7 @@
             drawElementOutline(codeEl, null, "panel-outline-focus");
         }
         block._activeSource = null;
+        setPrettyComparisonActive(panel, false);
         panel.innerHTML = "";
     }
 
