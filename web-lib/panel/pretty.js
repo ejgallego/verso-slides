@@ -30,9 +30,12 @@
  *
  * @typedef {{ cssClass: string, binding?: string }} TokenAnnotation
  *
+ * @typedef {"auto" | "js" | "vir" | "vir-format"} PrettyBackend
+ *
  * @typedef {{
  *   enabled?: boolean,
  *   runtime?: { call: (name: string, ...args: *[]) => * },
+ *   backend?: PrettyBackend,
  *   jsonExportName?: string,
  *   formatExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
@@ -59,8 +62,6 @@
  * @typedef {{ name?: string, hypotheses: Hypothesis[], goalPrefix: string, ppConclusion?: string | FormatData }} GoalData
  *
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
- *
- * @typedef {"auto" | "js" | "vir" | "vir-format"} PrettyBackend
  *
  * @typedef {{ html: string | null, durationMs: number }} TimedPrettyResult
  */

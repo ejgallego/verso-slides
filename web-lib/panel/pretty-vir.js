@@ -7,6 +7,7 @@
      * @typedef {{
      *   enabled?: boolean,
      *   compare?: boolean,
+     *   backend?: "auto" | "js" | "vir" | "vir-format",
      *   runtimeUrl?: string,
      *   wasmUrl?: string,
      *   wasmDebugUrl?: string,
@@ -20,6 +21,7 @@
      * @typedef {{
      *   enabled?: boolean,
      *   compare?: boolean,
+     *   backend?: "auto" | "js" | "vir" | "vir-format",
      *   runtime?: { call: (name: string, ...args: *[]) => * },
      *   jsonExportName?: string,
      *   formatExportName?: string,
@@ -51,9 +53,19 @@
         return new URL(path, scriptUrl).href;
     }
 
+    /**
+     * @param {*=} backend
+     * @return {"auto" | "js" | "vir" | "vir-format"}
+     */
+    function normalizeBackend(backend) {
+        if (backend === "js" || backend === "vir" || backend === "vir-format") return backend;
+        return "auto";
+    }
+
     var bridge = root.__versoPrettyVir || {};
     bridge.enabled = true;
     bridge.compare = config.compare === true || bridge.compare === true;
+    bridge.backend = normalizeBackend(config.backend || bridge.backend);
     bridge.status = "loading";
     bridge.jsonExportName =
         config.jsonExportName ||

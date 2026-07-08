@@ -518,6 +518,25 @@
     }
 
     /**
+     * @param {*=} backend
+     * @return {"auto" | "js" | "vir" | "vir-format"}
+     */
+    function normalizePrettyBackend(backend) {
+        if (backend === "js" || backend === "vir" || backend === "vir-format") return backend;
+        return "auto";
+    }
+
+    /**
+     * @return {"auto" | "js" | "vir" | "vir-format"}
+     */
+    function selectedPrettyBackend() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyVirConfig;
+        var bridge = root.__versoPrettyVir;
+        return normalizePrettyBackend((config && config.backend) || (bridge && bridge.backend));
+    }
+
+    /**
      * @param {HTMLElement} el
      * @return {number}
      */
@@ -629,7 +648,7 @@
         panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
         // Pass 2: measure actual .type cell widths and format expressions.
         var measurer = getPanelMeasurer(panel);
-        fillReflowedSpans(panel, result.formats, measurer);
+        fillReflowedSpans(panel, result.formats, measurer, selectedPrettyBackend());
     }
 
     /**
@@ -673,13 +692,19 @@
         }
 
         var measurer = getPanelMeasurer(panel);
-        var rendered = formatToHtml(
+        var rendered = formatToHtmlWithBackend(
             fmtData.fmt,
             fmtData.annotations,
             contentWidth(panel),
             measurer,
+            selectedPrettyBackend(),
         );
-        sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
+        sigCode.innerHTML =
+            '<span class="reflowed">' +
+            (rendered === null
+                ? '<span class="pretty-compare-unavailable">unavailable</span>'
+                : rendered) +
+            "</span>";
     }
 
     /**
