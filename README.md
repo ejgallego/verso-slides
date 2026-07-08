@@ -751,6 +751,39 @@ The generated HTML loads the Notes, Highlight, and KaTeX Math plugins
 automatically. All plugin assets are vendored and written to the
 output directory, so no internet connection is required.
 
+### Optional VIR Pretty-Printer Prototype
+
+VersoSlides currently ships an opt-in prototype for rendering
+reflowable Lean `Std.Format` data through
+[`lean-vir`](https://github.com/ejgallego/lean-vir). The default deck
+still uses the JavaScript pretty-printer in `lib/pretty.js`; the VIR
+path is only used when a page provides a ready
+`window.__versoPrettyVir` bridge.
+
+The renderer writes `lib/pretty-vir.js` next to `lib/pretty.js`, but
+it does not load it by default. Once a lean-vir SDK and package built
+for the same Lean toolchain are available, unpack or copy the SDK tree
+under `lib/lean-vir/`, preserving its `js/` and `wasm/`
+subdirectories, and put the generated package next to `pretty-vir.js`:
+
+- `lib/lean-vir/js/vir-runtime.js`
+- `lib/lean-vir/js/runtime/…` and other nested SDK modules
+- `lib/lean-vir/wasm/vir-upstream.wasm`
+- `lib/verso-pretty.irpkg`, exporting
+  `VersoSlides.Pretty.formatJsonSegmentsJsonForVir`
+
+Then opt in with:
+
+```lean
+slidesMain
+  (config := { extraJs := #["lib/pretty-vir.js"] })
+  (doc := %doc MyPresentation)
+```
+
+`pretty-vir.js` loads the runtime asynchronously. Until it reaches the
+ready state, or if loading fails, `formatToHtml` keeps using the
+existing synchronous JavaScript formatter.
+
 ## Themes
 
 The built-in `reveal.js` themes are the ones listed in the

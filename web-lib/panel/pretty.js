@@ -31,6 +31,15 @@
  * @typedef {{ cssClass: string, binding?: string }} TokenAnnotation
  *
  * @typedef {{
+ *   enabled?: boolean,
+ *   runtime?: { call: (name: string, ...args: *[]) => * },
+ *   exportName?: string,
+ *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
+ *   status?: string,
+ *   warned?: boolean
+ * }} PrettyVirBridge
+ *
+ * @typedef {{
  *   column: number,
  *   tagStack: number[],
  *   segments: Segment[],
@@ -48,6 +57,10 @@
  * @typedef {{ name?: string, hypotheses: Hypothesis[], goalPrefix: string, ppConclusion?: string | FormatData }} GoalData
  *
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
+ *
+ * @typedef {"auto" | "js" | "vir"} PrettyBackend
+ *
+ * @typedef {{ html: string | null, durationMs: number }} TimedPrettyResult
  */
 
 /**
@@ -507,6 +520,155 @@ function makeRenderContext(annotations, measurer) {
 }
 
 /**
+ * Convert a pixel budget to the column budget expected by `Std.Format.prettyM`.
+ *
+ * This is intentionally approximate. The existing DOM-measured JS printer can
+ * make decisions using exact token widths; Lean's pretty-printer works in
+ * character columns. Lean code is rendered monospace in normal slide themes, so
+ * the space width is the best available conversion for the VIR prototype.
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {number}
+ */
+function pixelWidthToFormatColumns(pixelWidth, measurer) {
+    var spaceWidth = measurer.spaceWidth > 0 ? measurer.spaceWidth : 1;
+    var columns = Math.floor(pixelWidth / spaceWidth);
+    return Math.max(1, columns);
+}
+
+/**
+ * @param {*} value
+ * @return {Segment[] | null}
+ */
+function normalizeVirSegments(value) {
+    if (!Array.isArray(value)) return null;
+    /** @type {Segment[]} */
+    var segments = [];
+    for (var i = 0; i < value.length; i++) {
+        var seg = value[i];
+        if (!seg || typeof seg.text !== "string" || !Array.isArray(seg.tags)) {
+            return null;
+        }
+        /** @type {number[]} */
+        var tags = [];
+        for (var j = 0; j < seg.tags.length; j++) {
+            var tag = Number(seg.tags[j]);
+            if (!Number.isInteger(tag) || tag < 0) {
+                return null;
+            }
+            tags.push(tag);
+        }
+        segments.push({ text: seg.text, tags: tags });
+    }
+    return segments;
+}
+
+/**
+ * @param {PrettyVirBridge} bridge
+ * @param {*} error
+ */
+function warnPrettyVirFallback(bridge, error) {
+    if (bridge.warned) return;
+    bridge.warned = true;
+    console.warn("VIR pretty-printer failed; falling back to JS formatter.", error);
+}
+
+/**
+ * Try rendering through an initialized lean-vir runtime.
+ * @param {*} fmtJson
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {Segment[] | null}
+ */
+function tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer) {
+    var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
+        .__versoPrettyVir;
+    if (!bridge || bridge.enabled === false) return null;
+    if (bridge.status && bridge.status !== "ready") return null;
+
+    var fmtString = JSON.stringify(fmtJson);
+    if (typeof fmtString !== "string") return null;
+
+    try {
+        var width = pixelWidthToFormatColumns(pixelWidth, measurer);
+        var indent = 0;
+        var rendered;
+        if (typeof bridge.formatJsonSegmentsJson === "function") {
+            rendered = bridge.formatJsonSegmentsJson(fmtString, width, indent);
+        } else if (bridge.runtime && typeof bridge.runtime.call === "function") {
+            rendered = bridge.runtime.call(
+                bridge.exportName || "VersoSlides.Pretty.formatJsonSegmentsJsonForVir",
+                fmtString,
+                width,
+                indent,
+            );
+        } else {
+            return null;
+        }
+
+        var result = typeof rendered === "string" ? JSON.parse(rendered) : rendered;
+        if (!result || result.ok !== true) {
+            warnPrettyVirFallback(bridge, result && result.error ? result.error : result);
+            return null;
+        }
+        var segments = normalizeVirSegments(result.segments);
+        if (segments === null) {
+            warnPrettyVirFallback(bridge, "invalid segment payload");
+            return null;
+        }
+        return segments;
+    } catch (error) {
+        warnPrettyVirFallback(bridge, error);
+        return null;
+    }
+}
+
+/**
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {Segment[]}
+ */
+function formatSegmentsWithJs(fmtJson, annotations, pixelWidth, measurer) {
+    var fmt = deserializeFormat(fmtJson);
+    var ctx = makeRenderContext(annotations, measurer);
+    prettyM(fmt, pixelWidth, 0, ctx, measurer);
+    return ctx.segments;
+}
+
+/**
+ * Render a format tree to HTML at a given pixel width, forcing a backend when
+ * requested. The `"vir"` backend returns `null` instead of falling back.
+ * @param {*} fmtJson  - compact array format from Highlighted.lean
+ * @param {Record<string, TokenAnnotation>} annotations - tag index → { cssClass, binding }
+ * @param {number} pixelWidth - target width in pixels
+ * @param {DOMMeasurer} measurer
+ * @param {PrettyBackend} backend
+ * @return {string | null} HTML string, or null when the forced backend is unavailable
+ */
+function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backend) {
+    if (backend === "js") {
+        return segmentsToHtml(
+            formatSegmentsWithJs(fmtJson, annotations, pixelWidth, measurer),
+            annotations,
+        );
+    }
+
+    if (backend === "vir") {
+        var virSegments = tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer);
+        return virSegments ? segmentsToHtml(virSegments, annotations) : null;
+    }
+
+    var autoVirSegments = tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer);
+    if (autoVirSegments) return segmentsToHtml(autoVirSegments, annotations);
+    return segmentsToHtml(
+        formatSegmentsWithJs(fmtJson, annotations, pixelWidth, measurer),
+        annotations,
+    );
+}
+
+/**
  * Render a format tree to HTML at a given pixel width.
  * @param {*} fmtJson  - compact array format from Highlighted.lean
  * @param {Record<string, TokenAnnotation>} annotations - tag index → { cssClass, binding }
@@ -515,10 +677,22 @@ function makeRenderContext(annotations, measurer) {
  * @return {string} HTML string
  */
 function formatToHtml(fmtJson, annotations, pixelWidth, measurer) {
-    var fmt = deserializeFormat(fmtJson);
-    var ctx = makeRenderContext(annotations, measurer);
-    prettyM(fmt, pixelWidth, 0, ctx, measurer);
-    return segmentsToHtml(ctx.segments, annotations);
+    return formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, "auto") || "";
+}
+
+/**
+ * Render a format tree and measure the synchronous render duration.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @param {PrettyBackend} backend
+ * @return {TimedPrettyResult}
+ */
+function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend) {
+    var start = performance.now();
+    var html = formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backend);
+    return { html: html, durationMs: performance.now() - start };
 }
 
 /**
@@ -646,8 +820,9 @@ function goalsToHtml(goalsJson) {
  * @param {Element} container
  * @param {FormatData[]} formats
  * @param {DOMMeasurer} measurer
+ * @param {PrettyBackend} [backend]
  */
-function fillReflowedSpans(container, formats, measurer) {
+function fillReflowedSpans(container, formats, measurer, backend) {
     var spans = container.querySelectorAll(".reflowed[data-fmt-idx]");
     for (var i = 0; i < spans.length; i++) {
         var span = spans[i];
@@ -657,6 +832,14 @@ function fillReflowedSpans(container, formats, measurer) {
         var cell = span.closest(".type");
         if (!cell) continue;
         var width = measurer.measureElWidth(cell);
-        span.innerHTML = formatToHtml(entry.fmt, entry.annotations, width, measurer);
+        var html = formatToHtmlWithBackend(
+            entry.fmt,
+            entry.annotations,
+            width,
+            measurer,
+            backend || "auto",
+        );
+        span.innerHTML =
+            html === null ? '<span class="pretty-compare-unavailable">unavailable</span>' : html;
     }
 }

@@ -20,6 +20,38 @@ declare var tippy: ((targets: unknown, props?: unknown) => unknown) & Record<str
 /** marked.js Markdown parser (global, may not be loaded). */
 declare var marked: { parse(text: string): string } | undefined;
 
+interface VersoPrettyVirRuntime {
+    call(name: string, ...args: any[]): any;
+}
+
+interface VersoPrettyVirBridge {
+    enabled?: boolean;
+    compare?: boolean;
+    runtime?: VersoPrettyVirRuntime;
+    exportName?: string;
+    formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string;
+    ready?: Promise<unknown>;
+    status?: string;
+    error?: unknown;
+    warned?: boolean;
+}
+
+interface VersoPrettyVirConfig {
+    enabled?: boolean;
+    compare?: boolean;
+    runtimeUrl?: string;
+    wasmUrl?: string;
+    wasmDebugUrl?: string;
+    debugWasm?: boolean;
+    irPackageUrl?: string;
+    exportName?: string;
+}
+
+interface Window {
+    __versoPrettyVir?: VersoPrettyVirBridge;
+    __versoPrettyVirConfig?: VersoPrettyVirConfig;
+}
+
 /** pretty.js — render a format tree to HTML at a given pixel width (global). */
 declare function formatToHtml(
     fmtJson: any,
@@ -27,6 +59,22 @@ declare function formatToHtml(
     pixelWidth: number,
     measurer: DOMMeasurer,
 ): string;
+
+declare function formatToHtmlWithBackend(
+    fmtJson: any,
+    annotations: Record<string, any>,
+    pixelWidth: number,
+    measurer: DOMMeasurer,
+    backend: "auto" | "js" | "vir",
+): string | null;
+
+declare function formatToHtmlTimed(
+    fmtJson: any,
+    annotations: Record<string, any>,
+    pixelWidth: number,
+    measurer: DOMMeasurer,
+    backend: "auto" | "js" | "vir",
+): { html: string | null; durationMs: number };
 
 /** pretty.js — create a DOM-based measurer for pixel-accurate text width measurement (global). */
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;

@@ -356,6 +356,9 @@ private def slideCodePanelCss : String := include_str "../web-lib/panel/panel.cs
 /-- JS for the pretty-printer (reflowable format rendering). -/
 private def prettyJs : String := include_str "../web-lib/panel/pretty.js"
 
+/-- Optional JS bootstrap for the lean-vir backed pretty-printer prototype. -/
+private def prettyVirJs : String := include_str "../web-lib/panel/pretty-vir.js"
+
 /-- JS for the interactive info panel. -/
 private def slideCodePanelJs : String := include_str "../web-lib/panel/panel.js"
 
@@ -579,6 +582,7 @@ def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme) : IO Unit 
   writeFileWithDirs (libDir / "tippy-panel-filter.js") tippyPanelFilterJs
   writeFileWithDirs (libDir / "code-block-bg.js") codeBlockBgJs
   writeFileWithDirs (libDir / "pretty.js") prettyJs
+  writeFileWithDirs (libDir / "pretty-vir.js") prettyVirJs
   writeFileWithDirs (libDir / "panel.js") slideCodePanelJs
   writeFileWithDirs (libDir / "lightbox.css") lightboxCss
   writeFileWithDirs (libDir / "lightbox.js") lightboxJs

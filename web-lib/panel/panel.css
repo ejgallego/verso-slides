@@ -24,6 +24,10 @@
     overflow-y: auto;
 }
 
+.code-with-panel.pretty-compare-active {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 2fr);
+}
+
 /* Code block inside panel — override standalone margins/shadow */
 .code-with-panel > code.hl.lean.block {
     position: relative; /* anchor for the .panel-outline-svg overlay */
@@ -64,6 +68,10 @@
     font-size: 0.55em;
     line-height: 1.45;
     text-align: left;
+}
+
+.pretty-compare-active .info-panel {
+    overflow-x: auto;
 }
 
 /* Focus/hover highlights are drawn as one contiguous SVG path per element
@@ -177,6 +185,46 @@
     white-space: pre;
     word-wrap: normal;
     overflow-wrap: normal;
+}
+
+.info-panel .pretty-compare {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.6em;
+    min-width: 0;
+}
+
+.info-panel .pretty-compare-pane {
+    min-width: 0;
+    overflow-x: auto;
+    border-left: 2px solid rgba(128, 128, 128, 0.35);
+    padding-left: 0.5em;
+}
+
+.info-panel .pretty-compare-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5em;
+    margin-bottom: 0.25em;
+    font-family: sans-serif;
+    font-size: 0.78em;
+    line-height: 1.2;
+    color: rgba(150, 150, 150, 0.95);
+}
+
+.info-panel .pretty-compare-time {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.info-panel .pretty-compare-body {
+    min-width: 0;
+}
+
+.info-panel .pretty-compare-unavailable {
+    color: rgba(180, 130, 70, 0.95);
+    font-style: italic;
 }
 
 /* Goal layout in panel (structure uses Verso's table layout for hypotheses) */
