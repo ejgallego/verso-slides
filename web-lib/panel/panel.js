@@ -547,8 +547,8 @@
      *   jsTime: HTMLElement,
      *   virJsonBody: HTMLElement,
      *   virJsonTime: HTMLElement,
-     *   virObjectBody: HTMLElement,
-     *   virObjectTime: HTMLElement
+     *   virFormatBody: HTMLElement,
+     *   virFormatTime: HTMLElement
      * }}
      */
     function setupPrettyComparison(container) {
@@ -562,8 +562,8 @@
             '<div class="pretty-compare-header"><span>VIR JSON</span><span class="pretty-compare-time"></span></div>' +
             '<div class="pretty-compare-body"></div>' +
             "</div>" +
-            '<div class="pretty-compare-pane" data-pretty-backend="vir-object">' +
-            '<div class="pretty-compare-header"><span>VIR object</span><span class="pretty-compare-time"></span></div>' +
+            '<div class="pretty-compare-pane" data-pretty-backend="vir-format">' +
+            '<div class="pretty-compare-header"><span>VIR Format</span><span class="pretty-compare-time"></span></div>' +
             '<div class="pretty-compare-body"></div>' +
             "</div>" +
             "</div>";
@@ -573,8 +573,8 @@
         var virJsonPane = /** @type {HTMLElement} */ (
             container.querySelector('[data-pretty-backend="vir"]')
         );
-        var virObjectPane = /** @type {HTMLElement} */ (
-            container.querySelector('[data-pretty-backend="vir-object"]')
+        var virFormatPane = /** @type {HTMLElement} */ (
+            container.querySelector('[data-pretty-backend="vir-format"]')
         );
         return {
             jsBody: /** @type {HTMLElement} */ (jsPane.querySelector(".pretty-compare-body")),
@@ -585,11 +585,11 @@
             virJsonTime: /** @type {HTMLElement} */ (
                 virJsonPane.querySelector(".pretty-compare-time")
             ),
-            virObjectBody: /** @type {HTMLElement} */ (
-                virObjectPane.querySelector(".pretty-compare-body")
+            virFormatBody: /** @type {HTMLElement} */ (
+                virFormatPane.querySelector(".pretty-compare-body")
             ),
-            virObjectTime: /** @type {HTMLElement} */ (
-                virObjectPane.querySelector(".pretty-compare-time")
+            virFormatTime: /** @type {HTMLElement} */ (
+                virFormatPane.querySelector(".pretty-compare-time")
             ),
         };
     }
@@ -597,7 +597,7 @@
     /**
      * @param {HTMLElement} body
      * @param {*} goalsData
-     * @param {"js" | "vir" | "vir-object"} backend
+     * @param {"js" | "vir" | "vir-format"} backend
      * @param {HTMLElement} timeEl
      */
     function renderGoalsPane(body, goalsData, backend, timeEl) {
@@ -620,7 +620,7 @@
             var panes = setupPrettyComparison(panel);
             renderGoalsPane(panes.jsBody, goalsData, "js", panes.jsTime);
             renderGoalsPane(panes.virJsonBody, goalsData, "vir", panes.virJsonTime);
-            renderGoalsPane(panes.virObjectBody, goalsData, "vir-object", panes.virObjectTime);
+            renderGoalsPane(panes.virFormatBody, goalsData, "vir-format", panes.virFormatTime);
             return;
         }
 
@@ -635,7 +635,7 @@
     /**
      * @param {HTMLElement} body
      * @param {*} fmtData
-     * @param {"js" | "vir" | "vir-object"} backend
+     * @param {"js" | "vir" | "vir-format"} backend
      * @param {HTMLElement} timeEl
      */
     function renderSignaturePane(body, fmtData, backend, timeEl) {
@@ -668,7 +668,7 @@
             var panes = setupPrettyComparison(sigCode);
             renderSignaturePane(panes.jsBody, fmtData, "js", panes.jsTime);
             renderSignaturePane(panes.virJsonBody, fmtData, "vir", panes.virJsonTime);
-            renderSignaturePane(panes.virObjectBody, fmtData, "vir-object", panes.virObjectTime);
+            renderSignaturePane(panes.virFormatBody, fmtData, "vir-format", panes.virFormatTime);
             return;
         }
 

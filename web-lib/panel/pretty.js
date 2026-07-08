@@ -34,9 +34,9 @@
  *   enabled?: boolean,
  *   runtime?: { call: (name: string, ...args: *[]) => * },
  *   exportName?: string,
- *   objectExportName?: string,
+ *   formatExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
- *   formatCompatSegments?: (fmt: *, width: number, indent: number) => *,
+ *   formatSegments?: (fmt: *, width: number, indent: number) => *,
  *   status?: string,
  *   warned?: boolean
  * }} PrettyVirBridge
@@ -60,7 +60,7 @@
  *
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
  *
- * @typedef {"auto" | "js" | "vir" | "vir-object"} PrettyBackend
+ * @typedef {"auto" | "js" | "vir" | "vir-format"} PrettyBackend
  *
  * @typedef {{ html: string | null, durationMs: number }} TimedPrettyResult
  */
@@ -109,12 +109,12 @@ function deserializeFormat(json) {
 }
 
 /**
- * Convert the compact serialized `Std.Format` tree to the temporary VIR
- * object-ABI mirror `VersoSlides.Pretty.CompatFormat`.
+ * Convert the compact serialized `Std.Format` tree to lean-vir's direct
+ * object-ABI representation for `Std.Format`.
  * @param {*} json
  * @return {*}
  */
-function compactFormatToCompat(json) {
+function compactFormatToStdFormat(json) {
     if (json === null) return { kind: "nil" };
     if (typeof json === "string") return { kind: "text", value: json };
     if (json === 1) return { kind: "line" };
@@ -125,30 +125,30 @@ function compactFormatToCompat(json) {
         case 3:
             return {
                 kind: "nest",
-                fields: { indent: json[1], body: compactFormatToCompat(json[2]) },
+                fields: { indent: String(json[1]), f: compactFormatToStdFormat(json[2]) },
             };
         case 4:
             return {
                 kind: "append",
                 fields: {
-                    left: compactFormatToCompat(json[1]),
-                    right: compactFormatToCompat(json[2]),
+                    arg1: compactFormatToStdFormat(json[1]),
+                    arg2: compactFormatToStdFormat(json[2]),
                 },
             };
         case 5:
             return {
                 kind: "group",
-                fields: { body: compactFormatToCompat(json[1]), behavior: "allOrNone" },
+                fields: { arg1: compactFormatToStdFormat(json[1]), behavior: "allOrNone" },
             };
         case 6:
             return {
                 kind: "group",
-                fields: { body: compactFormatToCompat(json[1]), behavior: "fill" },
+                fields: { arg1: compactFormatToStdFormat(json[1]), behavior: "fill" },
             };
         case 7:
             return {
                 kind: "tag",
-                fields: { tagId: json[1], body: compactFormatToCompat(json[2]) },
+                fields: { arg1: String(json[1]), arg2: compactFormatToStdFormat(json[2]) },
             };
         default:
             throw new Error("unknown format node tag " + json[0]);
@@ -673,14 +673,14 @@ function tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer) {
 }
 
 /**
- * Try rendering through lean-vir's object ABI, avoiding JSON serialization at
- * the JavaScript/Lean boundary.
+ * Try rendering through lean-vir's direct `Std.Format` object ABI, avoiding
+ * JSON serialization at the JavaScript/Lean boundary.
  * @param {*} fmtJson
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
  * @return {Segment[] | null}
  */
-function tryFormatSegmentsWithVirObject(fmtJson, pixelWidth, measurer) {
+function tryFormatSegmentsWithVirFormat(fmtJson, pixelWidth, measurer) {
     var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
         .__versoPrettyVir;
     if (!bridge || bridge.enabled === false) return null;
@@ -689,13 +689,13 @@ function tryFormatSegmentsWithVirObject(fmtJson, pixelWidth, measurer) {
     try {
         var width = pixelWidthToFormatColumns(pixelWidth, measurer);
         var indent = 0;
-        var fmt = compactFormatToCompat(fmtJson);
+        var fmt = compactFormatToStdFormat(fmtJson);
         var rendered;
-        if (typeof bridge.formatCompatSegments === "function") {
-            rendered = bridge.formatCompatSegments(fmt, width, indent);
+        if (typeof bridge.formatSegments === "function") {
+            rendered = bridge.formatSegments(fmt, width, indent);
         } else if (bridge.runtime && typeof bridge.runtime.call === "function") {
             rendered = bridge.runtime.call(
-                bridge.objectExportName || "VersoSlides.Pretty.formatCompatSegmentsForVir",
+                bridge.formatExportName || "VersoSlides.Pretty.formatSegmentsForVir",
                 fmt,
                 width,
                 indent,
@@ -706,7 +706,7 @@ function tryFormatSegmentsWithVirObject(fmtJson, pixelWidth, measurer) {
 
         var segments = normalizeVirSegments(rendered);
         if (segments === null) {
-            warnPrettyVirFallback(bridge, "invalid object segment payload");
+            warnPrettyVirFallback(bridge, "invalid Std.Format segment payload");
             return null;
         }
         return segments;
@@ -753,9 +753,9 @@ function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, bac
         return virSegments ? segmentsToHtml(virSegments, annotations) : null;
     }
 
-    if (backend === "vir-object") {
-        var virObjectSegments = tryFormatSegmentsWithVirObject(fmtJson, pixelWidth, measurer);
-        return virObjectSegments ? segmentsToHtml(virObjectSegments, annotations) : null;
+    if (backend === "vir-format") {
+        var virFormatSegments = tryFormatSegmentsWithVirFormat(fmtJson, pixelWidth, measurer);
+        return virFormatSegments ? segmentsToHtml(virFormatSegments, annotations) : null;
     }
 
     var autoVirSegments = tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer);

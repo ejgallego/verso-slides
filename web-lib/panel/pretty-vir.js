@@ -14,7 +14,7 @@
      *   fetchCache?: RequestCache,
      *   irPackageUrl?: string,
      *   exportName?: string,
-     *   objectExportName?: string
+     *   formatExportName?: string
      * }} PrettyVirConfig
      *
      * @typedef {{
@@ -22,9 +22,9 @@
      *   compare?: boolean,
      *   runtime?: { call: (name: string, ...args: *[]) => * },
      *   exportName?: string,
-     *   objectExportName?: string,
+     *   formatExportName?: string,
      *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
-     *   formatCompatSegments?: (fmt: *, width: number, indent: number) => *,
+     *   formatSegments?: (fmt: *, width: number, indent: number) => *,
      *   ready?: Promise<*>,
      *   status?: string,
      *   error?: *,
@@ -57,10 +57,10 @@
     bridge.status = "loading";
     bridge.exportName =
         config.exportName || bridge.exportName || "VersoSlides.Pretty.formatJsonSegmentsJsonForVir";
-    bridge.objectExportName =
-        config.objectExportName ||
-        bridge.objectExportName ||
-        "VersoSlides.Pretty.formatCompatSegmentsForVir";
+    bridge.formatExportName =
+        config.formatExportName ||
+        bridge.formatExportName ||
+        "VersoSlides.Pretty.formatSegmentsForVir";
     root.__versoPrettyVir = bridge;
 
     bridge.ready = import(config.runtimeUrl || fromScript("./lean-vir/js/vir-runtime.js"))
@@ -94,10 +94,10 @@
                 if (!bridge.exportName) throw new Error("missing VIR pretty export name");
                 return runtime.call(bridge.exportName, fmtJson, width, indent);
             };
-            bridge.formatCompatSegments = function (fmt, width, indent) {
-                if (!bridge.objectExportName)
-                    throw new Error("missing VIR object pretty export name");
-                return runtime.call(bridge.objectExportName, fmt, width, indent);
+            bridge.formatSegments = function (fmt, width, indent) {
+                if (!bridge.formatExportName)
+                    throw new Error("missing VIR Std.Format pretty export name");
+                return runtime.call(bridge.formatExportName, fmt, width, indent);
             };
             return runtime;
         })
