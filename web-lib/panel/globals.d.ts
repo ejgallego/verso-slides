@@ -28,7 +28,7 @@ interface VersoPrettyVirBridge {
     enabled?: boolean;
     compare?: boolean;
     runtime?: VersoPrettyVirRuntime;
-    exportName?: string;
+    jsonExportName?: string;
     formatExportName?: string;
     formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string;
     formatSegments?: (fmt: unknown, width: number, indent: number) => unknown;
@@ -47,7 +47,7 @@ interface VersoPrettyVirConfig {
     debugWasm?: boolean;
     fetchCache?: RequestCache;
     irPackageUrl?: string;
-    exportName?: string;
+    jsonExportName?: string;
     formatExportName?: string;
 }
 

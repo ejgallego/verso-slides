@@ -3,7 +3,8 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 lean_vir_dir="${LEAN_VIR_DIR:-/tmp/lean-vir}"
-out_dir="${OUT_DIR:-$repo_root/_test/code}"
+fixture_dir="$repo_root/_test/code"
+out_dir="${OUT_DIR:-$repo_root/_test/vir-code}"
 publish_target="${PUBLISH_TARGET:-x80.org:/srv/www/vir-verso-slides-demo/}"
 build_fixtures=1
 publish=0
@@ -12,13 +13,13 @@ usage() {
   cat <<'EOF'
 Usage: scripts/build-vir-pretty-demo.sh [options]
 
-Build the VIR pretty-printer demo deck under _test/code.
+Build the VIR pretty-printer demo deck under _test/vir-code.
 Run npm run build:demo:release in the lean-vir checkout first; this script
 refuses to publish if vir-upstream.wasm matches vir-upstream.dev.wasm.
 
 Options:
   --lean-vir-dir DIR   lean-vir checkout to use (default: $LEAN_VIR_DIR or /tmp/lean-vir)
-  --out-dir DIR        output deck directory (default: $OUT_DIR or _test/code)
+  --out-dir DIR        output deck directory (default: $OUT_DIR or _test/vir-code)
   --skip-fixtures      do not run lake exe test-fixtures-build first
   --publish            rsync the built deck to $PUBLISH_TARGET
   -h, --help           show this help
@@ -72,14 +73,25 @@ if [[ ! -x "$esbuild" ]]; then
   exit 1
 fi
 
-mkdir -p "$out_dir"
-out_dir="$(cd "$out_dir" && pwd)"
-lib_dir="$out_dir/lib"
 report_path="${VIR_REPORT_PATH:-$repo_root/.lake/verso-pretty-report.md}"
 
 if [[ "$build_fixtures" -eq 1 ]]; then
   (cd "$repo_root" && lake exe test-fixtures-build)
 fi
+
+if [[ ! -f "$fixture_dir/index.html" ]]; then
+  echo "fixture deck not found: $fixture_dir/index.html" >&2
+  echo "run lake exe test-fixtures-build first, or omit --skip-fixtures" >&2
+  exit 1
+fi
+
+mkdir -p "$out_dir"
+out_dir="$(cd "$out_dir" && pwd)"
+fixture_dir="$(cd "$fixture_dir" && pwd)"
+if [[ "$out_dir" != "$fixture_dir" ]]; then
+  rsync -a --delete "$fixture_dir"/ "$out_dir"/
+fi
+lib_dir="$out_dir/lib"
 
 mkdir -p "$lib_dir/lean-vir/wasm" "$(dirname "$report_path")"
 rm -rf "$lib_dir/lean-vir/js"
