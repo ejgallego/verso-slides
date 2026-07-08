@@ -25,7 +25,7 @@
 }
 
 .code-with-panel.pretty-compare-active {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 2fr);
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 3fr);
 }
 
 /* Code block inside panel — override standalone margins/shadow */
@@ -189,7 +189,7 @@
 
 .info-panel .pretty-compare {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.6em;
     min-width: 0;
 }

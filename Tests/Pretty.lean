@@ -38,6 +38,19 @@ private def paragraphDoc : Format :=
 private def taggedDoc : Format :=
   Format.tag 7 "hello"
 
+private def compatListDoc : CompatFormat :=
+  .group
+    (.nest 1 <|
+      .append (.text "[alpha,") <|
+      .append .line <|
+      .append (.text "beta,") <|
+      .append .line <|
+      .append (.text "gamma") (.text "]"))
+    .allOrNone
+
+private def compatTaggedDoc : CompatFormat :=
+  .tag 7 (.text "hello")
+
 private def groupedLineJson : String :=
   "[5,[4,\"hello\",[4,1,\"world\"]]]"
 
@@ -122,6 +135,15 @@ where
       "lean ir runs\nformat.pretty\ninside wasm"
     testEq "tagged segment"
       (formatSegments taggedDoc 80)
+      #[{ text := "hello", tags := #[7] }]
+    testEq "compat format list"
+      (formatPlain compatListDoc.toFormat 12)
+      "[alpha,\n beta,\n gamma]"
+    testEq "compat format direct segments"
+      (formatCompatSegments compatTaggedDoc 80)
+      #[{ text := "hello", tags := #[7] }]
+    testEq "compat format VIR wrapper"
+      (formatCompatSegmentsForVir compatTaggedDoc 80 0)
       #[{ text := "hello", tags := #[7] }]
     testExceptEq "json wide group"
       (formatJsonPlain groupedLineJson 80)

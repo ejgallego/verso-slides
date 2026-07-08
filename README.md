@@ -10,6 +10,10 @@ highlighting and hover-based documentation tooltips.
 The [demo slides](./Demo.lean) can be seen at
 [this repository's GitHub pages](https://leanprover.github.io/verso-slides/).
 
+The VIR-backed pretty-printer prototype demo is published at
+<https://x80.org/vir-verso-slides-demo/>. Keep this URL stable for
+comparing the JavaScript, VIR JSON, and VIR object rendering modes.
+
 ## Requirements
 
 VersoSlides requires the Lean 4 toolchain specified in
