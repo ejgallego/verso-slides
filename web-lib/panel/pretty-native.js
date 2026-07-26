@@ -9,6 +9,7 @@
      *   runtimeBaseUrl?: string,
      *   wasmUrl?: string,
      *   descriptorUrl?: string,
+     *   buildUrl?: string,
      *   fetchCache?: RequestCache
      * }} PrettyNativeConfig
      *
@@ -17,18 +18,26 @@
      *   status?: string,
      *   ready?: Promise<*>,
      *   error?: *,
-     *   format?: (fmtJson: *, width: number, indent: number, column: number) => string,
-     *   formatTimed?: (
+     *   build?: *,
+     *   formatSegments?: (
+     *     fmtJson: *,
+     *     width: number,
+     *     indent: number,
+     *     column: number
+     *   ) => Segment[],
+     *   formatSegmentsTimed?: (
      *     fmtJson: *,
      *     width: number,
      *     indent: number,
      *     column: number
      *   ) => NativeFormatResult,
+     *   traceToSegments?: (trace: NativePrettyTrace) => Segment[],
      *   warnings?: Record<string, boolean>
      * }} PrettyNativeBridge
      *
      * @typedef {{
      *   text: string,
+     *   segments: Segment[],
      *   timings: {
      *     marshalMs: number,
      *     executeMs: number,
@@ -44,6 +53,10 @@
      *   instance: WebAssembly.Instance,
      *   entry: (...args: *[]) => *
      * }} NativeArtifact
+     *
+     * @typedef {{ kind: number, text: string, value: bigint }} NativePrettyEvent
+     *
+     * @typedef {{ text: string, events: NativePrettyEvent[] }} NativePrettyTrace
      */
 
     var root = /** @type {Window & {
@@ -56,16 +69,11 @@
     bridge.status = bridge.enabled ? "loading" : "disabled";
     root.__versoPrettyNative = bridge;
 
-    /**
-     * The current native artifact returns a plain Lean `String`, so this
-     * candidate deliberately has no tag annotations. It compares layout and
-     * execution time without pretending to preserve syntax highlighting.
-     * @type {PrettyBackendDefinition}
-     */
+    /** @type {PrettyBackendDefinition} */
     var nativeBackend = {
         id: "native",
         label: "Native",
-        capabilities: { output: "text", width: "columns" },
+        capabilities: { output: "segments", width: "columns" },
         status: function () {
             return bridge.status || "unavailable";
         },
@@ -73,7 +81,7 @@
             if (
                 bridge.enabled === false ||
                 bridge.status !== "ready" ||
-                typeof bridge.format !== "function"
+                typeof bridge.formatSegments !== "function"
             ) {
                 return {
                     segments: null,
@@ -89,18 +97,18 @@
             try {
                 var spaceWidth = measurer.spaceWidth > 0 ? measurer.spaceWidth : 1;
                 var width = Math.max(1, Math.floor(pixelWidth / spaceWidth));
-                if (typeof bridge.formatTimed === "function") {
-                    var result = bridge.formatTimed(fmtJson, width, 0, 0);
+                if (typeof bridge.formatSegmentsTimed === "function") {
+                    var result = bridge.formatSegmentsTimed(fmtJson, width, 0, 0);
                     return {
-                        segments: [{ text: result.text, tags: [] }],
+                        segments: result.segments,
                         timings: result.timings,
                     };
                 }
                 var started = performance.now();
-                var text = bridge.format(fmtJson, width, 0, 0);
+                var segments = bridge.formatSegments(fmtJson, width, 0, 0);
                 var finished = performance.now();
                 return {
-                    segments: [{ text: text, tags: [] }],
+                    segments: segments,
                     timings: {
                         marshalMs: 0,
                         executeMs: finished - started,
@@ -125,6 +133,7 @@
         },
     };
     registerPrettyBackend(nativeBackend);
+    bridge.traceToSegments = traceToSegments;
 
     if (bridge.enabled === false) return;
 
@@ -167,6 +176,111 @@
             }
             return response;
         });
+    }
+
+    /**
+     * Convert the artifact's raw `PrettyTrace` event stream into the segment
+     * contract shared by the JS and VIR candidates.
+     *
+     * Event kinds are the `MonadPrettyFormat` operations output, newline,
+     * startTag, and endTags respectively. Newline segments are deliberately
+     * untagged, matching `VersoSlides.Pretty`.
+     * @param {NativePrettyTrace} trace
+     * @return {Segment[]}
+     */
+    function traceToSegments(trace) {
+        /** @type {number[]} */
+        var tagStack = [];
+        /** @type {Segment[]} */
+        var segments = [];
+
+        /**
+         * @param {bigint} value
+         * @param {string} label
+         * @return {number}
+         */
+        function safeNatural(value, label) {
+            if (value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) {
+                throw new Error(label + " is outside JavaScript's safe integer range");
+            }
+            return Number(value);
+        }
+
+        trace.events.forEach(function (event) {
+            switch (event.kind) {
+                case 0:
+                    if (event.text.length > 0) {
+                        segments.push({ text: event.text, tags: tagStack.slice() });
+                    }
+                    break;
+                case 1: {
+                    var indent = safeNatural(event.value, "native pretty newline indentation");
+                    segments.push({ text: "\n" + " ".repeat(indent), tags: [] });
+                    break;
+                }
+                case 2:
+                    tagStack.push(safeNatural(event.value, "native pretty tag"));
+                    break;
+                case 3: {
+                    var count = safeNatural(event.value, "native pretty endTags count");
+                    if (count > tagStack.length) {
+                        throw new Error("native pretty trace ends more tags than it started");
+                    }
+                    tagStack.length -= count;
+                    break;
+                }
+                default:
+                    throw new Error("native pretty trace has unknown event kind " + event.kind);
+            }
+        });
+
+        if (tagStack.length !== 0) {
+            throw new Error("native pretty trace leaves tags open");
+        }
+        var text = segments
+            .map(function (segment) {
+                return segment.text;
+            })
+            .join("");
+        if (text !== trace.text) {
+            throw new Error("native pretty trace text projection disagrees with its events");
+        }
+        return segments;
+    }
+
+    /**
+     * Validate the atomic package's machine-readable capability contract.
+     * The raw trace ABI is intentionally experimental; these checks reject a
+     * silent fallback to the earlier plain-string package.
+     * @param {*} manifest
+     * @param {*} build
+     */
+    function validateNativePackageMetadata(manifest, build) {
+        if (
+            !build ||
+            build.format !== "fir-prettyM-package-metadata-v2" ||
+            build.sourceDirty !== false ||
+            build.entry !== manifest.entry ||
+            build.result !== manifest.result
+        ) {
+            throw new Error("native pretty package metadata is inconsistent");
+        }
+        var capabilities = build.capabilities;
+        var output = capabilities && capabilities.output;
+        if (
+            !output ||
+            output.semantic !== "PrettyTrace" ||
+            output.physical !== "object" ||
+            output.taggedSegments !== true
+        ) {
+            throw new Error("native pretty package does not provide styled trace output");
+        }
+        if (
+            capabilities.representation !== "wasm32-lean64" ||
+            capabilities.memoryOwner !== "module"
+        ) {
+            throw new Error("native pretty package has an unsupported memory representation");
+        }
     }
 
     /**
@@ -288,9 +402,10 @@
 
     /**
      * @param {NativeArtifact} artifact
+     * @param {(host: *, result: *) => NativePrettyTrace} decodeTrace
      * @return {(fmtJson: *, width: number, indent: number, column: number) => NativeFormatResult}
      */
-    function createNativePrettyClient(artifact) {
+    function createNativePrettyClient(artifact, decodeTrace) {
         if (
             artifact.manifest.result !== "object" ||
             artifact.manifest.params.length !== 4 ||
@@ -327,14 +442,12 @@
             var marshaled = performance.now();
             var physical = entry.apply(null, args);
             var executed = performance.now();
-            var result = host.decode("object", physical);
-            if (!result || result.kind !== "heap") {
-                throw new Error("native pretty artifact returned a non-string value");
-            }
-            var text = host.readString(host.addressOf(result.location));
+            var trace = decodeTrace(host, physical);
+            var segments = traceToSegments(trace);
             var decoded = performance.now();
             return {
-                text: text,
+                text: trace.text,
+                segments: segments,
                 timings: {
                     marshalMs: marshaled - started,
                     executeMs: executed - marshaled,
@@ -351,15 +464,20 @@
     );
     var wasmUrl = config.wasmUrl || fromScript("./lean-native/prettyM.wasm");
     var descriptorUrl = config.descriptorUrl || wasmUrl + ".json";
+    var buildUrl = config.buildUrl || fromScript("./lean-native/BUILD.json");
 
     bridge.ready = Promise.all([
         import(new URL("module-client.mjs", runtimeBaseUrl).href),
         import(new URL("concrete-host.mjs", runtimeBaseUrl).href),
         import(new URL("concrete-artifact-external-registry.mjs", runtimeBaseUrl).href),
+        import(new URL("check-concrete-pretty-format-trace-module.mjs", runtimeBaseUrl).href),
         fetchChecked(wasmUrl).then(function (response) {
             return response.arrayBuffer();
         }),
         fetchChecked(descriptorUrl).then(function (response) {
+            return response.json();
+        }),
+        fetchChecked(buildUrl).then(function (response) {
             return response.json();
         }),
     ])
@@ -367,8 +485,10 @@
             var clientModule = loaded[0];
             var hostModule = loaded[1];
             var registryModule = loaded[2];
-            var bytes = loaded[3];
-            var manifest = loaded[4];
+            var traceModule = loaded[3];
+            var bytes = loaded[4];
+            var manifest = loaded[5];
+            var build = loaded[6];
             if (typeof clientModule.instantiateModuleArtifact !== "function") {
                 throw new Error("native runtime does not export instantiateModuleArtifact");
             }
@@ -379,28 +499,46 @@
             if (!registry) {
                 throw new Error("native runtime does not export its external registry");
             }
+            if (typeof traceModule.decodeConcretePrettyTrace !== "function") {
+                throw new Error("native runtime does not export its styled trace decoder");
+            }
+            validateNativePackageMetadata(manifest, build);
+            bridge.build = build;
             var host = new hostModule.ConcreteHost(
                 manifest.imports,
                 undefined,
                 registry,
                 manifest.closureDispatch,
             );
-            return clientModule.instantiateModuleArtifact({
-                bytes: bytes,
-                manifest: manifest,
-                host: host,
-            });
+            return clientModule
+                .instantiateModuleArtifact({
+                    bytes: bytes,
+                    manifest: manifest,
+                    host: host,
+                })
+                .then(
+                    /** @param {NativeArtifact} artifact */
+                    function (artifact) {
+                        return {
+                            artifact: artifact,
+                            decodeTrace: traceModule.decodeConcretePrettyTrace,
+                        };
+                    },
+                );
         })
-        .then(function (artifact) {
-            bridge.formatTimed = createNativePrettyClient(artifact);
-            bridge.format = function (fmtJson, width, indent, column) {
-                if (!bridge.formatTimed) {
+        .then(function (loaded) {
+            bridge.formatSegmentsTimed = createNativePrettyClient(
+                loaded.artifact,
+                loaded.decodeTrace,
+            );
+            bridge.formatSegments = function (fmtJson, width, indent, column) {
+                if (!bridge.formatSegmentsTimed) {
                     throw new Error("native pretty timing client is unavailable");
                 }
-                return bridge.formatTimed(fmtJson, width, indent, column).text;
+                return bridge.formatSegmentsTimed(fmtJson, width, indent, column).segments;
             };
             bridge.status = "ready";
-            return artifact;
+            return loaded.artifact;
         })
         .catch(function (error) {
             bridge.status = "failed";

@@ -634,13 +634,11 @@ function makeRenderContext(annotations, measurer) {
         },
 
         pushNewline: function (indent) {
-            this.segments.push({ text: "\n", tags: [] });
+            var spaces = 0;
             if (indent > 0) {
-                var spaces = Math.round(indent / measurer.spaceWidth);
-                if (spaces > 0) {
-                    this.segments.push({ text: " ".repeat(spaces), tags: [] });
-                }
+                spaces = Math.round(indent / measurer.spaceWidth);
             }
+            this.segments.push({ text: "\n" + " ".repeat(spaces), tags: [] });
             this.column = indent;
         },
 

@@ -833,12 +833,19 @@ function, and either a segment renderer or a timed renderer. Register the
 candidate synchronously before its runtime starts loading so the pane remains
 present and reports its loading state.
 
-The current native artifact exports the raw Lean 4.32 ABI
-`Format × Nat × Nat × Nat → String`. Its bootstrap constructs the
-ordinary `Std.Format` heap layout directly through the artifact's
-concrete JavaScript host. Because the result is a plain string rather
-than tagged segments, the native pane compares layout and execution
-time but does not preserve syntax highlighting.
+The current native artifact exports an experimental raw Lean 4.32 ABI:
+
+```text
+Format × Nat × Nat × Nat → PrettyTrace
+PrettyTrace := { text : String, eventsRev : List PrettyEvent }
+```
+
+The event stream records `MonadPrettyFormat` output, newline, tag-start,
+and tag-end operations. The bootstrap decodes it into the same
+`{ text, tags }` segment contract used by the JavaScript and VIR
+candidates, so the native pane preserves syntax highlighting as well as
+layout. The bootstrap still constructs the ordinary `Std.Format` heap
+layout directly through the artifact's concrete JavaScript host.
 
 For the static comparison demo, use:
 
@@ -858,12 +865,15 @@ lean-vir browser runtime into a single minified
 and VIR `Std.Format` comparison panes.
 
 To add the fourth native pane, pass a prepared FIR `prettyM` package.
-The script verifies its `SHA256SUMS`, copies the Wasm module,
-descriptor, and browser-safe concrete runtime, and loads
+The script verifies its `SHA256SUMS` and styled-trace capability
+metadata. An atomic `prettyM-current` symlink is pinned to one immutable
+release before validation, so a concurrent refresh cannot mix package
+generations. The script then copies `BUILD.json`, the Wasm module,
+descriptor, and browser-safe concrete runtime and loads
 `lib/pretty-native.js`:
 
 ```
-NATIVE_PRETTY_DIR=~/lean/fir/.worktrees/wasm-artifact/integration/talos/artifact/prettyM-package \
+NATIVE_PRETTY_DIR=~/lean/fir/.worktrees/wasm-generation/integration/talos/artifact/_build/prettyM-current \
   scripts/build-vir-pretty-demo.sh
 ```
 

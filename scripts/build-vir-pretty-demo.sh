@@ -81,14 +81,20 @@ if [[ -n "$native_pretty_dir" ]]; then
     echo "native pretty package not found: $native_pretty_dir" >&2
     exit 1
   fi
-  native_pretty_dir="$(cd "$native_pretty_dir" && pwd)"
+  # Pin an atomic `prettyM-current` symlink to one immutable release before
+  # validating or copying anything, so a concurrent package refresh cannot
+  # mix files from two releases.
+  native_pretty_dir="$(cd "$native_pretty_dir" && pwd -P)"
   native_required=(
+    BUILD.json
     prettyM.wasm
     prettyM.wasm.json
     SHA256SUMS
     runtime/integration/talos/artifact/module-client.mjs
     runtime/integration/talos/artifact/concrete-host.mjs
     runtime/integration/talos/artifact/concrete-artifact-external-registry.mjs
+    runtime/integration/talos/artifact/check-concrete-pretty-format-trace-module.mjs
+    runtime/scripts/wasm_assert.mjs
   )
   for native_file in "${native_required[@]}"; do
     if [[ ! -f "$native_pretty_dir/$native_file" ]]; then
@@ -100,6 +106,41 @@ if [[ -n "$native_pretty_dir" ]]; then
     echo "native pretty package checksum verification failed: $native_pretty_dir" >&2
     exit 1
   fi
+  python3 - "$native_pretty_dir/BUILD.json" "$native_pretty_dir/prettyM.wasm.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+build = json.loads(Path(sys.argv[1]).read_text())
+manifest = json.loads(Path(sys.argv[2]).read_text())
+output = build.get("capabilities", {}).get("output", {})
+expected_params = ["tobject", "tobject", "tobject", "tobject"]
+checks = [
+    (build.get("format") == "fir-prettyM-package-metadata-v2", "package metadata format"),
+    (build.get("sourceDirty") is False, "clean source provenance"),
+    (build.get("entry") == manifest.get("entry"), "entry point"),
+    (build.get("params") == expected_params, "build parameter ABI"),
+    (manifest.get("params") == expected_params, "manifest parameter ABI"),
+    (build.get("result") == manifest.get("result") == "object", "result ABI"),
+    (build.get("capabilities", {}).get("representation") == "wasm32-lean64",
+     "runtime representation"),
+    (build.get("capabilities", {}).get("memoryOwner") == "module", "memory ownership"),
+    (output.get("semantic") == "PrettyTrace", "styled output semantic"),
+    (output.get("taggedSegments") is True, "tagged segment capability"),
+]
+failed = [label for valid, label in checks if not valid]
+if failed:
+    raise SystemExit(
+        "native pretty package has an incompatible capability contract: "
+        + ", ".join(failed)
+    )
+print(
+    "validated native pretty package: "
+    f"source={build['sourceCommit']} "
+    f"wasm={build['artifact']['sha256']} "
+    f"imports={build['functionImports']}"
+)
+PY
   native_enabled=1
 fi
 
@@ -174,6 +215,7 @@ cp "$release_wasm" "$lib_dir/lean-vir/wasm/vir-upstream.wasm"
 
 if [[ "$native_enabled" -eq 1 ]]; then
   mkdir -p "$lib_dir/lean-native"
+  install -m 0644 "$native_pretty_dir/BUILD.json" "$lib_dir/lean-native/BUILD.json"
   install -m 0644 "$native_pretty_dir/prettyM.wasm" "$lib_dir/lean-native/prettyM.wasm"
   install -m 0644 "$native_pretty_dir/prettyM.wasm.json" \
     "$lib_dir/lean-native/prettyM.wasm.json"

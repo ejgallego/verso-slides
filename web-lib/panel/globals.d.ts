@@ -54,13 +54,18 @@ interface VersoPrettyNativeBridge {
     status?: string;
     ready?: Promise<unknown>;
     error?: unknown;
-    format?: (fmtJson: unknown, width: number, indent: number, column: number) => string;
-    formatTimed?: (
+    build?: unknown;
+    formatSegments?: (fmtJson: unknown, width: number, indent: number, column: number) => Segment[];
+    formatSegmentsTimed?: (
         fmtJson: unknown,
         width: number,
         indent: number,
         column: number,
-    ) => { text: string; timings: PrettyTimings };
+    ) => { text: string; segments: Segment[]; timings: PrettyTimings };
+    traceToSegments?: (trace: {
+        text: string;
+        events: Array<{ kind: number; text: string; value: bigint }>;
+    }) => Segment[];
     warnings?: Record<string, boolean>;
 }
 
@@ -69,6 +74,7 @@ interface VersoPrettyNativeConfig {
     runtimeBaseUrl?: string;
     wasmUrl?: string;
     descriptorUrl?: string;
+    buildUrl?: string;
     fetchCache?: RequestCache;
 }
 

@@ -27,6 +27,8 @@ class TestPrettyVirAssets:
         body = path.read_text()
         assert 'id: "native"' in body
         assert "prettyM.wasm" in body
+        assert "PrettyTrace" in body
+        assert "traceToSegments" in body
         assert "ConcreteHost" in body
 
     def test_pretty_vir_not_loaded_by_default(self, code_doc: BeautifulSoup):
@@ -136,6 +138,27 @@ class TestPrettyVirBridge:
         assert result["timings"]["executeMs"] >= 0
         assert result["timings"]["totalMs"] >= result["timings"]["executeMs"]
 
+    def test_js_segments_match_lean_newline_shape(self, code_url: str, page: Page):
+        """A newline and its indentation use the same single segment as Lean."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        segments = page.evaluate(
+            """() => {
+                const measurer = createColumnMeasurer(5);
+                return renderPrettySegmentsTimed(
+                    [5, [4, "left", [3, 2, [4, 1, "right"]]]],
+                    {},
+                    5,
+                    measurer,
+                    getPrettyBackend("js")
+                ).segments;
+            }"""
+        )
+        assert segments == [
+            {"text": "left", "tags": []},
+            {"text": "\n  ", "tags": []},
+            {"text": "right", "tags": []},
+        ]
+
     def test_explicit_vir_backend_rejects_invalid_segments(self, code_url: str, page: Page):
         """Malformed bridge payloads stay visible instead of falling back to JS."""
         goto_slide_by_title(page, code_url, "Dark Code")
@@ -180,13 +203,13 @@ class TestPrettyNativeBridge:
         )
         assert result["backend"]["label"] == "Native"
         assert result["backend"]["capabilities"] == {
-            "output": "text",
+            "output": "segments",
             "width": "columns",
         }
         assert result["status"] == "disabled"
 
-    def test_ready_native_bridge_renders_plain_string(self, code_url: str, page: Page):
-        """The current prettyM ABI compares layout but has no tag segments."""
+    def test_ready_native_bridge_renders_tagged_segments(self, code_url: str, page: Page):
+        """The styled native bridge participates in syntax-aware rendering."""
         goto_slide_by_title(page, code_url, "Dark Code")
         page.evaluate("window.__versoPrettyNativeConfig = { enabled: false }")
         page.add_script_tag(url=urljoin(code_url + "/", "lib/pretty-native.js"))
@@ -195,17 +218,50 @@ class TestPrettyNativeBridge:
                 Object.assign(window.__versoPrettyNative, {
                     enabled: true,
                     status: "ready",
-                    format: () => "from-native"
+                    formatSegments: () => [{ text: "from-native", tags: [7] }]
                 });
-                return formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, {
+                return formatToHtmlWithBackend(
+                    [5, [4, "hello", [4, 1, "world"]]],
+                    { "7": { cssClass: "keyword" } },
+                    200,
+                    {
                     spaceWidth: 10,
                     measure: s => s.length * 10,
                     measureElWidth: () => 200,
                     cleanup: () => {}
-                }, "native");
+                    },
+                    "native"
+                );
             }"""
         )
-        assert html == "from-native"
+        assert html == '<span class="keyword token">from-native</span>'
+
+    def test_native_trace_normalizes_nested_tags_and_newlines(self, code_url: str, page: Page):
+        """Raw PrettyTrace events become the shared tagged-segment contract."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        page.evaluate("window.__versoPrettyNativeConfig = { enabled: false }")
+        page.add_script_tag(url=urljoin(code_url + "/", "lib/pretty-native.js"))
+        segments = page.evaluate(
+            """() => window.__versoPrettyNative.traceToSegments({
+                text: "outer inner\\n  end",
+                events: [
+                    { kind: 2, text: "", value: 7n },
+                    { kind: 0, text: "outer ", value: 0n },
+                    { kind: 2, text: "", value: 8n },
+                    { kind: 0, text: "inner", value: 0n },
+                    { kind: 3, text: "", value: 1n },
+                    { kind: 1, text: "", value: 2n },
+                    { kind: 0, text: "end", value: 0n },
+                    { kind: 3, text: "", value: 1n }
+                ]
+            })"""
+        )
+        assert segments == [
+            {"text": "outer ", "tags": [7]},
+            {"text": "inner", "tags": [7, 8]},
+            {"text": "\n  ", "tags": []},
+            {"text": "end", "tags": [7]},
+        ]
 
 
 class TestPrettyVirComparisonPanel:
