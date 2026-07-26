@@ -12,7 +12,8 @@ The [demo slides](./Demo.lean) can be seen at
 
 The VIR-backed pretty-printer prototype demo is published at
 <https://x80.org/vir-verso-slides-demo/>. Keep this URL stable for
-comparing the JavaScript, VIR JSON, and VIR `Std.Format` rendering modes.
+comparing the JavaScript, VIR JSON, VIR `Std.Format`, and native
+LCNF-to-Wasm rendering modes.
 
 ## Requirements
 
@@ -755,7 +756,7 @@ The generated HTML loads the Notes, Highlight, and KaTeX Math plugins
 automatically. All plugin assets are vendored and written to the
 output directory, so no internet connection is required.
 
-### Optional VIR Pretty-Printer Prototype
+### Optional Pretty-Printer Prototypes
 
 VersoSlides currently ships an opt-in prototype for rendering
 reflowable Lean `Std.Format` data through
@@ -784,15 +785,60 @@ slidesMain
   (doc := %doc MyPresentation)
 ```
 
-`pretty-vir.js` loads the runtime asynchronously. Until it reaches the
-ready state, or if loading fails, `formatToHtml` keeps using the
-existing synchronous JavaScript formatter.
+`pretty-vir.js` loads the runtime asynchronously. The ordinary
+`formatToHtml` entry point always uses the existing synchronous
+JavaScript formatter; VIR candidates are selected explicitly or shown
+in comparison mode.
 
 When comparison mode is disabled, the panel can select a specific
-renderer with `window.__versoPrettyVirConfig.backend`. Supported
-values are `"auto"`, `"js"`, `"vir"` for the JSON boundary, and
-`"vir-format"` for the direct `Std.Format` boundary. Comparison mode
-continues to render all three panes side by side.
+renderer with `window.__versoPrettyConfig.backend`. Supported
+values are `"js"`, `"vir"` for the JSON boundary, and `"vir-format"`
+for the direct `Std.Format` boundary. Loading `lib/pretty-native.js`
+also registers `"native"`, a `Std.Format.prettyM` Wasm module produced
+from Lean LCNF by FIR. With no selection, the panel uses `"js"`. An
+unavailable or unknown explicit selection is shown as unavailable
+instead of falling back to another candidate.
+
+Set `window.__versoPrettyConfig.compare` to `true` to render every
+selected candidate side by side. Set `controls` to `true` to add an
+interactive formatter menu. It can enable or disable individual
+comparison processors, switch comparison mode, choose the renderer used
+outside comparison mode, and change the shared comparison width. The menu
+updates the query string so a test configuration can be copied or reloaded:
+
+- `pretty=js,vir,vir-format,native` selects comparison processors.
+- `prettyCompare=1` enables side-by-side comparison.
+- `prettyBackend=native` selects the renderer outside comparison mode.
+- `prettyColumns=40` sets the common comparison width.
+- `prettyControls=1` displays the menu.
+
+Comparison mode deliberately gives every processor the same deterministic
+character-column budget. This avoids deriving separate widths from panes
+whose sizes and output styling differ. Outside comparison mode, the
+JavaScript renderer retains its DOM-measured pixel width.
+
+Each comparison header displays formatter time. Hovering it shows the
+marshal, execution, decode, and HTML-construction phases, plus total panel
+wall time. These are synchronous per-render measurements taken after artifact
+instantiation: download and instantiation are excluded, while an early
+observation may still include engine warm-up. Goal panes sum the phase times
+of all formatted hypotheses and conclusions.
+
+The separate
+`window.__versoPrettyVirConfig` object only configures the VIR runtime.
+`window.__versoPrettyNativeConfig` configures the native runtime URLs.
+Additional prototype runtimes can participate by calling
+`registerPrettyBackend` with an ID, display label, capabilities, status
+function, and either a segment renderer or a timed renderer. Register the
+candidate synchronously before its runtime starts loading so the pane remains
+present and reports its loading state.
+
+The current native artifact exports the raw Lean 4.32 ABI
+`Format × Nat × Nat × Nat → String`. Its bootstrap constructs the
+ordinary `Std.Format` heap layout directly through the artifact's
+concrete JavaScript host. Because the result is a plain string rather
+than tagged segments, the native pane compares layout and execution
+time but does not preserve syntax highlighting.
 
 For the static comparison demo, use:
 
@@ -809,7 +855,19 @@ The script expects a lean-vir checkout at `/tmp/lean-vir`, or at
 `lib/verso-pretty.irpkg`, copies `vir-upstream.wasm`, bundles the
 lean-vir browser runtime into a single minified
 `lib/lean-vir/js/vir-runtime.js`, and enables the JavaScript, VIR JSON,
-and VIR `Std.Format` comparison panes. To publish the stable demo URL:
+and VIR `Std.Format` comparison panes.
+
+To add the fourth native pane, pass a prepared FIR `prettyM` package.
+The script verifies its `SHA256SUMS`, copies the Wasm module,
+descriptor, and browser-safe concrete runtime, and loads
+`lib/pretty-native.js`:
+
+```
+NATIVE_PRETTY_DIR=~/lean/fir/.worktrees/wasm-artifact/integration/talos/artifact/prettyM-package \
+  scripts/build-vir-pretty-demo.sh
+```
+
+To publish the stable demo URL:
 
 ```
 scripts/build-vir-pretty-demo.sh --publish

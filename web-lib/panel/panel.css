@@ -79,6 +79,118 @@
     min-height: 0;
 }
 
+/* Global testing controls are opt-in through __versoPrettyConfig.controls. */
+.pretty-controls {
+    position: fixed;
+    top: 0.65rem;
+    right: 0.65rem;
+    z-index: 1000;
+    width: min(20rem, calc(100vw - 1.3rem));
+    color: #ddd;
+    background: rgba(28, 30, 34, 0.96);
+    border: 1px solid rgba(180, 180, 180, 0.35);
+    border-radius: 0.4rem;
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.35);
+    font: 0.82rem/1.35 sans-serif;
+    text-align: left;
+}
+
+.pretty-controls > summary {
+    cursor: pointer;
+    padding: 0.4rem 0.6rem;
+    user-select: none;
+    font-weight: 600;
+}
+
+.pretty-controls-menu {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0 0.65rem 0.65rem;
+}
+
+.pretty-controls fieldset {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.35rem 0.45rem 0.45rem;
+    border: 1px solid rgba(180, 180, 180, 0.25);
+    border-radius: 0.25rem;
+}
+
+.pretty-controls legend {
+    padding: 0 0.25rem;
+    color: #bbb;
+}
+
+.pretty-controls-backend {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.pretty-controls-capability,
+.pretty-controls-status {
+    color: #aaa;
+    font-size: 0.78em;
+    white-space: nowrap;
+}
+
+.pretty-controls-status::before {
+    content: "";
+    display: inline-block;
+    width: 0.45em;
+    height: 0.45em;
+    margin-right: 0.3em;
+    border-radius: 50%;
+    background: #a06f3b;
+}
+
+.pretty-controls-status.status-ready::before {
+    background: #55a868;
+}
+
+.pretty-controls-status.status-loading::before {
+    background: #d9a441;
+}
+
+.pretty-controls-status.status-failed::before,
+.pretty-controls-status.status-unavailable::before {
+    background: #c44e52;
+}
+
+.pretty-controls-columns,
+.pretty-controls-primary,
+.pretty-controls-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.pretty-controls-columns input {
+    width: 4.5rem;
+}
+
+.pretty-controls-primary select {
+    min-width: 8rem;
+}
+
+.pretty-controls input,
+.pretty-controls select {
+    accent-color: #6d9eeb;
+    color: inherit;
+    background: #25282d;
+    border: 1px solid rgba(180, 180, 180, 0.35);
+    border-radius: 0.2rem;
+}
+
+.pretty-controls-note {
+    margin: 0;
+    color: #aaa;
+    font-size: 0.78em;
+}
+
 /* Focus/hover highlights are drawn as one contiguous SVG path per element
    (see drawElementOutline in panel.js). A plain CSS outline is unusable here:
    when a tactic wraps across lines, Firefox and Safari draw a separate closed
@@ -194,7 +306,8 @@
 
 .info-panel .pretty-compare {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
     gap: 0.6em;
     align-items: stretch;
     min-height: 100%;
@@ -223,6 +336,9 @@
 .info-panel .pretty-compare-time {
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+    cursor: help;
+    text-decoration: underline dotted rgba(150, 150, 150, 0.55);
+    text-underline-offset: 0.18em;
 }
 
 .info-panel .pretty-compare-body {

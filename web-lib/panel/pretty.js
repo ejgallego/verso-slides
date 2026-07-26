@@ -30,18 +30,50 @@
  *
  * @typedef {{ cssClass: string, binding?: string }} TokenAnnotation
  *
- * @typedef {"auto" | "js" | "vir" | "vir-format"} PrettyBackend
+ * @typedef {{
+ *   marshalMs: number,
+ *   executeMs: number,
+ *   decodeMs: number,
+ *   renderMs: number,
+ *   totalMs: number
+ * }} PrettyTimings
+ *
+ * @typedef {{ segments: Segment[] | null, timings: PrettyTimings }} PrettySegmentResult
+ *
+ * @typedef {{
+ *   output: "segments" | "text",
+ *   width: "pixels" | "columns"
+ * }} PrettyBackendCapabilities
+ *
+ * @typedef {{
+ *   id: string,
+ *   label: string,
+ *   capabilities?: PrettyBackendCapabilities,
+ *   ready?: Promise<*>,
+ *   status?: () => string,
+ *   renderSegments?: (
+ *     fmtJson: *,
+ *     annotations: Record<string, TokenAnnotation>,
+ *     pixelWidth: number,
+ *     measurer: DOMMeasurer
+ *   ) => Segment[] | null,
+ *   renderTimed?: (
+ *     fmtJson: *,
+ *     annotations: Record<string, TokenAnnotation>,
+ *     pixelWidth: number,
+ *     measurer: DOMMeasurer
+ *   ) => PrettySegmentResult
+ * }} PrettyBackend
  *
  * @typedef {{
  *   enabled?: boolean,
  *   runtime?: { call: (name: string, ...args: *[]) => * },
- *   backend?: PrettyBackend,
  *   jsonExportName?: string,
  *   formatExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
  *   formatSegments?: (fmt: *, width: number, indent: number) => *,
  *   status?: string,
- *   warned?: boolean
+ *   warnings?: Record<string, boolean>
  * }} PrettyVirBridge
  *
  * @typedef {{
@@ -63,8 +95,58 @@
  *
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
  *
- * @typedef {{ html: string | null, durationMs: number }} TimedPrettyResult
+ * @typedef {{ html: string | null, durationMs: number, timings: PrettyTimings }} TimedPrettyResult
  */
+
+/** @type {PrettyBackend[]} */
+var prettyBackends = [];
+
+/**
+ * Register or replace a pretty-printing candidate. Integration scripts should
+ * register synchronously, even when their runtime becomes ready asynchronously,
+ * so comparison mode can reserve a stable pane for the candidate.
+ * @param {PrettyBackend} backend
+ */
+function registerPrettyBackend(backend) {
+    if (
+        !backend ||
+        typeof backend.id !== "string" ||
+        backend.id.length === 0 ||
+        typeof backend.label !== "string" ||
+        backend.label.length === 0 ||
+        (typeof backend.renderSegments !== "function" && typeof backend.renderTimed !== "function")
+    ) {
+        throw new TypeError("invalid pretty backend registration");
+    }
+
+    var index = prettyBackends.findIndex(function (candidate) {
+        return candidate.id === backend.id;
+    });
+    if (index === -1) {
+        prettyBackends.push(backend);
+    } else {
+        prettyBackends[index] = backend;
+    }
+}
+
+/**
+ * @return {PrettyBackend[]}
+ */
+function getPrettyBackends() {
+    return prettyBackends.slice();
+}
+
+/**
+ * @param {string} id
+ * @return {PrettyBackend | null}
+ */
+function getPrettyBackend(id) {
+    return (
+        prettyBackends.find(function (candidate) {
+            return candidate.id === id;
+        }) || null
+    );
+}
 
 /**
  * Deserialize a compact JSON format node into a tree.
@@ -592,6 +674,71 @@ function pixelWidthToFormatColumns(pixelWidth, measurer) {
 }
 
 /**
+ * @return {PrettyTimings}
+ */
+function emptyPrettyTimings() {
+    return {
+        marshalMs: 0,
+        executeMs: 0,
+        decodeMs: 0,
+        renderMs: 0,
+        totalMs: 0,
+    };
+}
+
+/**
+ * @param {PrettyTimings} target
+ * @param {PrettyTimings} source
+ * @return {PrettyTimings}
+ */
+function addPrettyTimings(target, source) {
+    target.marshalMs += source.marshalMs;
+    target.executeMs += source.executeMs;
+    target.decodeMs += source.decodeMs;
+    target.renderMs += source.renderMs;
+    target.totalMs += source.totalMs;
+    return target;
+}
+
+/**
+ * A deterministic character-column measurer for differential comparison.
+ * Every backend receives the same budget instead of deriving it independently
+ * from its pane's DOM width.
+ * @param {number} columns
+ * @return {DOMMeasurer}
+ */
+function createColumnMeasurer(columns) {
+    var width = Math.max(1, Math.floor(columns));
+    return {
+        measure: function (text) {
+            return Array.from(text).length;
+        },
+        spaceWidth: 1,
+        measureElWidth: function () {
+            return width;
+        },
+        cleanup: function () {},
+    };
+}
+
+/**
+ * @param {number} started
+ * @param {number} marshaled
+ * @param {number} executed
+ * @param {number} decoded
+ * @return {PrettyTimings}
+ */
+function prettyPhaseTimings(started, marshaled, executed, decoded) {
+    return {
+        marshalMs: Math.max(0, marshaled - started),
+        executeMs: Math.max(0, executed - marshaled),
+        decodeMs: Math.max(0, decoded - executed),
+        renderMs: 0,
+        totalMs: Math.max(0, decoded - started),
+    };
+}
+
+/**
  * @param {*} value
  * @return {Segment[] | null}
  */
@@ -620,12 +767,14 @@ function normalizeVirSegments(value) {
 
 /**
  * @param {PrettyVirBridge} bridge
+ * @param {string} backend
  * @param {*} error
  */
-function warnPrettyVirFallback(bridge, error) {
-    if (bridge.warned) return;
-    bridge.warned = true;
-    console.warn("VIR pretty-printer failed; falling back to JS formatter.", error);
+function warnPrettyVirFailure(bridge, backend, error) {
+    var warnings = bridge.warnings || (bridge.warnings = {});
+    if (warnings[backend]) return;
+    warnings[backend] = true;
+    console.warn("VIR pretty-printer backend " + backend + " failed.", error);
 }
 
 /**
@@ -633,16 +782,29 @@ function warnPrettyVirFallback(bridge, error) {
  * @param {*} fmtJson
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {Segment[] | null}
+ * @return {PrettySegmentResult}
  */
-function tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer) {
+function tryFormatSegmentsWithVirTimed(fmtJson, pixelWidth, measurer) {
+    var started = performance.now();
+    var marshaled = started;
+    var executed = started;
     var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
         .__versoPrettyVir;
-    if (!bridge || bridge.enabled === false) return null;
-    if (bridge.status && bridge.status !== "ready") return null;
+    if (!bridge || bridge.enabled === false) {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    if (bridge.status && bridge.status !== "ready") {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
 
     var fmtString = JSON.stringify(fmtJson);
-    if (typeof fmtString !== "string") return null;
+    marshaled = performance.now();
+    if (typeof fmtString !== "string") {
+        return {
+            segments: null,
+            timings: prettyPhaseTimings(started, marshaled, marshaled, marshaled),
+        };
+    }
 
     try {
         var width = pixelWidthToFormatColumns(pixelWidth, measurer);
@@ -658,23 +820,48 @@ function tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer) {
                 indent,
             );
         } else {
-            return null;
+            return {
+                segments: null,
+                timings: prettyPhaseTimings(started, marshaled, marshaled, marshaled),
+            };
         }
+        executed = performance.now();
 
         var result = typeof rendered === "string" ? JSON.parse(rendered) : rendered;
         if (!result || result.ok !== true) {
-            warnPrettyVirFallback(bridge, result && result.error ? result.error : result);
-            return null;
+            warnPrettyVirFailure(bridge, "vir", result && result.error ? result.error : result);
+            var failedAt = performance.now();
+            return {
+                segments: null,
+                timings: prettyPhaseTimings(started, marshaled, executed, failedAt),
+            };
         }
         var segments = normalizeVirSegments(result.segments);
         if (segments === null) {
-            warnPrettyVirFallback(bridge, "invalid segment payload");
-            return null;
+            warnPrettyVirFailure(bridge, "vir", "invalid segment payload");
+            var invalidAt = performance.now();
+            return {
+                segments: null,
+                timings: prettyPhaseTimings(started, marshaled, executed, invalidAt),
+            };
         }
-        return segments;
+        var decoded = performance.now();
+        return {
+            segments: segments,
+            timings: prettyPhaseTimings(started, marshaled, executed, decoded),
+        };
     } catch (error) {
-        warnPrettyVirFallback(bridge, error);
-        return null;
+        warnPrettyVirFailure(bridge, "vir", error);
+        var failed = performance.now();
+        return {
+            segments: null,
+            timings: prettyPhaseTimings(
+                started,
+                marshaled,
+                executed === started ? failed : executed,
+                failed,
+            ),
+        };
     }
 }
 
@@ -684,18 +871,26 @@ function tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer) {
  * @param {*} fmtJson
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {Segment[] | null}
+ * @return {PrettySegmentResult}
  */
-function tryFormatSegmentsWithVirFormat(fmtJson, pixelWidth, measurer) {
+function tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
+    var started = performance.now();
+    var marshaled = started;
+    var executed = started;
     var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
         .__versoPrettyVir;
-    if (!bridge || bridge.enabled === false) return null;
-    if (bridge.status && bridge.status !== "ready") return null;
+    if (!bridge || bridge.enabled === false) {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    if (bridge.status && bridge.status !== "ready") {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
 
     try {
         var width = pixelWidthToFormatColumns(pixelWidth, measurer);
         var indent = 0;
         var fmt = compactFormatToStdFormat(fmtJson);
+        marshaled = performance.now();
         var rendered;
         if (typeof bridge.formatSegments === "function") {
             rendered = bridge.formatSegments(fmt, width, indent);
@@ -707,18 +902,39 @@ function tryFormatSegmentsWithVirFormat(fmtJson, pixelWidth, measurer) {
                 indent,
             );
         } else {
-            return null;
+            return {
+                segments: null,
+                timings: prettyPhaseTimings(started, marshaled, marshaled, marshaled),
+            };
         }
+        executed = performance.now();
 
         var segments = normalizeVirSegments(rendered);
         if (segments === null) {
-            warnPrettyVirFallback(bridge, "invalid Std.Format segment payload");
-            return null;
+            warnPrettyVirFailure(bridge, "vir-format", "invalid Std.Format segment payload");
+            var invalidAt = performance.now();
+            return {
+                segments: null,
+                timings: prettyPhaseTimings(started, marshaled, executed, invalidAt),
+            };
         }
-        return segments;
+        var decoded = performance.now();
+        return {
+            segments: segments,
+            timings: prettyPhaseTimings(started, marshaled, executed, decoded),
+        };
     } catch (error) {
-        warnPrettyVirFallback(bridge, error);
-        return null;
+        warnPrettyVirFailure(bridge, "vir-format", error);
+        var failed = performance.now();
+        return {
+            segments: null,
+            timings: prettyPhaseTimings(
+                started,
+                marshaled,
+                executed === started ? failed : executed,
+                failed,
+            ),
+        };
     }
 }
 
@@ -727,49 +943,93 @@ function tryFormatSegmentsWithVirFormat(fmtJson, pixelWidth, measurer) {
  * @param {Record<string, TokenAnnotation>} annotations
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {Segment[]}
+ * @return {PrettySegmentResult}
  */
-function formatSegmentsWithJs(fmtJson, annotations, pixelWidth, measurer) {
+function formatSegmentsWithJsTimed(fmtJson, annotations, pixelWidth, measurer) {
+    var started = performance.now();
     var fmt = deserializeFormat(fmtJson);
     var ctx = makeRenderContext(annotations, measurer);
+    var marshaled = performance.now();
     prettyM(fmt, pixelWidth, 0, ctx, measurer);
-    return ctx.segments;
+    var executed = performance.now();
+    return {
+        segments: ctx.segments,
+        timings: prettyPhaseTimings(started, marshaled, executed, executed),
+    };
 }
 
+registerPrettyBackend({
+    id: "js",
+    label: "JS",
+    capabilities: { output: "segments", width: "pixels" },
+    status: function () {
+        return "ready";
+    },
+    renderTimed: formatSegmentsWithJsTimed,
+});
+registerPrettyBackend({
+    id: "vir",
+    label: "VIR JSON",
+    capabilities: { output: "segments", width: "columns" },
+    status: function () {
+        var bridge = /** @type {Window} */ (window).__versoPrettyVir;
+        return bridge && bridge.status ? bridge.status : "unavailable";
+    },
+    renderTimed: function (fmtJson, _annotations, pixelWidth, measurer) {
+        return tryFormatSegmentsWithVirTimed(fmtJson, pixelWidth, measurer);
+    },
+});
+registerPrettyBackend({
+    id: "vir-format",
+    label: "VIR Format",
+    capabilities: { output: "segments", width: "columns" },
+    status: function () {
+        var bridge = /** @type {Window} */ (window).__versoPrettyVir;
+        return bridge && bridge.status ? bridge.status : "unavailable";
+    },
+    renderTimed: function (fmtJson, _annotations, pixelWidth, measurer) {
+        return tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer);
+    },
+});
+
 /**
- * Render a format tree to HTML at a given pixel width, forcing a backend when
- * requested. Forced VIR backends return `null` instead of falling back.
+ * Execute one backend and normalize its phase timings.
  * @param {*} fmtJson  - compact array format from Highlighted.lean
  * @param {Record<string, TokenAnnotation>} annotations - tag index → { cssClass, binding }
  * @param {number} pixelWidth - target width in pixels
  * @param {DOMMeasurer} measurer
  * @param {PrettyBackend} backend
- * @return {string | null} HTML string, or null when the forced backend is unavailable
+ * @return {PrettySegmentResult}
+ */
+function renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, backend) {
+    if (typeof backend.renderTimed === "function") {
+        return backend.renderTimed(fmtJson, annotations, pixelWidth, measurer);
+    }
+    if (typeof backend.renderSegments !== "function") {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    var started = performance.now();
+    var segments = backend.renderSegments(fmtJson, annotations, pixelWidth, measurer);
+    var finished = performance.now();
+    var timings = emptyPrettyTimings();
+    timings.executeMs = Math.max(0, finished - started);
+    timings.totalMs = timings.executeMs;
+    return { segments: segments, timings: timings };
+}
+
+/**
+ * Render a format tree to HTML at a given pixel width with one explicit
+ * backend. Missing or unavailable backends return `null` instead of falling
+ * back to a different candidate.
+ * @param {*} fmtJson  - compact array format from Highlighted.lean
+ * @param {Record<string, TokenAnnotation>} annotations - tag index → { cssClass, binding }
+ * @param {number} pixelWidth - target width in pixels
+ * @param {DOMMeasurer} measurer
+ * @param {string} backend
+ * @return {string | null} HTML string, or null when the backend is unavailable
  */
 function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backend) {
-    if (backend === "js") {
-        return segmentsToHtml(
-            formatSegmentsWithJs(fmtJson, annotations, pixelWidth, measurer),
-            annotations,
-        );
-    }
-
-    if (backend === "vir") {
-        var virSegments = tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer);
-        return virSegments ? segmentsToHtml(virSegments, annotations) : null;
-    }
-
-    if (backend === "vir-format") {
-        var virFormatSegments = tryFormatSegmentsWithVirFormat(fmtJson, pixelWidth, measurer);
-        return virFormatSegments ? segmentsToHtml(virFormatSegments, annotations) : null;
-    }
-
-    var autoVirSegments = tryFormatSegmentsWithVir(fmtJson, pixelWidth, measurer);
-    if (autoVirSegments) return segmentsToHtml(autoVirSegments, annotations);
-    return segmentsToHtml(
-        formatSegmentsWithJs(fmtJson, annotations, pixelWidth, measurer),
-        annotations,
-    );
+    return formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend).html;
 }
 
 /**
@@ -781,7 +1041,7 @@ function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, bac
  * @return {string} HTML string
  */
 function formatToHtml(fmtJson, annotations, pixelWidth, measurer) {
-    return formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, "auto") || "";
+    return formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, "js") || "";
 }
 
 /**
@@ -790,13 +1050,26 @@ function formatToHtml(fmtJson, annotations, pixelWidth, measurer) {
  * @param {Record<string, TokenAnnotation>} annotations
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @param {PrettyBackend} backend
+ * @param {string} backend
  * @return {TimedPrettyResult}
  */
 function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend) {
     var start = performance.now();
-    var html = formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backend);
-    return { html: html, durationMs: performance.now() - start };
+    var candidate = getPrettyBackend(backend);
+    if (!candidate) {
+        return { html: null, durationMs: 0, timings: emptyPrettyTimings() };
+    }
+    var rendered = renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, candidate);
+    var renderStart = performance.now();
+    var html = rendered.segments ? segmentsToHtml(rendered.segments, annotations) : null;
+    var finished = performance.now();
+    rendered.timings.renderMs += Math.max(0, finished - renderStart);
+    rendered.timings.totalMs = Math.max(0, finished - start);
+    return {
+        html: html,
+        durationMs: rendered.timings.totalMs,
+        timings: rendered.timings,
+    };
 }
 
 /**
@@ -924,9 +1197,12 @@ function goalsToHtml(goalsJson) {
  * @param {Element} container
  * @param {FormatData[]} formats
  * @param {DOMMeasurer} measurer
- * @param {PrettyBackend} [backend]
+ * @param {string} [backend]
+ * @param {number} [fixedWidth]
+ * @return {PrettyTimings}
  */
-function fillReflowedSpans(container, formats, measurer, backend) {
+function fillReflowedSpans(container, formats, measurer, backend, fixedWidth) {
+    var totals = emptyPrettyTimings();
     var spans = container.querySelectorAll(".reflowed[data-fmt-idx]");
     for (var i = 0; i < spans.length; i++) {
         var span = spans[i];
@@ -935,15 +1211,19 @@ function fillReflowedSpans(container, formats, measurer, backend) {
         if (!entry) continue;
         var cell = span.closest(".type");
         if (!cell) continue;
-        var width = measurer.measureElWidth(cell);
-        var html = formatToHtmlWithBackend(
+        var width = typeof fixedWidth === "number" ? fixedWidth : measurer.measureElWidth(cell);
+        var timed = formatToHtmlTimed(
             entry.fmt,
             entry.annotations,
             width,
             measurer,
-            backend || "auto",
+            backend || "js",
         );
+        addPrettyTimings(totals, timed.timings);
         span.innerHTML =
-            html === null ? '<span class="pretty-compare-unavailable">unavailable</span>' : html;
+            timed.html === null
+                ? '<span class="pretty-compare-unavailable">unavailable</span>'
+                : timed.html;
     }
+    return totals;
 }

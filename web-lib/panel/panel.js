@@ -10,8 +10,12 @@
 
     /** @type {Record<string, *> | null} */
     var docsJson = null; // fetched once on init
+    /** @type {HTMLDetailsElement | null} */
+    var prettyControls = null;
 
     function init() {
+        initializePrettyConfig();
+
         // Fetch the hover-docs JSON
         fetch("-verso-docs.json")
             .then(function (r) {
@@ -25,7 +29,8 @@
             });
 
         document.querySelectorAll(".code-with-panel").forEach(setupBlock);
-        refreshPanelWhenPrettyVirReady();
+        initPrettyControls();
+        refreshPanelsWhenPrettyBackendsReady();
 
         Reveal.on("fragmentshown", onFragmentShown);
         Reveal.on("fragmenthidden", onFragmentHidden);
@@ -37,15 +42,243 @@
         });
     }
 
-    function refreshPanelWhenPrettyVirReady() {
-        var root = /** @type {Window} */ (window);
-        var bridge = root.__versoPrettyVir;
-        if (!bridge || !bridge.ready || typeof bridge.ready.then !== "function") return;
-        bridge.ready.then(function () {
-            document.querySelectorAll(".info-panel").forEach(function (panel) {
-                reflowPanel(/** @type {InfoPanel} */ (panel));
+    function refreshPanelsWhenPrettyBackendsReady() {
+        getPrettyBackends().forEach(function (backend) {
+            if (!backend.ready || typeof backend.ready.then !== "function") return;
+            backend.ready.then(function () {
+                reflowPrettyPanels();
+                renderPrettyControls();
             });
         });
+    }
+
+    function initializePrettyConfig() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        var params = new URLSearchParams(window.location.search);
+        if (params.has("pretty")) {
+            var queryBackends = (params.get("pretty") || "")
+                .split(",")
+                .map(function (id) {
+                    return id.trim();
+                })
+                .filter(function (id) {
+                    return id.length > 0;
+                });
+            config.backends = queryBackends.length > 0 ? queryBackends : undefined;
+        }
+        if (params.has("prettyCompare")) {
+            config.compare = params.get("prettyCompare") !== "0";
+        }
+        if (params.has("prettyControls")) {
+            config.controls = params.get("prettyControls") !== "0";
+        }
+        if (params.has("prettyBackend")) {
+            config.backend = params.get("prettyBackend") || "js";
+        }
+        if (params.has("prettyColumns")) {
+            var columns = Number(params.get("prettyColumns"));
+            if (Number.isInteger(columns) && columns >= 1 && columns <= 240) {
+                config.columns = columns;
+            }
+        }
+        if (!Number.isInteger(config.columns)) config.columns = 40;
+    }
+
+    /** @return {PrettyBackendDefinition[]} */
+    function selectedPrettyBackends() {
+        var root = /** @type {Window} */ (window);
+        var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.backends;
+        if (!Array.isArray(configured)) return getPrettyBackends();
+        var selected = new Set(configured);
+        var backends = getPrettyBackends().filter(function (backend) {
+            return selected.has(backend.id);
+        });
+        return backends.length > 0 ? backends : getPrettyBackends().slice(0, 1);
+    }
+
+    /** @return {number} */
+    function prettyComparisonColumns() {
+        var root = /** @type {Window} */ (window);
+        var columns = root.__versoPrettyConfig && root.__versoPrettyConfig.columns;
+        return Number.isInteger(columns) ? Math.max(1, Math.min(240, Number(columns))) : 40;
+    }
+
+    function reflowPrettyPanels() {
+        document.querySelectorAll(".info-panel").forEach(function (panel) {
+            reflowPanel(/** @type {InfoPanel} */ (panel));
+        });
+    }
+
+    function persistPrettyConfig() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || {};
+        var url = new URL(window.location.href);
+        url.searchParams.set(
+            "pretty",
+            (
+                config.backends ||
+                getPrettyBackends().map(function (backend) {
+                    return backend.id;
+                })
+            ).join(","),
+        );
+        url.searchParams.set("prettyCompare", config.compare === true ? "1" : "0");
+        url.searchParams.set("prettyBackend", config.backend || "js");
+        url.searchParams.set("prettyColumns", String(prettyComparisonColumns()));
+        url.searchParams.set("prettyControls", config.controls === true ? "1" : "0");
+        window.history.replaceState(null, "", url);
+    }
+
+    function initPrettyControls() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig;
+        if (!config || config.controls !== true) return;
+        prettyControls = document.createElement("details");
+        prettyControls.className = "pretty-controls";
+        document.body.appendChild(prettyControls);
+        renderPrettyControls();
+    }
+
+    function renderPrettyControls() {
+        if (!prettyControls) return;
+        var wasOpen = prettyControls.open;
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        var backends = getPrettyBackends();
+        var selected = new Set(
+            Array.isArray(config.backends)
+                ? config.backends
+                : backends.map(function (backend) {
+                      return backend.id;
+                  }),
+        );
+        var selectedCount = backends.filter(function (backend) {
+            return selected.has(backend.id);
+        }).length;
+
+        var summary = document.createElement("summary");
+        summary.textContent = "Formatters " + selectedCount + "/" + backends.length;
+        var menu = document.createElement("div");
+        menu.className = "pretty-controls-menu";
+
+        var compareLabel = document.createElement("label");
+        compareLabel.className = "pretty-controls-toggle";
+        var compareInput = document.createElement("input");
+        compareInput.type = "checkbox";
+        compareInput.checked = config.compare === true;
+        compareLabel.append(compareInput, document.createTextNode(" Compare panes"));
+        compareInput.addEventListener("change", function () {
+            config.compare = compareInput.checked;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        menu.appendChild(compareLabel);
+
+        var processors = document.createElement("fieldset");
+        var legend = document.createElement("legend");
+        legend.textContent = "Processors";
+        processors.appendChild(legend);
+        backends.forEach(function (backend) {
+            var label = document.createElement("label");
+            label.className = "pretty-controls-backend";
+            var input = document.createElement("input");
+            input.type = "checkbox";
+            input.value = backend.id;
+            input.checked = selected.has(backend.id);
+            var name = document.createElement("span");
+            name.className = "pretty-controls-name";
+            name.textContent = backend.label;
+            var state = typeof backend.status === "function" ? backend.status() : "ready";
+            var status = document.createElement("span");
+            status.className =
+                "pretty-controls-status status-" +
+                state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+            status.textContent = state;
+            var capabilities = backend.capabilities;
+            var capability = document.createElement("span");
+            capability.className = "pretty-controls-capability";
+            capability.textContent = capabilities
+                ? capabilities.output + " · " + capabilities.width
+                : "custom";
+            label.append(input, name, capability, status);
+            input.addEventListener("change", function () {
+                var next = new Set(
+                    Array.isArray(config.backends)
+                        ? config.backends
+                        : backends.map(function (candidate) {
+                              return candidate.id;
+                          }),
+                );
+                if (input.checked) next.add(backend.id);
+                else next.delete(backend.id);
+                if (next.size === 0) {
+                    input.checked = true;
+                    return;
+                }
+                config.backends = backends
+                    .map(function (candidate) {
+                        return candidate.id;
+                    })
+                    .filter(function (id) {
+                        return next.has(id);
+                    });
+                persistPrettyConfig();
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+            processors.appendChild(label);
+        });
+        menu.appendChild(processors);
+
+        var columnsLabel = document.createElement("label");
+        columnsLabel.className = "pretty-controls-columns";
+        columnsLabel.appendChild(document.createTextNode("Shared columns "));
+        var columnsInput = document.createElement("input");
+        columnsInput.type = "number";
+        columnsInput.min = "1";
+        columnsInput.max = "240";
+        columnsInput.step = "1";
+        columnsInput.value = String(prettyComparisonColumns());
+        columnsInput.addEventListener("change", function () {
+            var columns = Number(columnsInput.value);
+            if (!Number.isInteger(columns) || columns < 1 || columns > 240) {
+                columnsInput.value = String(prettyComparisonColumns());
+                return;
+            }
+            config.columns = columns;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        columnsLabel.appendChild(columnsInput);
+        menu.appendChild(columnsLabel);
+
+        var primaryLabel = document.createElement("label");
+        primaryLabel.className = "pretty-controls-primary";
+        primaryLabel.appendChild(document.createTextNode("Single backend "));
+        var primary = document.createElement("select");
+        backends.forEach(function (backend) {
+            var option = document.createElement("option");
+            option.value = backend.id;
+            option.textContent = backend.label;
+            option.selected = backend.id === (config.backend || "js");
+            primary.appendChild(option);
+        });
+        primary.addEventListener("change", function () {
+            config.backend = primary.value;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        primaryLabel.appendChild(primary);
+        menu.appendChild(primaryLabel);
+
+        var note = document.createElement("p");
+        note.className = "pretty-controls-note";
+        note.textContent = "Comparison uses one deterministic column budget for every processor.";
+        menu.appendChild(note);
+
+        prettyControls.replaceChildren(summary, menu);
+        prettyControls.open = wasOpen;
     }
 
     // ---- Per-block setup ----
@@ -512,28 +745,18 @@
      */
     function prettyComparisonEnabled() {
         var root = /** @type {Window} */ (window);
-        var config = root.__versoPrettyVirConfig;
-        var bridge = root.__versoPrettyVir;
-        return !!((config && config.compare === true) || (bridge && bridge.compare === true));
+        var config = root.__versoPrettyConfig;
+        return !!(config && config.compare === true);
     }
 
     /**
-     * @param {*=} backend
-     * @return {"auto" | "js" | "vir" | "vir-format"}
-     */
-    function normalizePrettyBackend(backend) {
-        if (backend === "js" || backend === "vir" || backend === "vir-format") return backend;
-        return "auto";
-    }
-
-    /**
-     * @return {"auto" | "js" | "vir" | "vir-format"}
+     * @return {string}
      */
     function selectedPrettyBackend() {
         var root = /** @type {Window} */ (window);
-        var config = root.__versoPrettyVirConfig;
-        var bridge = root.__versoPrettyVir;
-        return normalizePrettyBackend((config && config.backend) || (bridge && bridge.backend));
+        var config = root.__versoPrettyConfig;
+        var backend = config && config.backend;
+        return typeof backend === "string" && backend.length > 0 ? backend : "js";
     }
 
     /**
@@ -560,72 +783,85 @@
     }
 
     /**
+     * @param {HTMLElement} timeEl
+     * @param {PrettyTimings} timings
+     * @param {number} wallMs
+     */
+    function setTimingDetails(timeEl, timings, wallMs) {
+        timeEl.textContent = formatTiming(timings.totalMs);
+        timeEl.title = [
+            "Formatter total: " + formatTiming(timings.totalMs),
+            "Marshal: " + formatTiming(timings.marshalMs),
+            "Execute: " + formatTiming(timings.executeMs),
+            "Decode: " + formatTiming(timings.decodeMs),
+            "HTML: " + formatTiming(timings.renderMs),
+            "Panel wall time: " + formatTiming(wallMs),
+        ].join("\n");
+        timeEl.setAttribute("aria-label", timeEl.title);
+        timeEl.dataset.marshalMs = String(timings.marshalMs);
+        timeEl.dataset.executeMs = String(timings.executeMs);
+        timeEl.dataset.decodeMs = String(timings.decodeMs);
+        timeEl.dataset.renderMs = String(timings.renderMs);
+        timeEl.dataset.totalMs = String(timings.totalMs);
+        timeEl.dataset.wallMs = String(wallMs);
+    }
+
+    /**
      * @param {HTMLElement} container
-     * @return {{
-     *   jsBody: HTMLElement,
-     *   jsTime: HTMLElement,
-     *   virJsonBody: HTMLElement,
-     *   virJsonTime: HTMLElement,
-     *   virFormatBody: HTMLElement,
-     *   virFormatTime: HTMLElement
-     * }}
+     * @return {Array<{
+     *   backend: PrettyBackendDefinition,
+     *   body: HTMLElement,
+     *   time: HTMLElement
+     * }>}
      */
     function setupPrettyComparison(container) {
-        container.innerHTML =
-            '<div class="pretty-compare">' +
-            '<div class="pretty-compare-pane" data-pretty-backend="js">' +
-            '<div class="pretty-compare-header"><span>JS</span><span class="pretty-compare-time"></span></div>' +
-            '<div class="pretty-compare-body"></div>' +
-            "</div>" +
-            '<div class="pretty-compare-pane" data-pretty-backend="vir">' +
-            '<div class="pretty-compare-header"><span>VIR JSON</span><span class="pretty-compare-time"></span></div>' +
-            '<div class="pretty-compare-body"></div>' +
-            "</div>" +
-            '<div class="pretty-compare-pane" data-pretty-backend="vir-format">' +
-            '<div class="pretty-compare-header"><span>VIR Format</span><span class="pretty-compare-time"></span></div>' +
-            '<div class="pretty-compare-body"></div>' +
-            "</div>" +
-            "</div>";
-        var jsPane = /** @type {HTMLElement} */ (
-            container.querySelector('[data-pretty-backend="js"]')
-        );
-        var virJsonPane = /** @type {HTMLElement} */ (
-            container.querySelector('[data-pretty-backend="vir"]')
-        );
-        var virFormatPane = /** @type {HTMLElement} */ (
-            container.querySelector('[data-pretty-backend="vir-format"]')
-        );
-        return {
-            jsBody: /** @type {HTMLElement} */ (jsPane.querySelector(".pretty-compare-body")),
-            jsTime: /** @type {HTMLElement} */ (jsPane.querySelector(".pretty-compare-time")),
-            virJsonBody: /** @type {HTMLElement} */ (
-                virJsonPane.querySelector(".pretty-compare-body")
-            ),
-            virJsonTime: /** @type {HTMLElement} */ (
-                virJsonPane.querySelector(".pretty-compare-time")
-            ),
-            virFormatBody: /** @type {HTMLElement} */ (
-                virFormatPane.querySelector(".pretty-compare-body")
-            ),
-            virFormatTime: /** @type {HTMLElement} */ (
-                virFormatPane.querySelector(".pretty-compare-time")
-            ),
-        };
+        var comparison = document.createElement("div");
+        comparison.className = "pretty-compare";
+        var panes = selectedPrettyBackends().map(function (backend) {
+            var pane = document.createElement("div");
+            pane.className = "pretty-compare-pane";
+            pane.dataset.prettyBackend = backend.id;
+
+            var header = document.createElement("div");
+            header.className = "pretty-compare-header";
+            var label = document.createElement("span");
+            label.textContent = backend.label;
+            if (backend.capabilities) {
+                label.title =
+                    "Output: " +
+                    backend.capabilities.output +
+                    "\nBackend width model: " +
+                    backend.capabilities.width +
+                    "\nComparison width model: shared columns";
+            }
+            var time = document.createElement("span");
+            time.className = "pretty-compare-time";
+            header.append(label, time);
+
+            var body = document.createElement("div");
+            body.className = "pretty-compare-body";
+            pane.append(header, body);
+            comparison.append(pane);
+            return { backend: backend, body: body, time: time };
+        });
+        container.replaceChildren(comparison);
+        return panes;
     }
 
     /**
      * @param {HTMLElement} body
      * @param {*} goalsData
-     * @param {"js" | "vir" | "vir-format"} backend
+     * @param {string} backend
      * @param {HTMLElement} timeEl
      */
     function renderGoalsPane(body, goalsData, backend, timeEl) {
         var start = performance.now();
         var result = goalsToHtml(goalsData);
         body.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-        var measurer = getPanelMeasurer(body);
-        fillReflowedSpans(body, result.formats, measurer, backend);
-        timeEl.textContent = formatTiming(performance.now() - start);
+        var columns = prettyComparisonColumns();
+        var measurer = createColumnMeasurer(columns);
+        var timings = fillReflowedSpans(body, result.formats, measurer, backend, columns);
+        setTimingDetails(timeEl, timings, performance.now() - start);
     }
 
     /**
@@ -637,9 +873,9 @@
         setPrettyComparisonActive(panel, comparing);
         if (comparing) {
             var panes = setupPrettyComparison(panel);
-            renderGoalsPane(panes.jsBody, goalsData, "js", panes.jsTime);
-            renderGoalsPane(panes.virJsonBody, goalsData, "vir", panes.virJsonTime);
-            renderGoalsPane(panes.virFormatBody, goalsData, "vir-format", panes.virFormatTime);
+            panes.forEach(function (pane) {
+                renderGoalsPane(pane.body, goalsData, pane.backend.id, pane.time);
+            });
             return;
         }
 
@@ -654,25 +890,21 @@
     /**
      * @param {HTMLElement} body
      * @param {*} fmtData
-     * @param {"js" | "vir" | "vir-format"} backend
+     * @param {string} backend
      * @param {HTMLElement} timeEl
      */
     function renderSignaturePane(body, fmtData, backend, timeEl) {
-        var measurer = getPanelMeasurer(body);
-        var timed = formatToHtmlTimed(
-            fmtData.fmt,
-            fmtData.annotations,
-            contentWidth(body),
-            measurer,
-            backend,
-        );
-        timeEl.textContent = formatTiming(timed.durationMs);
+        var start = performance.now();
+        var columns = prettyComparisonColumns();
+        var measurer = createColumnMeasurer(columns);
+        var timed = formatToHtmlTimed(fmtData.fmt, fmtData.annotations, columns, measurer, backend);
         body.innerHTML =
             '<span class="reflowed">' +
             (timed.html === null
                 ? '<span class="pretty-compare-unavailable">unavailable</span>'
                 : timed.html) +
             "</span>";
+        setTimingDetails(timeEl, timed.timings, performance.now() - start);
     }
 
     /**
@@ -685,9 +917,9 @@
         setPrettyComparisonActive(panel, comparing);
         if (comparing) {
             var panes = setupPrettyComparison(sigCode);
-            renderSignaturePane(panes.jsBody, fmtData, "js", panes.jsTime);
-            renderSignaturePane(panes.virJsonBody, fmtData, "vir", panes.virJsonTime);
-            renderSignaturePane(panes.virFormatBody, fmtData, "vir-format", panes.virFormatTime);
+            panes.forEach(function (pane) {
+                renderSignaturePane(pane.body, fmtData, pane.backend.id, pane.time);
+            });
             return;
         }
 

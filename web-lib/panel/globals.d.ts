@@ -26,8 +26,6 @@ interface VersoPrettyVirRuntime {
 
 interface VersoPrettyVirBridge {
     enabled?: boolean;
-    compare?: boolean;
-    backend?: "auto" | "js" | "vir" | "vir-format";
     runtime?: VersoPrettyVirRuntime;
     jsonExportName?: string;
     formatExportName?: string;
@@ -36,13 +34,11 @@ interface VersoPrettyVirBridge {
     ready?: Promise<unknown>;
     status?: string;
     error?: unknown;
-    warned?: boolean;
+    warnings?: Record<string, boolean>;
 }
 
 interface VersoPrettyVirConfig {
     enabled?: boolean;
-    compare?: boolean;
-    backend?: "auto" | "js" | "vir" | "vir-format";
     runtimeUrl?: string;
     wasmUrl?: string;
     wasmDebugUrl?: string;
@@ -53,9 +49,43 @@ interface VersoPrettyVirConfig {
     formatExportName?: string;
 }
 
+interface VersoPrettyNativeBridge {
+    enabled?: boolean;
+    status?: string;
+    ready?: Promise<unknown>;
+    error?: unknown;
+    format?: (fmtJson: unknown, width: number, indent: number, column: number) => string;
+    formatTimed?: (
+        fmtJson: unknown,
+        width: number,
+        indent: number,
+        column: number,
+    ) => { text: string; timings: PrettyTimings };
+    warnings?: Record<string, boolean>;
+}
+
+interface VersoPrettyNativeConfig {
+    enabled?: boolean;
+    runtimeBaseUrl?: string;
+    wasmUrl?: string;
+    descriptorUrl?: string;
+    fetchCache?: RequestCache;
+}
+
+interface VersoPrettyConfig {
+    compare?: boolean;
+    backend?: string;
+    backends?: string[];
+    columns?: number;
+    controls?: boolean;
+}
+
 interface Window {
+    __versoPrettyConfig?: VersoPrettyConfig;
     __versoPrettyVir?: VersoPrettyVirBridge;
     __versoPrettyVirConfig?: VersoPrettyVirConfig;
+    __versoPrettyNative?: VersoPrettyNativeBridge;
+    __versoPrettyNativeConfig?: VersoPrettyNativeConfig;
 }
 
 /** pretty.js — render a format tree to HTML at a given pixel width (global). */
@@ -71,7 +101,7 @@ declare function formatToHtmlWithBackend(
     annotations: Record<string, any>,
     pixelWidth: number,
     measurer: DOMMeasurer,
-    backend: "auto" | "js" | "vir" | "vir-format",
+    backend: string,
 ): string | null;
 
 declare function formatToHtmlTimed(
@@ -79,8 +109,36 @@ declare function formatToHtmlTimed(
     annotations: Record<string, any>,
     pixelWidth: number,
     measurer: DOMMeasurer,
-    backend: "auto" | "js" | "vir" | "vir-format",
-): { html: string | null; durationMs: number };
+    backend: string,
+): { html: string | null; durationMs: number; timings: PrettyTimings };
+
+interface PrettyBackendDefinition {
+    id: string;
+    label: string;
+    ready?: Promise<unknown>;
+    status?: () => string;
+    capabilities?: {
+        output: "segments" | "text";
+        width: "pixels" | "columns";
+    };
+    renderSegments?(
+        fmtJson: any,
+        annotations: Record<string, any>,
+        pixelWidth: number,
+        measurer: DOMMeasurer,
+    ): Array<{ text: string; tags: number[] }> | null;
+    renderTimed?(
+        fmtJson: any,
+        annotations: Record<string, any>,
+        pixelWidth: number,
+        measurer: DOMMeasurer,
+    ): PrettySegmentResult;
+}
+
+declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;
+declare function getPrettyBackends(): PrettyBackendDefinition[];
+declare function getPrettyBackend(id: string): PrettyBackendDefinition | null;
+declare function createColumnMeasurer(columns: number): DOMMeasurer;
 
 /** pretty.js — create a DOM-based measurer for pixel-accurate text width measurement (global). */
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;
