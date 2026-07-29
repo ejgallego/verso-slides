@@ -789,14 +789,46 @@
      */
     function setTimingDetails(timeEl, timings, wallMs) {
         timeEl.textContent = formatTiming(timings.totalMs);
-        timeEl.title = [
+        var details = [
             "Formatter total: " + formatTiming(timings.totalMs),
             "Marshal: " + formatTiming(timings.marshalMs),
+        ];
+        /** @type {Array<[keyof PrettyTimings, string]>} */
+        var phaseDetails = [
+            ["adapterInputMs", "  Verso input"],
+            ["normalizeMs", "  Normalize"],
+            ["allocateMs", "  Allocate"],
+            ["encodeMs", "  Encode"],
+        ];
+        phaseDetails.forEach(function (detail) {
+            var value = timings[detail[0]];
+            if (typeof value === "number" && Number.isFinite(value)) {
+                details.push(detail[1] + ": " + formatTiming(value));
+            }
+        });
+        details.push(
             "Execute: " + formatTiming(timings.executeMs),
             "Decode: " + formatTiming(timings.decodeMs),
             "HTML: " + formatTiming(timings.renderMs),
-            "Panel wall time: " + formatTiming(wallMs),
-        ].join("\n");
+        );
+        if (
+            typeof timings.inputBytes === "number" &&
+            typeof timings.rawObjects === "number" &&
+            typeof timings.allocationCalls === "number"
+        ) {
+            details.push(
+                "Input arena: " +
+                    Math.round(timings.inputBytes) +
+                    " B, " +
+                    Math.round(timings.rawObjects) +
+                    " objects, " +
+                    Math.round(timings.allocationCalls) +
+                    " allocation" +
+                    (timings.allocationCalls === 1 ? "" : "s"),
+            );
+        }
+        details.push("Panel wall time: " + formatTiming(wallMs));
+        timeEl.title = details.join("\n");
         timeEl.setAttribute("aria-label", timeEl.title);
         timeEl.dataset.marshalMs = String(timings.marshalMs);
         timeEl.dataset.executeMs = String(timings.executeMs);

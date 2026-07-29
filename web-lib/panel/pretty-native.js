@@ -6,11 +6,12 @@
     /**
      * @typedef {{
      *   enabled?: boolean,
-     *   runtimeBaseUrl?: string,
+     *   adapterUrl?: string,
      *   wasmUrl?: string,
      *   descriptorUrl?: string,
      *   buildUrl?: string,
-     *   fetchCache?: RequestCache
+     *   fetchCache?: RequestCache,
+     *   maximumNodes?: number
      * }} PrettyNativeConfig
      *
      * @typedef {{
@@ -19,6 +20,8 @@
      *   ready?: Promise<*>,
      *   error?: *,
      *   build?: *,
+     *   adapter?: *,
+     *   startupTimings?: *,
      *   formatSegments?: (
      *     fmtJson: *,
      *     width: number,
@@ -43,22 +46,17 @@
      *     executeMs: number,
      *     decodeMs: number,
      *     renderMs: number,
-     *     totalMs: number
-     *   }
-     * }} NativeFormatResult
-     *
-     * @typedef {{
-     *   manifest: {
-     *     params: string[],
-     *     result: string,
-     *     imports: *[],
-     *     closureDispatch: string[],
-     *     closureDescriptors: string[][]
+     *     totalMs: number,
+     *     adapterInputMs?: number,
+     *     normalizeMs?: number,
+     *     allocateMs?: number,
+     *     encodeMs?: number,
+     *     inputBytes?: number,
+     *     rawObjects?: number,
+     *     allocationCalls?: number
      *   },
-     *   host: *,
-     *   instance: WebAssembly.Instance,
-     *   entry: (...args: *[]) => *
-     * }} NativeArtifact
+     *   memory?: *
+     * }} NativeFormatResult
      *
      * @typedef {{ kind: number, text: string, value: bigint }} NativePrettyEvent
      *
@@ -154,11 +152,6 @@
         return new URL(path, scriptUrl).href;
     }
 
-    /** @param {string} base */
-    function asDirectoryUrl(base) {
-        return base.endsWith("/") ? base : base + "/";
-    }
-
     /**
      * @param {string} key
      * @param {string} message
@@ -169,19 +162,6 @@
         if (warnings[key]) return;
         warnings[key] = true;
         console.warn(message, error);
-    }
-
-    /**
-     * @param {string} url
-     * @return {Promise<Response>}
-     */
-    function fetchChecked(url) {
-        return fetch(url, { cache: config.fetchCache || "default" }).then(function (response) {
-            if (!response.ok) {
-                throw new Error("failed to load " + url + ": HTTP " + response.status);
-            }
-            return response;
-        });
     }
 
     /**
@@ -255,156 +235,49 @@
     }
 
     /**
-     * Validate the atomic package's machine-readable capability contract.
-     * The raw trace ABI is intentionally experimental; these checks reject a
-     * silent fallback to the earlier plain-string package.
-     * @param {*} manifest
-     * @param {*} build
-     */
-    function validateNativePackageMetadata(manifest, build) {
-        if (
-            !build ||
-            build.format !== "fir-prettyM-package-metadata-v2" ||
-            build.sourceDirty !== false ||
-            build.entry !== manifest.entry ||
-            build.result !== manifest.result
-        ) {
-            throw new Error("native pretty package metadata is inconsistent");
-        }
-        var capabilities = build.capabilities;
-        var output = capabilities && capabilities.output;
-        if (
-            !output ||
-            output.semantic !== "PrettyTrace" ||
-            output.physical !== "object" ||
-            output.taggedSegments !== true
-        ) {
-            throw new Error("native pretty package does not provide styled trace output");
-        }
-        if (
-            capabilities.representation !== "wasm32-lean64" ||
-            capabilities.memoryOwner !== "module" ||
-            capabilities.functionImportCount !== 0 ||
-            build.functionImports !== 0 ||
-            build.memoryImports !== 0 ||
-            !Array.isArray(manifest.imports) ||
-            manifest.imports.length !== 0
-        ) {
-            throw new Error("native pretty package is not a zero-import module");
-        }
-    }
-
-    /**
-     * Convert the compact Verso format encoding directly into Lean 4.32's raw
-     * `Std.Format` constructor layout owned by the artifact's concrete host.
-     * @param {*} host
+     * Convert Verso's compact array encoding into the adapter's versioned
+     * transport type. Raw Lean heap layout remains entirely upstream-owned.
+     * @param {*} formatFactory
      * @param {*} json
      * @return {*}
      */
-    function compactFormatToNative(host, json) {
-        /** @param {number | bigint} payload */
-        function tagged(payload) {
-            return host.encode("tobject", {
-                kind: "tagged",
-                payload: BigInt(payload),
-            });
-        }
-
-        /** @param {number | bigint} value */
-        function natural(value) {
-            var physical = host.allocateNatural(BigInt(value));
-            return host.encode("tobject", host.decode("tobject", physical));
-        }
-
-        /** @param {string} value */
-        function string(value) {
-            var physical = host.allocateString(value);
-            return host.encode("object", host.decode("object", physical));
-        }
-
-        /**
-         * @param {string} name
-         * @param {number} tag
-         * @param {*[]} fields
-         * @param {string[]} fieldKinds
-         * @param {number[]} [scalarBytes]
-         */
-        function ctor(name, tag, fields, fieldKinds, scalarBytes) {
-            var bytes = scalarBytes || [];
-            var result = host.allocCtor(
-                {
-                    kind: "allocCtor",
-                    name: name,
-                    result: "tobject",
-                    size: fields.length,
-                    usize: 0,
-                    ssize: bytes.length,
-                    tag: String(tag),
-                    fields: fieldKinds,
-                },
-                fields,
-            );
-            bytes.forEach(function (value, offset) {
-                host.scalarSet(
-                    {
-                        kind: "scalarSet",
-                        width: fields.length,
-                        offset: offset,
-                        field: "uint8",
-                    },
-                    [result, value],
-                );
-            });
-            return result;
-        }
-
-        if (json === null) return tagged(0);
-        if (json === 1) return tagged(1);
-        if (typeof json === "string") {
-            return ctor("Std.Format.text", 3, [string(json)], ["object"]);
-        }
+    function compactFormatToAdapterInput(formatFactory, json) {
+        if (json === null) return formatFactory.nil();
+        if (json === 1) return formatFactory.line();
+        if (typeof json === "string") return formatFactory.text(json);
         if (!Array.isArray(json) || json.length === 0) {
             throw new Error("invalid compact Std.Format node");
         }
 
         switch (json[0]) {
             case 2:
-                return ctor("Std.Format.align", 2, [], [], [json[1] ? 1 : 0]);
+                return formatFactory.align(Boolean(json[1]));
             case 3:
                 if (!Number.isSafeInteger(json[1]) || json[1] < 0) {
                     throw new Error("invalid Std.Format.nest indentation");
                 }
-                return ctor(
-                    "Std.Format.nest",
-                    4,
-                    [natural(json[1]), compactFormatToNative(host, json[2])],
-                    ["tobject", "tobject"],
+                return formatFactory.nest(
+                    json[1],
+                    compactFormatToAdapterInput(formatFactory, json[2]),
                 );
             case 4:
-                return ctor(
-                    "Std.Format.append",
-                    5,
-                    [compactFormatToNative(host, json[1]), compactFormatToNative(host, json[2])],
-                    ["tobject", "tobject"],
+                return formatFactory.append(
+                    compactFormatToAdapterInput(formatFactory, json[1]),
+                    compactFormatToAdapterInput(formatFactory, json[2]),
                 );
             case 5:
             case 6:
-                return ctor(
-                    "Std.Format.group",
-                    6,
-                    [compactFormatToNative(host, json[1])],
-                    ["tobject"],
-                    [json[0] === 5 ? 0 : 1],
+                return formatFactory.group(
+                    compactFormatToAdapterInput(formatFactory, json[1]),
+                    json[0] === 5 ? "allOrNone" : "fill",
                 );
             case 7:
                 if (!Number.isSafeInteger(json[1]) || json[1] < 0) {
                     throw new Error("invalid Std.Format tag");
                 }
-                return ctor(
-                    "Std.Format.tag",
-                    7,
-                    [natural(json[1]), compactFormatToNative(host, json[2])],
-                    ["tobject", "tobject"],
+                return formatFactory.tag(
+                    json[1],
+                    compactFormatToAdapterInput(formatFactory, json[2]),
                 );
             default:
                 throw new Error("unknown compact Std.Format node tag " + json[0]);
@@ -412,135 +285,90 @@
     }
 
     /**
-     * @param {NativeArtifact} artifact
-     * @param {(host: *, result: *) => NativePrettyTrace} decodeTrace
+     * @param {*} adapter
+     * @param {*} formatFactory
      * @return {(fmtJson: *, width: number, indent: number, column: number) => NativeFormatResult}
      */
-    function createNativePrettyClient(artifact, decodeTrace) {
-        if (
-            artifact.manifest.result !== "object" ||
-            artifact.manifest.params.length !== 4 ||
-            !artifact.manifest.params.every(function (kind) {
-                return kind === "tobject";
-            })
-        ) {
-            throw new Error("native pretty artifact has an incompatible raw ABI");
-        }
-
-        var host = artifact.host;
-        var entry = artifact.entry;
-        var setFrontier = artifact.instance.exports.fir_heap_set_frontier;
-        if (setFrontier !== undefined && typeof setFrontier !== "function") {
-            throw new Error("native pretty artifact has an invalid fir_heap_set_frontier export");
-        }
-        var syncFrontier = host.synchronizeResidentFrontierBeforeImport;
-        if (typeof syncFrontier !== "function") {
-            throw new Error("native pretty host cannot synchronize its resident frontier");
-        }
-
-        /** @param {number} value */
-        function natural(value) {
-            if (!Number.isSafeInteger(value) || value < 0) {
-                throw new Error("native pretty argument must be a nonnegative safe integer");
-            }
-            var physical = host.allocateNatural(BigInt(value));
-            return host.encode("tobject", host.decode("tobject", physical));
-        }
-
+    function createNativePrettyClient(adapter, formatFactory) {
         return function (fmtJson, width, indent, column) {
             var started = performance.now();
-            var format = compactFormatToNative(host, fmtJson);
-            var args = [format, natural(width), natural(indent), natural(column)];
-            if (typeof setFrontier === "function") {
-                setFrontier(host.heapCursor);
-            }
-            var marshaled = performance.now();
-            var physical = entry.apply(null, args);
-            syncFrontier.call(host);
-            var executed = performance.now();
-            var trace = decodeTrace(host, physical);
-            var segments = traceToSegments(trace);
-            var decoded = performance.now();
+            var format = compactFormatToAdapterInput(formatFactory, fmtJson);
+            var inputAdapted = performance.now();
+            var result = adapter.render({
+                format: format,
+                width: width,
+                indent: indent,
+                column: column,
+            });
+            var traceDecoded = performance.now();
+            var segments = traceToSegments(result.trace);
+            var finished = performance.now();
+            var adapterInputMs = inputAdapted - started;
+            var segmentDecodeMs = finished - traceDecoded;
             return {
-                text: trace.text,
+                text: result.trace.text,
                 segments: segments,
                 timings: {
-                    marshalMs: marshaled - started,
-                    executeMs: executed - marshaled,
-                    decodeMs: decoded - executed,
+                    marshalMs: adapterInputMs + result.timings.prepareMs,
+                    executeMs: result.timings.executeMs,
+                    decodeMs: result.timings.decodeMs + segmentDecodeMs,
                     renderMs: 0,
-                    totalMs: decoded - started,
+                    totalMs: finished - started,
+                    adapterInputMs: adapterInputMs,
+                    normalizeMs: result.timings.normalizeMs,
+                    allocateMs: result.timings.allocateMs,
+                    encodeMs: result.timings.encodeMs,
+                    inputBytes: result.memory.inputBytes,
+                    rawObjects: result.memory.rawObjects,
+                    allocationCalls: result.memory.residentAllocationCalls,
                 },
+                memory: result.memory,
             };
         };
     }
 
-    var runtimeBaseUrl = asDirectoryUrl(
-        config.runtimeBaseUrl || fromScript("./lean-native/runtime/integration/talos/artifact/"),
-    );
+    var adapterUrl = config.adapterUrl || fromScript("./lean-native/prettyM-browser-adapter.mjs");
     var wasmUrl = config.wasmUrl || fromScript("./lean-native/prettyM.wasm");
     var descriptorUrl = config.descriptorUrl || wasmUrl + ".json";
     var buildUrl = config.buildUrl || fromScript("./lean-native/BUILD.json");
 
-    bridge.ready = Promise.all([
-        import(new URL("module-client.mjs", runtimeBaseUrl).href),
-        import(new URL("concrete-host.mjs", runtimeBaseUrl).href),
-        import(new URL("check-concrete-pretty-format-trace-module.mjs", runtimeBaseUrl).href),
-        fetchChecked(wasmUrl).then(function (response) {
-            return response.arrayBuffer();
-        }),
-        fetchChecked(descriptorUrl).then(function (response) {
-            return response.json();
-        }),
-        fetchChecked(buildUrl).then(function (response) {
-            return response.json();
-        }),
-    ])
-        .then(function (loaded) {
-            var clientModule = loaded[0];
-            var hostModule = loaded[1];
-            var traceModule = loaded[2];
-            var bytes = loaded[3];
-            var manifest = loaded[4];
-            var build = loaded[5];
-            if (typeof clientModule.instantiateModuleArtifact !== "function") {
-                throw new Error("native runtime does not export instantiateModuleArtifact");
+    /** @param {RequestInfo | URL} url */
+    function fetchArtifact(url) {
+        return fetch(url, { cache: config.fetchCache || "default" });
+    }
+
+    bridge.ready = import(adapterUrl)
+        .then(function (adapterModule) {
+            if (
+                typeof adapterModule.fetchPrettyMAdapter !== "function" ||
+                !adapterModule.PrettyFormat
+            ) {
+                throw new Error("native package does not export its browser adapter API");
             }
-            if (typeof hostModule.ConcreteHost !== "function") {
-                throw new Error("native runtime does not export ConcreteHost");
-            }
-            if (typeof traceModule.decodeConcretePrettyTrace !== "function") {
-                throw new Error("native runtime does not export its styled trace decoder");
-            }
-            validateNativePackageMetadata(manifest, build);
-            bridge.build = build;
-            var host = new hostModule.ConcreteHost(
-                manifest.imports,
-                undefined,
-                {},
-                manifest.closureDispatch,
-                manifest.closureDescriptors,
-            );
-            return clientModule
-                .instantiateModuleArtifact({
-                    bytes: bytes,
-                    manifest: manifest,
-                    host: host,
+            return adapterModule
+                .fetchPrettyMAdapter(wasmUrl, {
+                    descriptorUrl: descriptorUrl,
+                    buildUrl: buildUrl,
+                    maximumNodes: config.maximumNodes,
+                    fetchImpl: fetchArtifact,
                 })
                 .then(
-                    /** @param {NativeArtifact} artifact */
-                    function (artifact) {
+                    /** @param {*} adapter */
+                    function (adapter) {
                         return {
-                            artifact: artifact,
-                            decodeTrace: traceModule.decodeConcretePrettyTrace,
+                            adapter: adapter,
+                            formatFactory: adapterModule.PrettyFormat,
                         };
                     },
                 );
         })
         .then(function (loaded) {
+            bridge.adapter = loaded.adapter;
+            bridge.build = loaded.adapter.build;
+            bridge.startupTimings = loaded.adapter.startupTimings;
             bridge.formatSegmentsTimed = createNativePrettyClient(
-                loaded.artifact,
-                loaded.decodeTrace,
+                loaded.adapter,
+                loaded.formatFactory,
             );
             bridge.formatSegments = function (fmtJson, width, indent, column) {
                 if (!bridge.formatSegmentsTimed) {
@@ -549,7 +377,7 @@
                 return bridge.formatSegmentsTimed(fmtJson, width, indent, column).segments;
             };
             bridge.status = "ready";
-            return loaded.artifact;
+            return loaded.adapter;
         })
         .catch(function (error) {
             bridge.status = "failed";

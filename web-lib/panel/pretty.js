@@ -35,7 +35,14 @@
  *   executeMs: number,
  *   decodeMs: number,
  *   renderMs: number,
- *   totalMs: number
+ *   totalMs: number,
+ *   adapterInputMs?: number,
+ *   normalizeMs?: number,
+ *   allocateMs?: number,
+ *   encodeMs?: number,
+ *   inputBytes?: number,
+ *   rawObjects?: number,
+ *   allocationCalls?: number
  * }} PrettyTimings
  *
  * @typedef {{ segments: Segment[] | null, timings: PrettyTimings }} PrettySegmentResult
@@ -695,6 +702,22 @@ function addPrettyTimings(target, source) {
     target.decodeMs += source.decodeMs;
     target.renderMs += source.renderMs;
     target.totalMs += source.totalMs;
+    /** @type {(keyof PrettyTimings)[]} */
+    var detailKeys = [
+        "adapterInputMs",
+        "normalizeMs",
+        "allocateMs",
+        "encodeMs",
+        "inputBytes",
+        "rawObjects",
+        "allocationCalls",
+    ];
+    detailKeys.forEach(function (key) {
+        var value = source[key];
+        if (typeof value === "number" && Number.isFinite(value)) {
+            target[key] = (target[key] || 0) + value;
+        }
+    });
     return target;
 }
 

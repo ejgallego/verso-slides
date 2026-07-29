@@ -89,11 +89,8 @@ if [[ -n "$native_pretty_dir" ]]; then
     BUILD.json
     prettyM.wasm
     prettyM.wasm.json
+    prettyM-browser-adapter.mjs
     SHA256SUMS
-    runtime/integration/talos/artifact/module-client.mjs
-    runtime/integration/talos/artifact/concrete-host.mjs
-    runtime/integration/talos/artifact/check-concrete-pretty-format-trace-module.mjs
-    runtime/scripts/wasm_assert.mjs
   )
   for native_file in "${native_required[@]}"; do
     if [[ ! -f "$native_pretty_dir/$native_file" ]]; then
@@ -113,6 +110,9 @@ import sys
 build = json.loads(Path(sys.argv[1]).read_text())
 manifest = json.loads(Path(sys.argv[2]).read_text())
 output = build.get("capabilities", {}).get("output", {})
+browser_adapter = build.get("capabilities", {}).get("browserAdapter", {})
+input_layout = build.get("capabilities", {}).get("inputLayout", {})
+ownership = build.get("capabilities", {}).get("ownership", {})
 expected_params = ["tobject", "tobject", "tobject", "tobject"]
 checks = [
     (build.get("format") == "fir-prettyM-package-metadata-v2", "package metadata format"),
@@ -129,6 +129,20 @@ checks = [
     (build.get("capabilities", {}).get("memoryOwner") == "module", "memory ownership"),
     (build.get("capabilities", {}).get("functionImportCount") == 0,
      "zero-import capability"),
+    (browser_adapter.get("module") == "prettyM-browser-adapter.mjs",
+     "browser adapter module"),
+    (browser_adapter.get("apiVersion") == "fir.prettyM.browser/v1",
+     "browser adapter API"),
+    (set(browser_adapter.get("phases", [])) ==
+     {"prepare", "execute", "decode", "render"}, "browser adapter phases"),
+    ({"normalizeMs", "allocateMs", "encodeMs", "prepareMs", "executeMs", "decodeMs"}
+     <= set(browser_adapter.get("timings", [])), "browser adapter timings"),
+    (input_layout.get("version") == "lean-4.32-Std.Format.compact/v1",
+     "versioned input layout"),
+    (ownership.get("version") == "fir.prettyM.module-owned-transfer/v1",
+     "versioned ownership contract"),
+    (ownership.get("allocator") == "single-bulk-resident-allocation-per-render",
+     "bulk resident input allocation"),
     (output.get("semantic") == "PrettyTrace", "styled output semantic"),
     (output.get("taggedSegments") is True, "tagged segment capability"),
 ]
@@ -223,7 +237,8 @@ if [[ "$native_enabled" -eq 1 ]]; then
   install -m 0644 "$native_pretty_dir/prettyM.wasm" "$lib_dir/lean-native/prettyM.wasm"
   install -m 0644 "$native_pretty_dir/prettyM.wasm.json" \
     "$lib_dir/lean-native/prettyM.wasm.json"
-  rsync -a --delete "$native_pretty_dir/runtime/" "$lib_dir/lean-native/runtime/"
+  install -m 0644 "$native_pretty_dir/prettyM-browser-adapter.mjs" \
+    "$lib_dir/lean-native/prettyM-browser-adapter.mjs"
 fi
 
 python3 - "$out_dir/index.html" "$native_enabled" <<'PY'

@@ -29,7 +29,9 @@ class TestPrettyVirAssets:
         assert "prettyM.wasm" in body
         assert "PrettyTrace" in body
         assert "traceToSegments" in body
-        assert "ConcreteHost" in body
+        assert "fetchPrettyMAdapter" in body
+        assert "compactFormatToAdapterInput" in body
+        assert "ConcreteHost" not in body
 
     def test_pretty_vir_not_loaded_by_default(self, code_doc: BeautifulSoup):
         """The bootstrap remains opt-in until the VIR package assets are supplied."""
@@ -284,7 +286,23 @@ class TestPrettyVirComparisonPanel:
                 registerPrettyBackend({
                     id: "native",
                     label: "Native",
-                    renderSegments: () => [{ text: "from-native", tags: [] }]
+                    renderTimed: () => ({
+                        segments: [{ text: "from-native", tags: [] }],
+                        timings: {
+                            marshalMs: 0.4,
+                            executeMs: 0.1,
+                            decodeMs: 0.2,
+                            renderMs: 0,
+                            totalMs: 0.7,
+                            adapterInputMs: 0.05,
+                            normalizeMs: 0.1,
+                            allocateMs: 0.05,
+                            encodeMs: 0.2,
+                            inputBytes: 512,
+                            rawObjects: 12,
+                            allocationCalls: 1
+                        }
+                    })
                 });
             }"""
         )
@@ -353,6 +371,15 @@ class TestPrettyVirComparisonPanel:
         assert all("Execute:" in title for title in timing_titles)
         assert all("Decode:" in title for title in timing_titles)
         assert all("HTML:" in title for title in timing_titles)
+        native_timing = panel.locator(
+            '[data-pretty-backend="native"] .pretty-compare-time'
+        ).get_attribute("title")
+        assert native_timing is not None
+        assert "Verso input:" in native_timing
+        assert "Normalize:" in native_timing
+        assert "Allocate:" in native_timing
+        assert "Encode:" in native_timing
+        assert "Input arena: 2048 B, 48 objects, 4 allocations" in native_timing
 
     def test_controls_select_processors_and_share_column_budget(
         self, code_url: str, page: Page

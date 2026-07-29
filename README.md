@@ -822,7 +822,10 @@ marshal, execution, decode, and HTML-construction phases, plus total panel
 wall time. These are synchronous per-render measurements taken after artifact
 instantiation: download and instantiation are excluded, while an early
 observation may still include engine warm-up. Goal panes sum the phase times
-of all formatted hypotheses and conclusions.
+of all formatted hypotheses and conclusions. The native adapter additionally
+breaks preparation into Verso-input conversion, normalization, one bulk
+resident allocation, and raw encoding, and reports its input arena size and
+object count.
 
 The separate
 `window.__versoPrettyVirConfig` object only configures the VIR runtime.
@@ -844,10 +847,12 @@ The event stream records `MonadPrettyFormat` output, newline, tag-start,
 and tag-end operations. The bootstrap decodes it into the same
 `{ text, tags }` segment contract used by the JavaScript and VIR
 candidates, so the native pane preserves syntax highlighting as well as
-layout. The current W7 module has zero Wasm imports: JavaScript only
-constructs the ordinary `Std.Format` heap layout and decodes the result
-through the artifact's concrete host; it supplies no runtime operation
-used by `prettyM`.
+layout. The current W7 module has zero Wasm imports. Its packaged, versioned
+browser adapter translates a compact discriminated-union `Std.Format` value
+into the ordinary Lean heap layout using one bulk resident allocation,
+transfers ownership to `prettyM`, and returns a decoded JavaScript trace. The
+Verso bootstrap only maps its existing compact array syntax to that public
+adapter type and converts the trace to shared segments.
 
 For the static comparison demo, use:
 
@@ -871,8 +876,8 @@ The script verifies its `SHA256SUMS` and styled-trace capability
 metadata, including its zero-import boundary. An atomic `prettyM-current`
 symlink is pinned to one immutable release before validation, so a
 concurrent refresh cannot mix package generations. The script then copies
-`BUILD.json`, the Wasm module, descriptor, and browser-safe concrete client
-and loads `lib/pretty-native.js`:
+`BUILD.json`, the Wasm module, descriptor, and versioned production browser
+adapter and loads `lib/pretty-native.js`:
 
 ```
 NATIVE_PRETTY_DIR=~/lean/fir/.worktrees/wasm-generation/integration/talos/artifact/_build/prettyM-current \
