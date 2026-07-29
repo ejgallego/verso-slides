@@ -92,7 +92,6 @@ if [[ -n "$native_pretty_dir" ]]; then
     SHA256SUMS
     runtime/integration/talos/artifact/module-client.mjs
     runtime/integration/talos/artifact/concrete-host.mjs
-    runtime/integration/talos/artifact/concrete-artifact-external-registry.mjs
     runtime/integration/talos/artifact/check-concrete-pretty-format-trace-module.mjs
     runtime/scripts/wasm_assert.mjs
   )
@@ -122,9 +121,14 @@ checks = [
     (build.get("params") == expected_params, "build parameter ABI"),
     (manifest.get("params") == expected_params, "manifest parameter ABI"),
     (build.get("result") == manifest.get("result") == "object", "result ABI"),
+    (build.get("functionImports") == 0, "zero function imports"),
+    (build.get("memoryImports") == 0, "zero memory imports"),
+    (manifest.get("imports") == [], "empty import descriptor"),
     (build.get("capabilities", {}).get("representation") == "wasm32-lean64",
      "runtime representation"),
     (build.get("capabilities", {}).get("memoryOwner") == "module", "memory ownership"),
+    (build.get("capabilities", {}).get("functionImportCount") == 0,
+     "zero-import capability"),
     (output.get("semantic") == "PrettyTrace", "styled output semantic"),
     (output.get("taggedSegments") is True, "tagged segment capability"),
 ]

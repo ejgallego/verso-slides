@@ -48,7 +48,13 @@
      * }} NativeFormatResult
      *
      * @typedef {{
-     *   manifest: { params: string[], result: string },
+     *   manifest: {
+     *     params: string[],
+     *     result: string,
+     *     imports: *[],
+     *     closureDispatch: string[],
+     *     closureDescriptors: string[][]
+     *   },
      *   host: *,
      *   instance: WebAssembly.Instance,
      *   entry: (...args: *[]) => *
@@ -277,9 +283,14 @@
         }
         if (
             capabilities.representation !== "wasm32-lean64" ||
-            capabilities.memoryOwner !== "module"
+            capabilities.memoryOwner !== "module" ||
+            capabilities.functionImportCount !== 0 ||
+            build.functionImports !== 0 ||
+            build.memoryImports !== 0 ||
+            !Array.isArray(manifest.imports) ||
+            manifest.imports.length !== 0
         ) {
-            throw new Error("native pretty package has an unsupported memory representation");
+            throw new Error("native pretty package is not a zero-import module");
         }
     }
 
@@ -422,6 +433,10 @@
         if (setFrontier !== undefined && typeof setFrontier !== "function") {
             throw new Error("native pretty artifact has an invalid fir_heap_set_frontier export");
         }
+        var syncFrontier = host.synchronizeResidentFrontierBeforeImport;
+        if (typeof syncFrontier !== "function") {
+            throw new Error("native pretty host cannot synchronize its resident frontier");
+        }
 
         /** @param {number} value */
         function natural(value) {
@@ -441,6 +456,7 @@
             }
             var marshaled = performance.now();
             var physical = entry.apply(null, args);
+            syncFrontier.call(host);
             var executed = performance.now();
             var trace = decodeTrace(host, physical);
             var segments = traceToSegments(trace);
@@ -469,7 +485,6 @@
     bridge.ready = Promise.all([
         import(new URL("module-client.mjs", runtimeBaseUrl).href),
         import(new URL("concrete-host.mjs", runtimeBaseUrl).href),
-        import(new URL("concrete-artifact-external-registry.mjs", runtimeBaseUrl).href),
         import(new URL("check-concrete-pretty-format-trace-module.mjs", runtimeBaseUrl).href),
         fetchChecked(wasmUrl).then(function (response) {
             return response.arrayBuffer();
@@ -484,20 +499,15 @@
         .then(function (loaded) {
             var clientModule = loaded[0];
             var hostModule = loaded[1];
-            var registryModule = loaded[2];
-            var traceModule = loaded[3];
-            var bytes = loaded[4];
-            var manifest = loaded[5];
-            var build = loaded[6];
+            var traceModule = loaded[2];
+            var bytes = loaded[3];
+            var manifest = loaded[4];
+            var build = loaded[5];
             if (typeof clientModule.instantiateModuleArtifact !== "function") {
                 throw new Error("native runtime does not export instantiateModuleArtifact");
             }
             if (typeof hostModule.ConcreteHost !== "function") {
                 throw new Error("native runtime does not export ConcreteHost");
-            }
-            var registry = registryModule.concreteArtifactExternalRegistry;
-            if (!registry) {
-                throw new Error("native runtime does not export its external registry");
             }
             if (typeof traceModule.decodeConcretePrettyTrace !== "function") {
                 throw new Error("native runtime does not export its styled trace decoder");
@@ -507,8 +517,9 @@
             var host = new hostModule.ConcreteHost(
                 manifest.imports,
                 undefined,
-                registry,
+                {},
                 manifest.closureDispatch,
+                manifest.closureDescriptors,
             );
             return clientModule
                 .instantiateModuleArtifact({

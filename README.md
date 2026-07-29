@@ -844,8 +844,10 @@ The event stream records `MonadPrettyFormat` output, newline, tag-start,
 and tag-end operations. The bootstrap decodes it into the same
 `{ text, tags }` segment contract used by the JavaScript and VIR
 candidates, so the native pane preserves syntax highlighting as well as
-layout. The bootstrap still constructs the ordinary `Std.Format` heap
-layout directly through the artifact's concrete JavaScript host.
+layout. The current W7 module has zero Wasm imports: JavaScript only
+constructs the ordinary `Std.Format` heap layout and decodes the result
+through the artifact's concrete host; it supplies no runtime operation
+used by `prettyM`.
 
 For the static comparison demo, use:
 
@@ -866,11 +868,11 @@ and VIR `Std.Format` comparison panes.
 
 To add the fourth native pane, pass a prepared FIR `prettyM` package.
 The script verifies its `SHA256SUMS` and styled-trace capability
-metadata. An atomic `prettyM-current` symlink is pinned to one immutable
-release before validation, so a concurrent refresh cannot mix package
-generations. The script then copies `BUILD.json`, the Wasm module,
-descriptor, and browser-safe concrete runtime and loads
-`lib/pretty-native.js`:
+metadata, including its zero-import boundary. An atomic `prettyM-current`
+symlink is pinned to one immutable release before validation, so a
+concurrent refresh cannot mix package generations. The script then copies
+`BUILD.json`, the Wasm module, descriptor, and browser-safe concrete client
+and loads `lib/pretty-native.js`:
 
 ```
 NATIVE_PRETTY_DIR=~/lean/fir/.worktrees/wasm-generation/integration/talos/artifact/_build/prettyM-current \
