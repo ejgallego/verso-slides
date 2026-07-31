@@ -356,7 +356,8 @@ class TestPrettyDifferentialCorpus:
                     ],
                     widths: [4, 12],
                     warmup: 1,
-                    samples: 3
+                    samples: 3,
+                    profile: false
                 };
                 const matching = await runPrettyDifferentialCorpus(options);
                 registerPrettyBackend({
@@ -401,6 +402,66 @@ class TestPrettyDifferentialCorpus:
         assert differing["parityCount"] == 0
         assert differing["mismatches"] == [{"caseId": "text", "label": "Text", "width": 4}]
 
+    def test_real_slide_formats_and_scaling_dimensions(self, code_url: str, page: Page):
+        """Real generated formats are harvested and scaling points isolate six dimensions."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        result = page.evaluate(
+            """async () => {
+                const real = collectPrettyFormatsFromDocument();
+                const ids = ["scale-js", "scale-vir", "scale-format", "scale-native", "scale-llvm"];
+                ids.forEach((id, index) => registerPrettyBackend({
+                    id,
+                    label: id,
+                    status: () => "ready",
+                    renderTimed: fmt => ({
+                        segments: [{ text: JSON.stringify(fmt), tags: [] }],
+                        timings: {
+                            marshalMs: 0.1,
+                            executeMs: index + 0.2,
+                            decodeMs: 0.1,
+                            renderMs: 0,
+                            totalMs: index + 0.4
+                        }
+                    })
+                }));
+                const scaling = await runPrettyScalingStudy({
+                    backendIds: ids,
+                    warmup: 0,
+                    samples: 1
+                });
+                const profile = await collectPrettyRuntimeProfile(["js"]);
+                return {
+                    realCount: real.length,
+                    realOrigins: [...new Set(real.map(item => item.origin))],
+                    firstMetrics: measureCompactFormat(real[0].format),
+                    scaling,
+                    profile
+                };
+            }"""
+        )
+
+        assert result["realCount"] > 0
+        assert result["realOrigins"] == ["slide"]
+        assert result["firstMetrics"]["formatNodes"] > 0
+        js_profile = result["profile"]["backends"]["js"]
+        assert js_profile["assetBytes"] > 0
+        assert js_profile["assets"][0]["sha256"]
+        assert js_profile["resourceLoadMs"] >= 0
+        scaling = result["scaling"]
+        assert scaling["passed"]
+        assert scaling["scenarioCount"] == 32
+        assert scaling["parityCount"] == 32
+        assert [dimension["id"] for dimension in scaling["dimensions"]] == [
+            "text",
+            "nodes",
+            "nesting",
+            "breaks",
+            "tags",
+            "width",
+        ]
+        assert scaling["dimensions"][0]["points"][-1]["input"]["textCodePoints"] == 8192
+        assert scaling["dimensions"][1]["points"][-1]["input"]["formatNodes"] == 2047
+
     def test_controls_run_corpus_and_open_report(self, code_url: str, page: Page):
         """The testing menu exposes the corpus summary and per-scenario data."""
         goto_slide_by_title(page, code_url, "Dark Code")
@@ -438,12 +499,23 @@ class TestPrettyDifferentialCorpus:
         report = page.locator(".pretty-corpus-overlay")
         expect(report).to_be_visible()
         expect(report.locator(".pretty-corpus-result")).to_contain_text(
-            "45/45 scenarios agree · 5/5 backends ready"
+            "scenarios agree · 5/5 backends ready"
         )
         assert report.locator(".pretty-corpus-summary tr").count() == 6
-        assert report.locator(".pretty-corpus-scenarios tr").count() == 46
+        assert report.locator(".pretty-corpus-scenarios tr").count() > 46
         report.locator(".pretty-corpus-close").click()
         expect(report).not_to_be_visible()
+
+        controls.locator(".pretty-scaling-run").click()
+        scaling_report = page.locator(".pretty-scaling-overlay")
+        expect(scaling_report).to_be_visible()
+        expect(scaling_report.locator(".pretty-corpus-result")).to_contain_text(
+            "32/32 scaling points agree · 6 dimensions"
+        )
+        assert scaling_report.locator(".pretty-scaling-chart").count() == 6
+        assert scaling_report.locator(".pretty-scaling-table").count() == 6
+        scaling_report.locator(".pretty-corpus-close").click()
+        expect(scaling_report).not_to_be_visible()
 
 
 class TestPrettyVirComparisonPanel:

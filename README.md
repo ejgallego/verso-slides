@@ -836,17 +836,29 @@ adapter reports Verso-input conversion, wire encoding, execution and
 decode times, request/response sizes, format-node count, and
 Emscripten heap extent.
 
-The testing controls also include **Run corpus**. It compares every
-registered processor over nine representative `Std.Format` trees at 4,
-8, 16, 40, and 80 columns. The cases cover groups, fill behavior,
-nesting and alignment, embedded newlines, Unicode, empty boundaries,
-long tokens, and nested tags. Each scenario uses two warm-up rounds
-followed by nine interleaved timed samples. The report shows exact
-styled-output parity together with median and p95 totals and median
-phase timings, and its full per-case data can be exported as JSON.
+The testing controls include **Run corpus** and **Run scaling**. The
+corpus combines nine representative `Std.Format` trees with every
+unique rich format embedded in the generated slides, then evaluates
+them at 4, 8, 16, 40, and 80 columns. The synthetic cases cover
+groups, fill behavior, nesting and alignment, embedded newlines,
+Unicode, empty boundaries, long tokens, and nested tags. Each scenario
+uses two warm-up rounds followed by nine interleaved timed samples.
+
+The corpus report shows exact styled-output parity, median and p95
+totals, median phase timings, structural input metrics, artifact
+provenance, current Wasm memory, and exact SHA-256-profiled browser
+payloads. It separates bridge startup from resource-load wall time.
 Adjacent output events with the same active tag stack are merged
 before comparison because `pushOutput` chunk boundaries are not
 observable rendering semantics.
+
+The scaling study varies six dimensions independently where practical:
+text volume, format-node count with empty output, nesting depth, break
+opportunities, tag depth, and width budget. Each dimension has five or
+six exponentially spaced points. Its report provides log-time curves,
+exact per-point tables, and empirical log-log growth slopes for all
+five backends. Correctness parity remains mandatory at every scaling
+point.
 
 The separate `window.__versoPrettyVirConfig` object only configures
 the VIR runtime. `window.__versoPrettyNativeConfig` configures the
@@ -893,7 +905,8 @@ For the static comparison demo, use:
 scripts/build-vir-pretty-demo.sh
 ```
 
-The script expects a lean-vir checkout at `/tmp/lean-vir`, or at
+The script expects a lean-vir checkout staged at
+`_artifacts/lean-vir`, or at a workspace path selected by
 `$LEAN_VIR_DIR`. Build the lean-vir release wasm first with
 `npm run build:demo:release`; the script refuses to publish if
 `vir-upstream.wasm` is byte-identical to the debug companion
@@ -912,7 +925,7 @@ The script then copies `BUILD.json`, the Wasm module, descriptor, and
 versioned production browser adapter and loads `lib/pretty-native.js`:
 
 ```
-NATIVE_PRETTY_DIR=~/lean/fir/.worktrees/wasm-generation/integration/talos/artifact/_build/prettyM-current \
+NATIVE_PRETTY_DIR=_artifacts/pretty-native-current \
   scripts/build-vir-pretty-demo.sh
 ```
 
@@ -925,8 +938,8 @@ headers required by Emscripten threads. For static servers that ignore
 that adds COOP/COEP and reloads once before enabling LLVM:
 
 ```
-LLVM_PRETTY_DIR=~/lean/fir/integration/lcnf-c-wasm/_build/prettyM-emscripten-current \
-NATIVE_PRETTY_DIR=~/lean/fir/.worktrees/wasm-generation/integration/talos/artifact/_build/prettyM-current \
+LLVM_PRETTY_DIR=_artifacts/pretty-llvm-current \
+NATIVE_PRETTY_DIR=_artifacts/pretty-native-current \
   scripts/build-vir-pretty-demo.sh
 ```
 
@@ -936,13 +949,19 @@ To publish the stable demo URL:
 scripts/build-vir-pretty-demo.sh --publish
 ```
 
-With a locally served build, run the same artifact-backed corpus from
-the command line with:
+Serve a local build with the required isolation headers, then run the
+artifact-backed correctness, cold-start, footprint, and scaling suite:
 
 ```
-uv run --project browser-tests python scripts/check-vir-pretty-demo.py \
-  http://127.0.0.1:18321/ --output /tmp/pretty-differential.json
+scripts/serve-vir-pretty-demo.py
+
+uv run --project browser-tests python scripts/check-vir-pretty-demo.py
 ```
+
+The checker uses five fresh browser contexts for cold-start statistics
+and writes the complete report to
+`_test/pretty-reports/pretty-benchmark.json`. Both scripts reject
+filesystem paths outside this workspace.
 
 By default, `--publish` syncs to
 `x80.org:/srv/www/vir-verso-slides-demo/`, which is served at

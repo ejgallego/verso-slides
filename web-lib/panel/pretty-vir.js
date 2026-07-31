@@ -26,6 +26,8 @@
      *   ready?: Promise<*>,
      *   status?: string,
      *   error?: *,
+     *   assets?: string[],
+     *   startupTimings?: { importMs: number, initializeMs: number, totalMs: number },
      *   warnings?: Record<string, boolean>
      * }} PrettyVirBridge
      */
@@ -49,6 +51,12 @@
         return new URL(path, scriptUrl).href;
     }
 
+    var startupStarted = performance.now();
+    var runtimeImported = startupStarted;
+    var runtimeUrl = config.runtimeUrl || fromScript("./lean-vir/js/vir-runtime.js");
+    var wasmUrl = config.wasmUrl || fromScript("./lean-vir/wasm/vir-upstream.wasm");
+    var irPackageUrl = config.irPackageUrl || fromScript("./verso-pretty.irpkg");
+
     var bridge = root.__versoPrettyVir || {};
     bridge.enabled = true;
     bridge.status = "loading";
@@ -60,10 +68,12 @@
         config.formatExportName ||
         bridge.formatExportName ||
         "VersoSlides.Pretty.formatSegmentsForVir";
+    bridge.assets = [scriptUrl, runtimeUrl, wasmUrl, irPackageUrl];
     root.__versoPrettyVir = bridge;
 
-    bridge.ready = import(config.runtimeUrl || fromScript("./lean-vir/js/vir-runtime.js"))
+    bridge.ready = import(runtimeUrl)
         .then(function (runtimeModule) {
+            runtimeImported = performance.now();
             if (typeof runtimeModule.createVirRuntime !== "function") {
                 throw new Error("lean-vir runtime module does not export createVirRuntime");
             }
@@ -79,15 +89,21 @@
                 });
             }
             return runtimeModule.createVirRuntime({
-                wasmUrl: config.wasmUrl || fromScript("./lean-vir/wasm/vir-upstream.wasm"),
+                wasmUrl: wasmUrl,
                 wasmDebugUrl: config.wasmDebugUrl,
                 debugWasm: config.debugWasm === true,
-                irPackageUrl: config.irPackageUrl || fromScript("./verso-pretty.irpkg"),
+                irPackageUrl: irPackageUrl,
                 fetchBytes: fetchBytes,
             });
         })
         .then(function (runtime) {
+            var initialized = performance.now();
             bridge.runtime = runtime;
+            bridge.startupTimings = {
+                importMs: runtimeImported - startupStarted,
+                initializeMs: initialized - runtimeImported,
+                totalMs: initialized - startupStarted,
+            };
             bridge.status = "ready";
             bridge.formatJsonSegmentsJson = function (fmtJson, width, indent) {
                 if (!bridge.jsonExportName) throw new Error("missing VIR JSON pretty export name");

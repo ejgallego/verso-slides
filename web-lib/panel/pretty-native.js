@@ -22,6 +22,7 @@
      *   build?: *,
      *   adapter?: *,
      *   startupTimings?: *,
+     *   assets?: string[],
      *   formatSegments?: (
      *     fmtJson: *,
      *     width: number,
@@ -207,6 +208,9 @@
     var wasmUrl = config.wasmUrl || fromScript("./lean-native/prettyM.wasm");
     var descriptorUrl = config.descriptorUrl || wasmUrl + ".json";
     var buildUrl = config.buildUrl || fromScript("./lean-native/BUILD.json");
+    var startupStarted = performance.now();
+    var adapterImported = startupStarted;
+    bridge.assets = [scriptUrl, adapterUrl, wasmUrl, descriptorUrl, buildUrl];
 
     /** @param {RequestInfo | URL} url */
     function fetchArtifact(url) {
@@ -215,6 +219,7 @@
 
     bridge.ready = import(adapterUrl)
         .then(function (adapterModule) {
+            adapterImported = performance.now();
             if (
                 typeof adapterModule.fetchPrettyMAdapter !== "function" ||
                 !adapterModule.PrettyFormat
@@ -239,9 +244,13 @@
                 );
         })
         .then(function (loaded) {
+            var initialized = performance.now();
             bridge.adapter = loaded.adapter;
             bridge.build = loaded.adapter.build;
-            bridge.startupTimings = loaded.adapter.startupTimings;
+            bridge.startupTimings = Object.assign({}, loaded.adapter.startupTimings, {
+                importMs: adapterImported - startupStarted,
+                bridgeTotalMs: initialized - startupStarted,
+            });
             bridge.formatSegmentsTimed = createNativePrettyClient(
                 loaded.adapter,
                 loaded.formatFactory,

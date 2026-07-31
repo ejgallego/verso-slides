@@ -18,6 +18,10 @@
     var prettyCorpusOverlay = null;
     var prettyCorpusRunning = false;
     var prettyCorpusProgress = "";
+    /** @type {*} */
+    var prettyScalingReport = null;
+    var prettyScalingRunning = false;
+    var prettyScalingProgress = "";
 
     function init() {
         initializePrettyConfig();
@@ -281,30 +285,56 @@
         var corpus = document.createElement("fieldset");
         corpus.className = "pretty-controls-corpus";
         var corpusLegend = document.createElement("legend");
-        corpusLegend.textContent = "Differential corpus";
+        corpusLegend.textContent = "Benchmark data";
         var corpusActions = document.createElement("div");
         corpusActions.className = "pretty-controls-corpus-actions";
         var runCorpus = document.createElement("button");
         runCorpus.type = "button";
         runCorpus.className = "pretty-corpus-run";
-        runCorpus.disabled = prettyCorpusRunning;
+        runCorpus.disabled = prettyCorpusRunning || prettyScalingRunning;
         runCorpus.textContent = prettyCorpusRunning ? "Running…" : "Run corpus";
         runCorpus.addEventListener("click", runPrettyCorpusFromControls);
         corpusActions.appendChild(runCorpus);
+        var runScaling = document.createElement("button");
+        runScaling.type = "button";
+        runScaling.className = "pretty-scaling-run";
+        runScaling.disabled = prettyCorpusRunning || prettyScalingRunning;
+        runScaling.textContent = prettyScalingRunning ? "Scaling…" : "Run scaling";
+        runScaling.addEventListener("click", runPrettyScalingFromControls);
+        corpusActions.appendChild(runScaling);
         if (prettyCorpusReport) {
             var viewCorpus = document.createElement("button");
             viewCorpus.type = "button";
             viewCorpus.className = "pretty-corpus-view";
-            viewCorpus.textContent = "View report";
+            viewCorpus.textContent = "Corpus report";
             viewCorpus.addEventListener("click", function () {
                 showPrettyCorpusReport(prettyCorpusReport);
             });
             corpusActions.appendChild(viewCorpus);
         }
+        if (prettyScalingReport) {
+            var viewScaling = document.createElement("button");
+            viewScaling.type = "button";
+            viewScaling.className = "pretty-scaling-view";
+            viewScaling.textContent = "Scaling report";
+            viewScaling.addEventListener("click", function () {
+                showPrettyScalingReport(prettyScalingReport);
+            });
+            corpusActions.appendChild(viewScaling);
+        }
         var corpusStatus = document.createElement("p");
         corpusStatus.className = "pretty-corpus-status";
         if (prettyCorpusRunning) {
             corpusStatus.textContent = prettyCorpusProgress || "Preparing backends…";
+        } else if (prettyScalingRunning) {
+            corpusStatus.textContent = prettyScalingProgress || "Preparing scaling study…";
+        } else if (prettyScalingReport) {
+            corpusStatus.textContent =
+                prettyScalingReport.parityCount +
+                "/" +
+                prettyScalingReport.scenarioCount +
+                " scaling points agree";
+            corpusStatus.classList.add(prettyScalingReport.passed ? "status-pass" : "status-fail");
         } else if (prettyCorpusReport) {
             corpusStatus.textContent =
                 prettyCorpusReport.parityCount +
@@ -313,7 +343,12 @@
                 " scenarios agree";
             corpusStatus.classList.add(prettyCorpusReport.passed ? "status-pass" : "status-fail");
         } else {
-            corpusStatus.textContent = "9 cases × 5 widths; 2 warm-ups + 9 samples.";
+            var slideCases =
+                typeof collectPrettyFormatsFromDocument === "function"
+                    ? collectPrettyFormatsFromDocument().length
+                    : 0;
+            corpusStatus.textContent =
+                "9 synthetic + " + slideCases + " slide formats; 6 scaling dimensions; 9 samples.";
         }
         corpus.append(corpusLegend, corpusActions, corpusStatus);
         menu.appendChild(corpus);
@@ -330,7 +365,10 @@
     function updatePrettyCorpusProgress() {
         if (!prettyControls) return;
         var status = prettyControls.querySelector(".pretty-corpus-status");
-        if (status) status.textContent = prettyCorpusProgress;
+        if (status)
+            status.textContent = prettyScalingRunning
+                ? prettyScalingProgress
+                : prettyCorpusProgress;
     }
 
     async function runPrettyCorpusFromControls() {
@@ -368,11 +406,53 @@
         }
     }
 
+    async function runPrettyScalingFromControls() {
+        if (prettyScalingRunning || typeof runPrettyScalingStudy !== "function") return;
+        prettyScalingRunning = true;
+        prettyScalingProgress = "Preparing scaling study…";
+        renderPrettyControls();
+        try {
+            prettyScalingReport = await runPrettyScalingStudy({
+                onProgress: function (progress) {
+                    prettyScalingProgress =
+                        progress.completed +
+                        "/" +
+                        progress.total +
+                        " · " +
+                        (progress.dimension || progress.caseId) +
+                        (progress.size === undefined ? "" : " · " + progress.size);
+                    updatePrettyCorpusProgress();
+                },
+            });
+            showPrettyScalingReport(prettyScalingReport);
+        } catch (error) {
+            prettyScalingReport = {
+                passed: false,
+                parityCount: 0,
+                scenarioCount: 0,
+                error: error instanceof Error ? error.message : String(error),
+            };
+            console.warn("Pretty scaling study failed.", error);
+        } finally {
+            prettyScalingRunning = false;
+            prettyScalingProgress = "";
+            renderPrettyControls();
+        }
+    }
+
     /** @param {number} value */
     function formatCorpusTiming(value) {
         if (!Number.isFinite(value)) return "—";
         if (value < 0.01) return "<0.01";
         return value.toFixed(value < 10 ? 2 : 1);
+    }
+
+    /** @param {number | null} value */
+    function formatCorpusBytes(value) {
+        if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+        if (value < 1024) return Math.round(value) + " B";
+        if (value < 1024 * 1024) return (value / 1024).toFixed(1) + " KiB";
+        return (value / (1024 * 1024)).toFixed(2) + " MiB";
     }
 
     /**
@@ -395,7 +475,11 @@
         var link = document.createElement("a");
         link.href = url;
         link.download =
-            "pretty-differential-" + new Date().toISOString().replace(/[:.]/g, "-") + ".json";
+            "pretty-" +
+            (report.kind || "differential") +
+            "-" +
+            new Date().toISOString().replace(/[:.]/g, "-") +
+            ".json";
         link.click();
         setTimeout(function () {
             URL.revokeObjectURL(url);
@@ -496,14 +580,89 @@
             });
             overlay.appendChild(summaryTable);
 
+            if (report.runtimeProfile) {
+                var runtimeHeading = document.createElement("h3");
+                runtimeHeading.textContent = "Current-page startup and footprint";
+                overlay.appendChild(runtimeHeading);
+                var runtimeNote = document.createElement("p");
+                runtimeNote.className = "pretty-corpus-note";
+                runtimeNote.textContent =
+                    "Asset bytes are exact SHA-256-profiled total browser payloads, including the shared formatter/segment harness. VIR JSON and VIR Format share one runtime; bridge startup and resource-wall time are reported separately.";
+                overlay.appendChild(runtimeNote);
+                var runtimeTable = document.createElement("table");
+                runtimeTable.className = "pretty-corpus-runtime";
+                var runtimeHead = document.createElement("tr");
+                [
+                    "Backend",
+                    "Startup (ms)",
+                    "Resource wall (ms)",
+                    "Assets",
+                    "Wasm",
+                    "Memory initial → final",
+                    "Pipeline",
+                ].forEach(function (heading) {
+                    appendCorpusCell(runtimeHead, heading, "th");
+                });
+                runtimeTable.appendChild(runtimeHead);
+                report.backendIds.forEach(function (/** @type {string} */ id) {
+                    var profile = report.runtimeProfile.backends[id];
+                    var before =
+                        report.runtimeProfileBefore && report.runtimeProfileBefore.backends[id];
+                    var row = document.createElement("tr");
+                    appendCorpusCell(row, report.summaries[id].label);
+                    appendCorpusCell(
+                        row,
+                        profile && typeof profile.startupMs === "number"
+                            ? formatCorpusTiming(profile.startupMs)
+                            : "—",
+                    );
+                    appendCorpusCell(
+                        row,
+                        profile && typeof profile.resourceLoadMs === "number"
+                            ? formatCorpusTiming(profile.resourceLoadMs)
+                            : "—",
+                    );
+                    appendCorpusCell(row, profile ? formatCorpusBytes(profile.assetBytes) : "—");
+                    appendCorpusCell(row, profile ? formatCorpusBytes(profile.wasmBytes) : "—");
+                    appendCorpusCell(
+                        row,
+                        profile
+                            ? formatCorpusBytes(before ? before.memoryBytes : null) +
+                                  " → " +
+                                  formatCorpusBytes(profile.memoryBytes)
+                            : "—",
+                    );
+                    appendCorpusCell(
+                        row,
+                        profile && profile.provenance
+                            ? profile.provenance.pipeline || "metadata"
+                            : id === "js"
+                              ? "JavaScript"
+                              : id.startsWith("vir")
+                                ? "lean-vir"
+                                : "—",
+                    );
+                    runtimeTable.appendChild(row);
+                });
+                overlay.appendChild(runtimeTable);
+            }
+
             var scenarioHeading = document.createElement("h3");
-            scenarioHeading.textContent = "Case and width breakdown — median total (ms)";
+            var realCases = report.cases.filter(function (/** @type {*} */ corpusCase) {
+                return corpusCase.origin === "slide";
+            }).length;
+            scenarioHeading.textContent =
+                "Case and width breakdown — " +
+                realCases +
+                " real slide formats, median total (ms)";
             overlay.appendChild(scenarioHeading);
             var scenarioTable = document.createElement("table");
             scenarioTable.className = "pretty-corpus-scenarios";
             var scenarioHead = document.createElement("tr");
             appendCorpusCell(scenarioHead, "Case", "th");
+            appendCorpusCell(scenarioHead, "Source", "th");
             appendCorpusCell(scenarioHead, "Width", "th");
+            appendCorpusCell(scenarioHead, "Nodes", "th");
             appendCorpusCell(scenarioHead, "Parity", "th");
             report.backendIds.forEach(function (/** @type {string} */ id) {
                 appendCorpusCell(scenarioHead, report.summaries[id].label, "th");
@@ -513,7 +672,9 @@
                 var row = document.createElement("tr");
                 row.className = scenario.parity ? "status-pass" : "status-fail";
                 appendCorpusCell(row, scenario.label);
+                appendCorpusCell(row, scenario.origin);
                 appendCorpusCell(row, String(scenario.width));
+                appendCorpusCell(row, String(scenario.input.formatNodes));
                 appendCorpusCell(row, scenario.parity ? "match" : "mismatch");
                 report.backendIds.forEach(function (/** @type {string} */ id) {
                     var backendResult = scenario.backends[id];
@@ -558,6 +719,278 @@
             }
         }
 
+        document.body.appendChild(overlay);
+        prettyCorpusOverlay = overlay;
+        closeButton.focus();
+    }
+
+    /**
+     * @param {*} dimension
+     * @param {string[]} backendIds
+     * @param {Record<string, *>} summaries
+     * @return {SVGSVGElement}
+     */
+    function createPrettyScalingChart(dimension, backendIds, summaries) {
+        var namespace = "http://www.w3.org/2000/svg";
+        var svg = /** @type {SVGSVGElement} */ (document.createElementNS(namespace, "svg"));
+        svg.classList.add("pretty-scaling-chart");
+        svg.setAttribute("viewBox", "0 0 900 270");
+        svg.setAttribute("role", "img");
+        svg.setAttribute(
+            "aria-label",
+            dimension.label + " versus median formatter runtime; logarithmic time axis",
+        );
+        var left = 70;
+        var right = 675;
+        var top = 25;
+        var bottom = 220;
+        var colors = ["#74a9ff", "#f0a35e", "#77c879", "#d879c6", "#d7c45c"];
+        /** @type {number[]} */
+        var positive = [];
+        dimension.points.forEach(function (/** @type {*} */ point) {
+            backendIds.forEach(function (id) {
+                var result = point.backends[id];
+                var value = result && result.summary.totalMs.median;
+                if (typeof value === "number" && value > 0) positive.push(value);
+            });
+        });
+        var minimum = positive.length > 0 ? Math.min.apply(null, positive) : 0.001;
+        var maximum = positive.length > 0 ? Math.max.apply(null, positive) : 1;
+        var low = Math.log10(Math.max(0.0001, minimum * 0.75));
+        var high = Math.log10(Math.max(minimum * 1.5, maximum * 1.25));
+
+        /** @param {string} name @param {Record<string, string>} attributes */
+        function element(name, attributes) {
+            var node = document.createElementNS(namespace, name);
+            Object.keys(attributes).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            svg.appendChild(node);
+            return node;
+        }
+
+        /** @param {string} value @param {number} x @param {number} y @param {string} anchor */
+        function label(value, x, y, anchor) {
+            var node = /** @type {SVGTextElement} */ (
+                element("text", { x: String(x), y: String(y), "text-anchor": anchor })
+            );
+            node.textContent = value;
+            return node;
+        }
+
+        element("line", {
+            x1: String(left),
+            y1: String(bottom),
+            x2: String(right),
+            y2: String(bottom),
+            class: "axis",
+        });
+        element("line", {
+            x1: String(left),
+            y1: String(top),
+            x2: String(left),
+            y2: String(bottom),
+            class: "axis",
+        });
+        for (var tick = 0; tick <= 4; tick++) {
+            var tickLog = low + ((high - low) * tick) / 4;
+            var y = bottom - ((tickLog - low) / (high - low)) * (bottom - top);
+            element("line", {
+                x1: String(left),
+                y1: String(y),
+                x2: String(right),
+                y2: String(y),
+                class: "grid",
+            });
+            label(formatCorpusTiming(10 ** tickLog), left - 8, y + 4, "end");
+        }
+        dimension.points.forEach(function (/** @type {*} */ point, /** @type {number} */ index) {
+            var x =
+                dimension.points.length === 1
+                    ? left
+                    : left + (index / (dimension.points.length - 1)) * (right - left);
+            label(point.sizeLabel || String(point.size), x, bottom + 22, "middle");
+        });
+        label("median ms (log)", 8, top + 5, "start");
+
+        backendIds.forEach(function (id, backendIndex) {
+            /** @type {{ x: number, y: number, value: number, label: string }[]} */
+            var points = [];
+            dimension.points.forEach(
+                function (/** @type {*} */ point, /** @type {number} */ index) {
+                    var result = point.backends[id];
+                    var value = result && result.summary.totalMs.median;
+                    if (typeof value !== "number") return;
+                    var x =
+                        dimension.points.length === 1
+                            ? left
+                            : left + (index / (dimension.points.length - 1)) * (right - left);
+                    var y =
+                        bottom -
+                        ((Math.log10(Math.max(value, minimum * 0.5)) - low) / (high - low)) *
+                            (bottom - top);
+                    points.push({ x: x, y: y, value: value, label: point.sizeLabel });
+                },
+            );
+            var color = colors[backendIndex % colors.length];
+            element("polyline", {
+                points: points
+                    .map(function (point) {
+                        return point.x + "," + point.y;
+                    })
+                    .join(" "),
+                fill: "none",
+                stroke: color,
+                "stroke-width": "2",
+            });
+            points.forEach(function (point) {
+                var circle = element("circle", {
+                    cx: String(point.x),
+                    cy: String(point.y),
+                    r: "3.5",
+                    fill: color,
+                });
+                var title = document.createElementNS(namespace, "title");
+                title.textContent =
+                    summaries[id].label +
+                    " · " +
+                    point.label +
+                    " · " +
+                    formatCorpusTiming(point.value) +
+                    " ms";
+                circle.appendChild(title);
+            });
+            var legendY = top + backendIndex * 25;
+            element("line", {
+                x1: "710",
+                y1: String(legendY),
+                x2: "735",
+                y2: String(legendY),
+                stroke: color,
+                "stroke-width": "3",
+            });
+            label(summaries[id].label, 745, legendY + 4, "start");
+        });
+        return svg;
+    }
+
+    /** @param {*} report */
+    function showPrettyScalingReport(report) {
+        if (prettyCorpusOverlay) prettyCorpusOverlay.remove();
+        var overlay = document.createElement("section");
+        overlay.className = "pretty-corpus-overlay pretty-scaling-overlay";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-label", "Pretty-printer input scaling report");
+        overlay.addEventListener("keydown", function (event) {
+            event.stopPropagation();
+            if (event.key === "Escape") overlay.remove();
+        });
+        var header = document.createElement("header");
+        var title = document.createElement("h2");
+        title.textContent = "Pretty-printer input scaling report";
+        var actions = document.createElement("div");
+        var exportButton = document.createElement("button");
+        exportButton.type = "button";
+        exportButton.textContent = "Export JSON";
+        exportButton.addEventListener("click", function () {
+            downloadPrettyCorpusReport(report);
+        });
+        var closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "pretty-corpus-close";
+        closeButton.textContent = "Close";
+        closeButton.addEventListener("click", function () {
+            overlay.remove();
+        });
+        actions.append(exportButton, closeButton);
+        header.append(title, actions);
+        overlay.appendChild(header);
+        if (report.error) {
+            var error = document.createElement("p");
+            error.className = "pretty-corpus-result status-fail";
+            error.textContent = report.error;
+            overlay.appendChild(error);
+        } else {
+            var result = document.createElement("p");
+            result.className =
+                "pretty-corpus-result " + (report.passed ? "status-pass" : "status-fail");
+            result.textContent =
+                report.parityCount +
+                "/" +
+                report.scenarioCount +
+                " scaling points agree · " +
+                report.dimensions.length +
+                " dimensions · " +
+                report.samples +
+                " samples · " +
+                (report.benchmarkMs / 1000).toFixed(2) +
+                " s wall time";
+            overlay.appendChild(result);
+            var note = document.createElement("p");
+            note.className = "pretty-corpus-note";
+            note.textContent =
+                "Charts show warmed median formatter time on a logarithmic time axis. Tables retain exact medians and structural input metrics.";
+            overlay.appendChild(note);
+            report.dimensions.forEach(function (/** @type {*} */ dimension) {
+                var heading = document.createElement("h3");
+                heading.textContent = dimension.label;
+                overlay.appendChild(heading);
+                overlay.appendChild(
+                    createPrettyScalingChart(dimension, report.backendIds, report.summaries),
+                );
+                var trends = document.createElement("p");
+                trends.className = "pretty-corpus-note pretty-scaling-trends";
+                trends.textContent = report.backendIds
+                    .map(function (/** @type {string} */ id) {
+                        var trend = dimension.trends[id];
+                        return (
+                            report.summaries[id].label +
+                            ": " +
+                            (trend && typeof trend.growth === "number"
+                                ? trend.growth.toFixed(1) + "× growth"
+                                : "—") +
+                            (trend && typeof trend.logLogSlope === "number"
+                                ? ", slope " + trend.logLogSlope.toFixed(2)
+                                : "")
+                        );
+                    })
+                    .join(" · ");
+                overlay.appendChild(trends);
+                var table = document.createElement("table");
+                table.className = "pretty-scaling-table";
+                var head = document.createElement("tr");
+                ["Size", "Nodes", "Text bytes", "Depth", "Tags", "Lines", "Parity"].forEach(
+                    function (column) {
+                        appendCorpusCell(head, column, "th");
+                    },
+                );
+                report.backendIds.forEach(function (/** @type {string} */ id) {
+                    appendCorpusCell(head, report.summaries[id].label + " ms", "th");
+                });
+                table.appendChild(head);
+                dimension.points.forEach(function (/** @type {*} */ point) {
+                    var row = document.createElement("tr");
+                    row.className = point.parity ? "status-pass" : "status-fail";
+                    appendCorpusCell(row, point.sizeLabel || String(point.size));
+                    appendCorpusCell(row, String(point.input.formatNodes));
+                    appendCorpusCell(row, String(point.input.textBytes));
+                    appendCorpusCell(row, String(point.input.maxDepth));
+                    appendCorpusCell(row, String(point.input.maxTagDepth));
+                    appendCorpusCell(row, String(point.input.lineNodes));
+                    appendCorpusCell(row, point.parity ? "match" : "mismatch");
+                    report.backendIds.forEach(function (/** @type {string} */ id) {
+                        var backend = point.backends[id];
+                        appendCorpusCell(
+                            row,
+                            backend ? formatCorpusTiming(backend.summary.totalMs.median) : "—",
+                        );
+                    });
+                    table.appendChild(row);
+                });
+                overlay.appendChild(table);
+            });
+        }
         document.body.appendChild(overlay);
         prettyCorpusOverlay = overlay;
         closeButton.focus();

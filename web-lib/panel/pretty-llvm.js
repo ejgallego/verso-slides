@@ -19,6 +19,8 @@
      *   error?: *,
      *   manifest?: *,
      *   adapter?: *,
+     *   assets?: string[],
+     *   startupTimings?: { importMs: number, loadMs: number, totalMs: number },
      *   dispose?: () => void,
      *   formatSegments?: (
      *     fmtJson: *,
@@ -172,6 +174,17 @@
 
     var adapterUrl = config.adapterUrl || fromScript("./lean-llvm/prettyM-emscripten-adapter.mjs");
     var manifestUrl = config.manifestUrl || fromScript("./lean-llvm/prettyM.manifest.json");
+    var artifactBaseUrl = new URL(".", manifestUrl);
+    var startupStarted = performance.now();
+    var adapterImported = startupStarted;
+    bridge.assets = [
+        scriptUrl,
+        adapterUrl,
+        new URL("emscripten-loader.mjs", adapterUrl).href,
+        manifestUrl,
+        new URL("prettyM.mjs", artifactBaseUrl).href,
+        new URL("prettyM.wasm", artifactBaseUrl).href,
+    ];
 
     bridge.ready = Promise.resolve()
         .then(function () {
@@ -181,6 +194,7 @@
             return import(adapterUrl);
         })
         .then(function (adapterModule) {
+            adapterImported = performance.now();
             if (
                 adapterModule.PRETTY_M_BROWSER_API_VERSION !== "fir.prettyM.browser/v1" ||
                 adapterModule.PRETTY_M_INPUT_LAYOUT_VERSION !== "lean-4.32-Std.Format.compact/v1" ||
@@ -202,8 +216,27 @@
                 );
         })
         .then(function (loaded) {
+            var initialized = performance.now();
             bridge.adapter = loaded.adapter;
             bridge.manifest = loaded.adapter.loaded.manifest;
+            var artifacts = bridge.manifest.artifacts || {};
+            bridge.assets = [
+                scriptUrl,
+                adapterUrl,
+                new URL("emscripten-loader.mjs", adapterUrl).href,
+                manifestUrl,
+                artifacts.module && artifacts.module.file
+                    ? new URL(artifacts.module.file, artifactBaseUrl).href
+                    : new URL("prettyM.mjs", artifactBaseUrl).href,
+                artifacts.wasm && artifacts.wasm.file
+                    ? new URL(artifacts.wasm.file, artifactBaseUrl).href
+                    : new URL("prettyM.wasm", artifactBaseUrl).href,
+            ];
+            bridge.startupTimings = {
+                importMs: adapterImported - startupStarted,
+                loadMs: initialized - adapterImported,
+                totalMs: initialized - startupStarted,
+            };
             bridge.formatSegmentsTimed = createLlvmPrettyClient(
                 loaded.adapter,
                 loaded.formatFactory,

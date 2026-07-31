@@ -193,6 +193,7 @@
 
 .pretty-controls-corpus-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.4rem;
 }
 
@@ -220,13 +221,15 @@
 
 .pretty-corpus-status.status-pass,
 .pretty-corpus-result.status-pass,
-.pretty-corpus-overlay tr.status-pass > :nth-child(3) {
+.pretty-corpus-scenarios tr.status-pass > :nth-child(5),
+.pretty-scaling-table tr.status-pass > :nth-child(7) {
     color: #76bd86;
 }
 
 .pretty-corpus-status.status-fail,
 .pretty-corpus-result.status-fail,
-.pretty-corpus-overlay tr.status-fail > :nth-child(3) {
+.pretty-corpus-scenarios tr.status-fail > :nth-child(5),
+.pretty-scaling-table tr.status-fail > :nth-child(7) {
     color: #df7478;
 }
 
@@ -288,6 +291,12 @@
     font-weight: 600;
 }
 
+.pretty-corpus-note {
+    margin: 0.35rem 0;
+    color: #aaa;
+    font-size: 0.78rem;
+}
+
 .pretty-corpus-overlay table {
     width: 100%;
     margin-top: 0.45rem;
@@ -332,6 +341,33 @@
     padding: 0.45rem;
     background: rgba(255, 255, 255, 0.05);
     white-space: pre-wrap;
+}
+
+.pretty-scaling-chart {
+    display: block;
+    width: 100%;
+    min-width: 46rem;
+    max-height: 20rem;
+    margin: 0.35rem 0 0.75rem;
+    color: #bbb;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(180, 180, 180, 0.14);
+    border-radius: 0.3rem;
+}
+
+.pretty-scaling-chart text {
+    fill: currentColor;
+    font: 11px sans-serif;
+}
+
+.pretty-scaling-chart .axis {
+    stroke: rgba(210, 210, 210, 0.65);
+    stroke-width: 1;
+}
+
+.pretty-scaling-chart .grid {
+    stroke: rgba(180, 180, 180, 0.14);
+    stroke-width: 1;
 }
 
 /* Focus/hover highlights are drawn as one contiguous SVG path per element

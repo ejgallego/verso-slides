@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
-lean_vir_dir="${LEAN_VIR_DIR:-/tmp/lean-vir}"
+lean_vir_dir="${LEAN_VIR_DIR:-$repo_root/_artifacts/lean-vir}"
 native_pretty_dir="${NATIVE_PRETTY_DIR:-}"
 llvm_pretty_dir="${LLVM_PRETTY_DIR:-}"
 fixture_dir="$repo_root/_test/code"
@@ -20,7 +20,7 @@ Run npm run build:demo:release in the lean-vir checkout first; this script
 refuses to publish if vir-upstream.wasm matches vir-upstream.dev.wasm.
 
 Options:
-  --lean-vir-dir DIR   lean-vir checkout to use (default: $LEAN_VIR_DIR or /tmp/lean-vir)
+  --lean-vir-dir DIR   lean-vir checkout to use (default: $LEAN_VIR_DIR or _artifacts/lean-vir)
   --native-pretty-dir DIR
                        prepared FIR prettyM package to include (default: $NATIVE_PRETTY_DIR)
   --llvm-pretty-dir DIR

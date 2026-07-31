@@ -88,7 +88,10 @@
  *   formatExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
  *   formatSegments?: (fmt: *, width: number, indent: number) => *,
+ *   ready?: Promise<*>,
  *   status?: string,
+ *   assets?: string[],
+ *   startupTimings?: Record<string, number>,
  *   warnings?: Record<string, boolean>
  * }} PrettyVirBridge
  *
@@ -1391,7 +1394,7 @@ function fillReflowedSpans(container, formats, measurer, backend, fixedWidth) {
  * and the artifact-backed smoke check. Keep these as data rather than expected
  * strings: the point of the runner is to compare every implementation at the
  * same widths without privileging one hand-written oracle.
- * @type {{ id: string, label: string, format: * }[]}
+ * @type {{ id: string, label: string, format: *, origin?: string, dimension?: string, size?: number }[]}
  */
 var prettyDifferentialCorpus = [
     {
@@ -1553,17 +1556,498 @@ function summarizePrettyTimings(timings) {
 }
 
 /**
+ * Extract unique, real `Std.Format` inputs embedded in the generated slides.
+ * Tactic states contain goal arrays whose hypothesis and conclusion formats are
+ * individually useful benchmark inputs; hover signatures contain a single
+ * format object.
+ * @return {{ id: string, label: string, format: *, origin: string }[]}
+ */
+function collectPrettyFormatsFromDocument() {
+    /** @type {{ id: string, label: string, format: *, origin: string }[]} */
+    var cases = [];
+    var seen = new Set();
+
+    /**
+     * @param {*} value
+     * @param {string} label
+     */
+    function addFormat(value, label) {
+        try {
+            var data = typeof value === "string" ? JSON.parse(value) : value;
+            if (!data || typeof data !== "object" || !("fmt" in data)) return;
+            var signature = JSON.stringify(data.fmt);
+            if (seen.has(signature)) return;
+            seen.add(signature);
+            cases.push({
+                id: "slide-format-" + (cases.length + 1),
+                label: label,
+                format: data.fmt,
+                origin: "slide",
+            });
+        } catch (_error) {
+            // Malformed optional hover data should not disable the benchmark.
+        }
+    }
+
+    document.querySelectorAll("[data-rich-format]").forEach(function (element) {
+        var encoded = element.getAttribute("data-rich-format");
+        if (!encoded) return;
+        var section = element.closest("section");
+        var heading = section && section.querySelector("h1, h2, h3");
+        var slide = heading && heading.textContent ? heading.textContent.trim() : "Slide";
+        try {
+            var parsed = JSON.parse(encoded);
+            if (!Array.isArray(parsed)) {
+                addFormat(parsed, slide + " · signature");
+                return;
+            }
+            parsed.forEach(function (goal, goalIndex) {
+                if (!goal || typeof goal !== "object") return;
+                if (Array.isArray(goal.hypotheses)) {
+                    goal.hypotheses.forEach(function (/** @type {*} */ hypothesis) {
+                        if (!hypothesis || typeof hypothesis !== "object" || !hypothesis.ppType)
+                            return;
+                        var names = Array.isArray(hypothesis.names)
+                            ? hypothesis.names.join(" ")
+                            : "hypothesis";
+                        addFormat(
+                            hypothesis.ppType,
+                            slide + " · goal " + (goalIndex + 1) + " · " + names,
+                        );
+                    });
+                }
+                if (goal.ppConclusion) {
+                    addFormat(
+                        goal.ppConclusion,
+                        slide + " · goal " + (goalIndex + 1) + " · conclusion",
+                    );
+                }
+            });
+        } catch (_error) {
+            // Keep the synthetic corpus available if a slide payload is stale.
+        }
+    });
+    return cases;
+}
+
+/**
+ * Measure independent structural dimensions of the compact format input.
+ * @param {*} format
+ * @return {{
+ *   formatNodes: number,
+ *   textCodePoints: number,
+ *   textBytes: number,
+ *   maxDepth: number,
+ *   maxTagDepth: number,
+ *   lineNodes: number,
+ *   appendNodes: number,
+ *   groupNodes: number
+ * }}
+ */
+function measureCompactFormat(format) {
+    var metrics = {
+        formatNodes: 0,
+        textCodePoints: 0,
+        textBytes: 0,
+        maxDepth: 0,
+        maxTagDepth: 0,
+        lineNodes: 0,
+        appendNodes: 0,
+        groupNodes: 0,
+    };
+    var encoder = new TextEncoder();
+    var stack = [{ value: format, depth: 1, tagDepth: 0 }];
+    while (stack.length > 0) {
+        var item = stack.pop();
+        if (!item) continue;
+        var value = item.value;
+        metrics.formatNodes += 1;
+        metrics.maxDepth = Math.max(metrics.maxDepth, item.depth);
+        metrics.maxTagDepth = Math.max(metrics.maxTagDepth, item.tagDepth);
+        if (typeof value === "string") {
+            metrics.textCodePoints += Array.from(value).length;
+            metrics.textBytes += encoder.encode(value).byteLength;
+            continue;
+        }
+        if (value === null) continue;
+        if (value === 1) {
+            metrics.lineNodes += 1;
+            continue;
+        }
+        if (!Array.isArray(value) || value.length === 0) {
+            throw new TypeError("invalid compact format while measuring input");
+        }
+        switch (value[0]) {
+            case 2:
+                break;
+            case 3:
+                stack.push({ value: value[2], depth: item.depth + 1, tagDepth: item.tagDepth });
+                break;
+            case 4:
+                metrics.appendNodes += 1;
+                stack.push(
+                    { value: value[2], depth: item.depth + 1, tagDepth: item.tagDepth },
+                    { value: value[1], depth: item.depth + 1, tagDepth: item.tagDepth },
+                );
+                break;
+            case 5:
+            case 6:
+                metrics.groupNodes += 1;
+                stack.push({ value: value[1], depth: item.depth + 1, tagDepth: item.tagDepth });
+                break;
+            case 7:
+                stack.push({
+                    value: value[2],
+                    depth: item.depth + 1,
+                    tagDepth: item.tagDepth + 1,
+                });
+                break;
+            default:
+                throw new TypeError("unknown compact format node while measuring input");
+        }
+    }
+    return metrics;
+}
+
+/** @param {*[]} formats @return {*} */
+function balancedPrettyAppend(formats) {
+    if (formats.length === 0) return null;
+    var level = formats.slice();
+    while (level.length > 1) {
+        var next = [];
+        for (var i = 0; i < level.length; i += 2) {
+            next.push(i + 1 < level.length ? [4, level[i], level[i + 1]] : level[i]);
+        }
+        level = next;
+    }
+    return level[0];
+}
+
+/**
+ * Generate benchmark points that grow one dominant input dimension at a time.
+ * @return {{
+ *   case: { id: string, label: string, format: *, origin: string, dimension: string, size: number },
+ *   width: number,
+ *   dimension: string,
+ *   dimensionLabel: string,
+ *   size: number,
+ *   sizeLabel: string,
+ *   input: ReturnType<typeof measureCompactFormat>
+ * }[]}
+ */
+function createPrettyScalingScenarios() {
+    /** @type {*[]} */
+    var scenarios = [];
+
+    /**
+     * @param {string} dimension
+     * @param {string} dimensionLabel
+     * @param {number} size
+     * @param {string} sizeLabel
+     * @param {*} format
+     * @param {number} width
+     */
+    function add(dimension, dimensionLabel, size, sizeLabel, format, width) {
+        scenarios.push({
+            case: {
+                id: "scale-" + dimension + "-" + size,
+                label: dimensionLabel + " · " + sizeLabel,
+                format: format,
+                origin: "scaling",
+                dimension: dimension,
+                size: size,
+            },
+            width: width,
+            dimension: dimension,
+            dimensionLabel: dimensionLabel,
+            size: size,
+            sizeLabel: sizeLabel,
+            input: measureCompactFormat(format),
+        });
+    }
+
+    [8, 32, 128, 512, 2048, 8192].forEach(function (size) {
+        add("text", "Text volume", size, size + " code points", "x".repeat(size), 80);
+    });
+    [4, 16, 64, 256, 1024].forEach(function (leaves) {
+        var format = balancedPrettyAppend(
+            Array.from({ length: leaves }, function () {
+                return null;
+            }),
+        );
+        var nodes = measureCompactFormat(format).formatNodes;
+        add("nodes", "Format nodes", nodes, nodes + " nodes", format, 80);
+    });
+    [1, 4, 16, 64, 256].forEach(function (depth) {
+        var format = /** @type {*} */ ("x");
+        for (var i = 0; i < depth; i++) format = [3, 1, format];
+        add("nesting", "Nesting depth", depth, depth + " levels", format, 80);
+    });
+    [1, 4, 16, 64, 256].forEach(function (breaks) {
+        var parts = /** @type {*[]} */ (["word"]);
+        for (var i = 0; i < breaks; i++) parts.push(1, "word");
+        add(
+            "breaks",
+            "Break opportunities",
+            breaks,
+            breaks + " lines",
+            [6, balancedPrettyAppend(parts)],
+            16,
+        );
+    });
+    [1, 4, 16, 64, 256].forEach(function (depth) {
+        var format = /** @type {*} */ ("tagged");
+        for (var i = 0; i < depth; i++) format = [7, i + 1, format];
+        add("tags", "Tag depth", depth, depth + " tags", format, 80);
+    });
+    var widthDocument = [
+        6,
+        balancedPrettyAppend(
+            Array.from({ length: 129 }, function (_unused, index) {
+                return index === 0 ? "word" : index % 2 === 0 ? "word" : 1;
+            }),
+        ),
+    ];
+    [4, 8, 16, 40, 80, 160].forEach(function (width) {
+        add("width", "Width budget", width, width + " columns", widthDocument, width);
+    });
+    return scenarios;
+}
+
+/** @param {ArrayBuffer} bytes @return {Promise<string | null>} */
+async function prettySha256(bytes) {
+    if (!globalThis.crypto || !globalThis.crypto.subtle) return null;
+    var digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest), function (byte) {
+        return byte.toString(16).padStart(2, "0");
+    }).join("");
+}
+
+/**
+ * Capture backend startup phases, exact asset footprint/digests, and current
+ * Wasm memory without requiring a build-time manifest shared by all pipelines.
+ * @param {string[]} [backendIds]
+ * @return {Promise<*>}
+ */
+async function collectPrettyRuntimeProfile(backendIds) {
+    var ids = Array.isArray(backendIds)
+        ? backendIds
+        : getPrettyBackends().map(function (backend) {
+              return backend.id;
+          });
+    var root = /** @type {Window & {
+        __versoPrettyVir?: PrettyVirBridge,
+        __versoPrettyNative?: *,
+        __versoPrettyLlvm?: *
+    }} */ (window);
+    var jsScript = Array.from(document.scripts).find(function (script) {
+        try {
+            return new URL(script.src).pathname.endsWith("/lib/pretty.js");
+        } catch (_error) {
+            return false;
+        }
+    });
+    var commonAssets = jsScript && jsScript.src ? [jsScript.src] : [];
+    var bridges = {
+        js: {
+            assets: commonAssets,
+            startupTimings: null,
+        },
+        vir: root.__versoPrettyVir,
+        "vir-format": root.__versoPrettyVir,
+        native: root.__versoPrettyNative,
+        llvm: root.__versoPrettyLlvm,
+    };
+    /** @type {Map<string, Promise<*>>} */
+    var assetProfiles = new Map();
+
+    /** @param {string} source */
+    function profileAsset(source) {
+        var url = new URL(source, document.baseURI).href;
+        var cached = assetProfiles.get(url);
+        if (cached) return cached;
+        var entries = performance.getEntriesByName(url, "resource");
+        var timing =
+            entries.length > 0 ? /** @type {PerformanceResourceTiming} */ (entries[0]) : null;
+        var pending = fetch(url, { cache: "force-cache" })
+            .then(function (response) {
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                return response.arrayBuffer();
+            })
+            .then(async function (bytes) {
+                return {
+                    url: url,
+                    file: new URL(url).pathname.split("/").pop() || url,
+                    byteLength: bytes.byteLength,
+                    sha256: await prettySha256(bytes),
+                    wasm: new URL(url).pathname.endsWith(".wasm"),
+                    load: timing
+                        ? {
+                              durationMs: timing.duration,
+                              startMs: timing.startTime,
+                              endMs: timing.responseEnd,
+                              transferBytes: timing.transferSize,
+                              encodedBytes: timing.encodedBodySize,
+                              decodedBytes: timing.decodedBodySize,
+                          }
+                        : null,
+                };
+            })
+            .catch(function (error) {
+                return {
+                    url: url,
+                    file: new URL(url).pathname.split("/").pop() || url,
+                    error: error instanceof Error ? error.message : String(error),
+                };
+            });
+        assetProfiles.set(url, pending);
+        return pending;
+    }
+
+    /** @type {Record<string, *>} */
+    var profiles = {};
+    for (var idIndex = 0; idIndex < ids.length; idIndex++) {
+        var id = ids[idIndex];
+        var backend = getPrettyBackend(id);
+        var bridge = bridges[/** @type {keyof typeof bridges} */ (id)];
+        var assets = Array.from(
+            new Set(
+                commonAssets.concat(bridge && Array.isArray(bridge.assets) ? bridge.assets : []),
+            ),
+        );
+        var profiledAssets = await Promise.all(assets.map(profileAsset));
+        var availableAssets = profiledAssets.filter(function (asset) {
+            return typeof asset.byteLength === "number";
+        });
+        var memoryBytes = null;
+        if (
+            id === "native" &&
+            bridge &&
+            bridge.adapter &&
+            bridge.adapter.memory instanceof WebAssembly.Memory
+        ) {
+            memoryBytes = bridge.adapter.memory.buffer.byteLength;
+        } else if (
+            id === "llvm" &&
+            bridge &&
+            bridge.adapter &&
+            bridge.adapter.loaded &&
+            bridge.adapter.loaded.module &&
+            bridge.adapter.loaded.module.HEAPU8
+        ) {
+            memoryBytes = bridge.adapter.loaded.module.HEAPU8.byteLength;
+        } else if (id === "vir" || id === "vir-format") {
+            var runtime = bridge && bridge.runtime;
+            var memory =
+                runtime && runtime.memory instanceof WebAssembly.Memory
+                    ? runtime.memory
+                    : runtime &&
+                        runtime.exports &&
+                        runtime.exports.memory instanceof WebAssembly.Memory
+                      ? runtime.exports.memory
+                      : runtime &&
+                          runtime.instance &&
+                          runtime.instance.exports &&
+                          runtime.instance.exports.memory instanceof WebAssembly.Memory
+                        ? runtime.instance.exports.memory
+                        : null;
+            if (memory) memoryBytes = memory.buffer.byteLength;
+        }
+        var startup = bridge && bridge.startupTimings ? bridge.startupTimings : null;
+        var startupMs =
+            startup && typeof startup.bridgeTotalMs === "number"
+                ? startup.bridgeTotalMs
+                : startup && typeof startup.totalMs === "number"
+                  ? startup.totalMs
+                  : null;
+        var loadedAssets = availableAssets.filter(function (asset) {
+            return asset.load;
+        });
+        var resourceLoadMs =
+            loadedAssets.length > 0
+                ? Math.max.apply(
+                      null,
+                      loadedAssets.map(function (asset) {
+                          return asset.load.endMs;
+                      }),
+                  ) -
+                  Math.min.apply(
+                      null,
+                      loadedAssets.map(function (asset) {
+                          return asset.load.startMs;
+                      }),
+                  )
+                : null;
+        if (id === "js" && startupMs === null) startupMs = resourceLoadMs;
+        var provenance = null;
+        if (id === "native" && bridge && bridge.build) {
+            provenance = {
+                pipeline: "lean-lcnf-to-fir-native-wasm",
+                sourceCommit: bridge.build.sourceCommit,
+                artifact: bridge.build.artifact,
+                functionImports: bridge.build.functionImports,
+            };
+        } else if ((id === "vir" || id === "vir-format") && bridge && bridge.runtime) {
+            provenance = {
+                pipeline: "lean-vir",
+                packageInfo: bridge.runtime.packageInfo,
+                packageMetadata: bridge.runtime.packageMetadata,
+                interfaceArtifact:
+                    bridge.runtime.interfaceManifest && bridge.runtime.interfaceManifest.artifact,
+            };
+        } else if (id === "llvm" && bridge && bridge.manifest) {
+            provenance = {
+                pipeline: bridge.manifest.pipeline,
+                toolchain: bridge.manifest.toolchain,
+                artifacts: bridge.manifest.artifacts,
+                runtime: bridge.manifest.runtime,
+            };
+        }
+        profiles[id] = {
+            id: id,
+            label: backend ? backend.label : id,
+            status: backend && typeof backend.status === "function" ? backend.status() : "ready",
+            startup: startup,
+            startupMs: startupMs,
+            resourceLoadMs: resourceLoadMs,
+            assetBytes: availableAssets.reduce(function (sum, asset) {
+                return sum + asset.byteLength;
+            }, 0),
+            wasmBytes: availableAssets.reduce(function (sum, asset) {
+                return sum + (asset.wasm ? asset.byteLength : 0);
+            }, 0),
+            memoryBytes: memoryBytes,
+            assets: profiledAssets,
+            provenance: provenance,
+        };
+    }
+    var sharedAssets = await Promise.all(commonAssets.map(profileAsset));
+    return {
+        capturedAt: new Date().toISOString(),
+        crossOriginIsolated: globalThis.crossOriginIsolated,
+        userAgent: navigator.userAgent,
+        sharedAssetBytes: sharedAssets.reduce(function (sum, asset) {
+            return sum + (typeof asset.byteLength === "number" ? asset.byteLength : 0);
+        }, 0),
+        sharedAssets: sharedAssets,
+        backends: profiles,
+    };
+}
+
+/**
  * Compare the registered pretty-printer backends over a representative corpus.
  * Runs are interleaved and their starting backend is rotated to reduce ordering
  * bias. Warm-up observations are excluded from the returned statistics.
  *
  * @param {{
  *   backendIds?: string[],
- *   cases?: { id: string, label?: string, format: * }[],
+ *   cases?: { id: string, label?: string, format: *, origin?: string }[],
  *   widths?: number[],
+ *   scenarios?: { case: { id: string, label?: string, format: *, origin?: string }, width: number, [key: string]: * }[],
  *   warmup?: number,
  *   samples?: number,
- *   onProgress?: (progress: { completed: number, total: number, caseId: string, width: number }) => void
+ *   profile?: boolean,
+ *   onProgress?: (progress: { completed: number, total: number, caseId: string, width: number, [key: string]: * }) => void
  * }} [options]
  * @return {Promise<*>}
  */
@@ -1581,7 +2065,9 @@ async function runPrettyDifferentialCorpus(options) {
         if (!backend) throw new Error("unknown pretty backend " + id);
         return backend;
     });
-    var cases = Array.isArray(settings.cases) ? settings.cases : prettyDifferentialCorpus;
+    var cases = Array.isArray(settings.cases)
+        ? settings.cases
+        : prettyDifferentialCorpus.concat(collectPrettyFormatsFromDocument());
     var widths = (Array.isArray(settings.widths) ? settings.widths : [4, 8, 16, 40, 80]).map(
         function (width) {
             var value = Number(width);
@@ -1599,17 +2085,38 @@ async function runPrettyDifferentialCorpus(options) {
     if (!Number.isSafeInteger(samples) || samples < 1 || samples > 1000) {
         throw new TypeError("invalid differential corpus sample count");
     }
+    /** @type {*[]} */
+    var scenarioInputs = Array.isArray(settings.scenarios)
+        ? settings.scenarios.slice()
+        : cases.flatMap(function (corpusCase) {
+              return widths.map(function (width) {
+                  return { case: corpusCase, width: width };
+              });
+          });
+    scenarioInputs.forEach(function (scenario) {
+        if (!scenario || !scenario.case || typeof scenario.case.id !== "string") {
+            throw new TypeError("invalid differential benchmark scenario");
+        }
+        var width = Number(scenario.width);
+        if (!Number.isSafeInteger(width) || width < 1 || width > 10000) {
+            throw new TypeError("invalid differential scenario width");
+        }
+        scenario.width = width;
+    });
 
     await Promise.all(
         backends.map(function (backend) {
             return backend.ready && typeof backend.ready.then === "function"
-                ? backend.ready.catch(function () {
+                ? Promise.resolve(backend.ready).catch(function () {
                       return null;
                   })
                 : Promise.resolve();
         }),
     );
     var backendsReady = performance.now();
+    var runtimeProfileBefore =
+        settings.profile === false ? null : await collectPrettyRuntimeProfile(requestedIds);
+    var benchmarkStarted = performance.now();
 
     var backendStates = backends.map(function (backend) {
         return {
@@ -1622,99 +2129,111 @@ async function runPrettyDifferentialCorpus(options) {
     var readyBackends = backends.filter(function (_backend, index) {
         return backendStates[index].status === "ready";
     });
-    var total = cases.length * widths.length;
+    var total = scenarioInputs.length;
     var completed = 0;
     var scenarios = [];
 
-    for (var caseIndex = 0; caseIndex < cases.length; caseIndex++) {
-        var corpusCase = cases[caseIndex];
-        for (var widthIndex = 0; widthIndex < widths.length; widthIndex++) {
-            var width = widths[widthIndex];
-            var measurer = createColumnMeasurer(width);
-            /** @type {Record<string, { segments: Segment[] | null, signature: string | null, stable: boolean, timings: PrettyTimings[], summary: * }>} */
-            var backendResults = {};
-            readyBackends.forEach(function (backend) {
-                backendResults[backend.id] = {
-                    segments: null,
-                    signature: null,
-                    stable: true,
-                    timings: [],
-                    summary: null,
-                };
-            });
+    for (var scenarioIndex = 0; scenarioIndex < scenarioInputs.length; scenarioIndex++) {
+        var scenarioInput = scenarioInputs[scenarioIndex];
+        var corpusCase = scenarioInput.case;
+        var width = scenarioInput.width;
+        var measurer = createColumnMeasurer(width);
+        /** @type {Record<string, { segments: Segment[] | null, signature: string | null, stable: boolean, timings: PrettyTimings[], summary: * }>} */
+        var backendResults = {};
+        readyBackends.forEach(function (backend) {
+            backendResults[backend.id] = {
+                segments: null,
+                signature: null,
+                stable: true,
+                timings: [],
+                summary: null,
+            };
+        });
 
-            for (var round = -warmup; round < samples; round++) {
-                for (var offset = 0; offset < readyBackends.length; offset++) {
-                    var backend =
-                        readyBackends[(offset + Math.max(0, round)) % readyBackends.length];
-                    var rendered = renderPrettySegmentsTimed(
-                        corpusCase.format,
-                        {},
-                        width,
-                        measurer,
-                        backend,
-                    );
-                    var result = backendResults[backend.id];
-                    if (rendered.segments === null) {
-                        result.stable = false;
-                        continue;
-                    }
-                    var segments = canonicalizePrettySegments(rendered.segments);
-                    var signature = JSON.stringify(segments);
-                    if (result.signature !== null && result.signature !== signature) {
-                        result.stable = false;
-                    }
-                    result.segments = segments;
-                    result.signature = signature;
-                    if (round >= 0) {
-                        result.timings.push(rendered.timings);
-                        var state = backendStates.find(function (candidate) {
-                            return candidate.id === backend.id;
-                        });
-                        if (state) state.timings.push(rendered.timings);
-                    }
+        for (var round = -warmup; round < samples; round++) {
+            for (var offset = 0; offset < readyBackends.length; offset++) {
+                var backend = readyBackends[(offset + Math.max(0, round)) % readyBackends.length];
+                var rendered = renderPrettySegmentsTimed(
+                    corpusCase.format,
+                    {},
+                    width,
+                    measurer,
+                    backend,
+                );
+                var result = backendResults[backend.id];
+                if (rendered.segments === null) {
+                    result.stable = false;
+                    continue;
+                }
+                var segments = canonicalizePrettySegments(rendered.segments);
+                var signature = JSON.stringify(segments);
+                if (result.signature !== null && result.signature !== signature) {
+                    result.stable = false;
+                }
+                result.segments = segments;
+                result.signature = signature;
+                if (round >= 0) {
+                    result.timings.push(rendered.timings);
+                    var state = backendStates.find(function (candidate) {
+                        return candidate.id === backend.id;
+                    });
+                    if (state) state.timings.push(rendered.timings);
                 }
             }
+        }
 
-            Object.keys(backendResults).forEach(function (id) {
-                backendResults[id].summary = summarizePrettyTimings(backendResults[id].timings);
+        Object.keys(backendResults).forEach(function (id) {
+            backendResults[id].summary = summarizePrettyTimings(backendResults[id].timings);
+        });
+        var signatures = Object.keys(backendResults)
+            .map(function (id) {
+                return backendResults[id].signature;
+            })
+            .filter(function (signature) {
+                return signature !== null;
             });
-            var signatures = Object.keys(backendResults)
-                .map(function (id) {
-                    return backendResults[id].signature;
-                })
-                .filter(function (signature) {
-                    return signature !== null;
-                });
-            var parity =
-                readyBackends.length === backends.length &&
-                signatures.length === backends.length &&
-                signatures.every(function (signature) {
-                    return signature === signatures[0];
-                }) &&
-                Object.keys(backendResults).every(function (id) {
-                    return backendResults[id].stable;
-                });
-            scenarios.push({
+        var parity =
+            readyBackends.length === backends.length &&
+            signatures.length === backends.length &&
+            signatures.every(function (signature) {
+                return signature === signatures[0];
+            }) &&
+            Object.keys(backendResults).every(function (id) {
+                return backendResults[id].stable;
+            });
+        var inputMetrics = scenarioInput.input || measureCompactFormat(corpusCase.format);
+        scenarios.push({
+            caseId: corpusCase.id,
+            label: corpusCase.label || corpusCase.id,
+            origin: corpusCase.origin || "synthetic",
+            width: width,
+            input: inputMetrics,
+            dimension: scenarioInput.dimension || corpusCase.dimension || null,
+            dimensionLabel: scenarioInput.dimensionLabel || null,
+            size:
+                typeof scenarioInput.size === "number"
+                    ? scenarioInput.size
+                    : typeof corpusCase.size === "number"
+                      ? corpusCase.size
+                      : null,
+            sizeLabel: scenarioInput.sizeLabel || null,
+            parity: parity,
+            backends: backendResults,
+        });
+        completed += 1;
+        if (typeof settings.onProgress === "function") {
+            settings.onProgress({
+                completed: completed,
+                total: total,
                 caseId: corpusCase.id,
-                label: corpusCase.label || corpusCase.id,
                 width: width,
-                parity: parity,
-                backends: backendResults,
-            });
-            completed += 1;
-            if (typeof settings.onProgress === "function") {
-                settings.onProgress({
-                    completed: completed,
-                    total: total,
-                    caseId: corpusCase.id,
-                    width: width,
-                });
-            }
-            await new Promise(function (resolve) {
-                setTimeout(resolve, 0);
+                dimension: scenarioInput.dimension || corpusCase.dimension,
+                size: scenarioInput.size,
             });
         }
+        await new Promise(function (resolve) {
+            setTimeout(resolve, 0);
+        });
     }
 
     /** @type {Record<string, *>} */
@@ -1737,20 +2256,42 @@ async function runPrettyDifferentialCorpus(options) {
         .map(function (state) {
             return { id: state.id, label: state.label, status: state.status };
         });
+    var benchmarkFinished = performance.now();
+    var runtimeProfile =
+        settings.profile === false ? null : await collectPrettyRuntimeProfile(requestedIds);
     var reportFinished = performance.now();
+    /** @type {*[]} */
+    var reportCases = [];
+    var reportCaseIds = new Set();
+    scenarioInputs.forEach(function (scenario) {
+        if (reportCaseIds.has(scenario.case.id)) return;
+        reportCaseIds.add(scenario.case.id);
+        reportCases.push({
+            id: scenario.case.id,
+            label: scenario.case.label || scenario.case.id,
+            origin: scenario.case.origin || "synthetic",
+        });
+    });
     return {
-        schemaVersion: 1,
+        schemaVersion: 2,
+        kind: "differential",
         startedAt: reportStartedAt,
         generatedAt: new Date().toISOString(),
         backendReadyWaitMs: backendsReady - reportStarted,
-        benchmarkMs: reportFinished - backendsReady,
+        profileBeforeMs: benchmarkStarted - backendsReady,
+        benchmarkMs: benchmarkFinished - benchmarkStarted,
+        profileMs: reportFinished - benchmarkFinished,
         durationMs: reportFinished - reportStarted,
         warmup: warmup,
         samples: samples,
-        widths: widths,
-        cases: cases.map(function (corpusCase) {
-            return { id: corpusCase.id, label: corpusCase.label || corpusCase.id };
-        }),
+        widths: Array.from(
+            new Set(
+                scenarioInputs.map(function (scenario) {
+                    return scenario.width;
+                }),
+            ),
+        ),
+        cases: reportCases,
         backendIds: requestedIds,
         scenarioCount: scenarios.length,
         parityCount: scenarios.length - mismatches.length,
@@ -1761,5 +2302,101 @@ async function runPrettyDifferentialCorpus(options) {
         }),
         summaries: summaries,
         scenarios: scenarios,
+        runtimeProfileBefore: runtimeProfileBefore,
+        runtimeProfile: runtimeProfile,
     };
+}
+
+/**
+ * Benchmark runtime growth along independent input dimensions.
+ * @param {{
+ *   backendIds?: string[],
+ *   warmup?: number,
+ *   samples?: number,
+ *   onProgress?: (progress: *) => void
+ * }} [options]
+ * @return {Promise<*>}
+ */
+async function runPrettyScalingStudy(options) {
+    var points = createPrettyScalingScenarios();
+    var settings = Object.assign({}, options || {}, {
+        scenarios: points,
+        profile: false,
+    });
+    var report = await runPrettyDifferentialCorpus(settings);
+    report.kind = "scaling";
+    report.schemaVersion = 1;
+    report.dimensions = [];
+    /** @type {string[]} */
+    var dimensionIds = [];
+    points.forEach(function (point) {
+        if (!dimensionIds.includes(point.dimension)) dimensionIds.push(point.dimension);
+    });
+    dimensionIds.forEach(function (dimension) {
+        /** @type {*[]} */
+        var dimensionPoints = report.scenarios.filter(function (/** @type {*} */ scenario) {
+            return scenario.dimension === dimension;
+        });
+        /** @type {Record<string, *>} */
+        var trends = {};
+        report.backendIds.forEach(function (/** @type {string} */ id) {
+            /** @type {{ size: number, time: number }[]} */
+            var samples = dimensionPoints
+                .map(function (/** @type {*} */ point) {
+                    var backend = point.backends[id];
+                    return {
+                        size: Number(point.size),
+                        time: backend ? Number(backend.summary.totalMs.median) : 0,
+                    };
+                })
+                .filter(function (sample) {
+                    return sample.size > 0 && sample.time > 0;
+                });
+            var slope = null;
+            if (samples.length >= 2) {
+                /** @type {number[]} */
+                var xs = samples.map(function (sample) {
+                    return Math.log(sample.size);
+                });
+                /** @type {number[]} */
+                var ys = samples.map(function (sample) {
+                    return Math.log(sample.time);
+                });
+                var meanX =
+                    xs.reduce(function (sum, value) {
+                        return sum + value;
+                    }, 0) / xs.length;
+                var meanY =
+                    ys.reduce(function (sum, value) {
+                        return sum + value;
+                    }, 0) / ys.length;
+                var numerator = 0;
+                var denominator = 0;
+                xs.forEach(function (x, index) {
+                    numerator += (x - meanX) * (ys[index] - meanY);
+                    denominator += (x - meanX) ** 2;
+                });
+                if (denominator > 0) slope = numerator / denominator;
+            }
+            trends[id] = {
+                logLogSlope: slope,
+                firstMs: samples.length > 0 ? samples[0].time : null,
+                lastMs: samples.length > 0 ? samples[samples.length - 1].time : null,
+                growth:
+                    samples.length > 1 && samples[0].time > 0
+                        ? samples[samples.length - 1].time / samples[0].time
+                        : null,
+            };
+        });
+        report.dimensions.push({
+            id: dimension,
+            label:
+                dimensionPoints.length > 0
+                    ? dimensionPoints[0].dimensionLabel || dimension
+                    : dimension,
+            points: dimensionPoints,
+            trends: trends,
+        });
+    });
+    return report;
 }
