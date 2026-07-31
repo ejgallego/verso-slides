@@ -315,6 +315,137 @@ class TestPrettyLlvmBridge:
         assert result["status"] == "disabled"
 
 
+class TestPrettyDifferentialCorpus:
+    def test_five_backend_corpus_canonicalizes_segments_and_reports_timings(
+        self, code_url: str, page: Page
+    ):
+        """The reusable runner compares five outputs and retains phase distributions."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        result = page.evaluate(
+            """async () => {
+                const ids = ["js", "vir", "vir-format", "native", "llvm"];
+                ids.forEach((id, index) => registerPrettyBackend({
+                    id,
+                    label: id,
+                    status: () => "ready",
+                    renderTimed: (fmt, _annotations, width) => {
+                        const text = JSON.stringify(fmt) + ":" + width;
+                        const split = id === "js" && text.length > 2;
+                        return {
+                            segments: split
+                                ? [
+                                    { text: text.slice(0, 2), tags: [7] },
+                                    { text: text.slice(2), tags: [7] }
+                                ]
+                                : [{ text, tags: [7] }],
+                            timings: {
+                                marshalMs: index + 0.1,
+                                executeMs: index + 0.2,
+                                decodeMs: index + 0.3,
+                                renderMs: 0,
+                                totalMs: index + 0.6
+                            }
+                        };
+                    }
+                }));
+                const options = {
+                    backendIds: ids,
+                    cases: [
+                        { id: "text", label: "Text", format: "hello" },
+                        { id: "break", label: "Break", format: [5, [4, "a", [4, 1, "b"]]] }
+                    ],
+                    widths: [4, 12],
+                    warmup: 1,
+                    samples: 3
+                };
+                const matching = await runPrettyDifferentialCorpus(options);
+                registerPrettyBackend({
+                    id: "llvm",
+                    label: "llvm",
+                    status: () => "ready",
+                    renderTimed: () => ({
+                        segments: [{ text: "different", tags: [] }],
+                        timings: {
+                            marshalMs: 0,
+                            executeMs: 1,
+                            decodeMs: 0,
+                            renderMs: 0,
+                            totalMs: 1
+                        }
+                    })
+                });
+                const differing = await runPrettyDifferentialCorpus({
+                    ...options,
+                    cases: [options.cases[0]],
+                    widths: [4],
+                    warmup: 0,
+                    samples: 1
+                });
+                return { matching, differing };
+            }"""
+        )
+
+        matching = result["matching"]
+        assert matching["passed"]
+        assert matching["scenarioCount"] == 4
+        assert matching["parityCount"] == 4
+        assert matching["unavailable"] == []
+        assert matching["summaries"]["native"]["timing"]["totalMs"]["samples"] == 12
+        assert matching["summaries"]["native"]["timing"]["totalMs"]["median"] == 3.6
+        assert matching["scenarios"][0]["backends"]["js"]["segments"] == [
+            {"text": '"hello":4', "tags": [7]}
+        ]
+
+        differing = result["differing"]
+        assert not differing["passed"]
+        assert differing["parityCount"] == 0
+        assert differing["mismatches"] == [{"caseId": "text", "label": "Text", "width": 4}]
+
+    def test_controls_run_corpus_and_open_report(self, code_url: str, page: Page):
+        """The testing menu exposes the corpus summary and per-scenario data."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        index = page.evaluate("Reveal.getIndices().h")
+        page.goto(f"{code_url}/index.html?prettyControls=1#/{index}")
+        page.wait_for_function(
+            "(i) => window.Reveal && window.Reveal.isReady() && Reveal.getIndices().h === i",
+            arg=index,
+        )
+        page.evaluate(
+            """() => {
+                ["js", "vir", "vir-format", "native", "llvm"].forEach((id, index) =>
+                    registerPrettyBackend({
+                        id,
+                        label: id,
+                        status: () => "ready",
+                        renderTimed: fmt => ({
+                            segments: [{ text: JSON.stringify(fmt), tags: [] }],
+                            timings: {
+                                marshalMs: 0.1,
+                                executeMs: index + 0.2,
+                                decodeMs: 0.1,
+                                renderMs: 0,
+                                totalMs: index + 0.4
+                            }
+                        })
+                    })
+                );
+            }"""
+        )
+
+        controls = page.locator(".pretty-controls")
+        controls.locator("summary").click()
+        controls.locator(".pretty-corpus-run").click()
+        report = page.locator(".pretty-corpus-overlay")
+        expect(report).to_be_visible()
+        expect(report.locator(".pretty-corpus-result")).to_contain_text(
+            "45/45 scenarios agree · 5/5 backends ready"
+        )
+        assert report.locator(".pretty-corpus-summary tr").count() == 6
+        assert report.locator(".pretty-corpus-scenarios tr").count() == 46
+        report.locator(".pretty-corpus-close").click()
+        expect(report).not_to_be_visible()
+
+
 class TestPrettyVirComparisonPanel:
     def test_tactic_panel_renders_registered_backends_side_by_side(
         self, code_url: str, page: Page

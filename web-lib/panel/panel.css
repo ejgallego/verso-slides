@@ -191,6 +191,149 @@
     font-size: 0.78em;
 }
 
+.pretty-controls-corpus-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.pretty-controls button,
+.pretty-corpus-overlay button {
+    padding: 0.25rem 0.5rem;
+    color: inherit;
+    background: #30343a;
+    border: 1px solid rgba(180, 180, 180, 0.35);
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+.pretty-controls button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.pretty-corpus-status {
+    min-height: 1.35em;
+    margin: 0.3rem 0 0;
+    color: #aaa;
+    font-size: 0.78em;
+}
+
+.pretty-corpus-status.status-pass,
+.pretty-corpus-result.status-pass,
+.pretty-corpus-overlay tr.status-pass > :nth-child(3) {
+    color: #76bd86;
+}
+
+.pretty-corpus-status.status-fail,
+.pretty-corpus-result.status-fail,
+.pretty-corpus-overlay tr.status-fail > :nth-child(3) {
+    color: #df7478;
+}
+
+.pretty-corpus-overlay {
+    position: fixed;
+    inset: 4vh 4vw;
+    z-index: 1100;
+    overflow: auto;
+    box-sizing: border-box;
+    padding: 1rem 1.2rem 1.5rem;
+    color: #ddd;
+    background: rgba(24, 26, 30, 0.985);
+    border: 1px solid rgba(180, 180, 180, 0.4);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.6);
+    font: 0.82rem/1.4 sans-serif;
+    text-align: left;
+}
+
+.pretty-corpus-overlay > header {
+    position: sticky;
+    top: -1rem;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: -1rem -1.2rem 0.8rem;
+    padding: 0.8rem 1.2rem;
+    background: #181a1e;
+    border-bottom: 1px solid rgba(180, 180, 180, 0.25);
+}
+
+.pretty-corpus-overlay > header h2,
+.pretty-corpus-overlay h3,
+.pretty-corpus-overlay h4 {
+    margin: 0;
+    color: inherit;
+    font-family: sans-serif;
+    text-transform: none;
+}
+
+.pretty-corpus-overlay > header h2 {
+    font-size: 1.15rem;
+}
+
+.pretty-corpus-overlay > header > div {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pretty-corpus-overlay h3 {
+    margin-top: 1.1rem;
+    font-size: 0.95rem;
+}
+
+.pretty-corpus-result {
+    margin: 0.4rem 0;
+    font-weight: 600;
+}
+
+.pretty-corpus-overlay table {
+    width: 100%;
+    margin-top: 0.45rem;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+
+.pretty-corpus-overlay th,
+.pretty-corpus-overlay td {
+    padding: 0.28rem 0.42rem;
+    border-bottom: 1px solid rgba(180, 180, 180, 0.18);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.pretty-corpus-overlay th:first-child,
+.pretty-corpus-overlay td:first-child,
+.pretty-corpus-overlay th:nth-child(2),
+.pretty-corpus-overlay td:nth-child(2) {
+    text-align: left;
+}
+
+.pretty-corpus-differences {
+    margin-top: 1rem;
+    padding: 0.6rem;
+    border: 1px solid rgba(220, 100, 105, 0.45);
+    border-radius: 0.3rem;
+}
+
+.pretty-corpus-differences summary {
+    cursor: pointer;
+    color: #df7478;
+    font-weight: 600;
+}
+
+.pretty-corpus-differences h4 {
+    margin-top: 0.8rem;
+}
+
+.pretty-corpus-differences pre {
+    overflow-x: auto;
+    padding: 0.45rem;
+    background: rgba(255, 255, 255, 0.05);
+    white-space: pre-wrap;
+}
+
 /* Focus/hover highlights are drawn as one contiguous SVG path per element
    (see drawElementOutline in panel.js). A plain CSS outline is unusable here:
    when a tactic wraps across lines, Firefox and Safari draw a separate closed

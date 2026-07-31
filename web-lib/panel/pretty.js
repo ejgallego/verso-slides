@@ -1383,3 +1383,383 @@ function fillReflowedSpans(container, formats, measurer, backend, fixedWidth) {
     }
     return totals;
 }
+
+// ---- Differential corpus -------------------------------------------------
+
+/**
+ * Representative compact `Std.Format` values used by the interactive demo
+ * and the artifact-backed smoke check. Keep these as data rather than expected
+ * strings: the point of the runner is to compare every implementation at the
+ * same widths without privileging one hand-written oracle.
+ * @type {{ id: string, label: string, format: * }[]}
+ */
+var prettyDifferentialCorpus = [
+    {
+        id: "plain-unicode",
+        label: "Plain Unicode",
+        format: "Lean αβ → Wasm",
+    },
+    {
+        id: "group-break",
+        label: "All-or-none group",
+        format: [5, [4, "hello", [4, 1, "world"]]],
+    },
+    {
+        id: "nested-list",
+        label: "Nested list",
+        format: [
+            5,
+            [3, 1, [4, "[", [4, "alpha,", [4, 1, [4, "beta,", [4, 1, [4, "gamma", "]"]]]]]]],
+        ],
+    },
+    {
+        id: "fill-paragraph",
+        label: "Fill paragraph",
+        format: [
+            6,
+            [
+                4,
+                "lean",
+                [
+                    4,
+                    1,
+                    [
+                        4,
+                        "ir",
+                        [4, 1, [4, "runs", [4, 1, [4, "format.pretty", [4, 1, "inside wasm"]]]]],
+                    ],
+                ],
+            ],
+        ],
+    },
+    {
+        id: "nested-align",
+        label: "Nest and align",
+        format: [3, 2, [4, ".", [4, [2, false], [4, "a", [4, 1, "b"]]]]],
+    },
+    {
+        id: "embedded-newline",
+        label: "Embedded newline",
+        format: [4, "αβ", [4, "\n", "γ"]],
+    },
+    {
+        id: "nested-tags",
+        label: "Nested tags across break",
+        format: [
+            7,
+            7,
+            [5, [4, "outer ", [4, [7, 8, "inner"], [4, 1, [7, 8, [4, "tagged", [4, 1, "tail"]]]]]]],
+        ],
+    },
+    {
+        id: "empty-boundaries",
+        label: "Empty boundaries",
+        format: [4, null, [4, [7, 3, null], [4, "value", null]]],
+    },
+    {
+        id: "long-token",
+        label: "Token wider than budget",
+        format: [5, [4, "prefix", [4, 1, "a_very_long_identifier"]]],
+    },
+];
+
+/**
+ * Merge adjacent segments carrying the same tag stack. Backends are allowed to
+ * choose different `pushOutput` chunk boundaries; those boundaries do not
+ * change either the rendered text or its styling semantics.
+ * @param {Segment[]} segments
+ * @return {Segment[]}
+ */
+function canonicalizePrettySegments(segments) {
+    /** @type {Segment[]} */
+    var canonical = [];
+    segments.forEach(function (segment) {
+        if (!segment || typeof segment.text !== "string" || !Array.isArray(segment.tags)) {
+            throw new TypeError("invalid pretty segment");
+        }
+        if (segment.text.length === 0) return;
+        var tags = segment.tags.map(function (tag) {
+            var value = Number(tag);
+            if (!Number.isSafeInteger(value) || value < 0) {
+                throw new TypeError("invalid pretty segment tag");
+            }
+            return value;
+        });
+        var previous = canonical[canonical.length - 1];
+        if (
+            previous &&
+            previous.tags.length === tags.length &&
+            previous.tags.every(function (tag, index) {
+                return tag === tags[index];
+            })
+        ) {
+            previous.text += segment.text;
+        } else {
+            canonical.push({ text: segment.text, tags: tags });
+        }
+    });
+    return canonical;
+}
+
+/**
+ * @param {number[]} values
+ * @return {{ samples: number, min: number, median: number, p95: number, max: number, mean: number }}
+ */
+function summarizePrettyValues(values) {
+    var sorted = values
+        .filter(function (value) {
+            return Number.isFinite(value);
+        })
+        .slice()
+        .sort(function (left, right) {
+            return left - right;
+        });
+    if (sorted.length === 0) {
+        return { samples: 0, min: 0, median: 0, p95: 0, max: 0, mean: 0 };
+    }
+    var middle = Math.floor(sorted.length / 2);
+    var median =
+        sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+    var p95 = sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)];
+    return {
+        samples: sorted.length,
+        min: sorted[0],
+        median: median,
+        p95: p95,
+        max: sorted[sorted.length - 1],
+        mean:
+            sorted.reduce(function (sum, value) {
+                return sum + value;
+            }, 0) / sorted.length,
+    };
+}
+
+/**
+ * @param {PrettyTimings[]} timings
+ * @return {Record<string, ReturnType<typeof summarizePrettyValues>>}
+ */
+function summarizePrettyTimings(timings) {
+    var phases = ["marshalMs", "executeMs", "decodeMs", "renderMs", "totalMs"];
+    /** @type {Record<string, ReturnType<typeof summarizePrettyValues>>} */
+    var result = {};
+    phases.forEach(function (phase) {
+        result[phase] = summarizePrettyValues(
+            timings.map(function (sample) {
+                return Number(sample[/** @type {keyof PrettyTimings} */ (phase)] || 0);
+            }),
+        );
+    });
+    return result;
+}
+
+/**
+ * Compare the registered pretty-printer backends over a representative corpus.
+ * Runs are interleaved and their starting backend is rotated to reduce ordering
+ * bias. Warm-up observations are excluded from the returned statistics.
+ *
+ * @param {{
+ *   backendIds?: string[],
+ *   cases?: { id: string, label?: string, format: * }[],
+ *   widths?: number[],
+ *   warmup?: number,
+ *   samples?: number,
+ *   onProgress?: (progress: { completed: number, total: number, caseId: string, width: number }) => void
+ * }} [options]
+ * @return {Promise<*>}
+ */
+async function runPrettyDifferentialCorpus(options) {
+    var reportStartedAt = new Date().toISOString();
+    var reportStarted = performance.now();
+    var settings = options || {};
+    var requestedIds = Array.isArray(settings.backendIds)
+        ? settings.backendIds
+        : getPrettyBackends().map(function (backend) {
+              return backend.id;
+          });
+    var backends = requestedIds.map(function (id) {
+        var backend = getPrettyBackend(id);
+        if (!backend) throw new Error("unknown pretty backend " + id);
+        return backend;
+    });
+    var cases = Array.isArray(settings.cases) ? settings.cases : prettyDifferentialCorpus;
+    var widths = (Array.isArray(settings.widths) ? settings.widths : [4, 8, 16, 40, 80]).map(
+        function (width) {
+            var value = Number(width);
+            if (!Number.isSafeInteger(value) || value < 1 || value > 10000) {
+                throw new TypeError("invalid differential corpus width");
+            }
+            return value;
+        },
+    );
+    var warmup = settings.warmup === undefined ? 2 : Number(settings.warmup);
+    var samples = settings.samples === undefined ? 9 : Number(settings.samples);
+    if (!Number.isSafeInteger(warmup) || warmup < 0 || warmup > 100) {
+        throw new TypeError("invalid differential corpus warm-up count");
+    }
+    if (!Number.isSafeInteger(samples) || samples < 1 || samples > 1000) {
+        throw new TypeError("invalid differential corpus sample count");
+    }
+
+    await Promise.all(
+        backends.map(function (backend) {
+            return backend.ready && typeof backend.ready.then === "function"
+                ? backend.ready.catch(function () {
+                      return null;
+                  })
+                : Promise.resolve();
+        }),
+    );
+    var backendsReady = performance.now();
+
+    var backendStates = backends.map(function (backend) {
+        return {
+            id: backend.id,
+            label: backend.label,
+            status: typeof backend.status === "function" ? backend.status() : "ready",
+            timings: /** @type {PrettyTimings[]} */ ([]),
+        };
+    });
+    var readyBackends = backends.filter(function (_backend, index) {
+        return backendStates[index].status === "ready";
+    });
+    var total = cases.length * widths.length;
+    var completed = 0;
+    var scenarios = [];
+
+    for (var caseIndex = 0; caseIndex < cases.length; caseIndex++) {
+        var corpusCase = cases[caseIndex];
+        for (var widthIndex = 0; widthIndex < widths.length; widthIndex++) {
+            var width = widths[widthIndex];
+            var measurer = createColumnMeasurer(width);
+            /** @type {Record<string, { segments: Segment[] | null, signature: string | null, stable: boolean, timings: PrettyTimings[], summary: * }>} */
+            var backendResults = {};
+            readyBackends.forEach(function (backend) {
+                backendResults[backend.id] = {
+                    segments: null,
+                    signature: null,
+                    stable: true,
+                    timings: [],
+                    summary: null,
+                };
+            });
+
+            for (var round = -warmup; round < samples; round++) {
+                for (var offset = 0; offset < readyBackends.length; offset++) {
+                    var backend =
+                        readyBackends[(offset + Math.max(0, round)) % readyBackends.length];
+                    var rendered = renderPrettySegmentsTimed(
+                        corpusCase.format,
+                        {},
+                        width,
+                        measurer,
+                        backend,
+                    );
+                    var result = backendResults[backend.id];
+                    if (rendered.segments === null) {
+                        result.stable = false;
+                        continue;
+                    }
+                    var segments = canonicalizePrettySegments(rendered.segments);
+                    var signature = JSON.stringify(segments);
+                    if (result.signature !== null && result.signature !== signature) {
+                        result.stable = false;
+                    }
+                    result.segments = segments;
+                    result.signature = signature;
+                    if (round >= 0) {
+                        result.timings.push(rendered.timings);
+                        var state = backendStates.find(function (candidate) {
+                            return candidate.id === backend.id;
+                        });
+                        if (state) state.timings.push(rendered.timings);
+                    }
+                }
+            }
+
+            Object.keys(backendResults).forEach(function (id) {
+                backendResults[id].summary = summarizePrettyTimings(backendResults[id].timings);
+            });
+            var signatures = Object.keys(backendResults)
+                .map(function (id) {
+                    return backendResults[id].signature;
+                })
+                .filter(function (signature) {
+                    return signature !== null;
+                });
+            var parity =
+                readyBackends.length === backends.length &&
+                signatures.length === backends.length &&
+                signatures.every(function (signature) {
+                    return signature === signatures[0];
+                }) &&
+                Object.keys(backendResults).every(function (id) {
+                    return backendResults[id].stable;
+                });
+            scenarios.push({
+                caseId: corpusCase.id,
+                label: corpusCase.label || corpusCase.id,
+                width: width,
+                parity: parity,
+                backends: backendResults,
+            });
+            completed += 1;
+            if (typeof settings.onProgress === "function") {
+                settings.onProgress({
+                    completed: completed,
+                    total: total,
+                    caseId: corpusCase.id,
+                    width: width,
+                });
+            }
+            await new Promise(function (resolve) {
+                setTimeout(resolve, 0);
+            });
+        }
+    }
+
+    /** @type {Record<string, *>} */
+    var summaries = {};
+    backendStates.forEach(function (state) {
+        summaries[state.id] = {
+            id: state.id,
+            label: state.label,
+            status: state.status,
+            timing: summarizePrettyTimings(state.timings),
+        };
+    });
+    var mismatches = scenarios.filter(function (scenario) {
+        return !scenario.parity;
+    });
+    var unavailable = backendStates
+        .filter(function (state) {
+            return state.status !== "ready";
+        })
+        .map(function (state) {
+            return { id: state.id, label: state.label, status: state.status };
+        });
+    var reportFinished = performance.now();
+    return {
+        schemaVersion: 1,
+        startedAt: reportStartedAt,
+        generatedAt: new Date().toISOString(),
+        backendReadyWaitMs: backendsReady - reportStarted,
+        benchmarkMs: reportFinished - backendsReady,
+        durationMs: reportFinished - reportStarted,
+        warmup: warmup,
+        samples: samples,
+        widths: widths,
+        cases: cases.map(function (corpusCase) {
+            return { id: corpusCase.id, label: corpusCase.label || corpusCase.id };
+        }),
+        backendIds: requestedIds,
+        scenarioCount: scenarios.length,
+        parityCount: scenarios.length - mismatches.length,
+        passed: mismatches.length === 0 && unavailable.length === 0,
+        unavailable: unavailable,
+        mismatches: mismatches.map(function (scenario) {
+            return { caseId: scenario.caseId, label: scenario.label, width: scenario.width };
+        }),
+        summaries: summaries,
+        scenarios: scenarios,
+    };
+}

@@ -12,6 +12,12 @@
     var docsJson = null; // fetched once on init
     /** @type {HTMLDetailsElement | null} */
     var prettyControls = null;
+    /** @type {*} */
+    var prettyCorpusReport = null;
+    /** @type {HTMLElement | null} */
+    var prettyCorpusOverlay = null;
+    var prettyCorpusRunning = false;
+    var prettyCorpusProgress = "";
 
     function init() {
         initializePrettyConfig();
@@ -272,6 +278,46 @@
         primaryLabel.appendChild(primary);
         menu.appendChild(primaryLabel);
 
+        var corpus = document.createElement("fieldset");
+        corpus.className = "pretty-controls-corpus";
+        var corpusLegend = document.createElement("legend");
+        corpusLegend.textContent = "Differential corpus";
+        var corpusActions = document.createElement("div");
+        corpusActions.className = "pretty-controls-corpus-actions";
+        var runCorpus = document.createElement("button");
+        runCorpus.type = "button";
+        runCorpus.className = "pretty-corpus-run";
+        runCorpus.disabled = prettyCorpusRunning;
+        runCorpus.textContent = prettyCorpusRunning ? "Running…" : "Run corpus";
+        runCorpus.addEventListener("click", runPrettyCorpusFromControls);
+        corpusActions.appendChild(runCorpus);
+        if (prettyCorpusReport) {
+            var viewCorpus = document.createElement("button");
+            viewCorpus.type = "button";
+            viewCorpus.className = "pretty-corpus-view";
+            viewCorpus.textContent = "View report";
+            viewCorpus.addEventListener("click", function () {
+                showPrettyCorpusReport(prettyCorpusReport);
+            });
+            corpusActions.appendChild(viewCorpus);
+        }
+        var corpusStatus = document.createElement("p");
+        corpusStatus.className = "pretty-corpus-status";
+        if (prettyCorpusRunning) {
+            corpusStatus.textContent = prettyCorpusProgress || "Preparing backends…";
+        } else if (prettyCorpusReport) {
+            corpusStatus.textContent =
+                prettyCorpusReport.parityCount +
+                "/" +
+                prettyCorpusReport.scenarioCount +
+                " scenarios agree";
+            corpusStatus.classList.add(prettyCorpusReport.passed ? "status-pass" : "status-fail");
+        } else {
+            corpusStatus.textContent = "9 cases × 5 widths; 2 warm-ups + 9 samples.";
+        }
+        corpus.append(corpusLegend, corpusActions, corpusStatus);
+        menu.appendChild(corpus);
+
         var note = document.createElement("p");
         note.className = "pretty-controls-note";
         note.textContent = "Comparison uses one deterministic column budget for every processor.";
@@ -279,6 +325,242 @@
 
         prettyControls.replaceChildren(summary, menu);
         prettyControls.open = wasOpen;
+    }
+
+    function updatePrettyCorpusProgress() {
+        if (!prettyControls) return;
+        var status = prettyControls.querySelector(".pretty-corpus-status");
+        if (status) status.textContent = prettyCorpusProgress;
+    }
+
+    async function runPrettyCorpusFromControls() {
+        if (prettyCorpusRunning || typeof runPrettyDifferentialCorpus !== "function") return;
+        prettyCorpusRunning = true;
+        prettyCorpusProgress = "Preparing backends…";
+        renderPrettyControls();
+        try {
+            prettyCorpusReport = await runPrettyDifferentialCorpus({
+                onProgress: function (progress) {
+                    prettyCorpusProgress =
+                        progress.completed +
+                        "/" +
+                        progress.total +
+                        " · " +
+                        progress.caseId +
+                        " @ " +
+                        progress.width;
+                    updatePrettyCorpusProgress();
+                },
+            });
+            showPrettyCorpusReport(prettyCorpusReport);
+        } catch (error) {
+            prettyCorpusReport = {
+                passed: false,
+                parityCount: 0,
+                scenarioCount: 0,
+                error: error instanceof Error ? error.message : String(error),
+            };
+            console.warn("Pretty differential corpus failed.", error);
+        } finally {
+            prettyCorpusRunning = false;
+            prettyCorpusProgress = "";
+            renderPrettyControls();
+        }
+    }
+
+    /** @param {number} value */
+    function formatCorpusTiming(value) {
+        if (!Number.isFinite(value)) return "—";
+        if (value < 0.01) return "<0.01";
+        return value.toFixed(value < 10 ? 2 : 1);
+    }
+
+    /**
+     * @param {HTMLTableRowElement} row
+     * @param {string} text
+     * @param {string} [element]
+     */
+    function appendCorpusCell(row, text, element) {
+        var cell = document.createElement(element || "td");
+        cell.textContent = text;
+        row.appendChild(cell);
+    }
+
+    /** @param {*} report */
+    function downloadPrettyCorpusReport(report) {
+        var blob = new Blob([JSON.stringify(report, null, 2) + "\n"], {
+            type: "application/json",
+        });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download =
+            "pretty-differential-" + new Date().toISOString().replace(/[:.]/g, "-") + ".json";
+        link.click();
+        setTimeout(function () {
+            URL.revokeObjectURL(url);
+        }, 0);
+    }
+
+    /** @param {*} report */
+    function showPrettyCorpusReport(report) {
+        if (prettyCorpusOverlay) prettyCorpusOverlay.remove();
+        var overlay = document.createElement("section");
+        overlay.className = "pretty-corpus-overlay";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-label", "Pretty-printer differential report");
+        overlay.addEventListener("keydown", function (event) {
+            event.stopPropagation();
+            if (event.key === "Escape") overlay.remove();
+        });
+
+        var header = document.createElement("header");
+        var title = document.createElement("h2");
+        title.textContent = "Pretty-printer differential report";
+        var headerActions = document.createElement("div");
+        var exportButton = document.createElement("button");
+        exportButton.type = "button";
+        exportButton.textContent = "Export JSON";
+        exportButton.addEventListener("click", function () {
+            downloadPrettyCorpusReport(report);
+        });
+        var closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "pretty-corpus-close";
+        closeButton.textContent = "Close";
+        closeButton.addEventListener("click", function () {
+            overlay.remove();
+        });
+        headerActions.append(exportButton, closeButton);
+        header.append(title, headerActions);
+        overlay.appendChild(header);
+
+        if (report.error) {
+            var error = document.createElement("p");
+            error.className = "pretty-corpus-result status-fail";
+            error.textContent = report.error;
+            overlay.appendChild(error);
+        } else {
+            var result = document.createElement("p");
+            result.className =
+                "pretty-corpus-result " + (report.passed ? "status-pass" : "status-fail");
+            result.textContent =
+                report.parityCount +
+                "/" +
+                report.scenarioCount +
+                " scenarios agree · " +
+                (report.backendIds.length - report.unavailable.length) +
+                "/" +
+                report.backendIds.length +
+                " backends ready · " +
+                report.samples +
+                " timed samples after " +
+                report.warmup +
+                " warm-ups · " +
+                (report.benchmarkMs / 1000).toFixed(2) +
+                " s corpus wall time";
+            overlay.appendChild(result);
+
+            var summaryHeading = document.createElement("h3");
+            summaryHeading.textContent = "Aggregate formatter timings (ms)";
+            overlay.appendChild(summaryHeading);
+            var summaryTable = document.createElement("table");
+            summaryTable.className = "pretty-corpus-summary";
+            var summaryHead = document.createElement("tr");
+            [
+                "Backend",
+                "Status",
+                "Samples",
+                "Total median",
+                "Total p95",
+                "Marshal median",
+                "Execute median",
+                "Decode median",
+            ].forEach(function (heading) {
+                appendCorpusCell(summaryHead, heading, "th");
+            });
+            summaryTable.appendChild(summaryHead);
+            report.backendIds.forEach(function (/** @type {string} */ id) {
+                var summary = report.summaries[id];
+                var row = document.createElement("tr");
+                appendCorpusCell(row, summary.label);
+                appendCorpusCell(row, summary.status);
+                appendCorpusCell(row, String(summary.timing.totalMs.samples));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.totalMs.median));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.totalMs.p95));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.marshalMs.median));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.executeMs.median));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.decodeMs.median));
+                summaryTable.appendChild(row);
+            });
+            overlay.appendChild(summaryTable);
+
+            var scenarioHeading = document.createElement("h3");
+            scenarioHeading.textContent = "Case and width breakdown — median total (ms)";
+            overlay.appendChild(scenarioHeading);
+            var scenarioTable = document.createElement("table");
+            scenarioTable.className = "pretty-corpus-scenarios";
+            var scenarioHead = document.createElement("tr");
+            appendCorpusCell(scenarioHead, "Case", "th");
+            appendCorpusCell(scenarioHead, "Width", "th");
+            appendCorpusCell(scenarioHead, "Parity", "th");
+            report.backendIds.forEach(function (/** @type {string} */ id) {
+                appendCorpusCell(scenarioHead, report.summaries[id].label, "th");
+            });
+            scenarioTable.appendChild(scenarioHead);
+            report.scenarios.forEach(function (/** @type {*} */ scenario) {
+                var row = document.createElement("tr");
+                row.className = scenario.parity ? "status-pass" : "status-fail";
+                appendCorpusCell(row, scenario.label);
+                appendCorpusCell(row, String(scenario.width));
+                appendCorpusCell(row, scenario.parity ? "match" : "mismatch");
+                report.backendIds.forEach(function (/** @type {string} */ id) {
+                    var backendResult = scenario.backends[id];
+                    appendCorpusCell(
+                        row,
+                        backendResult
+                            ? formatCorpusTiming(backendResult.summary.totalMs.median)
+                            : "—",
+                    );
+                });
+                scenarioTable.appendChild(row);
+            });
+            overlay.appendChild(scenarioTable);
+
+            var differing = report.scenarios.filter(function (/** @type {*} */ scenario) {
+                return !scenario.parity;
+            });
+            if (differing.length > 0) {
+                var differences = document.createElement("details");
+                differences.className = "pretty-corpus-differences";
+                var differenceSummary = document.createElement("summary");
+                differenceSummary.textContent =
+                    "Inspect " + differing.length + " mismatching scenarios";
+                differences.appendChild(differenceSummary);
+                differing.forEach(function (/** @type {*} */ scenario) {
+                    var heading = document.createElement("h4");
+                    heading.textContent = scenario.label + " @ " + scenario.width + " columns";
+                    differences.appendChild(heading);
+                    report.backendIds.forEach(function (/** @type {string} */ id) {
+                        var output = document.createElement("pre");
+                        var backendResult = scenario.backends[id];
+                        output.textContent =
+                            report.summaries[id].label +
+                            ": " +
+                            (backendResult
+                                ? JSON.stringify(backendResult.segments, null, 2)
+                                : report.summaries[id].status);
+                        differences.appendChild(output);
+                    });
+                });
+                overlay.appendChild(differences);
+            }
+        }
+
+        document.body.appendChild(overlay);
+        prettyCorpusOverlay = overlay;
+        closeButton.focus();
     }
 
     // ---- Per-block setup ----

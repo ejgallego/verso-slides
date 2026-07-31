@@ -836,6 +836,18 @@ adapter reports Verso-input conversion, wire encoding, execution and
 decode times, request/response sizes, format-node count, and
 Emscripten heap extent.
 
+The testing controls also include **Run corpus**. It compares every
+registered processor over nine representative `Std.Format` trees at 4,
+8, 16, 40, and 80 columns. The cases cover groups, fill behavior,
+nesting and alignment, embedded newlines, Unicode, empty boundaries,
+long tokens, and nested tags. Each scenario uses two warm-up rounds
+followed by nine interleaved timed samples. The report shows exact
+styled-output parity together with median and p95 totals and median
+phase timings, and its full per-case data can be exported as JSON.
+Adjacent output events with the same active tag stack are merged
+before comparison because `pushOutput` chunk boundaries are not
+observable rendering semantics.
+
 The separate `window.__versoPrettyVirConfig` object only configures
 the VIR runtime. `window.__versoPrettyNativeConfig` configures the
 native runtime URLs. `window.__versoPrettyLlvmConfig` configures the
@@ -922,6 +934,14 @@ To publish the stable demo URL:
 
 ```
 scripts/build-vir-pretty-demo.sh --publish
+```
+
+With a locally served build, run the same artifact-backed corpus from
+the command line with:
+
+```
+uv run --project browser-tests python scripts/check-vir-pretty-demo.py \
+  http://127.0.0.1:18321/ --output /tmp/pretty-differential.json
 ```
 
 By default, `--publish` syncs to
