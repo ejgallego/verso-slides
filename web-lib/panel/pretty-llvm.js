@@ -1,5 +1,5 @@
 // @ts-check
-/* Optional FIR-produced native Wasm bootstrap for the pretty-printer prototype. */
+/* Optional LLVM/Emscripten-produced Wasm bootstrap for the pretty-printer demo. */
 (function () {
     "use strict";
 
@@ -7,21 +7,19 @@
      * @typedef {{
      *   enabled?: boolean,
      *   adapterUrl?: string,
-     *   wasmUrl?: string,
-     *   descriptorUrl?: string,
-     *   buildUrl?: string,
-     *   fetchCache?: RequestCache,
-     *   maximumNodes?: number
-     * }} PrettyNativeConfig
+     *   manifestUrl?: string,
+     *   maximumNodes?: number,
+     *   maximumBytes?: number
+     * }} PrettyLlvmConfig
      *
      * @typedef {{
      *   enabled?: boolean,
      *   status?: string,
      *   ready?: Promise<*>,
      *   error?: *,
-     *   build?: *,
+     *   manifest?: *,
      *   adapter?: *,
-     *   startupTimings?: *,
+     *   dispose?: () => void,
      *   formatSegments?: (
      *     fmtJson: *,
      *     width: number,
@@ -33,46 +31,45 @@
      *     width: number,
      *     indent: number,
      *     column: number
-     *   ) => NativeFormatResult,
+     *   ) => LlvmFormatResult,
      *   traceToSegments?: (trace: PrettyTrace) => Segment[],
      *   warnings?: Record<string, boolean>
-     * }} PrettyNativeBridge
+     * }} PrettyLlvmBridge
      *
      * @typedef {{
      *   text: string,
      *   segments: Segment[],
-     *   timings: {
-     *     marshalMs: number,
-     *     executeMs: number,
-     *     decodeMs: number,
-     *     renderMs: number,
-     *     totalMs: number,
-     *     adapterInputMs?: number,
-     *     normalizeMs?: number,
-     *     allocateMs?: number,
-     *     encodeMs?: number,
-     *     inputBytes?: number,
-     *     rawObjects?: number,
-     *     allocationCalls?: number
-     *   },
+     *   timings: PrettyTimings,
      *   memory?: *
-     * }} NativeFormatResult
+     * }} LlvmFormatResult
      */
 
     var root = /** @type {Window & {
-        __versoPrettyNativeConfig?: PrettyNativeConfig,
-        __versoPrettyNative?: PrettyNativeBridge
+        __versoPrettyLlvmConfig?: PrettyLlvmConfig,
+        __versoPrettyLlvm?: PrettyLlvmBridge
     }} */ (window);
-    var config = root.__versoPrettyNativeConfig || {};
-    var bridge = root.__versoPrettyNative || {};
+    var config = root.__versoPrettyLlvmConfig || {};
+    var bridge = root.__versoPrettyLlvm || {};
     bridge.enabled = config.enabled !== false;
     bridge.status = bridge.enabled ? "loading" : "disabled";
-    root.__versoPrettyNative = bridge;
+    root.__versoPrettyLlvm = bridge;
+
+    /**
+     * @param {string} key
+     * @param {string} message
+     * @param {*} error
+     */
+    function warnOnce(key, message, error) {
+        var warnings = bridge.warnings || (bridge.warnings = {});
+        if (warnings[key]) return;
+        warnings[key] = true;
+        console.warn(message, error);
+    }
 
     /** @type {PrettyBackendDefinition} */
-    var nativeBackend = {
-        id: "native",
-        label: "Native",
+    var llvmBackend = {
+        id: "llvm",
+        label: "LLVM",
         capabilities: { output: "segments", width: "columns" },
         status: function () {
             return bridge.status || "unavailable";
@@ -81,28 +78,19 @@
             if (
                 bridge.enabled === false ||
                 bridge.status !== "ready" ||
-                typeof bridge.formatSegments !== "function"
+                (typeof bridge.formatSegments !== "function" &&
+                    typeof bridge.formatSegmentsTimed !== "function")
             ) {
-                return {
-                    segments: null,
-                    timings: {
-                        marshalMs: 0,
-                        executeMs: 0,
-                        decodeMs: 0,
-                        renderMs: 0,
-                        totalMs: 0,
-                    },
-                };
+                return { segments: null, timings: emptyPrettyTimings() };
             }
             try {
-                var spaceWidth = measurer.spaceWidth > 0 ? measurer.spaceWidth : 1;
-                var width = Math.max(1, Math.floor(pixelWidth / spaceWidth));
+                var width = pixelWidthToFormatColumns(pixelWidth, measurer);
                 if (typeof bridge.formatSegmentsTimed === "function") {
                     var result = bridge.formatSegmentsTimed(fmtJson, width, 0, 0);
-                    return {
-                        segments: result.segments,
-                        timings: result.timings,
-                    };
+                    return { segments: result.segments, timings: result.timings };
+                }
+                if (typeof bridge.formatSegments !== "function") {
+                    return { segments: null, timings: emptyPrettyTimings() };
                 }
                 var started = performance.now();
                 var segments = bridge.formatSegments(fmtJson, width, 0, 0);
@@ -118,21 +106,12 @@
                     },
                 };
             } catch (error) {
-                warnOnce("render", "Native pretty-printer backend failed.", error);
-                return {
-                    segments: null,
-                    timings: {
-                        marshalMs: 0,
-                        executeMs: 0,
-                        decodeMs: 0,
-                        renderMs: 0,
-                        totalMs: 0,
-                    },
-                };
+                warnOnce("render", "LLVM pretty-printer backend failed.", error);
+                return { segments: null, timings: emptyPrettyTimings() };
             }
         },
     };
-    registerPrettyBackend(nativeBackend);
+    registerPrettyBackend(llvmBackend);
     bridge.traceToSegments = prettyTraceToSegments;
 
     if (bridge.enabled === false) return;
@@ -149,23 +128,11 @@
     }
 
     /**
-     * @param {string} key
-     * @param {string} message
-     * @param {*} error
-     */
-    function warnOnce(key, message, error) {
-        var warnings = bridge.warnings || (bridge.warnings = {});
-        if (warnings[key]) return;
-        warnings[key] = true;
-        console.warn(message, error);
-    }
-
-    /**
      * @param {*} adapter
      * @param {*} formatFactory
-     * @return {(fmtJson: *, width: number, indent: number, column: number) => NativeFormatResult}
+     * @return {(fmtJson: *, width: number, indent: number, column: number) => LlvmFormatResult}
      */
-    function createNativePrettyClient(adapter, formatFactory) {
+    function createLlvmPrettyClient(adapter, formatFactory) {
         return function (fmtJson, width, indent, column) {
             var started = performance.now();
             var format = compactFormatToAdapterInput(formatFactory, fmtJson);
@@ -185,81 +152,80 @@
                 text: result.trace.text,
                 segments: segments,
                 timings: {
-                    marshalMs: adapterInputMs + result.timings.prepareMs,
+                    marshalMs: adapterInputMs + result.timings.encodeMs,
                     executeMs: result.timings.executeMs,
                     decodeMs: result.timings.decodeMs + segmentDecodeMs,
                     renderMs: 0,
                     totalMs: finished - started,
                     adapterInputMs: adapterInputMs,
-                    normalizeMs: result.timings.normalizeMs,
-                    allocateMs: result.timings.allocateMs,
                     encodeMs: result.timings.encodeMs,
-                    inputBytes: result.memory.inputBytes,
-                    rawObjects: result.memory.rawObjects,
-                    allocationCalls: result.memory.residentAllocationCalls,
+                    requestBytes: result.memory.requestBytes,
+                    responseBytes: result.memory.responseBytes,
+                    formatNodes: result.memory.formatNodes,
+                    heapBytesBefore: result.memory.heapBytesBefore,
+                    heapBytesAfter: result.memory.heapBytesAfter,
                 },
                 memory: result.memory,
             };
         };
     }
 
-    var adapterUrl = config.adapterUrl || fromScript("./lean-native/prettyM-browser-adapter.mjs");
-    var wasmUrl = config.wasmUrl || fromScript("./lean-native/prettyM.wasm");
-    var descriptorUrl = config.descriptorUrl || wasmUrl + ".json";
-    var buildUrl = config.buildUrl || fromScript("./lean-native/BUILD.json");
+    var adapterUrl = config.adapterUrl || fromScript("./lean-llvm/prettyM-emscripten-adapter.mjs");
+    var manifestUrl = config.manifestUrl || fromScript("./lean-llvm/prettyM.manifest.json");
 
-    /** @param {RequestInfo | URL} url */
-    function fetchArtifact(url) {
-        return fetch(url, { cache: config.fetchCache || "default" });
-    }
-
-    bridge.ready = import(adapterUrl)
+    bridge.ready = Promise.resolve()
+        .then(function () {
+            if (!globalThis.crossOriginIsolated) {
+                throw new Error("LLVM prettyM requires a cross-origin-isolated page");
+            }
+            return import(adapterUrl);
+        })
         .then(function (adapterModule) {
             if (
-                typeof adapterModule.fetchPrettyMAdapter !== "function" ||
+                adapterModule.PRETTY_M_BROWSER_API_VERSION !== "fir.prettyM.browser/v1" ||
+                adapterModule.PRETTY_M_INPUT_LAYOUT_VERSION !== "lean-4.32-Std.Format.compact/v1" ||
+                typeof adapterModule.loadEmscriptenPrettyMAdapter !== "function" ||
                 !adapterModule.PrettyFormat
             ) {
-                throw new Error("native package does not export its browser adapter API");
+                throw new Error("LLVM package does not export the shared browser adapter API");
             }
             return adapterModule
-                .fetchPrettyMAdapter(wasmUrl, {
-                    descriptorUrl: descriptorUrl,
-                    buildUrl: buildUrl,
+                .loadEmscriptenPrettyMAdapter(manifestUrl, {
                     maximumNodes: config.maximumNodes,
-                    fetchImpl: fetchArtifact,
+                    maximumBytes: config.maximumBytes,
                 })
                 .then(
                     /** @param {*} adapter */
                     function (adapter) {
-                        return {
-                            adapter: adapter,
-                            formatFactory: adapterModule.PrettyFormat,
-                        };
+                        return { adapter: adapter, formatFactory: adapterModule.PrettyFormat };
                     },
                 );
         })
         .then(function (loaded) {
             bridge.adapter = loaded.adapter;
-            bridge.build = loaded.adapter.build;
-            bridge.startupTimings = loaded.adapter.startupTimings;
-            bridge.formatSegmentsTimed = createNativePrettyClient(
+            bridge.manifest = loaded.adapter.loaded.manifest;
+            bridge.formatSegmentsTimed = createLlvmPrettyClient(
                 loaded.adapter,
                 loaded.formatFactory,
             );
             bridge.formatSegments = function (fmtJson, width, indent, column) {
                 if (!bridge.formatSegmentsTimed) {
-                    throw new Error("native pretty timing client is unavailable");
+                    throw new Error("LLVM pretty timing client is unavailable");
                 }
                 return bridge.formatSegmentsTimed(fmtJson, width, indent, column).segments;
             };
+            bridge.dispose = function () {
+                loaded.adapter.dispose();
+            };
+            window.addEventListener("pagehide", bridge.dispose, { once: true });
             bridge.status = "ready";
             return loaded.adapter;
         })
         .catch(function (error) {
             bridge.status = "failed";
             bridge.error = error;
-            warnOnce("load", "Native pretty-printer bootstrap failed.", error);
+            warnOnce("load", "LLVM pretty-printer bootstrap failed.", error);
             return null;
         });
-    nativeBackend.ready = bridge.ready;
+    llvmBackend.ready = bridge.ready;
 })();

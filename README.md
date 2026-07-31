@@ -12,8 +12,8 @@ The [demo slides](./Demo.lean) can be seen at
 
 The VIR-backed pretty-printer prototype demo is published at
 <https://x80.org/vir-verso-slides-demo/>. Keep this URL stable for
-comparing the JavaScript, VIR JSON, VIR `Std.Format`, and native
-LCNF-to-Wasm rendering modes.
+comparing the JavaScript, VIR JSON, VIR `Std.Format`, FIR-native Wasm,
+and LLVM/Emscripten LCNF-to-Wasm rendering modes.
 
 ## Requirements
 
@@ -791,68 +791,89 @@ JavaScript formatter; VIR candidates are selected explicitly or shown
 in comparison mode.
 
 When comparison mode is disabled, the panel can select a specific
-renderer with `window.__versoPrettyConfig.backend`. Supported
-values are `"js"`, `"vir"` for the JSON boundary, and `"vir-format"`
-for the direct `Std.Format` boundary. Loading `lib/pretty-native.js`
-also registers `"native"`, a `Std.Format.prettyM` Wasm module produced
-from Lean LCNF by FIR. With no selection, the panel uses `"js"`. An
-unavailable or unknown explicit selection is shown as unavailable
-instead of falling back to another candidate.
+renderer with `window.__versoPrettyConfig.backend`. Supported values
+are `"js"`, `"vir"` for the JSON boundary, and `"vir-format"` for the
+direct `Std.Format` boundary. Loading `lib/pretty-native.js` also
+registers `"native"`, a `Std.Format.prettyM` Wasm module produced from
+Lean LCNF by FIR. Loading `lib/pretty-llvm.js` registers `"llvm"`, the
+conventional Lean LCNF → C → LLVM/Emscripten Wasm route. With no
+selection, the panel uses `"js"`. An unavailable or unknown explicit
+selection is shown as unavailable instead of falling back to another
+candidate.
 
 Set `window.__versoPrettyConfig.compare` to `true` to render every
 selected candidate side by side. Set `controls` to `true` to add an
 interactive formatter menu. It can enable or disable individual
-comparison processors, switch comparison mode, choose the renderer used
-outside comparison mode, and change the shared comparison width. The menu
-updates the query string so a test configuration can be copied or reloaded:
+comparison processors, switch comparison mode, choose the renderer
+used outside comparison mode, and change the shared comparison width.
+The menu updates the query string so a test configuration can be
+copied or reloaded:
 
-- `pretty=js,vir,vir-format,native` selects comparison processors.
+- `pretty=js,vir,vir-format,native,llvm` selects comparison
+  processors.
 - `prettyCompare=1` enables side-by-side comparison.
-- `prettyBackend=native` selects the renderer outside comparison mode.
+- `prettyBackend=native` or `prettyBackend=llvm` selects a compiled
+  renderer outside comparison mode.
 - `prettyColumns=40` sets the common comparison width.
 - `prettyControls=1` displays the menu.
 
-Comparison mode deliberately gives every processor the same deterministic
-character-column budget. This avoids deriving separate widths from panes
-whose sizes and output styling differ. Outside comparison mode, the
-JavaScript renderer retains its DOM-measured pixel width.
+Comparison mode deliberately gives every processor the same
+deterministic character-column budget. This avoids deriving separate
+widths from panes whose sizes and output styling differ. Outside
+comparison mode, the JavaScript renderer retains its DOM-measured
+pixel width.
 
 Each comparison header displays formatter time. Hovering it shows the
-marshal, execution, decode, and HTML-construction phases, plus total panel
-wall time. These are synchronous per-render measurements taken after artifact
-instantiation: download and instantiation are excluded, while an early
-observation may still include engine warm-up. Goal panes sum the phase times
-of all formatted hypotheses and conclusions. The native adapter additionally
-breaks preparation into Verso-input conversion, normalization, one bulk
-resident allocation, and raw encoding, and reports its input arena size and
-object count.
+marshal, execution, decode, and HTML-construction phases, plus total
+panel wall time. These are synchronous per-render measurements taken
+after artifact instantiation: download and instantiation are excluded,
+while an early observation may still include engine warm-up. Goal
+panes sum the phase times of all formatted hypotheses and conclusions.
+The native adapter additionally breaks preparation into Verso-input
+conversion, normalization, one bulk resident allocation, and raw
+encoding, and reports its input arena size and object count. The LLVM
+adapter reports Verso-input conversion, wire encoding, execution and
+decode times, request/response sizes, format-node count, and
+Emscripten heap extent.
 
-The separate
-`window.__versoPrettyVirConfig` object only configures the VIR runtime.
-`window.__versoPrettyNativeConfig` configures the native runtime URLs.
-Additional prototype runtimes can participate by calling
-`registerPrettyBackend` with an ID, display label, capabilities, status
-function, and either a segment renderer or a timed renderer. Register the
-candidate synchronously before its runtime starts loading so the pane remains
-present and reports its loading state.
+The separate `window.__versoPrettyVirConfig` object only configures
+the VIR runtime. `window.__versoPrettyNativeConfig` configures the
+native runtime URLs. `window.__versoPrettyLlvmConfig` configures the
+LLVM manifest URL and request limits. Additional prototype runtimes
+can participate by calling `registerPrettyBackend` with an ID, display
+label, capabilities, status function, and either a segment renderer or
+a timed renderer. Register the candidate synchronously before its
+runtime starts loading so the pane remains present and reports its
+loading state.
 
-The current native artifact exports an experimental raw Lean 4.32 ABI:
+Both compiled artifacts expose the same versioned browser contract:
 
 ```text
-Format × Nat × Nat × Nat → PrettyTrace
-PrettyTrace := { text : String, eventsRev : List PrettyEvent }
+fir.prettyM.browser/v1
+lean-4.32-Std.Format.compact/v1
+render({ format, width, indent, column }) → { trace, timings, memory }
 ```
 
-The event stream records `MonadPrettyFormat` output, newline, tag-start,
-and tag-end operations. The bootstrap decodes it into the same
-`{ text, tags }` segment contract used by the JavaScript and VIR
-candidates, so the native pane preserves syntax highlighting as well as
-layout. The current W7 module has zero Wasm imports. Its packaged, versioned
-browser adapter translates a compact discriminated-union `Std.Format` value
-into the ordinary Lean heap layout using one bulk resident allocation,
-transfers ownership to `prettyM`, and returns a decoded JavaScript trace. The
-Verso bootstrap only maps its existing compact array syntax to that public
-adapter type and converts the trace to shared segments.
+The event stream records `MonadPrettyFormat` output, newline,
+tag-start, and tag-end operations. The bootstrap decodes it into the
+same `{ text, tags }` segment contract used by the JavaScript and VIR
+candidates, so the native pane preserves syntax highlighting as well
+as layout. The current W7 module has zero Wasm imports. Its packaged,
+versioned browser adapter translates a compact discriminated-union
+`Std.Format` value into the ordinary Lean heap layout using one bulk
+resident allocation, transfers ownership to `prettyM`, and returns a
+decoded JavaScript trace. The Verso bootstrap only maps its existing
+compact array syntax to that public adapter type and converts the
+trace to shared segments.
+
+The LLVM package owns a different raw boundary: its adapter validates
+the shared format tree, encodes one private wire request, transfers it
+through Emscripten's `HEAPU8`, executes compiler-generated
+`Std.Format.prettyM`, and decodes one wire response. Its full pinned
+Lean runtime makes it larger than the FIR-native zero-import module,
+but the logical input and exact styled trace are directly comparable.
+The optimized threaded artifact requires a cross-origin-isolated page
+(COOP `same-origin` and COEP `require-corp`).
 
 For the static comparison demo, use:
 
@@ -865,21 +886,32 @@ The script expects a lean-vir checkout at `/tmp/lean-vir`, or at
 `npm run build:demo:release`; the script refuses to publish if
 `vir-upstream.wasm` is byte-identical to the debug companion
 `vir-upstream.dev.wasm`. It rebuilds the fixture deck, copies it to
-`_test/vir-code`, generates
-`lib/verso-pretty.irpkg`, copies `vir-upstream.wasm`, bundles the
-lean-vir browser runtime into a single minified
-`lib/lean-vir/js/vir-runtime.js`, and enables the JavaScript, VIR JSON,
-and VIR `Std.Format` comparison panes.
+`_test/vir-code`, generates `lib/verso-pretty.irpkg`, copies
+`vir-upstream.wasm`, bundles the lean-vir browser runtime into a
+single minified `lib/lean-vir/js/vir-runtime.js`, and enables the
+JavaScript, VIR JSON, and VIR `Std.Format` comparison panes.
 
 To add the fourth native pane, pass a prepared FIR `prettyM` package.
 The script verifies its `SHA256SUMS` and styled-trace capability
-metadata, including its zero-import boundary. An atomic `prettyM-current`
-symlink is pinned to one immutable release before validation, so a
-concurrent refresh cannot mix package generations. The script then copies
-`BUILD.json`, the Wasm module, descriptor, and versioned production browser
-adapter and loads `lib/pretty-native.js`:
+metadata, including its zero-import boundary. An atomic
+`prettyM-current` symlink is pinned to one immutable release before
+validation, so a concurrent refresh cannot mix package generations.
+The script then copies `BUILD.json`, the Wasm module, descriptor, and
+versioned production browser adapter and loads `lib/pretty-native.js`:
 
 ```
+NATIVE_PRETTY_DIR=~/lean/fir/.worktrees/wasm-generation/integration/talos/artifact/_build/prettyM-current \
+  scripts/build-vir-pretty-demo.sh
+```
+
+To add the fifth LLVM pane, also pass the checksummed Emscripten
+package. The build validates its manifest, toolchain/runtime contract,
+optimized flags, bridge exports, and artifact digests, copies the
+complete package without renaming files, and emits the isolation
+headers required by Emscripten threads:
+
+```
+LLVM_PRETTY_DIR=~/lean/fir/integration/lcnf-c-wasm/_build/prettyM-emscripten-current \
 NATIVE_PRETTY_DIR=~/lean/fir/.worktrees/wasm-generation/integration/talos/artifact/_build/prettyM-current \
   scripts/build-vir-pretty-demo.sh
 ```

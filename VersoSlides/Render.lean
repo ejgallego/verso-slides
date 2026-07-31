@@ -362,6 +362,9 @@ private def prettyVirJs : String := include_str "../web-lib/panel/pretty-vir.js"
 /-- Optional JS bootstrap for the FIR-produced native Wasm pretty-printer prototype. -/
 private def prettyNativeJs : String := include_str "../web-lib/panel/pretty-native.js"
 
+/-- Optional JS bootstrap for the LLVM/Emscripten Wasm pretty-printer prototype. -/
+private def prettyLlvmJs : String := include_str "../web-lib/panel/pretty-llvm.js"
+
 /-- JS for the interactive info panel. -/
 private def slideCodePanelJs : String := include_str "../web-lib/panel/panel.js"
 
@@ -587,6 +590,7 @@ def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme) : IO Unit 
   writeFileWithDirs (libDir / "pretty.js") prettyJs
   writeFileWithDirs (libDir / "pretty-vir.js") prettyVirJs
   writeFileWithDirs (libDir / "pretty-native.js") prettyNativeJs
+  writeFileWithDirs (libDir / "pretty-llvm.js") prettyLlvmJs
   writeFileWithDirs (libDir / "panel.js") slideCodePanelJs
   writeFileWithDirs (libDir / "lightbox.css") lightboxCss
   writeFileWithDirs (libDir / "lightbox.js") lightboxJs

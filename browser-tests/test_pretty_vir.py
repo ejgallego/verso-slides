@@ -33,12 +33,24 @@ class TestPrettyVirAssets:
         assert "compactFormatToAdapterInput" in body
         assert "ConcreteHost" not in body
 
+    def test_pretty_llvm_asset_written(self, site_dir):
+        """The LLVM/Emscripten adapter bootstrap is vendored but opt-in."""
+        path = site_dir / "code" / "lib" / "pretty-llvm.js"
+        assert path.exists(), f"Expected pretty-llvm.js at {path}"
+        body = path.read_text()
+        assert 'id: "llvm"' in body
+        assert "loadEmscriptenPrettyMAdapter" in body
+        assert "prettyM.manifest.json" in body
+        assert "compactFormatToAdapterInput" in body
+        assert "prettyTraceToSegments" in body
+
     def test_pretty_vir_not_loaded_by_default(self, code_doc: BeautifulSoup):
         """The bootstrap remains opt-in until the VIR package assets are supplied."""
         scripts = [s.get("src", "") for s in code_doc.select("script[src]")]
         assert any(s.endswith("lib/pretty.js") for s in scripts), scripts
         assert not any(s.endswith("lib/pretty-vir.js") for s in scripts), scripts
         assert not any(s.endswith("lib/pretty-native.js") for s in scripts), scripts
+        assert not any(s.endswith("lib/pretty-llvm.js") for s in scripts), scripts
 
 
 class TestPrettyVirBridge:
@@ -266,6 +278,33 @@ class TestPrettyNativeBridge:
         ]
 
 
+class TestPrettyLlvmBridge:
+    def test_bootstrap_registers_llvm_candidate(self, code_url: str, page: Page):
+        """The LLVM pane is registered synchronously before its runtime loads."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        page.evaluate("window.__versoPrettyLlvmConfig = { enabled: false }")
+        page.add_script_tag(url=urljoin(code_url + "/", "lib/pretty-llvm.js"))
+        result = page.evaluate(
+            """() => ({
+                backend: (() => {
+                    const candidate = getPrettyBackends().find(item => item.id === "llvm");
+                    return {
+                        id: candidate.id,
+                        label: candidate.label,
+                        capabilities: candidate.capabilities
+                    };
+                })(),
+                status: window.__versoPrettyLlvm.status
+            })"""
+        )
+        assert result["backend"]["label"] == "LLVM"
+        assert result["backend"]["capabilities"] == {
+            "output": "segments",
+            "width": "columns",
+        }
+        assert result["status"] == "disabled"
+
+
 class TestPrettyVirComparisonPanel:
     def test_tactic_panel_renders_registered_backends_side_by_side(
         self, code_url: str, page: Page
@@ -304,6 +343,27 @@ class TestPrettyVirComparisonPanel:
                         }
                     })
                 });
+                registerPrettyBackend({
+                    id: "llvm",
+                    label: "LLVM",
+                    renderTimed: () => ({
+                        segments: [{ text: "from-llvm", tags: [] }],
+                        timings: {
+                            marshalMs: 0.5,
+                            executeMs: 0.2,
+                            decodeMs: 0.1,
+                            renderMs: 0,
+                            totalMs: 0.8,
+                            adapterInputMs: 0.1,
+                            encodeMs: 0.4,
+                            requestBytes: 300,
+                            responseBytes: 400,
+                            formatNodes: 12,
+                            heapBytesBefore: 16777216,
+                            heapBytesAfter: 16777216
+                        }
+                    })
+                });
             }"""
         )
         block = slide.locator(".code-with-panel").first
@@ -313,7 +373,7 @@ class TestPrettyVirComparisonPanel:
         tactic.click()
 
         expect(panel.locator(".pretty-compare")).to_be_visible()
-        assert panel.locator(".pretty-compare-pane").count() == 4
+        assert panel.locator(".pretty-compare-pane").count() == 5
         assert block.evaluate("el => el.classList.contains('pretty-compare-active')")
         layout = block.evaluate(
             """block => {
@@ -353,6 +413,7 @@ class TestPrettyVirComparisonPanel:
         expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-header')).to_contain_text("VIR JSON")
         expect(panel.locator('[data-pretty-backend="vir-format"] .pretty-compare-header')).to_contain_text("VIR Format")
         expect(panel.locator('[data-pretty-backend="native"] .pretty-compare-header')).to_contain_text("Native")
+        expect(panel.locator('[data-pretty-backend="llvm"] .pretty-compare-header')).to_contain_text("LLVM")
         expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-body')).to_contain_text(
             "from-vir"
         )
@@ -361,6 +422,9 @@ class TestPrettyVirComparisonPanel:
         )
         expect(panel.locator('[data-pretty-backend="native"] .pretty-compare-body')).to_contain_text(
             "from-native"
+        )
+        expect(panel.locator('[data-pretty-backend="llvm"] .pretty-compare-body')).to_contain_text(
+            "from-llvm"
         )
         timing_texts = panel.locator(".pretty-compare-time").all_inner_texts()
         assert all("ms" in text for text in timing_texts)
@@ -380,6 +444,14 @@ class TestPrettyVirComparisonPanel:
         assert "Allocate:" in native_timing
         assert "Encode:" in native_timing
         assert "Input arena: 2048 B, 48 objects, 4 allocations" in native_timing
+        llvm_timing = panel.locator(
+            '[data-pretty-backend="llvm"] .pretty-compare-time'
+        ).get_attribute("title")
+        assert llvm_timing is not None
+        assert "Verso input:" in llvm_timing
+        assert "Encode:" in llvm_timing
+        assert "Wire: 1200 B request, 1600 B response, 48 nodes" in llvm_timing
+        assert "Emscripten heap: 16777216 → 16777216 B" in llvm_timing
 
     def test_controls_select_processors_and_share_column_budget(
         self, code_url: str, page: Page

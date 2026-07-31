@@ -71,11 +71,41 @@ interface VersoPrettyNativeBridge {
 
 interface VersoPrettyNativeConfig {
     enabled?: boolean;
-    runtimeBaseUrl?: string;
+    adapterUrl?: string;
     wasmUrl?: string;
     descriptorUrl?: string;
     buildUrl?: string;
     fetchCache?: RequestCache;
+    maximumNodes?: number;
+}
+
+interface VersoPrettyLlvmBridge {
+    enabled?: boolean;
+    status?: string;
+    ready?: Promise<unknown>;
+    error?: unknown;
+    manifest?: unknown;
+    dispose?: () => void;
+    formatSegments?: (fmtJson: unknown, width: number, indent: number, column: number) => Segment[];
+    formatSegmentsTimed?: (
+        fmtJson: unknown,
+        width: number,
+        indent: number,
+        column: number,
+    ) => { text: string; segments: Segment[]; timings: PrettyTimings };
+    traceToSegments?: (trace: {
+        text: string;
+        events: Array<{ kind: number; text: string; value: bigint }>;
+    }) => Segment[];
+    warnings?: Record<string, boolean>;
+}
+
+interface VersoPrettyLlvmConfig {
+    enabled?: boolean;
+    adapterUrl?: string;
+    manifestUrl?: string;
+    maximumNodes?: number;
+    maximumBytes?: number;
 }
 
 interface VersoPrettyConfig {
@@ -92,6 +122,8 @@ interface Window {
     __versoPrettyVirConfig?: VersoPrettyVirConfig;
     __versoPrettyNative?: VersoPrettyNativeBridge;
     __versoPrettyNativeConfig?: VersoPrettyNativeConfig;
+    __versoPrettyLlvm?: VersoPrettyLlvmBridge;
+    __versoPrettyLlvmConfig?: VersoPrettyLlvmConfig;
 }
 
 /** pretty.js — render a format tree to HTML at a given pixel width (global). */

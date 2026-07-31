@@ -827,6 +827,33 @@
                     (timings.allocationCalls === 1 ? "" : "s"),
             );
         }
+        if (
+            typeof timings.requestBytes === "number" &&
+            typeof timings.responseBytes === "number" &&
+            typeof timings.formatNodes === "number"
+        ) {
+            details.push(
+                "Wire: " +
+                    Math.round(timings.requestBytes) +
+                    " B request, " +
+                    Math.round(timings.responseBytes) +
+                    " B response, " +
+                    Math.round(timings.formatNodes) +
+                    " nodes",
+            );
+        }
+        if (
+            typeof timings.heapBytesBefore === "number" &&
+            typeof timings.heapBytesAfter === "number"
+        ) {
+            details.push(
+                "Emscripten heap: " +
+                    Math.round(timings.heapBytesBefore) +
+                    " → " +
+                    Math.round(timings.heapBytesAfter) +
+                    " B",
+            );
+        }
         details.push("Panel wall time: " + formatTiming(wallMs));
         timeEl.title = details.join("\n");
         timeEl.setAttribute("aria-label", timeEl.title);

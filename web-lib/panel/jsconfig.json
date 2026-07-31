@@ -11,6 +11,7 @@
         "pretty.js",
         "pretty-vir.js",
         "pretty-native.js",
+        "pretty-llvm.js",
         "panel.js",
         "lightbox.js",
         "code-block-bg.js",

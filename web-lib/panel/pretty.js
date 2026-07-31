@@ -42,8 +42,17 @@
  *   encodeMs?: number,
  *   inputBytes?: number,
  *   rawObjects?: number,
- *   allocationCalls?: number
+ *   allocationCalls?: number,
+ *   requestBytes?: number,
+ *   responseBytes?: number,
+ *   formatNodes?: number,
+ *   heapBytesBefore?: number,
+ *   heapBytesAfter?: number
  * }} PrettyTimings
+ *
+ * @typedef {{ kind: number, text: string, value: bigint }} PrettyTraceEvent
+ *
+ * @typedef {{ text: string, events: PrettyTraceEvent[] }} PrettyTrace
  *
  * @typedef {{ segments: Segment[] | null, timings: PrettyTimings }} PrettySegmentResult
  *
@@ -153,6 +162,117 @@ function getPrettyBackend(id) {
             return candidate.id === id;
         }) || null
     );
+}
+
+/**
+ * Convert the compact Verso array encoding into the versioned object input
+ * shared by the FIR-native and LLVM/Emscripten adapters. The adapters retain
+ * ownership of their distinct raw Wasm ABIs.
+ * @param {*} formatFactory
+ * @param {*} json
+ * @return {*}
+ */
+function compactFormatToAdapterInput(formatFactory, json) {
+    if (json === null) return formatFactory.nil();
+    if (json === 1) return formatFactory.line();
+    if (typeof json === "string") return formatFactory.text(json);
+    if (!Array.isArray(json) || json.length === 0) {
+        throw new Error("invalid compact Std.Format node");
+    }
+
+    switch (json[0]) {
+        case 2:
+            return formatFactory.align(Boolean(json[1]));
+        case 3:
+            if (!Number.isSafeInteger(json[1]) || json[1] < 0) {
+                throw new Error("invalid Std.Format.nest indentation");
+            }
+            return formatFactory.nest(json[1], compactFormatToAdapterInput(formatFactory, json[2]));
+        case 4:
+            return formatFactory.append(
+                compactFormatToAdapterInput(formatFactory, json[1]),
+                compactFormatToAdapterInput(formatFactory, json[2]),
+            );
+        case 5:
+        case 6:
+            return formatFactory.group(
+                compactFormatToAdapterInput(formatFactory, json[1]),
+                json[0] === 5 ? "allOrNone" : "fill",
+            );
+        case 7:
+            if (!Number.isSafeInteger(json[1]) || json[1] < 0) {
+                throw new Error("invalid Std.Format tag");
+            }
+            return formatFactory.tag(json[1], compactFormatToAdapterInput(formatFactory, json[2]));
+        default:
+            throw new Error("unknown compact Std.Format node tag " + json[0]);
+    }
+}
+
+/**
+ * Convert the shared `PrettyTrace` browser contract into the segment contract
+ * used by every comparison backend.
+ * @param {PrettyTrace} trace
+ * @return {Segment[]}
+ */
+function prettyTraceToSegments(trace) {
+    /** @type {number[]} */
+    var tagStack = [];
+    /** @type {Segment[]} */
+    var segments = [];
+
+    /**
+     * @param {bigint} value
+     * @param {string} label
+     * @return {number}
+     */
+    function safeNatural(value, label) {
+        if (value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) {
+            throw new Error(label + " is outside JavaScript's safe integer range");
+        }
+        return Number(value);
+    }
+
+    trace.events.forEach(function (event) {
+        switch (event.kind) {
+            case 0:
+                if (event.text.length > 0) {
+                    segments.push({ text: event.text, tags: tagStack.slice() });
+                }
+                break;
+            case 1: {
+                var indent = safeNatural(event.value, "pretty trace newline indentation");
+                segments.push({ text: "\n" + " ".repeat(indent), tags: [] });
+                break;
+            }
+            case 2:
+                tagStack.push(safeNatural(event.value, "pretty trace tag"));
+                break;
+            case 3: {
+                var count = safeNatural(event.value, "pretty trace endTags count");
+                if (count > tagStack.length) {
+                    throw new Error("pretty trace ends more tags than it started");
+                }
+                tagStack.length -= count;
+                break;
+            }
+            default:
+                throw new Error("pretty trace has unknown event kind " + event.kind);
+        }
+    });
+
+    if (tagStack.length !== 0) {
+        throw new Error("pretty trace leaves tags open");
+    }
+    var text = segments
+        .map(function (segment) {
+            return segment.text;
+        })
+        .join("");
+    if (text !== trace.text) {
+        throw new Error("pretty trace text projection disagrees with its events");
+    }
+    return segments;
 }
 
 /**
@@ -711,6 +831,9 @@ function addPrettyTimings(target, source) {
         "inputBytes",
         "rawObjects",
         "allocationCalls",
+        "requestBytes",
+        "responseBytes",
+        "formatNodes",
     ];
     detailKeys.forEach(function (key) {
         var value = source[key];
@@ -718,6 +841,18 @@ function addPrettyTimings(target, source) {
             target[key] = (target[key] || 0) + value;
         }
     });
+    if (typeof source.heapBytesBefore === "number" && Number.isFinite(source.heapBytesBefore)) {
+        target.heapBytesBefore =
+            typeof target.heapBytesBefore === "number"
+                ? Math.min(target.heapBytesBefore, source.heapBytesBefore)
+                : source.heapBytesBefore;
+    }
+    if (typeof source.heapBytesAfter === "number" && Number.isFinite(source.heapBytesAfter)) {
+        target.heapBytesAfter =
+            typeof target.heapBytesAfter === "number"
+                ? Math.max(target.heapBytesAfter, source.heapBytesAfter)
+                : source.heapBytesAfter;
+    }
     return target;
 }
 
