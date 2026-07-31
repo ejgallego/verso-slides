@@ -48,7 +48,10 @@ class TestPrettyVirAssets:
         """Static hosts can bootstrap the isolation required by threaded Wasm."""
         root = site_dir / "code"
         assert (root / "coi-serviceworker.js").exists()
-        assert (root / "lib" / "coi-register.js").exists()
+        register = (root / "lib" / "coi-register.js").read_text()
+        assert 'updateViaCache: "none"' in register
+        assert "reloadOnce" in register
+        assert "sessionStorage" in register
 
     def test_pretty_vir_not_loaded_by_default(self, code_doc: BeautifulSoup):
         """The bootstrap remains opt-in until the VIR package assets are supplied."""
