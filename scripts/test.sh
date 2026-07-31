@@ -18,6 +18,7 @@ lake exe test-fixtures-build
 # which isn't wired up here — its jsconfig.json exists only to register the
 # file for the coverage check above.)
 npx --no-install tsc --noEmit -p web-lib/panel/jsconfig.json
+npx --no-install tsc --noEmit -p web-lib/service-worker/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/widget/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/math/jsconfig.json
 

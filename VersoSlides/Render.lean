@@ -365,6 +365,12 @@ private def prettyNativeJs : String := include_str "../web-lib/panel/pretty-nati
 /-- Optional JS bootstrap for the LLVM/Emscripten Wasm pretty-printer prototype. -/
 private def prettyLlvmJs : String := include_str "../web-lib/panel/pretty-llvm.js"
 
+/-- Window-side registration for the cross-origin-isolation service worker fallback. -/
+private def coiRegisterJs : String := include_str "../web-lib/panel/coi-register.js"
+
+/-- Service worker that supplies isolation headers on otherwise-static hosts. -/
+private def coiServiceWorkerJs : String := include_str "../web-lib/service-worker/coi-serviceworker.js"
+
 /-- JS for the interactive info panel. -/
 private def slideCodePanelJs : String := include_str "../web-lib/panel/panel.js"
 
@@ -591,6 +597,8 @@ def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme) : IO Unit 
   writeFileWithDirs (libDir / "pretty-vir.js") prettyVirJs
   writeFileWithDirs (libDir / "pretty-native.js") prettyNativeJs
   writeFileWithDirs (libDir / "pretty-llvm.js") prettyLlvmJs
+  writeFileWithDirs (libDir / "coi-register.js") coiRegisterJs
+  writeFileWithDirs (outputDir / "coi-serviceworker.js") coiServiceWorkerJs
   writeFileWithDirs (libDir / "panel.js") slideCodePanelJs
   writeFileWithDirs (libDir / "lightbox.css") lightboxCss
   writeFileWithDirs (libDir / "lightbox.js") lightboxJs

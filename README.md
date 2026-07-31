@@ -908,7 +908,9 @@ To add the fifth LLVM pane, also pass the checksummed Emscripten
 package. The build validates its manifest, toolchain/runtime contract,
 optimized flags, bridge exports, and artifact digests, copies the
 complete package without renaming files, and emits the isolation
-headers required by Emscripten threads:
+headers required by Emscripten threads. For static servers that ignore
+`.htaccess`, the demo also loads a same-scope service-worker fallback
+that adds COOP/COEP and reloads once before enabling LLVM:
 
 ```
 LLVM_PRETTY_DIR=~/lean/fir/integration/lcnf-c-wasm/_build/prettyM-emscripten-current \

@@ -44,6 +44,12 @@ class TestPrettyVirAssets:
         assert "compactFormatToAdapterInput" in body
         assert "prettyTraceToSegments" in body
 
+    def test_cross_origin_isolation_fallback_assets_written(self, site_dir):
+        """Static hosts can bootstrap the isolation required by threaded Wasm."""
+        root = site_dir / "code"
+        assert (root / "coi-serviceworker.js").exists()
+        assert (root / "lib" / "coi-register.js").exists()
+
     def test_pretty_vir_not_loaded_by_default(self, code_doc: BeautifulSoup):
         """The bootstrap remains opt-in until the VIR package assets are supplied."""
         scripts = [s.get("src", "") for s in code_doc.select("script[src]")]
@@ -51,6 +57,7 @@ class TestPrettyVirAssets:
         assert not any(s.endswith("lib/pretty-vir.js") for s in scripts), scripts
         assert not any(s.endswith("lib/pretty-native.js") for s in scripts), scripts
         assert not any(s.endswith("lib/pretty-llvm.js") for s in scripts), scripts
+        assert not any(s.endswith("lib/coi-register.js") for s in scripts), scripts
 
 
 class TestPrettyVirBridge:

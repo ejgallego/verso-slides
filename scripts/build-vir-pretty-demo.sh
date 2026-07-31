@@ -361,6 +361,7 @@ llvm_enabled = sys.argv[3] == "1"
 body = path.read_text()
 body = re.sub(
     r'\n\s*<script>\s*window\.__versoPrettyConfig\s*=\s*\{.*?\};\s*</script>\s*'
+    r'(?:\n\s*<script src="lib/coi-register\.js"></script>)?\s*'
     r'\n\s*<script src="lib/pretty-vir\.js"></script>'
     r'(?:\s*\n\s*<script src="lib/pretty-(?:native|llvm)\.js"></script>)*',
     "",
@@ -371,9 +372,15 @@ scripts = (
     '    <script src="lib/pretty.js"></script>\n'
     '    <script>\n'
     '      window.__versoPrettyConfig = { compare: true, controls: true, columns: 40 };\n'
-    '    </script>\n'
-    '    <script src="lib/pretty-vir.js"></script>\n'
 )
+if llvm_enabled:
+    scripts += (
+        '      window.__versoPrettyLlvmConfig = { enabled: globalThis.crossOriginIsolated };\n'
+    )
+scripts += '    </script>\n'
+if llvm_enabled:
+    scripts += '    <script src="lib/coi-register.js"></script>\n'
+scripts += '    <script src="lib/pretty-vir.js"></script>\n'
 if native_enabled:
     scripts += '    <script src="lib/pretty-native.js"></script>\n'
 if llvm_enabled:
