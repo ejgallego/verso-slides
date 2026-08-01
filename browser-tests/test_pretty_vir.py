@@ -382,7 +382,31 @@ class TestPrettyDifferentialCorpus:
                     warmup: 0,
                     samples: 1
                 });
-                return { matching, differing };
+                registerPrettyBackend({
+                    id: "native",
+                    label: "native",
+                    status: () => "ready",
+                    renderTimed: () => ({
+                        segments: null,
+                        error: "RangeError: synthetic stack overflow",
+                        timings: {
+                            marshalMs: 0,
+                            executeMs: 0,
+                            decodeMs: 0,
+                            renderMs: 0,
+                            totalMs: 0
+                        }
+                    })
+                });
+                const failing = await runPrettyDifferentialCorpus({
+                    backendIds: ["native"],
+                    cases: [options.cases[0]],
+                    widths: [4],
+                    warmup: 0,
+                    samples: 1,
+                    profile: false
+                });
+                return { matching, differing, failing };
             }"""
         )
 
@@ -411,6 +435,12 @@ class TestPrettyDifferentialCorpus:
         assert differing["parityCount"] == 0
         assert differing["mismatches"] == [{"caseId": "text", "label": "Text", "width": 4}]
 
+        failing = result["failing"]
+        assert not failing["passed"]
+        assert failing["mismatches"][0]["backendErrors"] == {
+            "native": ["RangeError: synthetic stack overflow"]
+        }
+
     def test_real_slide_formats_and_scaling_dimensions(self, code_url: str, page: Page):
         """Real generated formats are harvested and scaling points isolate six dimensions."""
         goto_slide_by_title(page, code_url, "Dark Code")
@@ -424,6 +454,9 @@ class TestPrettyDifferentialCorpus:
                     status: () => "ready",
                     renderTimed: fmt => ({
                         segments: [{ text: JSON.stringify(fmt), tags: [] }],
+                        memory: id === "scale-native"
+                            ? { frontierBefore: 0, frontierAfterDecode: 1024 }
+                            : undefined,
                         timings: {
                             marshalMs: 0.1,
                             executeMs: index + 0.2,
@@ -436,7 +469,18 @@ class TestPrettyDifferentialCorpus:
                 const scaling = await runPrettyScalingStudy({
                     backendIds: ids,
                     warmup: 0,
-                    samples: 1
+                    samples: 1,
+                    batchMemoryBudgetBytes: 32 * 1024
+                });
+                const memory = await runPrettyMemoryScalingStudy({
+                    backendIds: ids,
+                    pointIndexes: [0, 1]
+                });
+                const interactions = await runPrettyInteractionStudy({
+                    backendIds: ids,
+                    warmup: 0,
+                    samples: 1,
+                    batchTargetMs: 0
                 });
                 const repeated = await runPrettyRepeatedCallStudy({
                     backendIds: ids,
@@ -448,6 +492,8 @@ class TestPrettyDifferentialCorpus:
                     realOrigins: [...new Set(real.map(item => item.origin))],
                     firstMetrics: measureCompactFormat(real[0].format),
                     scaling,
+                    memory,
+                    interactions,
                     repeated,
                     profile
                 };
@@ -483,6 +529,32 @@ class TestPrettyDifferentialCorpus:
         ]
         assert scaling["dimensions"][0]["points"][-1]["output"]["textBytes"] == 8194
         assert scaling["dimensions"][0]["phaseTrends"]["executeMs"]["scale-js"]
+        assert scaling["batchTargetMs"] == 20
+        assert scaling["scenarios"][0]["backends"]["scale-js"]["batchIterations"] > 1
+        assert scaling["scenarios"][0]["backends"]["scale-native"]["batchIterations"] == 1
+        assert (
+            scaling["scenarios"][0]["backends"]["scale-native"]["batchLimitReason"]
+            == "resident-memory-budget"
+        )
+        assert scaling["summaries"]["scale-js"]["invocations"] > scaling["scenarioCount"]
+
+        memory = result["memory"]
+        assert memory["passed"]
+        assert memory["pointCount"] == 2
+        assert memory["parityCount"] == 2
+        assert memory["points"][0]["backends"]["scale-js"]["committedDeltaBytes"] is None
+
+        interactions = result["interactions"]
+        assert interactions["passed"]
+        assert interactions["scenarioCount"] == 36
+        assert interactions["parityCount"] == 36
+        assert [interaction["id"] for interaction in interactions["interactions"]] == [
+            "breaks-width",
+            "nodes-depth",
+            "tags-transitions",
+            "input-output",
+        ]
+        assert all(len(interaction["points"]) == 9 for interaction in interactions["interactions"])
 
         repeated = result["repeated"]
         assert repeated["passed"]
@@ -554,6 +626,34 @@ class TestPrettyDifferentialCorpus:
         expect(scaling_report.locator("h3").first).to_contain_text("Total")
         scaling_report.locator(".pretty-corpus-close").click()
         expect(scaling_report).not_to_be_visible()
+
+        controls.locator(".pretty-memory-run").click()
+        memory_report = page.locator(".pretty-memory-overlay")
+        expect(memory_report).to_be_visible()
+        expect(memory_report.locator(".pretty-corpus-result")).to_contain_text(
+            "32/32 one-call memory points agree"
+        )
+        expect(memory_report.locator(".pretty-memory-metric")).to_have_value(
+            "residentDeltaBytes"
+        )
+        assert memory_report.locator(".pretty-memory-chart").count() == 6
+        assert memory_report.locator(".pretty-memory-table").count() == 6
+        memory_report.locator(".pretty-corpus-close").click()
+        expect(memory_report).not_to_be_visible()
+
+        controls.locator(".pretty-interaction-run").click()
+        interaction_report = page.locator(".pretty-interaction-overlay")
+        expect(interaction_report).to_be_visible()
+        expect(interaction_report.locator(".pretty-corpus-result")).to_contain_text(
+            "36/36 interaction points agree"
+        )
+        expect(interaction_report.locator(".pretty-interaction-backend")).to_have_value("native")
+        expect(interaction_report.locator(".pretty-interaction-phase")).to_have_value(
+            "executeMs"
+        )
+        assert interaction_report.locator(".pretty-interaction-chart").count() == 4
+        interaction_report.locator(".pretty-corpus-close").click()
+        expect(interaction_report).not_to_be_visible()
 
         controls.locator(".pretty-repeated-run").click()
         repeated_report = page.locator(".pretty-repeated-overlay")

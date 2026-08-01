@@ -836,9 +836,9 @@ adapter reports Verso-input conversion, wire encoding, execution and
 decode times, request/response sizes, format-node count, and
 Emscripten heap extent.
 
-The testing controls include **Run corpus**, **Run scaling**, and **Run
-repeats**. The
-corpus combines nine representative `Std.Format` trees with every
+The testing controls include **Run corpus**, **Run scaling**, **Run
+memory**, **Run interactions**, and **Run repeats**. The corpus combines
+nine representative `Std.Format` trees with every
 unique rich format embedded in the generated slides, then evaluates
 them at 4, 8, 16, 40, and 80 columns. The synthetic cases cover
 groups, fill behavior, nesting and alignment, embedded newlines,
@@ -863,7 +863,26 @@ point. The interactive report defaults to execution time and can switch
 between execute, marshal, decode, and total-time curves. It also records
 normalized output bytes, segment count, line count, maximum tag depth,
 and tag transitions so runtime can be compared with both input size and
-observable output work.
+observable output work. Scaling samples use adaptive batches targeting
+20 ms of wall time, capped at 512 calls and a 64 MiB study-wide resident
+allocation budget. Allocation-heavy monotone arenas therefore receive
+smaller, explicitly labeled batches. Phase totals are divided by the actual
+invocation count, avoiding zero-heavy results at browser timer resolution
+while preserving the number of logical samples.
+
+The one-call memory study is deliberately separate from the batched
+runtime study. Its retained-instance graphs expose resident allocation
+per call where the adapter provides it, committed Wasm growth per call,
+and cumulative committed growth. The CLI additionally reruns every
+memory point in a fresh browser context with fresh Wasm instances, so
+isolated peak behavior is not confused with earlier points. Native
+provides resident-frontier details; LLVM and VIR currently provide
+committed memory only.
+
+The interaction study evaluates four 3×3 grids: breaks × width, nodes ×
+depth, tag depth × output transitions, and input bytes × output
+expansion. Its heatmaps select both backend and timing phase
+interactively and retain exact output-work metrics in the JSON report.
 
 The repeated-call study rotates five deliberately different inputs over
 32 cycles in one retained backend instance. Every call is checked both
@@ -963,7 +982,8 @@ scripts/build-vir-pretty-demo.sh --publish
 ```
 
 Serve a local build with the required isolation headers, then run the
-artifact-backed correctness, cold-start, footprint, and scaling suite:
+artifact-backed correctness, cold-start, footprint, scaling, memory,
+interaction, and repeated-call suite:
 
 ```
 scripts/serve-vir-pretty-demo.py

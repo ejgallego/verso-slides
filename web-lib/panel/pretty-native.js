@@ -21,6 +21,7 @@
      *   error?: *,
      *   build?: *,
      *   adapter?: *,
+     *   lastMemory?: Record<string, number>,
      *   startupTimings?: *,
      *   assets?: string[],
      *   formatSegments?: (
@@ -123,6 +124,8 @@
                 warnOnce("render", "Native pretty-printer backend failed.", error);
                 return {
                     segments: null,
+                    error:
+                        error instanceof Error ? error.name + ": " + error.message : String(error),
                     timings: {
                         marshalMs: 0,
                         executeMs: 0,
@@ -183,6 +186,7 @@
             var finished = performance.now();
             var adapterInputMs = inputAdapted - started;
             var segmentDecodeMs = finished - traceDecoded;
+            bridge.lastMemory = result.memory;
             return {
                 text: result.trace.text,
                 segments: segments,

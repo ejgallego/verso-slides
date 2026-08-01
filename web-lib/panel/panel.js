@@ -26,6 +26,24 @@
     var prettyRepeatedReport = null;
     var prettyRepeatedRunning = false;
     var prettyRepeatedProgress = "";
+    /** @type {*} */
+    var prettyMemoryReport = null;
+    var prettyMemoryRunning = false;
+    var prettyMemoryProgress = "";
+    /** @type {*} */
+    var prettyInteractionReport = null;
+    var prettyInteractionRunning = false;
+    var prettyInteractionProgress = "";
+
+    function prettyBenchmarkRunning() {
+        return (
+            prettyCorpusRunning ||
+            prettyScalingRunning ||
+            prettyRepeatedRunning ||
+            prettyMemoryRunning ||
+            prettyInteractionRunning
+        );
+    }
 
     function init() {
         initializePrettyConfig();
@@ -295,24 +313,40 @@
         var runCorpus = document.createElement("button");
         runCorpus.type = "button";
         runCorpus.className = "pretty-corpus-run";
-        runCorpus.disabled = prettyCorpusRunning || prettyScalingRunning || prettyRepeatedRunning;
+        runCorpus.disabled = prettyBenchmarkRunning();
         runCorpus.textContent = prettyCorpusRunning ? "Running…" : "Run corpus";
         runCorpus.addEventListener("click", runPrettyCorpusFromControls);
         corpusActions.appendChild(runCorpus);
         var runScaling = document.createElement("button");
         runScaling.type = "button";
         runScaling.className = "pretty-scaling-run";
-        runScaling.disabled = prettyCorpusRunning || prettyScalingRunning || prettyRepeatedRunning;
+        runScaling.disabled = prettyBenchmarkRunning();
         runScaling.textContent = prettyScalingRunning ? "Scaling…" : "Run scaling";
         runScaling.addEventListener("click", runPrettyScalingFromControls);
         corpusActions.appendChild(runScaling);
         var runRepeated = document.createElement("button");
         runRepeated.type = "button";
         runRepeated.className = "pretty-repeated-run";
-        runRepeated.disabled = prettyCorpusRunning || prettyScalingRunning || prettyRepeatedRunning;
+        runRepeated.disabled = prettyBenchmarkRunning();
         runRepeated.textContent = prettyRepeatedRunning ? "Repeating…" : "Run repeats";
         runRepeated.addEventListener("click", runPrettyRepeatedFromControls);
         corpusActions.appendChild(runRepeated);
+        var runMemory = document.createElement("button");
+        runMemory.type = "button";
+        runMemory.className = "pretty-memory-run";
+        runMemory.disabled = prettyBenchmarkRunning();
+        runMemory.textContent = prettyMemoryRunning ? "Measuring…" : "Run memory";
+        runMemory.addEventListener("click", runPrettyMemoryFromControls);
+        corpusActions.appendChild(runMemory);
+        var runInteractions = document.createElement("button");
+        runInteractions.type = "button";
+        runInteractions.className = "pretty-interaction-run";
+        runInteractions.disabled = prettyBenchmarkRunning();
+        runInteractions.textContent = prettyInteractionRunning
+            ? "Interacting…"
+            : "Run interactions";
+        runInteractions.addEventListener("click", runPrettyInteractionsFromControls);
+        corpusActions.appendChild(runInteractions);
         if (prettyCorpusReport) {
             var viewCorpus = document.createElement("button");
             viewCorpus.type = "button";
@@ -343,6 +377,26 @@
             });
             corpusActions.appendChild(viewRepeated);
         }
+        if (prettyMemoryReport) {
+            var viewMemory = document.createElement("button");
+            viewMemory.type = "button";
+            viewMemory.className = "pretty-memory-view";
+            viewMemory.textContent = "Memory report";
+            viewMemory.addEventListener("click", function () {
+                showPrettyMemoryReport(prettyMemoryReport);
+            });
+            corpusActions.appendChild(viewMemory);
+        }
+        if (prettyInteractionReport) {
+            var viewInteractions = document.createElement("button");
+            viewInteractions.type = "button";
+            viewInteractions.className = "pretty-interaction-view";
+            viewInteractions.textContent = "Interaction report";
+            viewInteractions.addEventListener("click", function () {
+                showPrettyInteractionReport(prettyInteractionReport);
+            });
+            corpusActions.appendChild(viewInteractions);
+        }
         var corpusStatus = document.createElement("p");
         corpusStatus.className = "pretty-corpus-status";
         if (prettyCorpusRunning) {
@@ -351,6 +405,26 @@
             corpusStatus.textContent = prettyScalingProgress || "Preparing scaling study…";
         } else if (prettyRepeatedRunning) {
             corpusStatus.textContent = prettyRepeatedProgress || "Preparing repeated-call study…";
+        } else if (prettyMemoryRunning) {
+            corpusStatus.textContent = prettyMemoryProgress || "Preparing memory study…";
+        } else if (prettyInteractionRunning) {
+            corpusStatus.textContent = prettyInteractionProgress || "Preparing interaction study…";
+        } else if (prettyInteractionReport) {
+            corpusStatus.textContent =
+                prettyInteractionReport.parityCount +
+                "/" +
+                prettyInteractionReport.scenarioCount +
+                " interaction points agree";
+            corpusStatus.classList.add(
+                prettyInteractionReport.passed ? "status-pass" : "status-fail",
+            );
+        } else if (prettyMemoryReport) {
+            corpusStatus.textContent =
+                prettyMemoryReport.parityCount +
+                "/" +
+                prettyMemoryReport.pointCount +
+                " retained-memory points agree";
+            corpusStatus.classList.add(prettyMemoryReport.passed ? "status-pass" : "status-fail");
         } else if (prettyRepeatedReport) {
             corpusStatus.textContent =
                 prettyRepeatedReport.totalBackendCalls +
@@ -402,7 +476,11 @@
                 ? prettyScalingProgress
                 : prettyRepeatedRunning
                   ? prettyRepeatedProgress
-                  : prettyCorpusProgress;
+                  : prettyMemoryRunning
+                    ? prettyMemoryProgress
+                    : prettyInteractionRunning
+                      ? prettyInteractionProgress
+                      : prettyCorpusProgress;
     }
 
     async function runPrettyCorpusFromControls() {
@@ -500,6 +578,70 @@
         } finally {
             prettyRepeatedRunning = false;
             prettyRepeatedProgress = "";
+            renderPrettyControls();
+        }
+    }
+
+    async function runPrettyMemoryFromControls() {
+        if (prettyMemoryRunning || typeof runPrettyMemoryScalingStudy !== "function") return;
+        prettyMemoryRunning = true;
+        prettyMemoryProgress = "Preparing retained-memory study…";
+        renderPrettyControls();
+        try {
+            prettyMemoryReport = await runPrettyMemoryScalingStudy({
+                onProgress: function (progress) {
+                    prettyMemoryProgress =
+                        progress.completed +
+                        "/" +
+                        progress.total +
+                        " · " +
+                        progress.dimension +
+                        " · " +
+                        progress.size;
+                    updatePrettyCorpusProgress();
+                },
+            });
+            showPrettyMemoryReport(prettyMemoryReport);
+        } catch (error) {
+            prettyMemoryReport = {
+                passed: false,
+                parityCount: 0,
+                pointCount: 0,
+                error: error instanceof Error ? error.message : String(error),
+            };
+            console.warn("Pretty retained-memory study failed.", error);
+        } finally {
+            prettyMemoryRunning = false;
+            prettyMemoryProgress = "";
+            renderPrettyControls();
+        }
+    }
+
+    async function runPrettyInteractionsFromControls() {
+        if (prettyInteractionRunning || typeof runPrettyInteractionStudy !== "function") return;
+        prettyInteractionRunning = true;
+        prettyInteractionProgress = "Preparing interaction study…";
+        renderPrettyControls();
+        try {
+            prettyInteractionReport = await runPrettyInteractionStudy({
+                onProgress: function (progress) {
+                    prettyInteractionProgress =
+                        progress.completed + "/" + progress.total + " · " + progress.caseId;
+                    updatePrettyCorpusProgress();
+                },
+            });
+            showPrettyInteractionReport(prettyInteractionReport);
+        } catch (error) {
+            prettyInteractionReport = {
+                passed: false,
+                parityCount: 0,
+                scenarioCount: 0,
+                error: error instanceof Error ? error.message : String(error),
+            };
+            console.warn("Pretty interaction study failed.", error);
+        } finally {
+            prettyInteractionRunning = false;
+            prettyInteractionProgress = "";
             renderPrettyControls();
         }
     }
@@ -894,7 +1036,7 @@
         label(phaseLabel.toLowerCase() + " median ms (log)", 8, top + 5, "start");
 
         backendIds.forEach(function (id, backendIndex) {
-            /** @type {{ x: number, y: number, value: number, label: string }[]} */
+            /** @type {{ x: number, y: number, value: number, label: string, batch: number, limited: string | null }[]} */
             var points = [];
             dimension.points.forEach(
                 function (/** @type {*} */ point, /** @type {number} */ index) {
@@ -909,7 +1051,14 @@
                         bottom -
                         ((Math.log10(Math.max(value, minimum * 0.5)) - low) / (high - low)) *
                             (bottom - top);
-                    points.push({ x: x, y: y, value: value, label: point.sizeLabel });
+                    points.push({
+                        x: x,
+                        y: y,
+                        value: value,
+                        label: point.sizeLabel,
+                        batch: result.batchIterations || 1,
+                        limited: result.batchLimitReason || null,
+                    });
                 },
             );
             var color = colors[backendIndex % colors.length];
@@ -937,7 +1086,9 @@
                     point.label +
                     " · " +
                     formatCorpusTiming(point.value) +
-                    " ms";
+                    " ms · batch " +
+                    point.batch +
+                    (point.limited ? " · " + point.limited : "");
                 circle.appendChild(title);
             });
             var legendY = top + backendIndex * 25;
@@ -1010,7 +1161,11 @@
             var note = document.createElement("p");
             note.className = "pretty-corpus-note";
             note.textContent =
-                "Charts show warmed phase medians on a logarithmic time axis. Execute is the default because it best isolates the generated formatter; marshal, decode, and end-to-end total remain selectable.";
+                "Charts show warmed phase medians on a logarithmic time axis. Execute is the default because it best isolates the generated formatter; marshal, decode, and end-to-end total remain selectable. Adaptive batches target " +
+                report.batchTargetMs +
+                " ms, with allocation-heavy resident arenas capped by a " +
+                formatCorpusBytes(report.batchMemoryBudgetBytes) +
+                " study budget.";
             overlay.appendChild(note);
             var phaseControl = document.createElement("label");
             phaseControl.className = "pretty-scaling-phase-control";
@@ -1283,6 +1438,500 @@
                 workloadTable.appendChild(row);
             });
             overlay.appendChild(workloadTable);
+        }
+        document.body.appendChild(overlay);
+        prettyCorpusOverlay = overlay;
+        closeButton.focus();
+    }
+
+    /**
+     * @param {*} dimension
+     * @param {string[]} backendIds
+     * @param {string} metric
+     * @param {string} metricLabel
+     * @return {SVGSVGElement}
+     */
+    function createPrettyMemoryChart(dimension, backendIds, metric, metricLabel) {
+        var namespace = "http://www.w3.org/2000/svg";
+        var svg = /** @type {SVGSVGElement} */ (document.createElementNS(namespace, "svg"));
+        svg.classList.add("pretty-scaling-chart", "pretty-memory-chart");
+        svg.setAttribute("viewBox", "0 0 900 270");
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", dimension.label + " versus " + metricLabel);
+        var left = 78;
+        var right = 675;
+        var top = 25;
+        var bottom = 220;
+        var colors = ["#74a9ff", "#f0a35e", "#77c879", "#d879c6", "#d7c45c"];
+        /** @type {number[]} */
+        var values = [];
+        dimension.points.forEach(function (/** @type {*} */ point) {
+            backendIds.forEach(function (id) {
+                var value = point.backends[id] && point.backends[id][metric];
+                if (typeof value === "number" && value >= 0) values.push(value);
+            });
+        });
+        var maximum = values.length > 0 ? Math.max.apply(null, values) : 1;
+        var high = Math.log10(Math.max(2, maximum + 1));
+
+        /** @param {string} name @param {Record<string, string>} attributes */
+        function element(name, attributes) {
+            var node = document.createElementNS(namespace, name);
+            Object.keys(attributes).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            svg.appendChild(node);
+            return node;
+        }
+
+        /** @param {string} value @param {number} x @param {number} y @param {string} anchor */
+        function label(value, x, y, anchor) {
+            var node = /** @type {SVGTextElement} */ (
+                element("text", { x: String(x), y: String(y), "text-anchor": anchor })
+            );
+            node.textContent = value;
+            return node;
+        }
+
+        element("line", {
+            x1: String(left),
+            y1: String(bottom),
+            x2: String(right),
+            y2: String(bottom),
+            class: "axis",
+        });
+        element("line", {
+            x1: String(left),
+            y1: String(top),
+            x2: String(left),
+            y2: String(bottom),
+            class: "axis",
+        });
+        for (var tick = 0; tick <= 4; tick++) {
+            var tickLog = (high * tick) / 4;
+            var y = bottom - (tickLog / high) * (bottom - top);
+            element("line", {
+                x1: String(left),
+                y1: String(y),
+                x2: String(right),
+                y2: String(y),
+                class: "grid",
+            });
+            label(formatCorpusBytes(10 ** tickLog - 1), left - 8, y + 4, "end");
+        }
+        dimension.points.forEach(function (/** @type {*} */ point, /** @type {number} */ index) {
+            var x =
+                dimension.points.length === 1
+                    ? left
+                    : left + (index / (dimension.points.length - 1)) * (right - left);
+            label(point.sizeLabel || String(point.size), x, bottom + 22, "middle");
+        });
+        label(metricLabel + " (log₁₀(bytes + 1))", 8, top + 5, "start");
+
+        backendIds.forEach(function (id, backendIndex) {
+            /** @type {{ x: number, y: number, value: number, label: string }[]} */
+            var points = [];
+            dimension.points.forEach(
+                function (/** @type {*} */ point, /** @type {number} */ index) {
+                    var value = point.backends[id] && point.backends[id][metric];
+                    if (typeof value !== "number" || value < 0) return;
+                    var x =
+                        dimension.points.length === 1
+                            ? left
+                            : left + (index / (dimension.points.length - 1)) * (right - left);
+                    var y = bottom - (Math.log10(value + 1) / high) * (bottom - top);
+                    points.push({ x: x, y: y, value: value, label: point.sizeLabel });
+                },
+            );
+            if (points.length === 0) return;
+            var color = colors[backendIndex % colors.length];
+            element("polyline", {
+                points: points
+                    .map(function (point) {
+                        return point.x + "," + point.y;
+                    })
+                    .join(" "),
+                fill: "none",
+                stroke: color,
+                "stroke-width": "2",
+            });
+            points.forEach(function (point) {
+                var circle = element("circle", {
+                    cx: String(point.x),
+                    cy: String(point.y),
+                    r: "3.5",
+                    fill: color,
+                });
+                var title = document.createElementNS(namespace, "title");
+                title.textContent =
+                    dimension.points[0].backends[id].label +
+                    " · " +
+                    point.label +
+                    " · " +
+                    formatCorpusBytes(point.value);
+                circle.appendChild(title);
+            });
+            var legendY = top + backendIndex * 25;
+            element("line", {
+                x1: "710",
+                y1: String(legendY),
+                x2: "735",
+                y2: String(legendY),
+                stroke: color,
+                "stroke-width": "3",
+            });
+            label(dimension.points[0].backends[id].label, 745, legendY + 4, "start");
+        });
+        return svg;
+    }
+
+    /** @param {*} report */
+    function showPrettyMemoryReport(report) {
+        if (prettyCorpusOverlay) prettyCorpusOverlay.remove();
+        var overlay = document.createElement("section");
+        overlay.className = "pretty-corpus-overlay pretty-memory-overlay";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-label", "Pretty-printer retained-memory report");
+        var header = document.createElement("header");
+        var title = document.createElement("h2");
+        title.textContent = "Pretty-printer retained-memory scaling";
+        var actions = document.createElement("div");
+        var exportButton = document.createElement("button");
+        exportButton.type = "button";
+        exportButton.textContent = "Export JSON";
+        exportButton.addEventListener("click", function () {
+            downloadPrettyCorpusReport(report);
+        });
+        var closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "pretty-corpus-close";
+        closeButton.textContent = "Close";
+        closeButton.addEventListener("click", function () {
+            overlay.remove();
+        });
+        actions.append(exportButton, closeButton);
+        header.append(title, actions);
+        overlay.appendChild(header);
+        if (report.error) {
+            var error = document.createElement("p");
+            error.className = "pretty-corpus-result status-fail";
+            error.textContent = report.error;
+            overlay.appendChild(error);
+        } else {
+            var result = document.createElement("p");
+            result.className =
+                "pretty-corpus-result " + (report.passed ? "status-pass" : "status-fail");
+            result.textContent =
+                report.parityCount +
+                "/" +
+                report.pointCount +
+                " one-call memory points agree · " +
+                (report.durationMs / 1000).toFixed(2) +
+                " s wall time";
+            overlay.appendChild(result);
+            var note = document.createElement("p");
+            note.className = "pretty-corpus-note";
+            note.textContent =
+                "This in-page study reuses each module but invokes every backend exactly once per point. Per-call resident allocation is currently available from native; committed memory is available for every Wasm backend. Retained growth is sequence-dependent. The CLI additionally collects the same points from fresh browser contexts for isolated baselines.";
+            overlay.appendChild(note);
+            var metricControl = document.createElement("label");
+            metricControl.className = "pretty-scaling-phase-control";
+            metricControl.appendChild(document.createTextNode("Memory metric "));
+            var metricSelector = document.createElement("select");
+            metricSelector.className = "pretty-memory-metric";
+            [
+                { id: "residentDeltaBytes", label: "Resident allocation per call" },
+                { id: "committedDeltaBytes", label: "Committed growth per call" },
+                { id: "retainedCommittedGrowthBytes", label: "Retained committed growth" },
+            ].forEach(function (metric) {
+                var option = document.createElement("option");
+                option.value = metric.id;
+                option.textContent = metric.label;
+                option.selected = metric.id === "residentDeltaBytes";
+                metricSelector.appendChild(option);
+            });
+            metricControl.appendChild(metricSelector);
+            overlay.appendChild(metricControl);
+            var content = document.createElement("div");
+            overlay.appendChild(content);
+
+            function renderMetric() {
+                var metric = metricSelector.value;
+                var metricLabel =
+                    metricSelector.options[metricSelector.selectedIndex].textContent || metric;
+                content.replaceChildren();
+                report.dimensions.forEach(function (/** @type {*} */ dimension) {
+                    var heading = document.createElement("h3");
+                    heading.textContent = dimension.label + " — " + metricLabel;
+                    content.appendChild(heading);
+                    content.appendChild(
+                        createPrettyMemoryChart(dimension, report.backendIds, metric, metricLabel),
+                    );
+                    var table = document.createElement("table");
+                    table.className = "pretty-memory-table";
+                    var head = document.createElement("tr");
+                    ["Size", "Input bytes", "Output bytes", "Parity"].forEach(function (column) {
+                        appendCorpusCell(head, column, "th");
+                    });
+                    report.backendIds.forEach(function (/** @type {string} */ id) {
+                        appendCorpusCell(head, dimension.points[0].backends[id].label, "th");
+                    });
+                    table.appendChild(head);
+                    dimension.points.forEach(function (/** @type {*} */ point) {
+                        var row = document.createElement("tr");
+                        row.className = point.parity ? "status-pass" : "status-fail";
+                        appendCorpusCell(row, point.sizeLabel || String(point.size));
+                        appendCorpusCell(row, String(point.input.textBytes));
+                        appendCorpusCell(row, point.output ? String(point.output.textBytes) : "—");
+                        appendCorpusCell(row, point.parity ? "match" : "mismatch").classList.add(
+                            "pretty-parity",
+                        );
+                        report.backendIds.forEach(function (/** @type {string} */ id) {
+                            appendCorpusCell(row, formatCorpusBytes(point.backends[id][metric]));
+                        });
+                        table.appendChild(row);
+                    });
+                    content.appendChild(table);
+                });
+            }
+            metricSelector.addEventListener("change", renderMetric);
+            renderMetric();
+        }
+        document.body.appendChild(overlay);
+        prettyCorpusOverlay = overlay;
+        closeButton.focus();
+    }
+
+    /**
+     * @param {*} interaction
+     * @param {string} backendId
+     * @param {string} backendLabel
+     * @param {string} phase
+     * @param {string} phaseLabel
+     * @return {SVGSVGElement}
+     */
+    function createPrettyInteractionHeatmap(
+        interaction,
+        backendId,
+        backendLabel,
+        phase,
+        phaseLabel,
+    ) {
+        var namespace = "http://www.w3.org/2000/svg";
+        var svg = /** @type {SVGSVGElement} */ (document.createElementNS(namespace, "svg"));
+        svg.classList.add("pretty-scaling-chart", "pretty-interaction-chart");
+        svg.setAttribute("viewBox", "0 0 760 300");
+        svg.setAttribute("role", "img");
+        svg.setAttribute(
+            "aria-label",
+            interaction.label + " heatmap for " + backendLabel + " " + phaseLabel,
+        );
+        var left = 185;
+        var top = 35;
+        var cellWidth = 165;
+        var cellHeight = 68;
+        var values = interaction.points.map(function (/** @type {*} */ point) {
+            return point.backends[backendId].summary[phase].median;
+        });
+        var maximum = Math.max.apply(null, values.concat([0.001]));
+
+        /** @param {string} name @param {Record<string, string>} attributes */
+        function element(name, attributes) {
+            var node = document.createElementNS(namespace, name);
+            Object.keys(attributes).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            svg.appendChild(node);
+            return node;
+        }
+        /** @param {string} value @param {number} x @param {number} y @param {string} anchor */
+        function label(value, x, y, anchor) {
+            var node = /** @type {SVGTextElement} */ (
+                element("text", { x: String(x), y: String(y), "text-anchor": anchor })
+            );
+            node.textContent = value;
+            return node;
+        }
+
+        interaction.xValues.forEach(
+            function (/** @type {*} */ xValue, /** @type {number} */ xIndex) {
+                label(xValue.label, left + xIndex * cellWidth + cellWidth / 2, 22, "middle");
+            },
+        );
+        interaction.yValues.forEach(
+            function (/** @type {*} */ yValue, /** @type {number} */ yIndex) {
+                label(yValue.label, left - 12, top + yIndex * cellHeight + 39, "end");
+                interaction.xValues.forEach(
+                    function (/** @type {*} */ xValue, /** @type {number} */ xIndex) {
+                        var point = interaction.points.find(function (/** @type {*} */ candidate) {
+                            return candidate.x === xValue.value && candidate.y === yValue.value;
+                        });
+                        if (!point) return;
+                        var value = point.backends[backendId].summary[phase].median;
+                        var intensity = Math.max(
+                            0.08,
+                            Math.log10(value + 1) / Math.log10(maximum + 1),
+                        );
+                        var rect = element("rect", {
+                            x: String(left + xIndex * cellWidth),
+                            y: String(top + yIndex * cellHeight),
+                            width: String(cellWidth - 4),
+                            height: String(cellHeight - 4),
+                            rx: "4",
+                            fill: "rgba(74, 144, 226, " + intensity.toFixed(3) + ")",
+                        });
+                        var title = document.createElementNS(namespace, "title");
+                        title.textContent =
+                            backendLabel +
+                            " · " +
+                            xValue.label +
+                            " × " +
+                            yValue.label +
+                            " · " +
+                            formatCorpusTiming(value) +
+                            " ms · output " +
+                            (point.output ? formatCorpusBytes(point.output.textBytes) : "—");
+                        title.textContent +=
+                            " · batch " +
+                            (point.backends[backendId].batchIterations || 1) +
+                            (point.backends[backendId].batchLimitReason
+                                ? " · " + point.backends[backendId].batchLimitReason
+                                : "");
+                        rect.appendChild(title);
+                        label(
+                            formatCorpusTiming(value) + " ms",
+                            left + xIndex * cellWidth + cellWidth / 2,
+                            top + yIndex * cellHeight + 38,
+                            "middle",
+                        );
+                    },
+                );
+            },
+        );
+        label(
+            interaction.xAxis,
+            left + (interaction.xValues.length * cellWidth) / 2,
+            288,
+            "middle",
+        );
+        label(interaction.yAxis, 8, top + 5, "start");
+        return svg;
+    }
+
+    /** @param {*} report */
+    function showPrettyInteractionReport(report) {
+        if (prettyCorpusOverlay) prettyCorpusOverlay.remove();
+        var overlay = document.createElement("section");
+        overlay.className = "pretty-corpus-overlay pretty-interaction-overlay";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-label", "Pretty-printer interaction report");
+        var header = document.createElement("header");
+        var title = document.createElement("h2");
+        title.textContent = "Pretty-printer interaction study";
+        var actions = document.createElement("div");
+        var exportButton = document.createElement("button");
+        exportButton.type = "button";
+        exportButton.textContent = "Export JSON";
+        exportButton.addEventListener("click", function () {
+            downloadPrettyCorpusReport(report);
+        });
+        var closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "pretty-corpus-close";
+        closeButton.textContent = "Close";
+        closeButton.addEventListener("click", function () {
+            overlay.remove();
+        });
+        actions.append(exportButton, closeButton);
+        header.append(title, actions);
+        overlay.appendChild(header);
+        if (report.error) {
+            var error = document.createElement("p");
+            error.className = "pretty-corpus-result status-fail";
+            error.textContent = report.error;
+            overlay.appendChild(error);
+        } else {
+            var result = document.createElement("p");
+            result.className =
+                "pretty-corpus-result " + (report.passed ? "status-pass" : "status-fail");
+            result.textContent =
+                report.parityCount +
+                "/" +
+                report.scenarioCount +
+                " interaction points agree · " +
+                report.interactions.length +
+                " grids · adaptive batches target " +
+                report.batchTargetMs +
+                " ms · memory budget " +
+                formatCorpusBytes(report.batchMemoryBudgetBytes);
+            overlay.appendChild(result);
+            var note = document.createElement("p");
+            note.className = "pretty-corpus-note";
+            note.textContent =
+                "Heatmaps isolate breaks × width, nodes × depth, tag depth × output transitions, and input bytes × output expansion. Hover a cell for exact time and output size.";
+            overlay.appendChild(note);
+            var controls = document.createElement("div");
+            controls.className = "pretty-interaction-controls";
+            var backendLabel = document.createElement("label");
+            backendLabel.appendChild(document.createTextNode("Backend "));
+            var backendSelector = document.createElement("select");
+            backendSelector.className = "pretty-interaction-backend";
+            report.backendIds.forEach(function (/** @type {string} */ id) {
+                var option = document.createElement("option");
+                option.value = id;
+                option.textContent = report.summaries[id].label;
+                option.selected = id === "native";
+                backendSelector.appendChild(option);
+            });
+            backendLabel.appendChild(backendSelector);
+            var phaseLabel = document.createElement("label");
+            phaseLabel.appendChild(document.createTextNode("Phase "));
+            var phaseSelector = document.createElement("select");
+            phaseSelector.className = "pretty-interaction-phase";
+            report.timingPhases.forEach(function (/** @type {*} */ phase) {
+                var option = document.createElement("option");
+                option.value = phase.id;
+                option.textContent = phase.label;
+                option.selected = phase.id === "executeMs";
+                phaseSelector.appendChild(option);
+            });
+            phaseLabel.appendChild(phaseSelector);
+            controls.append(backendLabel, phaseLabel);
+            overlay.appendChild(controls);
+            var content = document.createElement("div");
+            overlay.appendChild(content);
+
+            function renderInteraction() {
+                var backendId = backendSelector.value;
+                var phase = phaseSelector.value;
+                var selectedPhaseLabel =
+                    phaseSelector.options[phaseSelector.selectedIndex].textContent || phase;
+                content.replaceChildren();
+                report.interactions.forEach(function (/** @type {*} */ interaction) {
+                    var heading = document.createElement("h3");
+                    heading.textContent =
+                        interaction.label +
+                        " — " +
+                        report.summaries[backendId].label +
+                        " " +
+                        selectedPhaseLabel;
+                    content.appendChild(heading);
+                    content.appendChild(
+                        createPrettyInteractionHeatmap(
+                            interaction,
+                            backendId,
+                            report.summaries[backendId].label,
+                            phase,
+                            selectedPhaseLabel,
+                        ),
+                    );
+                });
+            }
+            backendSelector.addEventListener("change", renderInteraction);
+            phaseSelector.addEventListener("change", renderInteraction);
+            renderInteraction();
         }
         document.body.appendChild(overlay);
         prettyCorpusOverlay = overlay;

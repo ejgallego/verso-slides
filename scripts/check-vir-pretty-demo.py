@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run correctness, startup, scaling, and repeated-call studies on five backends."""
+"""Run correctness, startup, scaling, memory, interaction, and repeat studies."""
 
 import argparse
 import json
@@ -27,7 +27,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=9)
     parser.add_argument("--scaling-warmup", type=int, default=2)
     parser.add_argument("--scaling-samples", type=int, default=9)
+    parser.add_argument("--batch-target-ms", type=float, default=20.0)
+    parser.add_argument("--max-batch-iterations", type=int, default=512)
+    parser.add_argument("--batch-memory-mib", type=float, default=64.0)
+    parser.add_argument("--interaction-warmup", type=int, default=1)
+    parser.add_argument("--interaction-samples", type=int, default=5)
     parser.add_argument("--repeat-cycles", type=int, default=32)
+    parser.add_argument(
+        "--skip-isolated-memory",
+        action="store_true",
+        help="skip fresh-context memory points",
+    )
     parser.add_argument("--cold-runs", type=int, default=5)
     parser.add_argument(
         "--output",
@@ -55,6 +65,10 @@ def wait_for_backends(page: Page, url: str) -> None:
             typeof runPrettyDifferentialCorpus === "function" &&
             typeof runPrettyScalingStudy === "function" &&
             typeof runPrettyRepeatedCallStudy === "function" &&
+            typeof runPrettyMemoryScalingPoint === "function" &&
+            typeof runPrettyMemoryScalingStudy === "function" &&
+            typeof runPrettyInteractionStudy === "function" &&
+            typeof collectPrettyMemorySnapshot === "function" &&
             typeof collectPrettyRuntimeProfile === "function" &&
             typeof getPrettyBackends === "function" &&
             getPrettyBackends().length === 5 &&
@@ -119,6 +133,72 @@ def summarize_cold_profiles(
             "provenance": entries[0]["provenance"] if entries else None,
         }
     return {"runs": len(profiles), "backends": backends, "profiles": profiles}
+
+
+def collect_isolated_memory(
+    browser: Browser,
+    url: str,
+    backend_ids: list[str],
+    point_count: int,
+) -> dict[str, Any]:
+    """Run every point in a fresh browser context and fresh Wasm instances."""
+    points: list[dict[str, Any]] = []
+    for point_index in range(point_count):
+        context = browser.new_context()
+        page = context.new_page()
+        wait_for_backends(page, url)
+        point = page.evaluate(
+            """async ({ pointIndex, backendIds }) =>
+                runPrettyMemoryScalingPoint(pointIndex, { backendIds })""",
+            {"pointIndex": point_index, "backendIds": backend_ids},
+        )
+        context.close()
+        points.append(point)
+        print(
+            f"isolated memory: {point_index + 1}/{point_count} "
+            f"{point['dimension']} {point['sizeLabel']}",
+            flush=True,
+        )
+
+    dimensions: list[dict[str, Any]] = []
+    for point in points:
+        dimension = next(
+            (item for item in dimensions if item["id"] == point["dimension"]),
+            None,
+        )
+        if dimension is None:
+            dimension = {
+                "id": point["dimension"],
+                "label": point["dimensionLabel"],
+                "points": [],
+            }
+            dimensions.append(dimension)
+        dimension["points"].append(point)
+    mismatches = [point for point in points if not point["parity"]]
+    return {
+        "schemaVersion": 1,
+        "kind": "memory-isolated",
+        "mode": "fresh-browser-context",
+        "backendIds": backend_ids,
+        "pointCount": len(points),
+        "parityCount": len(points) - len(mismatches),
+        "passed": not mismatches,
+        "mismatches": [
+            {
+                "caseId": point["caseId"],
+                "label": point["label"],
+                "width": point["width"],
+                "backendErrors": {
+                    backend_id: point["backends"][backend_id]["errors"]
+                    for backend_id in backend_ids
+                    if point["backends"][backend_id]["errors"]
+                },
+            }
+            for point in mismatches
+        ],
+        "dimensions": dimensions,
+        "points": points,
+    }
 
 
 def timing(value: float) -> str:
@@ -189,6 +269,50 @@ def print_scaling_tables(scaling: dict[str, Any]) -> None:
             print(row)
 
 
+def memory_bytes(value: int | float | None) -> str:
+    if value is None:
+        return "—"
+    if abs(value) < 1024:
+        return f"{value:.0f} B"
+    if abs(value) < 1024 * 1024:
+        return f"{value / 1024:.1f} KiB"
+    return f"{value / (1024 * 1024):.2f} MiB"
+
+
+def print_memory_table(memory: dict[str, Any], label: str) -> None:
+    print(f"\n{label}: endpoint per-call memory deltas")
+    print("dimension              size       backend      resident       committed")
+    for dimension in memory["dimensions"]:
+        point = dimension["points"][-1]
+        for index, backend_id in enumerate(memory["backendIds"]):
+            backend = point["backends"][backend_id]
+            prefix = (
+                f"{dimension['label']:<22}{point['sizeLabel']:>12}"
+                if index == 0
+                else " " * 34
+            )
+            print(
+                f"{prefix}  {backend['label']:<12}"
+                f"{memory_bytes(backend['residentDeltaBytes']):>12}  "
+                f"{memory_bytes(backend['committedDeltaBytes']):>14}"
+            )
+
+
+def print_interaction_table(interactions: dict[str, Any]) -> None:
+    print("\ninteraction endpoints: median execute (ms)")
+    heading = "interaction                 x × y"
+    for backend_id in interactions["backendIds"]:
+        heading += f"  {interactions['summaries'][backend_id]['label']:>11}"
+    print(heading)
+    for interaction in interactions["interactions"]:
+        point = interaction["points"][-1]
+        row = f"{interaction['label']:<27}{point['xLabel']} × {point['yLabel']}"
+        for backend_id in interactions["backendIds"]:
+            median = point["backends"][backend_id]["summary"]["executeMs"]["median"]
+            row += f"  {timing(median):>11}"
+        print(row)
+
+
 def print_repeated_table(repeated: dict[str, Any]) -> None:
     print(
         f"\nrepeated calls: {repeated['totalBackendCalls']} calls; "
@@ -220,6 +344,12 @@ def main() -> int:
     args = parse_args()
     if args.cold_runs < 1:
         raise SystemExit("--cold-runs must be positive")
+    if args.batch_target_ms <= 0:
+        raise SystemExit("--batch-target-ms must be positive")
+    if args.max_batch_iterations < 1:
+        raise SystemExit("--max-batch-iterations must be positive")
+    if args.batch_memory_mib <= 0:
+        raise SystemExit("--batch-memory-mib must be positive")
     output = workspace_path(args.output)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
@@ -236,7 +366,18 @@ def main() -> int:
                 });
                 const scaling = await runPrettyScalingStudy({
                     warmup: options.scalingWarmup,
-                    samples: options.scalingSamples
+                    samples: options.scalingSamples,
+                    batchTargetMs: options.batchTargetMs,
+                    maxBatchIterations: options.maxBatchIterations,
+                    batchMemoryBudgetBytes: options.batchMemoryBudgetBytes
+                });
+                const memory = await runPrettyMemoryScalingStudy();
+                const interactions = await runPrettyInteractionStudy({
+                    warmup: options.interactionWarmup,
+                    samples: options.interactionSamples,
+                    batchTargetMs: options.batchTargetMs,
+                    maxBatchIterations: options.maxBatchIterations,
+                    batchMemoryBudgetBytes: options.batchMemoryBudgetBytes
                 });
                 const repeated = await runPrettyRepeatedCallStudy({
                     cycles: options.repeatCycles
@@ -244,6 +385,8 @@ def main() -> int:
                 return {
                     corpus,
                     scaling,
+                    memory,
+                    interactions,
                     repeated,
                     postRunProfile: await collectPrettyRuntimeProfile()
                 };
@@ -253,17 +396,37 @@ def main() -> int:
                 "samples": args.samples,
                 "scalingWarmup": args.scaling_warmup,
                 "scalingSamples": args.scaling_samples,
+                "batchTargetMs": args.batch_target_ms,
+                "maxBatchIterations": args.max_batch_iterations,
+                "batchMemoryBudgetBytes": args.batch_memory_mib * 1024 * 1024,
+                "interactionWarmup": args.interaction_warmup,
+                "interactionSamples": args.interaction_samples,
                 "repeatCycles": args.repeat_cycles,
             },
         )
         context.close()
+        isolated_memory = (
+            None
+            if args.skip_isolated_memory
+            else collect_isolated_memory(
+                browser,
+                args.url,
+                results["corpus"]["backendIds"],
+                results["memory"]["pointCount"],
+            )
+        )
         browser.close()
 
     corpus = results["corpus"]
     scaling = results["scaling"]
+    memory = results["memory"]
+    interactions = results["interactions"]
     repeated = results["repeated"]
     corpus["coldStart"] = summarize_cold_profiles(cold_profiles, corpus["backendIds"])
     corpus["scaling"] = scaling
+    memory["isolated"] = isolated_memory
+    corpus["memory"] = memory
+    corpus["interactions"] = interactions
     corpus["repeated"] = repeated
     corpus["postRunProfile"] = results["postRunProfile"]
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -280,13 +443,36 @@ def main() -> int:
     print_runtime_table(corpus)
     print_cold_table(corpus["coldStart"], corpus["backendIds"], corpus["postRunProfile"])
     print_scaling_tables(scaling)
+    print_memory_table(memory, "retained instance")
+    if isolated_memory is not None:
+        print_memory_table(isolated_memory, "fresh context")
+    print_interaction_table(interactions)
     print_repeated_table(repeated)
-    if corpus["mismatches"] or scaling["mismatches"] or repeated["mismatches"]:
+    all_mismatches = (
+        corpus["mismatches"]
+        + scaling["mismatches"]
+        + memory["mismatches"]
+        + interactions["mismatches"]
+        + repeated["mismatches"]
+        + ([] if isolated_memory is None else isolated_memory["mismatches"])
+    )
+    if all_mismatches:
         print("mismatches:")
-        for mismatch in corpus["mismatches"] + scaling["mismatches"] + repeated["mismatches"]:
+        for mismatch in all_mismatches:
             print(f"  {mismatch['caseId']} @ {mismatch['width']} columns")
+            for backend_id, errors in mismatch.get("backendErrors", {}).items():
+                for error in errors:
+                    print(f"    {backend_id}: {error}")
     print(f"full report: {output}")
-    return 0 if corpus["passed"] and scaling["passed"] and repeated["passed"] else 1
+    passed = (
+        corpus["passed"]
+        and scaling["passed"]
+        and memory["passed"]
+        and interactions["passed"]
+        and repeated["passed"]
+        and (isolated_memory is None or isolated_memory["passed"])
+    )
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":

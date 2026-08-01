@@ -375,6 +375,39 @@
     border-radius: 0.2rem;
 }
 
+.pretty-interaction-controls {
+    position: sticky;
+    top: 3.2rem;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    width: fit-content;
+    margin: 0.4rem 0 0.2rem;
+    padding: 0.35rem 0.5rem;
+    background: #25282d;
+    border: 1px solid rgba(180, 180, 180, 0.25);
+    border-radius: 0.3rem;
+}
+
+.pretty-interaction-controls label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.pretty-interaction-controls select {
+    min-width: 7rem;
+    color: inherit;
+    background: #30343a;
+    border: 1px solid rgba(180, 180, 180, 0.35);
+    border-radius: 0.2rem;
+}
+
+.pretty-interaction-chart text {
+    fill: #ddd;
+}
+
 .pretty-scaling-chart text {
     fill: currentColor;
     font: 11px sans-serif;

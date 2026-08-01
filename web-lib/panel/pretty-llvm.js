@@ -19,6 +19,7 @@
      *   error?: *,
      *   manifest?: *,
      *   adapter?: *,
+     *   lastMemory?: Record<string, number>,
      *   assets?: string[],
      *   startupTimings?: { importMs: number, loadMs: number, totalMs: number },
      *   dispose?: () => void,
@@ -113,7 +114,12 @@
                 };
             } catch (error) {
                 warnOnce("render", "LLVM pretty-printer backend failed.", error);
-                return { segments: null, timings: emptyPrettyTimings() };
+                return {
+                    segments: null,
+                    error:
+                        error instanceof Error ? error.name + ": " + error.message : String(error),
+                    timings: emptyPrettyTimings(),
+                };
             }
         },
     };
@@ -154,6 +160,7 @@
             var finished = performance.now();
             var adapterInputMs = inputAdapted - started;
             var segmentDecodeMs = finished - traceDecoded;
+            bridge.lastMemory = result.memory;
             return {
                 text: result.trace.text,
                 segments: segments,

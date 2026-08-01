@@ -47,14 +47,16 @@
  *   responseBytes?: number,
  *   formatNodes?: number,
  *   heapBytesBefore?: number,
- *   heapBytesAfter?: number
+ *   heapBytesAfter?: number,
+ *   batchIterations?: number,
+ *   batchWallMs?: number
  * }} PrettyTimings
  *
  * @typedef {{ kind: number, text: string, value: bigint }} PrettyTraceEvent
  *
  * @typedef {{ text: string, events: PrettyTraceEvent[] }} PrettyTrace
  *
- * @typedef {{ segments: Segment[] | null, timings: PrettyTimings, memory?: Record<string, number> }} PrettySegmentResult
+ * @typedef {{ segments: Segment[] | null, timings: PrettyTimings, memory?: Record<string, number>, error?: string }} PrettySegmentResult
  *
  * @typedef {{
  *   output: "segments" | "text",
@@ -857,6 +859,45 @@ function addPrettyTimings(target, source) {
                 : source.heapBytesAfter;
     }
     return target;
+}
+
+/**
+ * Convert summed timings from one adaptive batch into per-invocation values.
+ * Heap bounds describe the whole batch and therefore remain unscaled.
+ * @param {PrettyTimings} timings
+ * @param {number} iterations
+ * @param {number} wallMs
+ * @return {PrettyTimings}
+ */
+function averagePrettyTimings(timings, iterations, wallMs) {
+    var averaged = Object.assign({}, timings);
+    /** @type {(keyof PrettyTimings)[]} */
+    var averageKeys = [
+        "marshalMs",
+        "executeMs",
+        "decodeMs",
+        "renderMs",
+        "totalMs",
+        "adapterInputMs",
+        "normalizeMs",
+        "allocateMs",
+        "encodeMs",
+        "inputBytes",
+        "rawObjects",
+        "allocationCalls",
+        "requestBytes",
+        "responseBytes",
+        "formatNodes",
+    ];
+    averageKeys.forEach(function (key) {
+        var value = averaged[key];
+        if (typeof value === "number" && Number.isFinite(value)) {
+            averaged[key] = value / iterations;
+        }
+    });
+    averaged.batchIterations = iterations;
+    averaged.batchWallMs = wallMs / iterations;
+    return averaged;
 }
 
 /**
@@ -1856,6 +1897,134 @@ function createPrettyScalingScenarios() {
     return scenarios;
 }
 
+/**
+ * Generate compact two-dimensional grids for interactions that cannot be
+ * inferred from one-axis slopes.
+ * @return {*[]}
+ */
+function createPrettyInteractionScenarios() {
+    /** @type {*[]} */
+    var scenarios = [];
+
+    /** @param {string} interaction @param {string} label @param {string} xAxis @param {number} x @param {string} xLabel @param {string} yAxis @param {number} y @param {string} yLabel @param {*} format @param {number} width */
+    function add(interaction, label, xAxis, x, xLabel, yAxis, y, yLabel, format, width) {
+        scenarios.push({
+            case: {
+                id: "interaction-" + interaction + "-" + x + "-" + y,
+                label: label + " · " + xLabel + " × " + yLabel,
+                format: format,
+                origin: "interaction",
+            },
+            width: width,
+            input: measureCompactFormat(format),
+            interaction: interaction,
+            interactionLabel: label,
+            xAxis: xAxis,
+            x: x,
+            xLabel: xLabel,
+            yAxis: yAxis,
+            y: y,
+            yLabel: yLabel,
+        });
+    }
+
+    [4, 32, 256].forEach(function (breaks) {
+        var parts = /** @type {*[]} */ (["word"]);
+        for (var index = 0; index < breaks; index++) parts.push(1, "word");
+        var format = [6, balancedPrettyAppend(parts)];
+        [8, 32, 128].forEach(function (width) {
+            add(
+                "breaks-width",
+                "Breaks × width",
+                "Break opportunities",
+                breaks,
+                breaks + " breaks",
+                "Width budget",
+                width,
+                width + " columns",
+                format,
+                width,
+            );
+        });
+    });
+
+    [8, 64, 512].forEach(function (leaves) {
+        [1, 16, 128].forEach(function (depth) {
+            var format = balancedPrettyAppend(
+                Array.from({ length: leaves }, function () {
+                    return "x";
+                }),
+            );
+            for (var index = 0; index < depth; index++) format = [3, 1, format];
+            add(
+                "nodes-depth",
+                "Nodes × depth",
+                "Text leaves",
+                leaves,
+                leaves + " leaves",
+                "Nesting depth",
+                depth,
+                depth + " levels",
+                format,
+                80,
+            );
+        });
+    });
+
+    [1, 8, 64].forEach(function (depth) {
+        [1, 8, 64].forEach(function (chunks) {
+            var taggedChunks = Array.from({ length: chunks }, function (_unused, chunk) {
+                var format = /** @type {*} */ ("x");
+                for (var tag = 0; tag < depth; tag++) {
+                    format = [7, chunk * depth + tag + 1, format];
+                }
+                return format;
+            });
+            var format = balancedPrettyAppend(taggedChunks);
+            add(
+                "tags-transitions",
+                "Tag depth × output transitions",
+                "Tag depth",
+                depth,
+                depth + " tags",
+                "Tagged chunks",
+                chunks,
+                chunks + " chunks",
+                format,
+                80,
+            );
+        });
+    });
+
+    [32, 512, 8192].forEach(function (textBytes) {
+        [0, 8, 64].forEach(function (indent) {
+            var lineCount = 16;
+            var base = Math.floor(textBytes / lineCount);
+            var remainder = textBytes % lineCount;
+            /** @type {*[]} */
+            var parts = [];
+            for (var line = 0; line < lineCount; line++) {
+                if (line > 0) parts.push(1);
+                parts.push("x".repeat(base + (line < remainder ? 1 : 0)));
+            }
+            var format = [3, indent, balancedPrettyAppend(parts)];
+            add(
+                "input-output",
+                "Input bytes × output expansion",
+                "Input text bytes",
+                textBytes,
+                textBytes + " B input",
+                "Line indentation",
+                indent,
+                indent + " columns",
+                format,
+                80,
+            );
+        });
+    });
+    return scenarios;
+}
+
 /** @param {ArrayBuffer} bytes @return {Promise<string | null>} */
 async function prettySha256(bytes) {
     if (!globalThis.crypto || !globalThis.crypto.subtle) return null;
@@ -2077,6 +2246,96 @@ async function collectPrettyRuntimeProfile(backendIds) {
 }
 
 /**
+ * Read memory counters without fetching or hashing artifacts. `committedBytes`
+ * is the current linear-memory capacity. `residentBytes` is only available
+ * where the adapter exposes a live allocation frontier.
+ * @param {string[]} [backendIds]
+ * @return {{ capturedAt: string, backends: Record<string, *> }}
+ */
+function collectPrettyMemorySnapshot(backendIds) {
+    var ids = Array.isArray(backendIds)
+        ? backendIds
+        : getPrettyBackends().map(function (backend) {
+              return backend.id;
+          });
+    var root = /** @type {Window & {
+        __versoPrettyVir?: *,
+        __versoPrettyNative?: *,
+        __versoPrettyLlvm?: *
+    }} */ (window);
+    /** @type {Record<string, *>} */
+    var result = {};
+    ids.forEach(function (id) {
+        var backend = getPrettyBackend(id);
+        var committedBytes = null;
+        var residentBytes = null;
+        var sharedMemoryGroup = null;
+        var details = null;
+        if (id === "native") {
+            var nativeBridge = root.__versoPrettyNative;
+            if (
+                nativeBridge &&
+                nativeBridge.adapter &&
+                nativeBridge.adapter.memory instanceof WebAssembly.Memory
+            ) {
+                committedBytes = nativeBridge.adapter.memory.buffer.byteLength;
+            }
+            var nativeMemory = nativeBridge && nativeBridge.lastMemory;
+            if (nativeMemory && typeof nativeMemory.frontierAfterDecode === "number") {
+                residentBytes = nativeMemory.frontierAfterDecode;
+                details = nativeMemory;
+            } else if (
+                nativeBridge &&
+                nativeBridge.adapter &&
+                typeof nativeBridge.adapter.frontier === "function"
+            ) {
+                residentBytes = Number(nativeBridge.adapter.frontier()) >>> 0;
+            }
+        } else if (id === "llvm") {
+            var llvmBridge = root.__versoPrettyLlvm;
+            if (
+                llvmBridge &&
+                llvmBridge.adapter &&
+                llvmBridge.adapter.loaded &&
+                llvmBridge.adapter.loaded.module &&
+                llvmBridge.adapter.loaded.module.HEAPU8
+            ) {
+                committedBytes = llvmBridge.adapter.loaded.module.HEAPU8.byteLength;
+            }
+            details = llvmBridge && llvmBridge.lastMemory;
+        } else if (id === "vir" || id === "vir-format") {
+            var virBridge = root.__versoPrettyVir;
+            var runtime = virBridge && virBridge.runtime;
+            var memory =
+                runtime && runtime.memory instanceof WebAssembly.Memory
+                    ? runtime.memory
+                    : runtime &&
+                        runtime.exports &&
+                        runtime.exports.memory instanceof WebAssembly.Memory
+                      ? runtime.exports.memory
+                      : runtime &&
+                          runtime.instance &&
+                          runtime.instance.exports &&
+                          runtime.instance.exports.memory instanceof WebAssembly.Memory
+                        ? runtime.instance.exports.memory
+                        : null;
+            if (memory) committedBytes = memory.buffer.byteLength;
+            sharedMemoryGroup = "vir-runtime";
+        }
+        result[id] = {
+            id: id,
+            label: backend ? backend.label : id,
+            status: backend && typeof backend.status === "function" ? backend.status() : "ready",
+            committedBytes: committedBytes,
+            residentBytes: residentBytes,
+            sharedMemoryGroup: sharedMemoryGroup,
+            details: details,
+        };
+    });
+    return { capturedAt: new Date().toISOString(), backends: result };
+}
+
+/**
  * Compare the registered pretty-printer backends over a representative corpus.
  * Runs are interleaved and their starting backend is rotated to reduce ordering
  * bias. Warm-up observations are excluded from the returned statistics.
@@ -2088,6 +2347,9 @@ async function collectPrettyRuntimeProfile(backendIds) {
  *   scenarios?: { case: { id: string, label?: string, format: *, origin?: string }, width: number, [key: string]: * }[],
  *   warmup?: number,
  *   samples?: number,
+ *   batchTargetMs?: number,
+ *   maxBatchIterations?: number,
+ *   batchMemoryBudgetBytes?: number,
  *   profile?: boolean,
  *   onProgress?: (progress: { completed: number, total: number, caseId: string, width: number, [key: string]: * }) => void
  * }} [options]
@@ -2121,11 +2383,35 @@ async function runPrettyDifferentialCorpus(options) {
     );
     var warmup = settings.warmup === undefined ? 2 : Number(settings.warmup);
     var samples = settings.samples === undefined ? 9 : Number(settings.samples);
+    var batchTargetMs = settings.batchTargetMs === undefined ? 0 : Number(settings.batchTargetMs);
+    var maxBatchIterations =
+        settings.maxBatchIterations === undefined ? 512 : Number(settings.maxBatchIterations);
+    var batchMemoryBudgetBytes =
+        settings.batchMemoryBudgetBytes === undefined
+            ? 64 * 1024 * 1024
+            : Number(settings.batchMemoryBudgetBytes);
     if (!Number.isSafeInteger(warmup) || warmup < 0 || warmup > 100) {
         throw new TypeError("invalid differential corpus warm-up count");
     }
     if (!Number.isSafeInteger(samples) || samples < 1 || samples > 1000) {
         throw new TypeError("invalid differential corpus sample count");
+    }
+    if (!Number.isFinite(batchTargetMs) || batchTargetMs < 0 || batchTargetMs > 1000) {
+        throw new TypeError("invalid differential batch target");
+    }
+    if (
+        !Number.isSafeInteger(maxBatchIterations) ||
+        maxBatchIterations < 1 ||
+        maxBatchIterations > 100000
+    ) {
+        throw new TypeError("invalid differential maximum batch size");
+    }
+    if (
+        !Number.isFinite(batchMemoryBudgetBytes) ||
+        batchMemoryBudgetBytes < 0 ||
+        batchMemoryBudgetBytes > 4 * 1024 * 1024 * 1024
+    ) {
+        throw new TypeError("invalid differential batch memory budget");
     }
     /** @type {*[]} */
     var scenarioInputs = Array.isArray(settings.scenarios)
@@ -2166,6 +2452,7 @@ async function runPrettyDifferentialCorpus(options) {
             label: backend.label,
             status: typeof backend.status === "function" ? backend.status() : "ready",
             timings: /** @type {PrettyTimings[]} */ ([]),
+            invocations: 0,
         };
     });
     var readyBackends = backends.filter(function (_backend, index) {
@@ -2180,7 +2467,7 @@ async function runPrettyDifferentialCorpus(options) {
         var corpusCase = scenarioInput.case;
         var width = scenarioInput.width;
         var measurer = createColumnMeasurer(width);
-        /** @type {Record<string, { segments: Segment[] | null, signature: string | null, output: ReturnType<typeof measurePrettyOutput> | null, stable: boolean, timings: PrettyTimings[], memorySamples: Record<string, number>[], summary: * }>} */
+        /** @type {Record<string, { segments: Segment[] | null, signature: string | null, output: ReturnType<typeof measurePrettyOutput> | null, stable: boolean, errors: string[], timings: PrettyTimings[], memorySamples: Record<string, number>[], batchIterations: number, batchResidentBytesPerCall: number | null, batchLimitReason: string | null, invocations: number, summary: * }>} */
         var backendResults = {};
         readyBackends.forEach(function (backend) {
             backendResults[backend.id] = {
@@ -2188,42 +2475,129 @@ async function runPrettyDifferentialCorpus(options) {
                 signature: null,
                 output: null,
                 stable: true,
+                errors: [],
                 timings: [],
                 memorySamples: [],
+                batchIterations: 1,
+                batchResidentBytesPerCall: null,
+                batchLimitReason: null,
+                invocations: 0,
                 summary: null,
             };
         });
 
-        for (var round = -warmup; round < samples; round++) {
-            for (var offset = 0; offset < readyBackends.length; offset++) {
-                var backend = readyBackends[(offset + Math.max(0, round)) % readyBackends.length];
-                var rendered = renderPrettySegmentsTimed(
+        /**
+         * @param {*} result
+         * @param {PrettySegmentResult} rendered
+         * @return {boolean}
+         */
+        function observeRendered(result, rendered) {
+            if (rendered.segments === null) {
+                result.stable = false;
+                if (rendered.error && !result.errors.includes(rendered.error)) {
+                    result.errors.push(rendered.error);
+                }
+                return false;
+            }
+            var segments = canonicalizePrettySegments(rendered.segments);
+            var signature = JSON.stringify(segments);
+            if (result.signature !== null && result.signature !== signature) {
+                result.stable = false;
+            }
+            result.segments = segments;
+            result.signature = signature;
+            result.output = measurePrettyOutput(segments);
+            return true;
+        }
+
+        if (batchTargetMs > 0) {
+            readyBackends.forEach(function (backend) {
+                var calibrationStarted = performance.now();
+                var calibration = renderPrettySegmentsTimed(
                     corpusCase.format,
                     {},
                     width,
                     measurer,
                     backend,
                 );
+                var calibrationWallMs = performance.now() - calibrationStarted;
+                observeRendered(backendResults[backend.id], calibration);
+                var observedMs = Math.max(
+                    0.01,
+                    calibrationWallMs,
+                    Number(calibration.timings.totalMs || 0),
+                );
+                var requestedIterations = Math.max(
+                    1,
+                    Math.min(maxBatchIterations, Math.ceil(batchTargetMs / observedMs)),
+                );
                 var result = backendResults[backend.id];
-                if (rendered.segments === null) {
-                    result.stable = false;
-                    continue;
+                var memory = calibration.memory;
+                var residentDelta =
+                    memory &&
+                    typeof memory.frontierBefore === "number" &&
+                    typeof memory.frontierAfterDecode === "number"
+                        ? memory.frontierAfterDecode - memory.frontierBefore
+                        : null;
+                result.batchResidentBytesPerCall = residentDelta;
+                if (residentDelta !== null && residentDelta > 0 && batchMemoryBudgetBytes > 0) {
+                    var perScenarioBudget = batchMemoryBudgetBytes / scenarioInputs.length;
+                    var memoryLimitedIterations = Math.max(
+                        1,
+                        Math.floor(
+                            perScenarioBudget / residentDelta / Math.max(1, warmup + samples),
+                        ),
+                    );
+                    result.batchIterations = Math.min(requestedIterations, memoryLimitedIterations);
+                    if (result.batchIterations < requestedIterations) {
+                        result.batchLimitReason = "resident-memory-budget";
+                    }
+                } else {
+                    result.batchIterations = requestedIterations;
                 }
-                var segments = canonicalizePrettySegments(rendered.segments);
-                var signature = JSON.stringify(segments);
-                if (result.signature !== null && result.signature !== signature) {
-                    result.stable = false;
+            });
+        }
+
+        for (var round = -warmup; round < samples; round++) {
+            for (var offset = 0; offset < readyBackends.length; offset++) {
+                var backend = readyBackends[(offset + Math.max(0, round)) % readyBackends.length];
+                var result = backendResults[backend.id];
+                var iterations = result.batchIterations;
+                var summedTimings = emptyPrettyTimings();
+                var measuredIterations = 0;
+                /** @type {Record<string, number> | null} */
+                var lastMemory = null;
+                var batchStarted = performance.now();
+                for (var iteration = 0; iteration < iterations; iteration++) {
+                    var rendered = renderPrettySegmentsTimed(
+                        corpusCase.format,
+                        {},
+                        width,
+                        measurer,
+                        backend,
+                    );
+                    if (!observeRendered(result, rendered)) continue;
+                    addPrettyTimings(summedTimings, rendered.timings);
+                    measuredIterations += 1;
+                    if (rendered.memory) lastMemory = rendered.memory;
                 }
-                result.segments = segments;
-                result.signature = signature;
-                result.output = measurePrettyOutput(segments);
+                var batchWallMs = performance.now() - batchStarted;
                 if (round >= 0) {
-                    result.timings.push(rendered.timings);
-                    if (rendered.memory) result.memorySamples.push(rendered.memory);
+                    var averaged = averagePrettyTimings(
+                        summedTimings,
+                        Math.max(1, measuredIterations),
+                        batchWallMs,
+                    );
+                    result.timings.push(averaged);
+                    result.invocations += iterations;
+                    if (lastMemory) result.memorySamples.push(lastMemory);
                     var state = backendStates.find(function (candidate) {
                         return candidate.id === backend.id;
                     });
-                    if (state) state.timings.push(rendered.timings);
+                    if (state) {
+                        state.timings.push(averaged);
+                        state.invocations += iterations;
+                    }
                 }
             }
         }
@@ -2260,6 +2634,14 @@ async function runPrettyDifferentialCorpus(options) {
             input: inputMetrics,
             dimension: scenarioInput.dimension || corpusCase.dimension || null,
             dimensionLabel: scenarioInput.dimensionLabel || null,
+            interaction: scenarioInput.interaction || null,
+            interactionLabel: scenarioInput.interactionLabel || null,
+            xAxis: scenarioInput.xAxis || null,
+            x: typeof scenarioInput.x === "number" ? scenarioInput.x : null,
+            xLabel: scenarioInput.xLabel || null,
+            yAxis: scenarioInput.yAxis || null,
+            y: typeof scenarioInput.y === "number" ? scenarioInput.y : null,
+            yLabel: scenarioInput.yLabel || null,
             size:
                 typeof scenarioInput.size === "number"
                     ? scenarioInput.size
@@ -2300,6 +2682,7 @@ async function runPrettyDifferentialCorpus(options) {
             id: state.id,
             label: state.label,
             status: state.status,
+            invocations: state.invocations,
             timing: summarizePrettyTimings(state.timings),
         };
     });
@@ -2341,6 +2724,9 @@ async function runPrettyDifferentialCorpus(options) {
         durationMs: reportFinished - reportStarted,
         warmup: warmup,
         samples: samples,
+        batchTargetMs: batchTargetMs,
+        maxBatchIterations: maxBatchIterations,
+        batchMemoryBudgetBytes: batchMemoryBudgetBytes,
         widths: Array.from(
             new Set(
                 scenarioInputs.map(function (scenario) {
@@ -2355,7 +2741,20 @@ async function runPrettyDifferentialCorpus(options) {
         passed: mismatches.length === 0 && unavailable.length === 0,
         unavailable: unavailable,
         mismatches: mismatches.map(function (scenario) {
-            return { caseId: scenario.caseId, label: scenario.label, width: scenario.width };
+            /** @type {Record<string, string[]>} */
+            var backendErrors = {};
+            requestedIds.forEach(function (id) {
+                if (scenario.backends[id] && scenario.backends[id].errors.length > 0) {
+                    backendErrors[id] = scenario.backends[id].errors;
+                }
+            });
+            var mismatch = /** @type {*} */ ({
+                caseId: scenario.caseId,
+                label: scenario.label,
+                width: scenario.width,
+            });
+            if (Object.keys(backendErrors).length > 0) mismatch.backendErrors = backendErrors;
+            return mismatch;
         }),
         summaries: summaries,
         scenarios: scenarios,
@@ -2431,7 +2830,7 @@ function summarizePrettyScalingTrend(points, backendId, phase) {
  */
 async function runPrettyScalingStudy(options) {
     var points = createPrettyScalingScenarios();
-    var settings = Object.assign({}, options || {}, {
+    var settings = Object.assign({ batchTargetMs: 20, maxBatchIterations: 512 }, options || {}, {
         scenarios: points,
         profile: false,
     });
@@ -2477,6 +2876,282 @@ async function runPrettyScalingStudy(options) {
             trends: phaseTrends.totalMs,
             phaseTrends: phaseTrends,
         });
+    });
+    return report;
+}
+
+/**
+ * Measure one generated scaling point once per backend. Snapshotting each
+ * backend separately attributes committed growth to the call that caused it.
+ * @param {number} pointIndex
+ * @param {{ backendIds?: string[] }} [options]
+ * @return {Promise<*>}
+ */
+async function runPrettyMemoryScalingPoint(pointIndex, options) {
+    var points = createPrettyScalingScenarios();
+    if (!Number.isSafeInteger(pointIndex) || pointIndex < 0 || pointIndex >= points.length) {
+        throw new TypeError("invalid memory scaling point index");
+    }
+    var point = points[pointIndex];
+    var requestedIds =
+        options && Array.isArray(options.backendIds)
+            ? options.backendIds
+            : getPrettyBackends().map(function (backend) {
+                  return backend.id;
+              });
+    /** @type {Record<string, *>} */
+    var backendResults = {};
+    for (var backendIndex = 0; backendIndex < requestedIds.length; backendIndex++) {
+        var id = requestedIds[backendIndex];
+        var before = collectPrettyMemorySnapshot([id]).backends[id];
+        var sample = await runPrettyDifferentialCorpus({
+            backendIds: [id],
+            scenarios: [point],
+            warmup: 0,
+            samples: 1,
+            batchTargetMs: 0,
+            profile: false,
+        });
+        var after = collectPrettyMemorySnapshot([id]).backends[id];
+        var scenario = sample.scenarios[0];
+        var backendResult = scenario && scenario.backends[id];
+        var rawMemory =
+            backendResult && backendResult.memorySamples.length > 0
+                ? backendResult.memorySamples[0]
+                : null;
+        var residentBefore = before.residentBytes;
+        var residentAfter = after.residentBytes;
+        if (rawMemory && typeof rawMemory.frontierBefore === "number") {
+            residentBefore = rawMemory.frontierBefore;
+        }
+        if (rawMemory && typeof rawMemory.frontierAfterDecode === "number") {
+            residentAfter = rawMemory.frontierAfterDecode;
+        }
+        backendResults[id] = {
+            id: id,
+            label: sample.summaries[id].label,
+            status: sample.summaries[id].status,
+            signature: backendResult ? backendResult.signature : null,
+            output: backendResult ? backendResult.output : null,
+            timing: backendResult ? backendResult.summary : null,
+            committedBeforeBytes: before.committedBytes,
+            committedAfterBytes: after.committedBytes,
+            committedDeltaBytes:
+                typeof before.committedBytes === "number" &&
+                typeof after.committedBytes === "number"
+                    ? after.committedBytes - before.committedBytes
+                    : null,
+            residentBeforeBytes: residentBefore,
+            residentAfterBytes: residentAfter,
+            residentDeltaBytes:
+                typeof residentBefore === "number" && typeof residentAfter === "number"
+                    ? residentAfter - residentBefore
+                    : null,
+            sharedMemoryGroup: after.sharedMemoryGroup,
+            rawMemory: rawMemory,
+            errors: backendResult ? backendResult.errors : [],
+        };
+    }
+    var signatures = requestedIds
+        .map(function (id) {
+            return backendResults[id].signature;
+        })
+        .filter(function (signature) {
+            return signature !== null;
+        });
+    return {
+        pointIndex: pointIndex,
+        caseId: point.case.id,
+        label: point.case.label,
+        dimension: point.dimension,
+        dimensionLabel: point.dimensionLabel,
+        size: point.size,
+        sizeLabel: point.sizeLabel,
+        width: point.width,
+        input: point.input,
+        output: requestedIds.length > 0 ? backendResults[requestedIds[0]].output : null,
+        parity:
+            signatures.length === requestedIds.length &&
+            signatures.every(function (signature) {
+                return signature === signatures[0];
+            }),
+        backends: backendResults,
+    };
+}
+
+/**
+ * Record per-call allocation and committed-memory growth while reusing the
+ * current backend instances. This is deliberately separate from batched
+ * runtime scaling so calibration repetitions cannot distort memory results.
+ * @param {{ backendIds?: string[], pointIndexes?: number[], onProgress?: (progress: *) => void }} [options]
+ * @return {Promise<*>}
+ */
+async function runPrettyMemoryScalingStudy(options) {
+    var settings = options || {};
+    var allPoints = createPrettyScalingScenarios();
+    var pointIndexes = Array.isArray(settings.pointIndexes)
+        ? settings.pointIndexes.map(Number)
+        : allPoints.map(function (_point, index) {
+              return index;
+          });
+    pointIndexes.forEach(function (index) {
+        if (!Number.isSafeInteger(index) || index < 0 || index >= allPoints.length) {
+            throw new TypeError("invalid retained-memory point index");
+        }
+    });
+    var backendIds = Array.isArray(settings.backendIds)
+        ? settings.backendIds
+        : getPrettyBackends().map(function (backend) {
+              return backend.id;
+          });
+    var startedAt = new Date().toISOString();
+    var started = performance.now();
+    var initial = collectPrettyMemorySnapshot(backendIds);
+    /** @type {*[]} */
+    var points = [];
+    for (var index = 0; index < pointIndexes.length; index++) {
+        var point = await runPrettyMemoryScalingPoint(pointIndexes[index], {
+            backendIds: backendIds,
+        });
+        backendIds.forEach(function (id) {
+            var baseline = initial.backends[id];
+            var result = point.backends[id];
+            result.retainedCommittedGrowthBytes =
+                baseline &&
+                typeof baseline.committedBytes === "number" &&
+                typeof result.committedAfterBytes === "number"
+                    ? result.committedAfterBytes - baseline.committedBytes
+                    : null;
+            result.retainedResidentGrowthBytes =
+                baseline &&
+                typeof baseline.residentBytes === "number" &&
+                typeof result.residentAfterBytes === "number"
+                    ? result.residentAfterBytes - baseline.residentBytes
+                    : null;
+        });
+        points.push(point);
+        if (typeof settings.onProgress === "function") {
+            settings.onProgress({
+                completed: index + 1,
+                total: pointIndexes.length,
+                dimension: point.dimension,
+                size: point.size,
+            });
+        }
+        await new Promise(function (resolve) {
+            setTimeout(resolve, 0);
+        });
+    }
+    var final = collectPrettyMemorySnapshot(backendIds);
+    /** @type {*[]} */
+    var dimensions = [];
+    points.forEach(function (point) {
+        var dimension = dimensions.find(function (candidate) {
+            return candidate.id === point.dimension;
+        });
+        if (!dimension) {
+            dimension = { id: point.dimension, label: point.dimensionLabel, points: [] };
+            dimensions.push(dimension);
+        }
+        dimension.points.push(point);
+    });
+    var mismatches = points.filter(function (point) {
+        return !point.parity;
+    });
+    return {
+        schemaVersion: 1,
+        kind: "memory-retained",
+        mode: "retained-instance",
+        startedAt: startedAt,
+        generatedAt: new Date().toISOString(),
+        durationMs: performance.now() - started,
+        backendIds: backendIds,
+        pointCount: points.length,
+        parityCount: points.length - mismatches.length,
+        passed: mismatches.length === 0,
+        mismatches: mismatches.map(function (point) {
+            /** @type {Record<string, string[]>} */
+            var backendErrors = {};
+            backendIds.forEach(function (id) {
+                if (point.backends[id].errors.length > 0) {
+                    backendErrors[id] = point.backends[id].errors;
+                }
+            });
+            var mismatch = /** @type {*} */ ({
+                caseId: point.caseId,
+                label: point.label,
+                width: point.width,
+            });
+            if (Object.keys(backendErrors).length > 0) mismatch.backendErrors = backendErrors;
+            return mismatch;
+        }),
+        initialMemory: initial,
+        finalMemory: final,
+        dimensions: dimensions,
+        points: points,
+    };
+}
+
+/**
+ * Benchmark two-dimensional input interactions with the same adaptive phase
+ * batching used by the one-axis scaling study.
+ * @param {{ backendIds?: string[], warmup?: number, samples?: number, batchTargetMs?: number, maxBatchIterations?: number, onProgress?: (progress: *) => void }} [options]
+ * @return {Promise<*>}
+ */
+async function runPrettyInteractionStudy(options) {
+    var scenarios = createPrettyInteractionScenarios();
+    var settings = Object.assign(
+        {
+            warmup: 1,
+            samples: 5,
+            batchTargetMs: 20,
+            maxBatchIterations: 512,
+        },
+        options || {},
+        { scenarios: scenarios, profile: false },
+    );
+    var report = await runPrettyDifferentialCorpus(settings);
+    report.kind = "interactions";
+    report.schemaVersion = 1;
+    report.timingPhases = [
+        { id: "executeMs", label: "Execute" },
+        { id: "marshalMs", label: "Marshal" },
+        { id: "decodeMs", label: "Decode" },
+        { id: "totalMs", label: "Total" },
+    ];
+    /** @type {*[]} */
+    report.interactions = [];
+    report.scenarios.forEach(function (/** @type {*} */ scenario) {
+        var interaction = report.interactions.find(function (/** @type {*} */ candidate) {
+            return candidate.id === scenario.interaction;
+        });
+        if (!interaction) {
+            interaction = {
+                id: scenario.interaction,
+                label: scenario.interactionLabel,
+                xAxis: scenario.xAxis,
+                yAxis: scenario.yAxis,
+                xValues: [],
+                yValues: [],
+                points: [],
+            };
+            report.interactions.push(interaction);
+        }
+        if (
+            !interaction.xValues.some(function (/** @type {*} */ value) {
+                return value.value === scenario.x;
+            })
+        ) {
+            interaction.xValues.push({ value: scenario.x, label: scenario.xLabel });
+        }
+        if (
+            !interaction.yValues.some(function (/** @type {*} */ value) {
+                return value.value === scenario.y;
+            })
+        ) {
+            interaction.yValues.push({ value: scenario.y, label: scenario.yLabel });
+        }
+        interaction.points.push(scenario);
     });
     return report;
 }
@@ -2554,6 +3229,7 @@ async function runPrettyRepeatedCallStudy(options) {
         scenarios: scenarios,
         warmup: 0,
         samples: 1,
+        batchTargetMs: 0,
         profile: true,
         onProgress: settings.onProgress,
     });
