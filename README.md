@@ -837,13 +837,13 @@ decode times, request/response sizes, format-node count, and
 Emscripten heap extent.
 
 The testing controls include **Run corpus**, **Run scaling**, **Run
-memory**, **Run interactions**, and **Run repeats**. The corpus combines
-nine representative `Std.Format` trees with every
-unique rich format embedded in the generated slides, then evaluates
-them at 4, 8, 16, 40, and 80 columns. The synthetic cases cover
-groups, fill behavior, nesting and alignment, embedded newlines,
-Unicode, empty boundaries, long tokens, and nested tags. Each scenario
-uses two warm-up rounds followed by nine interleaved timed samples.
+memory**, **Run interactions**, and **Run repeats**. The corpus
+combines nine representative `Std.Format` trees with every unique rich
+format embedded in the generated slides, then evaluates them at 4, 8,
+16, 40, and 80 columns. The synthetic cases cover groups, fill
+behavior, nesting and alignment, embedded newlines, Unicode, empty
+boundaries, long tokens, and nested tags. Each scenario uses two
+warm-up rounds followed by nine interleaved timed samples.
 
 The corpus report shows exact styled-output parity, median and p95
 totals, median phase timings, structural input metrics, artifact
@@ -859,38 +859,40 @@ opportunities, tag depth, and width budget. Each dimension has five or
 six exponentially spaced points. Its report provides log-time curves,
 exact per-point tables, and empirical log-log growth slopes for all
 five backends. Correctness parity remains mandatory at every scaling
-point. The interactive report defaults to execution time and can switch
-between execute, marshal, decode, and total-time curves. It also records
-normalized output bytes, segment count, line count, maximum tag depth,
-and tag transitions so runtime can be compared with both input size and
-observable output work. Scaling samples use adaptive batches targeting
-20 ms of wall time, capped at 512 calls and a 64 MiB study-wide resident
-allocation budget. Allocation-heavy monotone arenas therefore receive
-smaller, explicitly labeled batches. Phase totals are divided by the actual
-invocation count, avoiding zero-heavy results at browser timer resolution
-while preserving the number of logical samples.
+point. The interactive report defaults to execution time and can
+switch between execute, marshal, decode, and total-time curves. It
+also records normalized output bytes, segment count, line count,
+maximum tag depth, and tag transitions so runtime can be compared with
+both input size and observable output work. Scaling samples use
+adaptive batches targeting 20 ms of wall time, capped at 512 calls and
+a 64 MiB study-wide resident allocation budget. Allocation-heavy
+monotone arenas therefore receive smaller, explicitly labeled batches.
+Phase totals are divided by the actual invocation count, avoiding
+zero-heavy results at browser timer resolution while preserving the
+number of logical samples.
 
 The one-call memory study is deliberately separate from the batched
 runtime study. Its retained-instance graphs expose resident allocation
-per call where the adapter provides it, committed Wasm growth per call,
-and cumulative committed growth. The CLI additionally reruns every
-memory point in a fresh browser context with fresh Wasm instances, so
-isolated peak behavior is not confused with earlier points. Native
-provides resident-frontier details; LLVM and VIR currently provide
-committed memory only.
+per call where the adapter provides it, committed Wasm growth per
+call, and cumulative committed growth. The CLI additionally reruns
+every memory point in a fresh browser context with fresh Wasm
+instances, so isolated peak behavior is not confused with earlier
+points. Native provides resident-frontier details; LLVM and VIR
+currently provide committed memory only.
 
-The interaction study evaluates four 3×3 grids: breaks × width, nodes ×
-depth, tag depth × output transitions, and input bytes × output
+The interaction study evaluates four 3×3 grids: breaks × width, nodes
+× depth, tag depth × output transitions, and input bytes × output
 expansion. Its heatmaps select both backend and timing phase
 interactively and retain exact output-work metrics in the JSON report.
 
-The repeated-call study rotates five deliberately different inputs over
-32 cycles in one retained backend instance. Every call is checked both
-against the other implementations and against previous output from the
-same implementation. Its report separates timing phases and records
-committed Wasm memory before and after the workload, making stale state,
-cumulative corruption, and unexpected memory growth visible. The CLI's
-cold-start measurements still use five fresh browser contexts.
+The repeated-call study rotates five deliberately different inputs
+over 32 cycles in one retained backend instance. Every call is checked
+both against the other implementations and against previous output
+from the same implementation. Its report separates timing phases and
+records committed Wasm memory before and after the workload, making
+stale state, cumulative corruption, and unexpected memory growth
+visible. The CLI's cold-start measurements still use five fresh
+browser contexts.
 
 The separate `window.__versoPrettyVirConfig` object only configures
 the VIR runtime. `window.__versoPrettyNativeConfig` configures the
@@ -995,6 +997,22 @@ The checker uses five fresh browser contexts for cold-start statistics
 and writes the complete report to
 `_test/pretty-reports/pretty-benchmark.json`. Both scripts reject
 filesystem paths outside this workspace.
+
+To turn the latest report into self-contained, forwardable performance
+observation cards for compiler and runtime owners, run:
+
+```
+python3 scripts/generate-pretty-observation-cards.py
+python3 scripts/generate-pretty-observation-cards.py --check
+```
+
+The generated index is `performance-cards/pretty/README.md`. Each card
+includes its report and artifact provenance, measured evidence,
+interpretation, requested owner follow-up, and caveats. The generator
+rejects reports with failed correctness, scaling, retained-memory,
+interaction, or repeated-call studies; the intentionally separate
+isolated-memory study may still contain a backend-specific failure
+card candidate.
 
 By default, `--publish` syncs to
 `x80.org:/srv/www/vir-verso-slides-demo/`, which is served at
