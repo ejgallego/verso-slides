@@ -103,6 +103,7 @@
                     return {
                         segments: result.segments,
                         timings: result.timings,
+                        memory: result.memory,
                     };
                 }
                 var started = performance.now();

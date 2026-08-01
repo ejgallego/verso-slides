@@ -836,7 +836,8 @@ adapter reports Verso-input conversion, wire encoding, execution and
 decode times, request/response sizes, format-node count, and
 Emscripten heap extent.
 
-The testing controls include **Run corpus** and **Run scaling**. The
+The testing controls include **Run corpus**, **Run scaling**, and **Run
+repeats**. The
 corpus combines nine representative `Std.Format` trees with every
 unique rich format embedded in the generated slides, then evaluates
 them at 4, 8, 16, 40, and 80 columns. The synthetic cases cover
@@ -858,7 +859,19 @@ opportunities, tag depth, and width budget. Each dimension has five or
 six exponentially spaced points. Its report provides log-time curves,
 exact per-point tables, and empirical log-log growth slopes for all
 five backends. Correctness parity remains mandatory at every scaling
-point.
+point. The interactive report defaults to execution time and can switch
+between execute, marshal, decode, and total-time curves. It also records
+normalized output bytes, segment count, line count, maximum tag depth,
+and tag transitions so runtime can be compared with both input size and
+observable output work.
+
+The repeated-call study rotates five deliberately different inputs over
+32 cycles in one retained backend instance. Every call is checked both
+against the other implementations and against previous output from the
+same implementation. Its report separates timing phases and records
+committed Wasm memory before and after the workload, making stale state,
+cumulative corruption, and unexpected memory growth visible. The CLI's
+cold-start measurements still use five fresh browser contexts.
 
 The separate `window.__versoPrettyVirConfig` object only configures
 the VIR runtime. `window.__versoPrettyNativeConfig` configures the

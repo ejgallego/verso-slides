@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run correctness, cold-start, footprint, and scaling studies on the five-backend demo."""
+"""Run correctness, startup, scaling, and repeated-call studies on five backends."""
 
 import argparse
 import json
@@ -27,6 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=9)
     parser.add_argument("--scaling-warmup", type=int, default=2)
     parser.add_argument("--scaling-samples", type=int, default=9)
+    parser.add_argument("--repeat-cycles", type=int, default=32)
     parser.add_argument("--cold-runs", type=int, default=5)
     parser.add_argument(
         "--output",
@@ -53,6 +54,7 @@ def wait_for_backends(page: Page, url: str) -> None:
             globalThis.crossOriginIsolated === true &&
             typeof runPrettyDifferentialCorpus === "function" &&
             typeof runPrettyScalingStudy === "function" &&
+            typeof runPrettyRepeatedCallStudy === "function" &&
             typeof collectPrettyRuntimeProfile === "function" &&
             typeof getPrettyBackends === "function" &&
             getPrettyBackends().length === 5 &&
@@ -167,19 +169,51 @@ def print_cold_table(
         )
 
 
-def print_scaling_table(scaling: dict[str, Any]) -> None:
-    print("\ninput scaling: endpoint median total (ms)")
-    heading = "dimension              size"
-    for backend_id in scaling["backendIds"]:
-        heading += f"  {scaling['summaries'][backend_id]['label']:>11}"
-    print(heading)
-    for dimension in scaling["dimensions"]:
-        point = dimension["points"][-1]
-        row = f"{dimension['label']:<22}{point['sizeLabel']:>12}"
+def print_scaling_tables(scaling: dict[str, Any]) -> None:
+    for phase in scaling["timingPhases"]:
+        print(f"\ninput scaling: endpoint median {phase['label'].lower()} (ms)")
+        heading = "dimension              size  out KiB  segments"
         for backend_id in scaling["backendIds"]:
-            median = point["backends"][backend_id]["summary"]["totalMs"]["median"]
-            row += f"  {timing(median):>11}"
-        print(row)
+            heading += f"  {scaling['summaries'][backend_id]['label']:>11}"
+        print(heading)
+        for dimension in scaling["dimensions"]:
+            point = dimension["points"][-1]
+            output = point["output"]
+            row = (
+                f"{dimension['label']:<22}{point['sizeLabel']:>12}"
+                f"  {output['textBytes'] / 1024:>7.1f}  {output['segments']:>8}"
+            )
+            for backend_id in scaling["backendIds"]:
+                median = point["backends"][backend_id]["summary"][phase["id"]]["median"]
+                row += f"  {timing(median):>11}"
+            print(row)
+
+
+def print_repeated_table(repeated: dict[str, Any]) -> None:
+    print(
+        f"\nrepeated calls: {repeated['totalBackendCalls']} calls; "
+        f"{repeated['cycles']} rotated cycles; "
+        f"stability mismatches: {len(repeated['stabilityMismatches'])}"
+    )
+    print(
+        "backend       calls  total median  total p95  marshal  execute  decode  "
+        "memory growth MiB"
+    )
+    for backend_id in repeated["backendIds"]:
+        summary = repeated["summaries"][backend_id]
+        phases = summary["timing"]
+        growth = repeated["memoryGrowth"][backend_id]["deltaBytes"]
+        growth_text = f"{growth / (1024 * 1024):.2f}" if growth is not None else "—"
+        print(
+            f"{summary['label']:<12}"
+            f"{phases['totalMs']['samples']:>7}  "
+            f"{timing(phases['totalMs']['median']):>12}  "
+            f"{timing(phases['totalMs']['p95']):>9}  "
+            f"{timing(phases['marshalMs']['median']):>7}  "
+            f"{timing(phases['executeMs']['median']):>7}  "
+            f"{timing(phases['decodeMs']['median']):>6}  "
+            f"{growth_text:>17}"
+        )
 
 
 def main() -> int:
@@ -204,9 +238,13 @@ def main() -> int:
                     warmup: options.scalingWarmup,
                     samples: options.scalingSamples
                 });
+                const repeated = await runPrettyRepeatedCallStudy({
+                    cycles: options.repeatCycles
+                });
                 return {
                     corpus,
                     scaling,
+                    repeated,
                     postRunProfile: await collectPrettyRuntimeProfile()
                 };
             }""",
@@ -215,6 +253,7 @@ def main() -> int:
                 "samples": args.samples,
                 "scalingWarmup": args.scaling_warmup,
                 "scalingSamples": args.scaling_samples,
+                "repeatCycles": args.repeat_cycles,
             },
         )
         context.close()
@@ -222,8 +261,10 @@ def main() -> int:
 
     corpus = results["corpus"]
     scaling = results["scaling"]
+    repeated = results["repeated"]
     corpus["coldStart"] = summarize_cold_profiles(cold_profiles, corpus["backendIds"])
     corpus["scaling"] = scaling
+    corpus["repeated"] = repeated
     corpus["postRunProfile"] = results["postRunProfile"]
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(corpus, indent=2, ensure_ascii=False) + "\n")
@@ -238,13 +279,14 @@ def main() -> int:
     )
     print_runtime_table(corpus)
     print_cold_table(corpus["coldStart"], corpus["backendIds"], corpus["postRunProfile"])
-    print_scaling_table(scaling)
-    if corpus["mismatches"] or scaling["mismatches"]:
+    print_scaling_tables(scaling)
+    print_repeated_table(repeated)
+    if corpus["mismatches"] or scaling["mismatches"] or repeated["mismatches"]:
         print("mismatches:")
-        for mismatch in corpus["mismatches"] + scaling["mismatches"]:
+        for mismatch in corpus["mismatches"] + scaling["mismatches"] + repeated["mismatches"]:
             print(f"  {mismatch['caseId']} @ {mismatch['width']} columns")
     print(f"full report: {output}")
-    return 0 if corpus["passed"] and scaling["passed"] else 1
+    return 0 if corpus["passed"] and scaling["passed"] and repeated["passed"] else 1
 
 
 if __name__ == "__main__":

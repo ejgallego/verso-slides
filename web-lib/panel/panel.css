@@ -221,15 +221,13 @@
 
 .pretty-corpus-status.status-pass,
 .pretty-corpus-result.status-pass,
-.pretty-corpus-scenarios tr.status-pass > :nth-child(5),
-.pretty-scaling-table tr.status-pass > :nth-child(7) {
+.pretty-corpus-overlay tr.status-pass > .pretty-parity {
     color: #76bd86;
 }
 
 .pretty-corpus-status.status-fail,
 .pretty-corpus-result.status-fail,
-.pretty-corpus-scenarios tr.status-fail > :nth-child(5),
-.pretty-scaling-table tr.status-fail > :nth-child(7) {
+.pretty-corpus-overlay tr.status-fail > .pretty-parity {
     color: #df7478;
 }
 
@@ -353,6 +351,28 @@
     background: rgba(255, 255, 255, 0.025);
     border: 1px solid rgba(180, 180, 180, 0.14);
     border-radius: 0.3rem;
+}
+
+.pretty-scaling-phase-control {
+    position: sticky;
+    top: 3.2rem;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0.4rem 0 0.2rem;
+    padding: 0.35rem 0.5rem;
+    background: #25282d;
+    border: 1px solid rgba(180, 180, 180, 0.25);
+    border-radius: 0.3rem;
+}
+
+.pretty-scaling-phase-control select {
+    min-width: 7rem;
+    color: inherit;
+    background: #30343a;
+    border: 1px solid rgba(180, 180, 180, 0.35);
+    border-radius: 0.2rem;
 }
 
 .pretty-scaling-chart text {

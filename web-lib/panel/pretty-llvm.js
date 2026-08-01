@@ -89,7 +89,11 @@
                 var width = pixelWidthToFormatColumns(pixelWidth, measurer);
                 if (typeof bridge.formatSegmentsTimed === "function") {
                     var result = bridge.formatSegmentsTimed(fmtJson, width, 0, 0);
-                    return { segments: result.segments, timings: result.timings };
+                    return {
+                        segments: result.segments,
+                        timings: result.timings,
+                        memory: result.memory,
+                    };
                 }
                 if (typeof bridge.formatSegments !== "function") {
                     return { segments: null, timings: emptyPrettyTimings() };

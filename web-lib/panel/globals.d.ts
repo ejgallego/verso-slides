@@ -61,7 +61,12 @@ interface VersoPrettyNativeBridge {
         width: number,
         indent: number,
         column: number,
-    ) => { text: string; segments: Segment[]; timings: PrettyTimings };
+    ) => {
+        text: string;
+        segments: Segment[];
+        timings: PrettyTimings;
+        memory?: Record<string, number>;
+    };
     traceToSegments?: (trace: {
         text: string;
         events: Array<{ kind: number; text: string; value: bigint }>;
@@ -92,7 +97,12 @@ interface VersoPrettyLlvmBridge {
         width: number,
         indent: number,
         column: number,
-    ) => { text: string; segments: Segment[]; timings: PrettyTimings };
+    ) => {
+        text: string;
+        segments: Segment[];
+        timings: PrettyTimings;
+        memory?: Record<string, number>;
+    };
     traceToSegments?: (trace: {
         text: string;
         events: Array<{ kind: number; text: string; value: bigint }>;

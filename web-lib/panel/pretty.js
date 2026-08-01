@@ -54,7 +54,7 @@
  *
  * @typedef {{ text: string, events: PrettyTraceEvent[] }} PrettyTrace
  *
- * @typedef {{ segments: Segment[] | null, timings: PrettyTimings }} PrettySegmentResult
+ * @typedef {{ segments: Segment[] | null, timings: PrettyTimings, memory?: Record<string, number> }} PrettySegmentResult
  *
  * @typedef {{
  *   output: "segments" | "text",
@@ -1505,6 +1505,48 @@ function canonicalizePrettySegments(segments) {
 }
 
 /**
+ * Measure the observable output work after normalizing backend-specific chunk
+ * boundaries. Tag transitions count stack exits and entries, including the
+ * final close at the end of the document.
+ * @param {Segment[]} segments
+ * @return {{ textCodePoints: number, textBytes: number, segments: number, lineBreaks: number, lines: number, maxTagDepth: number, tagTransitions: number }}
+ */
+function measurePrettyOutput(segments) {
+    var encoder = new TextEncoder();
+    var text = "";
+    var lineBreaks = 0;
+    var maxTagDepth = 0;
+    var tagTransitions = 0;
+    /** @type {number[]} */
+    var previousTags = [];
+    segments.forEach(function (segment) {
+        text += segment.text;
+        lineBreaks += (segment.text.match(/\n/g) || []).length;
+        maxTagDepth = Math.max(maxTagDepth, segment.tags.length);
+        var common = 0;
+        while (
+            common < previousTags.length &&
+            common < segment.tags.length &&
+            previousTags[common] === segment.tags[common]
+        ) {
+            common += 1;
+        }
+        tagTransitions += previousTags.length - common + segment.tags.length - common;
+        previousTags = segment.tags;
+    });
+    tagTransitions += previousTags.length;
+    return {
+        textCodePoints: Array.from(text).length,
+        textBytes: encoder.encode(text).byteLength,
+        segments: segments.length,
+        lineBreaks: lineBreaks,
+        lines: text.length === 0 ? 0 : lineBreaks + 1,
+        maxTagDepth: maxTagDepth,
+        tagTransitions: tagTransitions,
+    };
+}
+
+/**
  * @param {number[]} values
  * @return {{ samples: number, min: number, median: number, p95: number, max: number, mean: number }}
  */
@@ -2138,14 +2180,16 @@ async function runPrettyDifferentialCorpus(options) {
         var corpusCase = scenarioInput.case;
         var width = scenarioInput.width;
         var measurer = createColumnMeasurer(width);
-        /** @type {Record<string, { segments: Segment[] | null, signature: string | null, stable: boolean, timings: PrettyTimings[], summary: * }>} */
+        /** @type {Record<string, { segments: Segment[] | null, signature: string | null, output: ReturnType<typeof measurePrettyOutput> | null, stable: boolean, timings: PrettyTimings[], memorySamples: Record<string, number>[], summary: * }>} */
         var backendResults = {};
         readyBackends.forEach(function (backend) {
             backendResults[backend.id] = {
                 segments: null,
                 signature: null,
+                output: null,
                 stable: true,
                 timings: [],
+                memorySamples: [],
                 summary: null,
             };
         });
@@ -2172,8 +2216,10 @@ async function runPrettyDifferentialCorpus(options) {
                 }
                 result.segments = segments;
                 result.signature = signature;
+                result.output = measurePrettyOutput(segments);
                 if (round >= 0) {
                     result.timings.push(rendered.timings);
+                    if (rendered.memory) result.memorySamples.push(rendered.memory);
                     var state = backendStates.find(function (candidate) {
                         return candidate.id === backend.id;
                     });
@@ -2202,6 +2248,10 @@ async function runPrettyDifferentialCorpus(options) {
                 return backendResults[id].stable;
             });
         var inputMetrics = scenarioInput.input || measureCompactFormat(corpusCase.format);
+        var firstOutput =
+            readyBackends.length > 0 && backendResults[readyBackends[0].id]
+                ? backendResults[readyBackends[0].id].output
+                : null;
         scenarios.push({
             caseId: corpusCase.id,
             label: corpusCase.label || corpusCase.id,
@@ -2217,6 +2267,13 @@ async function runPrettyDifferentialCorpus(options) {
                       ? corpusCase.size
                       : null,
             sizeLabel: scenarioInput.sizeLabel || null,
+            repeatRound:
+                typeof scenarioInput.repeatRound === "number" ? scenarioInput.repeatRound : null,
+            sequenceIndex:
+                typeof scenarioInput.sequenceIndex === "number"
+                    ? scenarioInput.sequenceIndex
+                    : scenarioIndex,
+            output: firstOutput,
             parity: parity,
             backends: backendResults,
         });
@@ -2308,6 +2365,61 @@ async function runPrettyDifferentialCorpus(options) {
 }
 
 /**
+ * @param {*[]} points
+ * @param {string} backendId
+ * @param {string} phase
+ * @return {{ logLogSlope: number | null, firstMs: number | null, lastMs: number | null, growth: number | null }}
+ */
+function summarizePrettyScalingTrend(points, backendId, phase) {
+    /** @type {{ size: number, time: number }[]} */
+    var samples = points
+        .map(function (/** @type {*} */ point) {
+            var backend = point.backends[backendId];
+            var distribution = backend && backend.summary[phase];
+            return {
+                size: Number(point.size),
+                time: distribution ? Number(distribution.median) : 0,
+            };
+        })
+        .filter(function (sample) {
+            return sample.size > 0 && sample.time > 0;
+        });
+    var slope = null;
+    if (samples.length >= 2) {
+        var xs = samples.map(function (sample) {
+            return Math.log(sample.size);
+        });
+        var ys = samples.map(function (sample) {
+            return Math.log(sample.time);
+        });
+        var meanX =
+            xs.reduce(function (sum, value) {
+                return sum + value;
+            }, 0) / xs.length;
+        var meanY =
+            ys.reduce(function (sum, value) {
+                return sum + value;
+            }, 0) / ys.length;
+        var numerator = 0;
+        var denominator = 0;
+        xs.forEach(function (x, index) {
+            numerator += (x - meanX) * (ys[index] - meanY);
+            denominator += (x - meanX) ** 2;
+        });
+        if (denominator > 0) slope = numerator / denominator;
+    }
+    return {
+        logLogSlope: slope,
+        firstMs: samples.length > 0 ? samples[0].time : null,
+        lastMs: samples.length > 0 ? samples[samples.length - 1].time : null,
+        growth:
+            samples.length > 1 && samples[0].time > 0
+                ? samples[samples.length - 1].time / samples[0].time
+                : null,
+    };
+}
+
+/**
  * Benchmark runtime growth along independent input dimensions.
  * @param {{
  *   backendIds?: string[],
@@ -2325,7 +2437,13 @@ async function runPrettyScalingStudy(options) {
     });
     var report = await runPrettyDifferentialCorpus(settings);
     report.kind = "scaling";
-    report.schemaVersion = 1;
+    report.schemaVersion = 2;
+    report.timingPhases = [
+        { id: "executeMs", label: "Execute" },
+        { id: "marshalMs", label: "Marshal" },
+        { id: "decodeMs", label: "Decode" },
+        { id: "totalMs", label: "Total" },
+    ];
     report.dimensions = [];
     /** @type {string[]} */
     var dimensionIds = [];
@@ -2337,56 +2455,17 @@ async function runPrettyScalingStudy(options) {
         var dimensionPoints = report.scenarios.filter(function (/** @type {*} */ scenario) {
             return scenario.dimension === dimension;
         });
-        /** @type {Record<string, *>} */
-        var trends = {};
-        report.backendIds.forEach(function (/** @type {string} */ id) {
-            /** @type {{ size: number, time: number }[]} */
-            var samples = dimensionPoints
-                .map(function (/** @type {*} */ point) {
-                    var backend = point.backends[id];
-                    return {
-                        size: Number(point.size),
-                        time: backend ? Number(backend.summary.totalMs.median) : 0,
-                    };
-                })
-                .filter(function (sample) {
-                    return sample.size > 0 && sample.time > 0;
-                });
-            var slope = null;
-            if (samples.length >= 2) {
-                /** @type {number[]} */
-                var xs = samples.map(function (sample) {
-                    return Math.log(sample.size);
-                });
-                /** @type {number[]} */
-                var ys = samples.map(function (sample) {
-                    return Math.log(sample.time);
-                });
-                var meanX =
-                    xs.reduce(function (sum, value) {
-                        return sum + value;
-                    }, 0) / xs.length;
-                var meanY =
-                    ys.reduce(function (sum, value) {
-                        return sum + value;
-                    }, 0) / ys.length;
-                var numerator = 0;
-                var denominator = 0;
-                xs.forEach(function (x, index) {
-                    numerator += (x - meanX) * (ys[index] - meanY);
-                    denominator += (x - meanX) ** 2;
-                });
-                if (denominator > 0) slope = numerator / denominator;
-            }
-            trends[id] = {
-                logLogSlope: slope,
-                firstMs: samples.length > 0 ? samples[0].time : null,
-                lastMs: samples.length > 0 ? samples[samples.length - 1].time : null,
-                growth:
-                    samples.length > 1 && samples[0].time > 0
-                        ? samples[samples.length - 1].time / samples[0].time
-                        : null,
-            };
+        /** @type {Record<string, Record<string, *>>} */
+        var phaseTrends = {};
+        report.timingPhases.forEach(function (/** @type {*} */ phase) {
+            phaseTrends[phase.id] = {};
+            report.backendIds.forEach(function (/** @type {string} */ id) {
+                phaseTrends[phase.id][id] = summarizePrettyScalingTrend(
+                    dimensionPoints,
+                    id,
+                    phase.id,
+                );
+            });
         });
         report.dimensions.push({
             id: dimension,
@@ -2395,8 +2474,145 @@ async function runPrettyScalingStudy(options) {
                     ? dimensionPoints[0].dimensionLabel || dimension
                     : dimension,
             points: dimensionPoints,
-            trends: trends,
+            trends: phaseTrends.totalMs,
+            phaseTrends: phaseTrends,
         });
+    });
+    return report;
+}
+
+/**
+ * Repeatedly alternate structurally distinct inputs in one backend instance.
+ * This catches state leakage that same-input timing samples can miss and records
+ * committed-memory growth over the retained-instance workload.
+ * @param {{ backendIds?: string[], cycles?: number, onProgress?: (progress: *) => void }} [options]
+ * @return {Promise<*>}
+ */
+async function runPrettyRepeatedCallStudy(options) {
+    var settings = options || {};
+    var cycles = settings.cycles === undefined ? 32 : Number(settings.cycles);
+    if (!Number.isSafeInteger(cycles) || cycles < 1 || cycles > 1000) {
+        throw new TypeError("invalid repeated-call cycle count");
+    }
+    var scaling = createPrettyScalingScenarios();
+
+    /** @param {string} dimension @param {(point: *) => boolean} predicate */
+    function scalingPoint(dimension, predicate) {
+        var point = scaling.find(function (candidate) {
+            return candidate.dimension === dimension && predicate(candidate);
+        });
+        if (!point) throw new Error("missing repeated-call workload " + dimension);
+        return point;
+    }
+
+    var sourcePoints = [
+        scalingPoint("text", function (point) {
+            return point.size === 8;
+        }),
+        scalingPoint("breaks", function (point) {
+            return point.size === 64;
+        }),
+        scalingPoint("tags", function (point) {
+            return point.size === 64;
+        }),
+        scalingPoint("text", function (point) {
+            return point.size === 2048;
+        }),
+        scalingPoint("nodes", function (point) {
+            return point.size >= 500;
+        }),
+    ];
+    var workloads = sourcePoints.map(function (point, index) {
+        return {
+            case: {
+                id: "repeat-" + point.dimension + "-" + point.size,
+                label: point.case.label,
+                format: point.case.format,
+                origin: "repeated",
+            },
+            width: point.width,
+            input: point.input,
+            workloadIndex: index,
+        };
+    });
+    /** @type {*[]} */
+    var scenarios = [];
+    for (var cycle = 0; cycle < cycles; cycle++) {
+        for (var position = 0; position < workloads.length; position++) {
+            var workload = workloads[(position + cycle) % workloads.length];
+            scenarios.push({
+                case: workload.case,
+                width: workload.width,
+                input: workload.input,
+                repeatRound: cycle + 1,
+                sequenceIndex: scenarios.length,
+            });
+        }
+    }
+    var report = await runPrettyDifferentialCorpus({
+        backendIds: settings.backendIds,
+        scenarios: scenarios,
+        warmup: 0,
+        samples: 1,
+        profile: true,
+        onProgress: settings.onProgress,
+    });
+    report.kind = "repeated";
+    report.schemaVersion = 1;
+    report.cycles = cycles;
+    report.workloadCount = workloads.length;
+    report.callsPerBackend = scenarios.length;
+    report.totalBackendCalls =
+        scenarios.length * (report.backendIds.length - report.unavailable.length);
+    /** @type {*[]} */
+    var stabilityMismatches = [];
+    report.workloads = workloads.map(function (workload) {
+        var observations = report.scenarios.filter(function (/** @type {*} */ scenario) {
+            return scenario.caseId === workload.case.id;
+        });
+        /** @type {Record<string, boolean>} */
+        var stableByBackend = {};
+        report.backendIds.forEach(function (/** @type {string} */ id) {
+            var signatures = new Set(
+                observations.map(function (/** @type {*} */ scenario) {
+                    return scenario.backends[id] ? scenario.backends[id].signature : null;
+                }),
+            );
+            stableByBackend[id] = signatures.size === 1 && !signatures.has(null);
+            if (!stableByBackend[id]) {
+                stabilityMismatches.push({ caseId: workload.case.id, backendId: id });
+            }
+        });
+        return {
+            id: workload.case.id,
+            label: workload.case.label,
+            width: workload.width,
+            input: workload.input,
+            output: observations.length > 0 ? observations[0].output : null,
+            callsPerBackend: observations.length,
+            parity: observations.every(function (/** @type {*} */ scenario) {
+                return scenario.parity;
+            }),
+            stableByBackend: stableByBackend,
+        };
+    });
+    report.stabilityMismatches = stabilityMismatches;
+    report.passed = report.passed && stabilityMismatches.length === 0;
+    /** @type {Record<string, *>} */
+    report.memoryGrowth = {};
+    report.backendIds.forEach(function (/** @type {string} */ id) {
+        var before = report.runtimeProfileBefore && report.runtimeProfileBefore.backends[id];
+        var after = report.runtimeProfile && report.runtimeProfile.backends[id];
+        var beforeBytes = before ? before.memoryBytes : null;
+        var afterBytes = after ? after.memoryBytes : null;
+        report.memoryGrowth[id] = {
+            beforeBytes: beforeBytes,
+            afterBytes: afterBytes,
+            deltaBytes:
+                typeof beforeBytes === "number" && typeof afterBytes === "number"
+                    ? afterBytes - beforeBytes
+                    : null,
+        };
     });
     return report;
 }

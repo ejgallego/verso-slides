@@ -396,6 +396,15 @@ class TestPrettyDifferentialCorpus:
         assert matching["scenarios"][0]["backends"]["js"]["segments"] == [
             {"text": '"hello":4', "tags": [7]}
         ]
+        assert matching["scenarios"][0]["output"] == {
+            "textCodePoints": 9,
+            "textBytes": 9,
+            "segments": 1,
+            "lineBreaks": 0,
+            "lines": 1,
+            "maxTagDepth": 1,
+            "tagTransitions": 2,
+        }
 
         differing = result["differing"]
         assert not differing["passed"]
@@ -429,12 +438,17 @@ class TestPrettyDifferentialCorpus:
                     warmup: 0,
                     samples: 1
                 });
+                const repeated = await runPrettyRepeatedCallStudy({
+                    backendIds: ids,
+                    cycles: 3
+                });
                 const profile = await collectPrettyRuntimeProfile(["js"]);
                 return {
                     realCount: real.length,
                     realOrigins: [...new Set(real.map(item => item.origin))],
                     firstMetrics: measureCompactFormat(real[0].format),
                     scaling,
+                    repeated,
                     profile
                 };
             }"""
@@ -461,6 +475,23 @@ class TestPrettyDifferentialCorpus:
         ]
         assert scaling["dimensions"][0]["points"][-1]["input"]["textCodePoints"] == 8192
         assert scaling["dimensions"][1]["points"][-1]["input"]["formatNodes"] == 2047
+        assert [phase["id"] for phase in scaling["timingPhases"]] == [
+            "executeMs",
+            "marshalMs",
+            "decodeMs",
+            "totalMs",
+        ]
+        assert scaling["dimensions"][0]["points"][-1]["output"]["textBytes"] == 8194
+        assert scaling["dimensions"][0]["phaseTrends"]["executeMs"]["scale-js"]
+
+        repeated = result["repeated"]
+        assert repeated["passed"]
+        assert repeated["cycles"] == 3
+        assert repeated["workloadCount"] == 5
+        assert repeated["callsPerBackend"] == 15
+        assert repeated["totalBackendCalls"] == 75
+        assert repeated["stabilityMismatches"] == []
+        assert all(workload["output"] for workload in repeated["workloads"])
 
     def test_controls_run_corpus_and_open_report(self, code_url: str, page: Page):
         """The testing menu exposes the corpus summary and per-scenario data."""
@@ -514,8 +545,26 @@ class TestPrettyDifferentialCorpus:
         )
         assert scaling_report.locator(".pretty-scaling-chart").count() == 6
         assert scaling_report.locator(".pretty-scaling-table").count() == 6
+        phase = scaling_report.locator(".pretty-scaling-phase")
+        expect(phase).to_have_value("executeMs")
+        expect(scaling_report.locator(".pretty-scaling-table").first).to_contain_text(
+            "Output bytes"
+        )
+        phase.select_option("totalMs")
+        expect(scaling_report.locator("h3").first).to_contain_text("Total")
         scaling_report.locator(".pretty-corpus-close").click()
         expect(scaling_report).not_to_be_visible()
+
+        controls.locator(".pretty-repeated-run").click()
+        repeated_report = page.locator(".pretty-repeated-overlay")
+        expect(repeated_report).to_be_visible()
+        expect(repeated_report.locator(".pretty-corpus-result")).to_contain_text(
+            "800 repeated calls checked without mismatch"
+        )
+        assert repeated_report.locator(".pretty-repeated-summary tr").count() == 6
+        assert repeated_report.locator(".pretty-repeated-workloads tr").count() == 6
+        repeated_report.locator(".pretty-corpus-close").click()
+        expect(repeated_report).not_to_be_visible()
 
 
 class TestPrettyVirComparisonPanel:

@@ -22,6 +22,10 @@
     var prettyScalingReport = null;
     var prettyScalingRunning = false;
     var prettyScalingProgress = "";
+    /** @type {*} */
+    var prettyRepeatedReport = null;
+    var prettyRepeatedRunning = false;
+    var prettyRepeatedProgress = "";
 
     function init() {
         initializePrettyConfig();
@@ -291,17 +295,24 @@
         var runCorpus = document.createElement("button");
         runCorpus.type = "button";
         runCorpus.className = "pretty-corpus-run";
-        runCorpus.disabled = prettyCorpusRunning || prettyScalingRunning;
+        runCorpus.disabled = prettyCorpusRunning || prettyScalingRunning || prettyRepeatedRunning;
         runCorpus.textContent = prettyCorpusRunning ? "Running…" : "Run corpus";
         runCorpus.addEventListener("click", runPrettyCorpusFromControls);
         corpusActions.appendChild(runCorpus);
         var runScaling = document.createElement("button");
         runScaling.type = "button";
         runScaling.className = "pretty-scaling-run";
-        runScaling.disabled = prettyCorpusRunning || prettyScalingRunning;
+        runScaling.disabled = prettyCorpusRunning || prettyScalingRunning || prettyRepeatedRunning;
         runScaling.textContent = prettyScalingRunning ? "Scaling…" : "Run scaling";
         runScaling.addEventListener("click", runPrettyScalingFromControls);
         corpusActions.appendChild(runScaling);
+        var runRepeated = document.createElement("button");
+        runRepeated.type = "button";
+        runRepeated.className = "pretty-repeated-run";
+        runRepeated.disabled = prettyCorpusRunning || prettyScalingRunning || prettyRepeatedRunning;
+        runRepeated.textContent = prettyRepeatedRunning ? "Repeating…" : "Run repeats";
+        runRepeated.addEventListener("click", runPrettyRepeatedFromControls);
+        corpusActions.appendChild(runRepeated);
         if (prettyCorpusReport) {
             var viewCorpus = document.createElement("button");
             viewCorpus.type = "button";
@@ -322,12 +333,31 @@
             });
             corpusActions.appendChild(viewScaling);
         }
+        if (prettyRepeatedReport) {
+            var viewRepeated = document.createElement("button");
+            viewRepeated.type = "button";
+            viewRepeated.className = "pretty-repeated-view";
+            viewRepeated.textContent = "Repeat report";
+            viewRepeated.addEventListener("click", function () {
+                showPrettyRepeatedReport(prettyRepeatedReport);
+            });
+            corpusActions.appendChild(viewRepeated);
+        }
         var corpusStatus = document.createElement("p");
         corpusStatus.className = "pretty-corpus-status";
         if (prettyCorpusRunning) {
             corpusStatus.textContent = prettyCorpusProgress || "Preparing backends…";
         } else if (prettyScalingRunning) {
             corpusStatus.textContent = prettyScalingProgress || "Preparing scaling study…";
+        } else if (prettyRepeatedRunning) {
+            corpusStatus.textContent = prettyRepeatedProgress || "Preparing repeated-call study…";
+        } else if (prettyRepeatedReport) {
+            corpusStatus.textContent =
+                prettyRepeatedReport.totalBackendCalls +
+                (prettyRepeatedReport.passed
+                    ? " repeated calls checked without mismatch"
+                    : " repeated calls checked; failures found");
+            corpusStatus.classList.add(prettyRepeatedReport.passed ? "status-pass" : "status-fail");
         } else if (prettyScalingReport) {
             corpusStatus.textContent =
                 prettyScalingReport.parityCount +
@@ -348,7 +378,9 @@
                     ? collectPrettyFormatsFromDocument().length
                     : 0;
             corpusStatus.textContent =
-                "9 synthetic + " + slideCases + " slide formats; 6 scaling dimensions; 9 samples.";
+                "9 synthetic + " +
+                slideCases +
+                " slide formats; 6 scaling dimensions; 32 × 5 repeat cycle.";
         }
         corpus.append(corpusLegend, corpusActions, corpusStatus);
         menu.appendChild(corpus);
@@ -368,7 +400,9 @@
         if (status)
             status.textContent = prettyScalingRunning
                 ? prettyScalingProgress
-                : prettyCorpusProgress;
+                : prettyRepeatedRunning
+                  ? prettyRepeatedProgress
+                  : prettyCorpusProgress;
     }
 
     async function runPrettyCorpusFromControls() {
@@ -440,6 +474,36 @@
         }
     }
 
+    async function runPrettyRepeatedFromControls() {
+        if (prettyRepeatedRunning || typeof runPrettyRepeatedCallStudy !== "function") return;
+        prettyRepeatedRunning = true;
+        prettyRepeatedProgress = "Preparing repeated-call study…";
+        renderPrettyControls();
+        try {
+            prettyRepeatedReport = await runPrettyRepeatedCallStudy({
+                onProgress: function (progress) {
+                    prettyRepeatedProgress =
+                        progress.completed + "/" + progress.total + " · " + progress.caseId;
+                    updatePrettyCorpusProgress();
+                },
+            });
+            showPrettyRepeatedReport(prettyRepeatedReport);
+        } catch (error) {
+            prettyRepeatedReport = {
+                passed: false,
+                parityCount: 0,
+                scenarioCount: 0,
+                totalBackendCalls: 0,
+                error: error instanceof Error ? error.message : String(error),
+            };
+            console.warn("Pretty repeated-call study failed.", error);
+        } finally {
+            prettyRepeatedRunning = false;
+            prettyRepeatedProgress = "";
+            renderPrettyControls();
+        }
+    }
+
     /** @param {number} value */
     function formatCorpusTiming(value) {
         if (!Number.isFinite(value)) return "—";
@@ -459,11 +523,13 @@
      * @param {HTMLTableRowElement} row
      * @param {string} text
      * @param {string} [element]
+     * @return {HTMLTableCellElement}
      */
     function appendCorpusCell(row, text, element) {
-        var cell = document.createElement(element || "td");
+        var cell = /** @type {HTMLTableCellElement} */ (document.createElement(element || "td"));
         cell.textContent = text;
         row.appendChild(cell);
+        return cell;
     }
 
     /** @param {*} report */
@@ -663,6 +729,8 @@
             appendCorpusCell(scenarioHead, "Source", "th");
             appendCorpusCell(scenarioHead, "Width", "th");
             appendCorpusCell(scenarioHead, "Nodes", "th");
+            appendCorpusCell(scenarioHead, "Output", "th");
+            appendCorpusCell(scenarioHead, "Segments", "th");
             appendCorpusCell(scenarioHead, "Parity", "th");
             report.backendIds.forEach(function (/** @type {string} */ id) {
                 appendCorpusCell(scenarioHead, report.summaries[id].label, "th");
@@ -675,7 +743,14 @@
                 appendCorpusCell(row, scenario.origin);
                 appendCorpusCell(row, String(scenario.width));
                 appendCorpusCell(row, String(scenario.input.formatNodes));
-                appendCorpusCell(row, scenario.parity ? "match" : "mismatch");
+                appendCorpusCell(
+                    row,
+                    scenario.output ? formatCorpusBytes(scenario.output.textBytes) : "—",
+                );
+                appendCorpusCell(row, scenario.output ? String(scenario.output.segments) : "—");
+                appendCorpusCell(row, scenario.parity ? "match" : "mismatch").classList.add(
+                    "pretty-parity",
+                );
                 report.backendIds.forEach(function (/** @type {string} */ id) {
                     var backendResult = scenario.backends[id];
                     appendCorpusCell(
@@ -728,9 +803,11 @@
      * @param {*} dimension
      * @param {string[]} backendIds
      * @param {Record<string, *>} summaries
+     * @param {string} phase
+     * @param {string} phaseLabel
      * @return {SVGSVGElement}
      */
-    function createPrettyScalingChart(dimension, backendIds, summaries) {
+    function createPrettyScalingChart(dimension, backendIds, summaries, phase, phaseLabel) {
         var namespace = "http://www.w3.org/2000/svg";
         var svg = /** @type {SVGSVGElement} */ (document.createElementNS(namespace, "svg"));
         svg.classList.add("pretty-scaling-chart");
@@ -738,7 +815,10 @@
         svg.setAttribute("role", "img");
         svg.setAttribute(
             "aria-label",
-            dimension.label + " versus median formatter runtime; logarithmic time axis",
+            dimension.label +
+                " versus median " +
+                phaseLabel.toLowerCase() +
+                " runtime; logarithmic time axis",
         );
         var left = 70;
         var right = 675;
@@ -750,7 +830,7 @@
         dimension.points.forEach(function (/** @type {*} */ point) {
             backendIds.forEach(function (id) {
                 var result = point.backends[id];
-                var value = result && result.summary.totalMs.median;
+                var value = result && result.summary[phase].median;
                 if (typeof value === "number" && value > 0) positive.push(value);
             });
         });
@@ -811,7 +891,7 @@
                     : left + (index / (dimension.points.length - 1)) * (right - left);
             label(point.sizeLabel || String(point.size), x, bottom + 22, "middle");
         });
-        label("median ms (log)", 8, top + 5, "start");
+        label(phaseLabel.toLowerCase() + " median ms (log)", 8, top + 5, "start");
 
         backendIds.forEach(function (id, backendIndex) {
             /** @type {{ x: number, y: number, value: number, label: string }[]} */
@@ -819,7 +899,7 @@
             dimension.points.forEach(
                 function (/** @type {*} */ point, /** @type {number} */ index) {
                     var result = point.backends[id];
-                    var value = result && result.summary.totalMs.median;
+                    var value = result && result.summary[phase].median;
                     if (typeof value !== "number") return;
                     var x =
                         dimension.points.length === 1
@@ -930,66 +1010,279 @@
             var note = document.createElement("p");
             note.className = "pretty-corpus-note";
             note.textContent =
-                "Charts show warmed median formatter time on a logarithmic time axis. Tables retain exact medians and structural input metrics.";
+                "Charts show warmed phase medians on a logarithmic time axis. Execute is the default because it best isolates the generated formatter; marshal, decode, and end-to-end total remain selectable.";
             overlay.appendChild(note);
-            report.dimensions.forEach(function (/** @type {*} */ dimension) {
-                var heading = document.createElement("h3");
-                heading.textContent = dimension.label;
-                overlay.appendChild(heading);
-                overlay.appendChild(
-                    createPrettyScalingChart(dimension, report.backendIds, report.summaries),
-                );
-                var trends = document.createElement("p");
-                trends.className = "pretty-corpus-note pretty-scaling-trends";
-                trends.textContent = report.backendIds
-                    .map(function (/** @type {string} */ id) {
-                        var trend = dimension.trends[id];
-                        return (
-                            report.summaries[id].label +
-                            ": " +
-                            (trend && typeof trend.growth === "number"
-                                ? trend.growth.toFixed(1) + "× growth"
-                                : "—") +
-                            (trend && typeof trend.logLogSlope === "number"
-                                ? ", slope " + trend.logLogSlope.toFixed(2)
-                                : "")
-                        );
-                    })
-                    .join(" · ");
-                overlay.appendChild(trends);
-                var table = document.createElement("table");
-                table.className = "pretty-scaling-table";
-                var head = document.createElement("tr");
-                ["Size", "Nodes", "Text bytes", "Depth", "Tags", "Lines", "Parity"].forEach(
-                    function (column) {
-                        appendCorpusCell(head, column, "th");
-                    },
-                );
-                report.backendIds.forEach(function (/** @type {string} */ id) {
-                    appendCorpusCell(head, report.summaries[id].label + " ms", "th");
-                });
-                table.appendChild(head);
-                dimension.points.forEach(function (/** @type {*} */ point) {
-                    var row = document.createElement("tr");
-                    row.className = point.parity ? "status-pass" : "status-fail";
-                    appendCorpusCell(row, point.sizeLabel || String(point.size));
-                    appendCorpusCell(row, String(point.input.formatNodes));
-                    appendCorpusCell(row, String(point.input.textBytes));
-                    appendCorpusCell(row, String(point.input.maxDepth));
-                    appendCorpusCell(row, String(point.input.maxTagDepth));
-                    appendCorpusCell(row, String(point.input.lineNodes));
-                    appendCorpusCell(row, point.parity ? "match" : "mismatch");
-                    report.backendIds.forEach(function (/** @type {string} */ id) {
-                        var backend = point.backends[id];
-                        appendCorpusCell(
-                            row,
-                            backend ? formatCorpusTiming(backend.summary.totalMs.median) : "—",
-                        );
-                    });
-                    table.appendChild(row);
-                });
-                overlay.appendChild(table);
+            var phaseControl = document.createElement("label");
+            phaseControl.className = "pretty-scaling-phase-control";
+            phaseControl.appendChild(document.createTextNode("Timing phase "));
+            var phaseSelector = document.createElement("select");
+            phaseSelector.className = "pretty-scaling-phase";
+            var timingPhases = report.timingPhases || [
+                { id: "executeMs", label: "Execute" },
+                { id: "marshalMs", label: "Marshal" },
+                { id: "decodeMs", label: "Decode" },
+                { id: "totalMs", label: "Total" },
+            ];
+            timingPhases.forEach(function (/** @type {*} */ phase) {
+                var option = document.createElement("option");
+                option.value = phase.id;
+                option.textContent = phase.label;
+                option.selected = phase.id === "executeMs";
+                phaseSelector.appendChild(option);
             });
+            phaseControl.appendChild(phaseSelector);
+            overlay.appendChild(phaseControl);
+            var phaseContent = document.createElement("div");
+            phaseContent.className = "pretty-scaling-phase-content";
+            overlay.appendChild(phaseContent);
+
+            function renderPhase() {
+                var phase = phaseSelector.value;
+                var phaseDefinition = timingPhases.find(function (/** @type {*} */ candidate) {
+                    return candidate.id === phase;
+                });
+                var phaseLabel = phaseDefinition ? phaseDefinition.label : phase;
+                phaseContent.replaceChildren();
+                report.dimensions.forEach(function (/** @type {*} */ dimension) {
+                    var heading = document.createElement("h3");
+                    heading.textContent = dimension.label + " — " + phaseLabel;
+                    phaseContent.appendChild(heading);
+                    phaseContent.appendChild(
+                        createPrettyScalingChart(
+                            dimension,
+                            report.backendIds,
+                            report.summaries,
+                            phase,
+                            phaseLabel,
+                        ),
+                    );
+                    var trends = document.createElement("p");
+                    trends.className = "pretty-corpus-note pretty-scaling-trends";
+                    var phaseTrends =
+                        (dimension.phaseTrends && dimension.phaseTrends[phase]) || dimension.trends;
+                    trends.textContent = report.backendIds
+                        .map(function (/** @type {string} */ id) {
+                            var trend = phaseTrends[id];
+                            return (
+                                report.summaries[id].label +
+                                ": " +
+                                (trend && typeof trend.growth === "number"
+                                    ? trend.growth.toFixed(1) + "× growth"
+                                    : "—") +
+                                (trend && typeof trend.logLogSlope === "number"
+                                    ? ", slope " + trend.logLogSlope.toFixed(2)
+                                    : "")
+                            );
+                        })
+                        .join(" · ");
+                    phaseContent.appendChild(trends);
+                    var table = document.createElement("table");
+                    table.className = "pretty-scaling-table";
+                    var head = document.createElement("tr");
+                    [
+                        "Size",
+                        "Nodes",
+                        "Input bytes",
+                        "Depth",
+                        "Tags",
+                        "Breaks",
+                        "Output bytes",
+                        "Segments",
+                        "Output lines",
+                        "Parity",
+                    ].forEach(function (column) {
+                        appendCorpusCell(head, column, "th");
+                    });
+                    report.backendIds.forEach(function (/** @type {string} */ id) {
+                        appendCorpusCell(head, report.summaries[id].label + " ms", "th");
+                    });
+                    table.appendChild(head);
+                    dimension.points.forEach(function (/** @type {*} */ point) {
+                        var row = document.createElement("tr");
+                        row.className = point.parity ? "status-pass" : "status-fail";
+                        appendCorpusCell(row, point.sizeLabel || String(point.size));
+                        appendCorpusCell(row, String(point.input.formatNodes));
+                        appendCorpusCell(row, String(point.input.textBytes));
+                        appendCorpusCell(row, String(point.input.maxDepth));
+                        appendCorpusCell(row, String(point.input.maxTagDepth));
+                        appendCorpusCell(row, String(point.input.lineNodes));
+                        appendCorpusCell(row, point.output ? String(point.output.textBytes) : "—");
+                        appendCorpusCell(row, point.output ? String(point.output.segments) : "—");
+                        appendCorpusCell(row, point.output ? String(point.output.lines) : "—");
+                        appendCorpusCell(row, point.parity ? "match" : "mismatch").classList.add(
+                            "pretty-parity",
+                        );
+                        report.backendIds.forEach(function (/** @type {string} */ id) {
+                            var backend = point.backends[id];
+                            appendCorpusCell(
+                                row,
+                                backend ? formatCorpusTiming(backend.summary[phase].median) : "—",
+                            );
+                        });
+                        table.appendChild(row);
+                    });
+                    phaseContent.appendChild(table);
+                });
+            }
+
+            phaseSelector.addEventListener("change", renderPhase);
+            renderPhase();
+        }
+        document.body.appendChild(overlay);
+        prettyCorpusOverlay = overlay;
+        closeButton.focus();
+    }
+
+    /** @param {*} report */
+    function showPrettyRepeatedReport(report) {
+        if (prettyCorpusOverlay) prettyCorpusOverlay.remove();
+        var overlay = document.createElement("section");
+        overlay.className = "pretty-corpus-overlay pretty-repeated-overlay";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-label", "Pretty-printer repeated-call report");
+        overlay.addEventListener("keydown", function (event) {
+            event.stopPropagation();
+            if (event.key === "Escape") overlay.remove();
+        });
+        var header = document.createElement("header");
+        var title = document.createElement("h2");
+        title.textContent = "Pretty-printer repeated-call report";
+        var actions = document.createElement("div");
+        var exportButton = document.createElement("button");
+        exportButton.type = "button";
+        exportButton.textContent = "Export JSON";
+        exportButton.addEventListener("click", function () {
+            downloadPrettyCorpusReport(report);
+        });
+        var closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "pretty-corpus-close";
+        closeButton.textContent = "Close";
+        closeButton.addEventListener("click", function () {
+            overlay.remove();
+        });
+        actions.append(exportButton, closeButton);
+        header.append(title, actions);
+        overlay.appendChild(header);
+
+        if (report.error) {
+            var error = document.createElement("p");
+            error.className = "pretty-corpus-result status-fail";
+            error.textContent = report.error;
+            overlay.appendChild(error);
+        } else {
+            var result = document.createElement("p");
+            result.className =
+                "pretty-corpus-result " + (report.passed ? "status-pass" : "status-fail");
+            result.textContent =
+                report.totalBackendCalls +
+                (report.passed
+                    ? " repeated calls checked without mismatch · "
+                    : " repeated calls checked; failures found · ") +
+                report.cycles +
+                " rotated cycles × " +
+                report.workloadCount +
+                " inputs · " +
+                (report.benchmarkMs / 1000).toFixed(2) +
+                " s wall time";
+            overlay.appendChild(result);
+            var note = document.createElement("p");
+            note.className = "pretty-corpus-note";
+            note.textContent =
+                "Each cycle rotates plain, line-heavy, deeply tagged, large-text, and empty-output structural inputs. Every call is checked both against the other backends and against earlier calls of the same backend. Memory is committed Wasm capacity before and after the retained-instance workload.";
+            overlay.appendChild(note);
+
+            var summaryHeading = document.createElement("h3");
+            summaryHeading.textContent = "Repeated-call timings and committed memory";
+            overlay.appendChild(summaryHeading);
+            var summaryTable = document.createElement("table");
+            summaryTable.className = "pretty-repeated-summary";
+            var summaryHead = document.createElement("tr");
+            [
+                "Backend",
+                "Calls",
+                "Total median",
+                "Total p95",
+                "Marshal",
+                "Execute",
+                "Decode",
+                "Memory before",
+                "Memory after",
+                "Growth",
+            ].forEach(function (heading) {
+                appendCorpusCell(summaryHead, heading, "th");
+            });
+            summaryTable.appendChild(summaryHead);
+            report.backendIds.forEach(function (/** @type {string} */ id) {
+                var summary = report.summaries[id];
+                var memory = report.memoryGrowth[id];
+                var row = document.createElement("tr");
+                appendCorpusCell(row, summary.label);
+                appendCorpusCell(row, String(summary.timing.totalMs.samples));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.totalMs.median));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.totalMs.p95));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.marshalMs.median));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.executeMs.median));
+                appendCorpusCell(row, formatCorpusTiming(summary.timing.decodeMs.median));
+                appendCorpusCell(row, formatCorpusBytes(memory.beforeBytes));
+                appendCorpusCell(row, formatCorpusBytes(memory.afterBytes));
+                appendCorpusCell(
+                    row,
+                    typeof memory.deltaBytes === "number"
+                        ? (memory.deltaBytes >= 0 ? "+" : "") + formatCorpusBytes(memory.deltaBytes)
+                        : "—",
+                );
+                summaryTable.appendChild(row);
+            });
+            overlay.appendChild(summaryTable);
+
+            var workloadHeading = document.createElement("h3");
+            workloadHeading.textContent = "Alternating workload and output work";
+            overlay.appendChild(workloadHeading);
+            var workloadTable = document.createElement("table");
+            workloadTable.className = "pretty-repeated-workloads";
+            var workloadHead = document.createElement("tr");
+            [
+                "Input",
+                "Width",
+                "Calls/backend",
+                "Nodes",
+                "Input bytes",
+                "Output bytes",
+                "Segments",
+                "Lines",
+                "Tag transitions",
+                "Parity/stability",
+            ].forEach(function (heading) {
+                appendCorpusCell(workloadHead, heading, "th");
+            });
+            workloadTable.appendChild(workloadHead);
+            report.workloads.forEach(function (/** @type {*} */ workload) {
+                var stable = report.backendIds.every(function (/** @type {string} */ id) {
+                    return workload.stableByBackend[id];
+                });
+                var row = document.createElement("tr");
+                row.className = workload.parity && stable ? "status-pass" : "status-fail";
+                appendCorpusCell(row, workload.label);
+                appendCorpusCell(row, String(workload.width));
+                appendCorpusCell(row, String(workload.callsPerBackend));
+                appendCorpusCell(row, String(workload.input.formatNodes));
+                appendCorpusCell(row, String(workload.input.textBytes));
+                appendCorpusCell(row, workload.output ? String(workload.output.textBytes) : "—");
+                appendCorpusCell(row, workload.output ? String(workload.output.segments) : "—");
+                appendCorpusCell(row, workload.output ? String(workload.output.lines) : "—");
+                appendCorpusCell(
+                    row,
+                    workload.output ? String(workload.output.tagTransitions) : "—",
+                );
+                appendCorpusCell(
+                    row,
+                    workload.parity && stable ? "match/stable" : "failed",
+                ).classList.add("pretty-parity");
+                workloadTable.appendChild(row);
+            });
+            overlay.appendChild(workloadTable);
         }
         document.body.appendChild(overlay);
         prettyCorpusOverlay = overlay;
