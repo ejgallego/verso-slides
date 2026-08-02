@@ -564,6 +564,19 @@ class TestPrettyDifferentialCorpus:
         assert repeated["totalBackendCalls"] == 75
         assert repeated["stabilityMismatches"] == []
         assert all(workload["output"] for workload in repeated["workloads"])
+        assert repeated["schemaVersion"] == 2
+        assert [sample["cycle"] for sample in repeated["memoryTrace"]["samples"]] == [
+            0,
+            1,
+            2,
+            3,
+        ]
+        assert repeated["memoryTrace"]["callsPerBackendPerCycle"] == 5
+        assert len(repeated["memoryTrace"]["series"]) == 5
+        assert all(
+            series["points"][-1]["calls"] == 15
+            for series in repeated["memoryTrace"]["series"]
+        )
 
     def test_controls_run_corpus_and_open_report(self, code_url: str, page: Page):
         """The testing menu exposes the corpus summary and per-scenario data."""
@@ -662,6 +675,19 @@ class TestPrettyDifferentialCorpus:
             "800 repeated calls checked without mismatch"
         )
         assert repeated_report.locator(".pretty-repeated-summary tr").count() == 6
+        assert repeated_report.locator(".pretty-repeated-memory-chart").count() == 1
+        expect(repeated_report.locator(".pretty-repeated-memory-metric")).to_have_value(
+            "committedBytes"
+        )
+        expect(repeated_report.locator(".pretty-repeated-memory-summary th").first).to_have_text(
+            "Memory"
+        )
+        repeated_report.locator(".pretty-repeated-memory-metric").select_option(
+            "residentBytes"
+        )
+        expect(repeated_report.locator(".pretty-repeated-memory-metric")).to_have_value(
+            "residentBytes"
+        )
         assert repeated_report.locator(".pretty-repeated-workloads tr").count() == 6
         repeated_report.locator(".pretty-corpus-close").click()
         expect(repeated_report).not_to_be_visible()

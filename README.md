@@ -891,8 +891,14 @@ both against the other implementations and against previous output
 from the same implementation. Its report separates timing phases and
 records committed Wasm memory before and after the workload, making
 stale state, cumulative corruption, and unexpected memory growth
-visible. The CLI's cold-start measurements still use five fresh
-browser contexts.
+visible. It also records memory at cycle zero and after every
+completed cycle, deduplicates shared memories such as the two VIR
+entry points, and classifies only the final trace window as plateauing
+or still growing. The interactive repeat report plots committed
+capacity or an available resident frontier. The CLI additionally runs
+VIR JSON and VIR `Std.Format` in separate fresh browser contexts so
+their growth is not conflated. Its cold-start measurements still use
+five fresh browser contexts.
 
 The separate `window.__versoPrettyVirConfig` object only configures
 the VIR runtime. `window.__versoPrettyNativeConfig` configures the
@@ -1013,6 +1019,35 @@ rejects reports with failed correctness, scaling, retained-memory,
 interaction, or repeated-call studies; the intentionally separate
 isolated-memory study may still contain a backend-specific failure
 card candidate.
+
+For run-to-run variability, launch a campaign. Every non-seed report
+is collected by a separate checker subprocess and therefore a fresh
+Chromium process. The campaign rejects mixed artifact provenance or
+benchmark protocols, then writes `campaign.json` and a Markdown
+summary containing medians, ranges, coefficients of variation, and
+optional baseline deltas:
+
+```
+python3 scripts/run-pretty-benchmark-campaign.py \
+  --runs 3 \
+  --baseline _test/pretty-reports/pretty-benchmark.json
+```
+
+The complete workspace-only refresh workflow expects staged inputs at
+`_artifacts/lean-vir`, `_artifacts/pretty-native-current`, and
+`_artifacts/pretty-llvm-current`. It preserves the previous report as
+a baseline, rebuilds the demo, starts a private local server, collects
+the full report plus isolated VIR traces, runs the fresh-process
+campaign, regenerates the cards, and writes a refresh manifest under
+`_test/pretty-refresh/`:
+
+```
+python3 scripts/refresh-pretty-benchmark.py --campaign-runs 3
+```
+
+The refresh command refuses paths outside this workspace and never
+publishes. Use `--skip-build` to exercise the reporting workflow
+against the already-built local demo.
 
 By default, `--publish` syncs to
 `x80.org:/srv/www/vir-verso-slides-demo/`, which is served at

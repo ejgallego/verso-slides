@@ -34,6 +34,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--interaction-samples", type=int, default=5)
     parser.add_argument("--repeat-cycles", type=int, default=32)
     parser.add_argument(
+        "--skip-isolated-repeats",
+        action="store_true",
+        help="skip fresh-context VIR JSON and VIR Format repeated-call traces",
+    )
+    parser.add_argument(
+        "--allow-isolated-failures",
+        action="store_true",
+        help="return success when only isolated memory/repeat studies fail",
+    )
+    parser.add_argument(
         "--skip-isolated-memory",
         action="store_true",
         help="skip fresh-context memory points",
@@ -201,6 +211,46 @@ def collect_isolated_memory(
     }
 
 
+def collect_isolated_repeats(
+    browser: Browser,
+    url: str,
+    backend_ids: list[str],
+    cycles: int,
+) -> dict[str, Any]:
+    """Run each VIR entry point in its own fresh runtime instance."""
+    reports: dict[str, Any] = {}
+    selected_ids = [
+        backend_id
+        for backend_id in ("vir", "vir-format")
+        if backend_id in backend_ids
+    ]
+    for backend_id in selected_ids:
+        context = browser.new_context()
+        page = context.new_page()
+        wait_for_backends(page, url)
+        reports[backend_id] = page.evaluate(
+            """async ({ backendId, cycles }) =>
+                runPrettyRepeatedCallStudy({ backendIds: [backendId], cycles })""",
+            {"backendId": backend_id, "cycles": cycles},
+        )
+        context.close()
+        print(
+            f"isolated repeats: {backend_id} · {cycles} cycles · "
+            f"{'pass' if reports[backend_id]['passed'] else 'fail'}",
+            flush=True,
+        )
+    return {
+        "schemaVersion": 1,
+        "kind": "repeated-isolated-vir-modes",
+        "mode": "fresh-browser-context-per-mode",
+        "cycles": cycles,
+        "backendIds": selected_ids,
+        "passed": len(reports) == len(selected_ids)
+        and all(report["passed"] for report in reports.values()),
+        "reports": reports,
+    }
+
+
 def timing(value: float) -> str:
     return f"{value:.3f}"
 
@@ -338,6 +388,31 @@ def print_repeated_table(repeated: dict[str, Any]) -> None:
             f"{timing(phases['decodeMs']['median']):>6}  "
             f"{growth_text:>17}"
         )
+    isolated = repeated.get("isolated")
+    if isolated:
+        print("\nisolated VIR repeated-call committed-memory tails")
+        print("backend       calls     growth  tail cycles  tail growth  assessment")
+        for backend_id in isolated["backendIds"]:
+            report = isolated["reports"][backend_id]
+            series = next(
+                item for item in report["memoryTrace"]["series"] if item["id"] == "vir-runtime"
+            )
+            summary = series["committed"]
+            assessment = (
+                "plateau"
+                if summary["plateau"] is True
+                else "growing"
+                if summary["plateau"] is False
+                else "unknown"
+            )
+            print(
+                f"{report['summaries'][backend_id]['label']:<12}"
+                f"{report['callsPerBackend']:>7}  "
+                f"{memory_bytes(summary['growthBytes']):>9}  "
+                f"{summary['tailCycles']:>11}  "
+                f"{memory_bytes(summary['tailGrowthBytes']):>11}  "
+                f"{assessment}"
+            )
 
 
 def main() -> int:
@@ -415,6 +490,16 @@ def main() -> int:
                 results["memory"]["pointCount"],
             )
         )
+        isolated_repeats = (
+            None
+            if args.skip_isolated_repeats
+            else collect_isolated_repeats(
+                browser,
+                args.url,
+                results["corpus"]["backendIds"],
+                args.repeat_cycles,
+            )
+        )
         browser.close()
 
     corpus = results["corpus"]
@@ -422,6 +507,7 @@ def main() -> int:
     memory = results["memory"]
     interactions = results["interactions"]
     repeated = results["repeated"]
+    repeated["isolated"] = isolated_repeats
     corpus["coldStart"] = summarize_cold_profiles(cold_profiles, corpus["backendIds"])
     corpus["scaling"] = scaling
     memory["isolated"] = isolated_memory
@@ -454,6 +540,15 @@ def main() -> int:
         + memory["mismatches"]
         + interactions["mismatches"]
         + repeated["mismatches"]
+        + (
+            []
+            if isolated_repeats is None
+            else [
+                mismatch
+                for report in isolated_repeats["reports"].values()
+                for mismatch in report["mismatches"]
+            ]
+        )
         + ([] if isolated_memory is None else isolated_memory["mismatches"])
     )
     if all_mismatches:
@@ -464,14 +559,17 @@ def main() -> int:
                 for error in errors:
                     print(f"    {backend_id}: {error}")
     print(f"full report: {output}")
-    passed = (
+    core_passed = (
         corpus["passed"]
         and scaling["passed"]
         and memory["passed"]
         and interactions["passed"]
         and repeated["passed"]
-        and (isolated_memory is None or isolated_memory["passed"])
     )
+    isolated_passed = (isolated_repeats is None or isolated_repeats["passed"]) and (
+        isolated_memory is None or isolated_memory["passed"]
+    )
+    passed = core_passed and (args.allow_isolated_failures or isolated_passed)
     return 0 if passed else 1
 
 

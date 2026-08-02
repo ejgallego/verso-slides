@@ -1288,6 +1288,165 @@
         closeButton.focus();
     }
 
+    /**
+     * @param {*} trace
+     * @param {"committedBytes" | "residentBytes"} metric
+     * @param {string} metricLabel
+     * @return {SVGSVGElement}
+     */
+    function createPrettyRepeatedMemoryChart(trace, metric, metricLabel) {
+        var namespace = "http://www.w3.org/2000/svg";
+        var svg = /** @type {SVGSVGElement} */ (document.createElementNS(namespace, "svg"));
+        svg.classList.add("pretty-scaling-chart", "pretty-repeated-memory-chart");
+        svg.setAttribute("viewBox", "0 0 900 270");
+        svg.setAttribute("role", "img");
+        svg.setAttribute(
+            "aria-label",
+            "Repeated-call " + metricLabel.toLowerCase() + " by completed cycle",
+        );
+        var left = 80;
+        var right = 675;
+        var top = 25;
+        var bottom = 220;
+        var colors = ["#f0a35e", "#77c879", "#d879c6", "#74a9ff", "#d7c45c"];
+        var series = trace.series
+            .map(function (/** @type {*} */ item) {
+                return {
+                    item: item,
+                    points: item.points.filter(function (/** @type {*} */ point) {
+                        return typeof point[metric] === "number" && Number.isFinite(point[metric]);
+                    }),
+                };
+            })
+            .filter(function (/** @type {*} */ item) {
+                return item.points.length > 0;
+            });
+        var values = series.flatMap(function (/** @type {*} */ item) {
+            return item.points.map(function (/** @type {*} */ point) {
+                return point[metric];
+            });
+        });
+        var maximumCycle = Math.max(
+            1,
+            ...series.flatMap(function (/** @type {*} */ item) {
+                return item.points.map(function (/** @type {*} */ point) {
+                    return point.cycle;
+                });
+            }),
+        );
+        var minimum = values.length > 0 ? Math.min.apply(null, values) : 0;
+        var maximum = values.length > 0 ? Math.max.apply(null, values) : 1;
+        var range = Math.max(1024 * 1024, maximum - minimum);
+        var low = Math.max(0, minimum - range * 0.1);
+        var high = Math.max(low + 1, maximum + range * 0.1);
+
+        /** @param {string} name @param {Record<string, string>} attributes */
+        function element(name, attributes) {
+            var node = document.createElementNS(namespace, name);
+            Object.keys(attributes).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            svg.appendChild(node);
+            return node;
+        }
+
+        /** @param {string} value @param {number} x @param {number} y @param {string} anchor */
+        function label(value, x, y, anchor) {
+            var node = /** @type {SVGTextElement} */ (
+                element("text", { x: String(x), y: String(y), "text-anchor": anchor })
+            );
+            node.textContent = value;
+            return node;
+        }
+
+        element("line", {
+            x1: String(left),
+            y1: String(bottom),
+            x2: String(right),
+            y2: String(bottom),
+            class: "axis",
+        });
+        element("line", {
+            x1: String(left),
+            y1: String(top),
+            x2: String(left),
+            y2: String(bottom),
+            class: "axis",
+        });
+        for (var tick = 0; tick <= 4; tick++) {
+            var value = low + ((high - low) * tick) / 4;
+            var y = bottom - (tick / 4) * (bottom - top);
+            element("line", {
+                x1: String(left),
+                y1: String(y),
+                x2: String(right),
+                y2: String(y),
+                class: "grid",
+            });
+            label(formatCorpusBytes(value), left - 8, y + 4, "end");
+        }
+        for (var cycleTick = 0; cycleTick <= 4; cycleTick++) {
+            var cycle = Math.round((maximumCycle * cycleTick) / 4);
+            var x = left + (cycle / maximumCycle) * (right - left);
+            label(String(cycle), x, bottom + 22, "middle");
+        }
+        label("Completed cycle", (left + right) / 2, 262, "middle");
+        label(metricLabel, 8, top + 5, "start");
+
+        series.forEach(function (/** @type {*} */ selected, /** @type {number} */ index) {
+            var color = colors[index % colors.length];
+            var plotted = selected.points.map(function (/** @type {*} */ point) {
+                return {
+                    point: point,
+                    x: left + (point.cycle / maximumCycle) * (right - left),
+                    y: bottom - ((point[metric] - low) / (high - low)) * (bottom - top),
+                };
+            });
+            element("polyline", {
+                points: plotted
+                    .map(function (/** @type {*} */ point) {
+                        return point.x + "," + point.y;
+                    })
+                    .join(" "),
+                fill: "none",
+                stroke: color,
+                "stroke-width": "2",
+            });
+            plotted.forEach(function (/** @type {*} */ plottedPoint) {
+                var circle = element("circle", {
+                    cx: String(plottedPoint.x),
+                    cy: String(plottedPoint.y),
+                    r: "3.5",
+                    fill: color,
+                });
+                var title = document.createElementNS(namespace, "title");
+                title.textContent =
+                    selected.item.label +
+                    " · cycle " +
+                    plottedPoint.point.cycle +
+                    " · " +
+                    plottedPoint.point.calls +
+                    " calls · " +
+                    formatCorpusBytes(plottedPoint.point[metric]);
+                circle.appendChild(title);
+            });
+            var legendY = top + index * 25;
+            element("line", {
+                x1: "710",
+                y1: String(legendY),
+                x2: "735",
+                y2: String(legendY),
+                stroke: color,
+                "stroke-width": "3",
+            });
+            label(selected.item.label, 745, legendY + 4, "start");
+        });
+        if (series.length === 0) {
+            label("No " + metricLabel.toLowerCase() + " telemetry", 380, 125, "middle");
+        }
+        return svg;
+    }
+
     /** @param {*} report */
     function showPrettyRepeatedReport(report) {
         if (prettyCorpusOverlay) prettyCorpusOverlay.remove();
@@ -1391,6 +1550,99 @@
                 summaryTable.appendChild(row);
             });
             overlay.appendChild(summaryTable);
+
+            if (report.memoryTrace && Array.isArray(report.memoryTrace.series)) {
+                var memoryHeading = document.createElement("h3");
+                memoryHeading.textContent = "Memory by repeated-call cycle";
+                overlay.appendChild(memoryHeading);
+                var memoryNote = document.createElement("p");
+                memoryNote.className = "pretty-corpus-note";
+                memoryNote.textContent =
+                    "A plateau means committed capacity did not grow in the final trace window; it does not prove that live memory is stable. VIR JSON and VIR Format share one in-page runtime here. The CLI also runs each VIR mode in its own fresh browser context.";
+                overlay.appendChild(memoryNote);
+                var metricControl = document.createElement("label");
+                metricControl.className = "pretty-scaling-phase-control";
+                metricControl.appendChild(document.createTextNode("Memory metric "));
+                var metricSelector = document.createElement("select");
+                metricSelector.className = "pretty-repeated-memory-metric";
+                [
+                    { id: "committedBytes", label: "Committed Wasm capacity" },
+                    { id: "residentBytes", label: "Resident allocation frontier" },
+                ].forEach(function (metric) {
+                    var option = document.createElement("option");
+                    option.value = metric.id;
+                    option.textContent = metric.label;
+                    metricSelector.appendChild(option);
+                });
+                metricControl.appendChild(metricSelector);
+                overlay.appendChild(metricControl);
+                var memoryContent = document.createElement("div");
+                memoryContent.className = "pretty-repeated-memory-content";
+                overlay.appendChild(memoryContent);
+
+                function renderRepeatedMemory() {
+                    var metric = /** @type {"committedBytes" | "residentBytes"} */ (
+                        metricSelector.value
+                    );
+                    var summaryKey = metric === "residentBytes" ? "resident" : "committed";
+                    var metricLabel =
+                        metricSelector.options[metricSelector.selectedIndex].textContent || metric;
+                    memoryContent.replaceChildren(
+                        createPrettyRepeatedMemoryChart(report.memoryTrace, metric, metricLabel),
+                    );
+                    var table = document.createElement("table");
+                    table.className = "pretty-repeated-memory-summary";
+                    var head = document.createElement("tr");
+                    [
+                        "Memory",
+                        "Backends",
+                        "Initial",
+                        "Final",
+                        "Growth",
+                        "Tail growth",
+                        "Last growth",
+                        "Assessment",
+                    ].forEach(function (heading) {
+                        appendCorpusCell(head, heading, "th");
+                    });
+                    table.appendChild(head);
+                    report.memoryTrace.series.forEach(function (/** @type {*} */ series) {
+                        var summary = series[summaryKey];
+                        if (!summary || summary.samples === 0) return;
+                        var row = document.createElement("tr");
+                        appendCorpusCell(row, series.label);
+                        appendCorpusCell(row, series.backendIds.join(", "));
+                        appendCorpusCell(row, formatCorpusBytes(summary.initialBytes));
+                        appendCorpusCell(row, formatCorpusBytes(summary.finalBytes));
+                        appendCorpusCell(row, formatCorpusBytes(summary.growthBytes));
+                        appendCorpusCell(
+                            row,
+                            formatCorpusBytes(summary.tailGrowthBytes) +
+                                " / " +
+                                summary.tailCycles +
+                                " cycles",
+                        );
+                        appendCorpusCell(
+                            row,
+                            summary.lastGrowthCycle === null
+                                ? "none"
+                                : "cycle " + summary.lastGrowthCycle,
+                        );
+                        appendCorpusCell(
+                            row,
+                            summary.plateau === null
+                                ? "insufficient data"
+                                : summary.plateau
+                                  ? "tail plateau observed"
+                                  : "still growing in tail",
+                        );
+                        table.appendChild(row);
+                    });
+                    memoryContent.appendChild(table);
+                }
+                metricSelector.addEventListener("change", renderRepeatedMemory);
+                renderRepeatedMemory();
+            }
 
             var workloadHeading = document.createElement("h3");
             workloadHeading.textContent = "Alternating workload and output work";

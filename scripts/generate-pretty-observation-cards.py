@@ -409,19 +409,51 @@ def memory_card(
         for backend in ("vir", "vir-format")
     )
     retained_calls = memory["pointCount"] * 2
-    lines = card_header(
-        "VIR-003",
-        "lean-vir runtime, allocator, and GC owners",
-        "shared Wasm memory reaches a high-water mark that cannot yet be classified",
-        (
+    isolated = repeated.get("isolated")
+    isolated_rows: list[dict[str, Any]] = []
+    if isolated:
+        for backend_id in isolated["backendIds"]:
+            isolated_report = isolated["reports"][backend_id]
+            series = next(
+                item
+                for item in isolated_report["memoryTrace"]["series"]
+                if item["id"] == "vir-runtime"
+            )
+            isolated_rows.append(
+                {
+                    "label": isolated_report["summaries"][backend_id]["label"],
+                    "calls": isolated_report["callsPerBackend"],
+                    "summary": series["committed"],
+                }
+            )
+    if isolated_rows:
+        isolated_growth = "; ".join(
+            f"{row['label']} grew by {mebibytes(row['summary']['growthBytes'])} "
+            f"over {row['calls']} calls"
+            for row in isolated_rows
+        )
+        forward_summary = (
+            f"The shared VIR runtime starts with {mebibytes(cold)} committed and ends "
+            f"the full suite at {mebibytes(post)}. In separate fresh runtimes, "
+            f"{isolated_growth}. Current telemetry exposes committed pages only, so "
+            "this is a high-water/retention observation—not evidence of a live-memory "
+            "leak."
+        )
+    else:
+        forward_summary = (
             f"The shared VIR runtime starts with {mebibytes(cold)} committed and ends "
             f"the full suite at {mebibytes(post)}. It grew by "
             f"{mebibytes(final - initial)} during the retained one-call scaling study "
             f"and by {mebibytes(repeat['deltaBytes'])} during {vir_repeat_calls} "
-            "repeated VIR calls. Current "
-            "telemetry exposes committed pages only, so this is a high-water/retention "
-            "observation—not evidence of a live-memory leak."
-        ),
+            "repeated VIR calls. Current telemetry exposes committed pages only, so "
+            "this is a high-water/retention observation—not evidence of a live-memory "
+            "leak."
+        )
+    lines = card_header(
+        "VIR-003",
+        "lean-vir runtime, allocator, and GC owners",
+        "shared Wasm memory reaches a high-water mark that cannot yet be classified",
+        forward_summary,
     )
     lines += [
         "## Evidence",
@@ -437,6 +469,19 @@ def memory_card(
             f"{mebibytes(repeat['beforeBytes'])} | {mebibytes(repeat['afterBytes'])} | "
             f"{mebibytes(repeat['deltaBytes'])} |"
         ),
+    ]
+    for row in isolated_rows:
+        summary = row["summary"]
+        assessment = "tail plateau" if summary["plateau"] else "growing in tail"
+        lines.append(
+            f"| Fresh runtime · {row['label']} | {row['calls']} | "
+            f"{mebibytes(summary['initialBytes'])} | "
+            f"{mebibytes(summary['finalBytes'])} | "
+            f"{mebibytes(summary['growthBytes'])} ({assessment}; "
+            f"{mebibytes(summary['tailGrowthBytes'])} over final "
+            f"{summary['tailCycles']} cycles) |"
+        )
+    lines += [
         "",
         f"- Fresh-context committed memory after initialization: {mebibytes(cold)}.",
         f"- Committed memory after the complete benchmark sequence: {mebibytes(post)}.",
@@ -459,6 +504,15 @@ def memory_card(
         "rotating workload after earlier warm-up. Without allocator frontier and GC "
         "telemetry, the harness cannot distinguish expected heap expansion from "
         "retained live state or a leak.",
+    ]
+    if isolated_rows:
+        lines += [
+            "",
+            "The fresh-runtime JSON and direct-Format traces remove cross-mode "
+            "contamination. Their per-cycle tail classifications report only whether "
+            "committed capacity stopped growing in the observed final window.",
+        ]
+    lines += [
         "",
         "## Requested follow-up",
         "",
@@ -466,16 +520,29 @@ def memory_card(
         "available, free-list capacity, and collection count/time around each call.",
         "- Provide a documented runtime reset/dispose operation, or state explicitly "
         "which caches and arenas are intentionally process-lifetime.",
-        "- Rerun the repeated workload for more cycles and record memory after each "
-        "cycle to determine whether growth plateaus.",
-        "- Attribute memory to JSON and direct calls with separate fresh-runtime runs; "
-        "the current shared instance cannot do so.",
+    ]
+    if isolated_rows:
+        lines += [
+            "- Extend any still-growing isolated trace until it plateaus or reaches a "
+            "documented bound, preserving the per-cycle series.",
+            "- Correlate growth events with JSON and direct calls using the separate "
+            "fresh-runtime reports.",
+        ]
+    else:
+        lines += [
+            "- Rerun the repeated workload for more cycles and record memory after each "
+            "cycle to determine whether growth plateaus.",
+            "- Attribute memory to JSON and direct calls with separate fresh-runtime "
+            "runs; the current shared instance cannot do so.",
+        ]
+    lines += [
         "",
         "## Caveats",
         "",
         "- No browser API currently exposes the VIR runtime's resident/live heap.",
         "- The values are Wasm linear-memory capacity, not host-process RSS.",
-        "- The two VIR modes intentionally share the same runtime instance.",
+        "- The main five-backend study shares one VIR runtime instance; the "
+        "isolated mode traces each start from a fresh runtime.",
         "",
     ]
     lines += measurement_context(report, report_path, report_digest)

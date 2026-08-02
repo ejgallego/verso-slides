@@ -2351,6 +2351,8 @@ function collectPrettyMemorySnapshot(backendIds) {
  *   maxBatchIterations?: number,
  *   batchMemoryBudgetBytes?: number,
  *   profile?: boolean,
+ *   onBenchmarkStart?: (state: { backendIds: string[], memory: ReturnType<typeof collectPrettyMemorySnapshot> }) => void,
+ *   onScenario?: (scenario: *) => void,
  *   onProgress?: (progress: { completed: number, total: number, caseId: string, width: number, [key: string]: * }) => void
  * }} [options]
  * @return {Promise<*>}
@@ -2444,6 +2446,12 @@ async function runPrettyDifferentialCorpus(options) {
     var backendsReady = performance.now();
     var runtimeProfileBefore =
         settings.profile === false ? null : await collectPrettyRuntimeProfile(requestedIds);
+    if (typeof settings.onBenchmarkStart === "function") {
+        settings.onBenchmarkStart({
+            backendIds: requestedIds.slice(),
+            memory: collectPrettyMemorySnapshot(requestedIds),
+        });
+    }
     var benchmarkStarted = performance.now();
 
     var backendStates = backends.map(function (backend) {
@@ -2626,7 +2634,7 @@ async function runPrettyDifferentialCorpus(options) {
             readyBackends.length > 0 && backendResults[readyBackends[0].id]
                 ? backendResults[readyBackends[0].id].output
                 : null;
-        scenarios.push({
+        var scenarioReport = {
             caseId: corpusCase.id,
             label: corpusCase.label || corpusCase.id,
             origin: corpusCase.origin || "synthetic",
@@ -2658,7 +2666,11 @@ async function runPrettyDifferentialCorpus(options) {
             output: firstOutput,
             parity: parity,
             backends: backendResults,
-        });
+        };
+        scenarios.push(scenarioReport);
+        if (typeof settings.onScenario === "function") {
+            settings.onScenario(scenarioReport);
+        }
         completed += 1;
         if (typeof settings.onProgress === "function") {
             settings.onProgress({
@@ -3157,6 +3169,130 @@ async function runPrettyInteractionStudy(options) {
 }
 
 /**
+ * Summarize an exact per-cycle memory series. Committed Wasm pages are a
+ * high-water metric, so an unchanged tail is reported as an observed plateau,
+ * not as proof that live memory is stable.
+ * @param {*[]} points
+ * @param {"committedBytes" | "residentBytes"} metric
+ * @return {*}
+ */
+function summarizePrettyRepeatedMemory(points, metric) {
+    var observed = points.filter(function (point) {
+        return typeof point[metric] === "number" && Number.isFinite(point[metric]);
+    });
+    if (observed.length < 2) {
+        return {
+            metric: metric,
+            samples: observed.length,
+            initialBytes: observed.length === 1 ? observed[0][metric] : null,
+            finalBytes: observed.length === 1 ? observed[0][metric] : null,
+            growthBytes: null,
+            growthEvents: 0,
+            lastGrowthCycle: null,
+            tailCycles: 0,
+            tailGrowthBytes: null,
+            plateau: null,
+        };
+    }
+    var initial = observed[0];
+    var final = observed[observed.length - 1];
+    var growthEvents = 0;
+    var lastGrowthCycle = null;
+    for (var index = 1; index < observed.length; index++) {
+        if (observed[index][metric] > observed[index - 1][metric]) {
+            growthEvents += 1;
+            lastGrowthCycle = observed[index].cycle;
+        }
+    }
+    var completedCycles = Math.max(1, final.cycle - initial.cycle);
+    var tailCycles = Math.min(8, Math.max(1, Math.floor(completedCycles / 4)));
+    var tailStartCycle = final.cycle - tailCycles;
+    var tailStart = observed[0];
+    observed.forEach(function (point) {
+        if (point.cycle <= tailStartCycle) tailStart = point;
+    });
+    var tailGrowth = final[metric] - tailStart[metric];
+    return {
+        metric: metric,
+        samples: observed.length,
+        initialBytes: initial[metric],
+        finalBytes: final[metric],
+        growthBytes: final[metric] - initial[metric],
+        growthEvents: growthEvents,
+        lastGrowthCycle: lastGrowthCycle,
+        tailCycles: final.cycle - tailStart.cycle,
+        tailGrowthBytes: tailGrowth,
+        plateau: tailGrowth === 0,
+    };
+}
+
+/**
+ * Deduplicate shared memories (the two VIR entry points use one runtime) and
+ * convert raw snapshots into graph-ready cycle series.
+ * @param {*[]} samples
+ * @param {string[]} backendIds
+ * @param {number} callsPerCycle
+ * @return {*}
+ */
+function buildPrettyRepeatedMemoryTrace(samples, backendIds, callsPerCycle) {
+    /** @type {Map<string, { id: string, label: string, backendIds: string[] }>} */
+    var groups = new Map();
+    samples.forEach(function (sample) {
+        backendIds.forEach(function (id) {
+            var memory = sample.memory.backends[id];
+            if (!memory) return;
+            var groupId = memory.sharedMemoryGroup || id;
+            var group = groups.get(groupId);
+            if (!group) {
+                group = {
+                    id: groupId,
+                    label: groupId === "vir-runtime" ? "VIR shared runtime" : memory.label || id,
+                    backendIds: [],
+                };
+                groups.set(groupId, group);
+            }
+            if (!group.backendIds.includes(id)) group.backendIds.push(id);
+        });
+    });
+    var series = Array.from(groups.values()).map(function (group) {
+        var points = samples.map(function (sample) {
+            var memory = null;
+            for (var index = 0; index < group.backendIds.length; index++) {
+                var candidate = sample.memory.backends[group.backendIds[index]];
+                if (candidate) {
+                    memory = candidate;
+                    break;
+                }
+            }
+            var calls = group.backendIds.reduce(function (sum, id) {
+                return sum + Number(sample.callsByBackend[id] || 0);
+            }, 0);
+            return {
+                cycle: sample.cycle,
+                calls: calls,
+                committedBytes: memory ? memory.committedBytes : null,
+                residentBytes: memory ? memory.residentBytes : null,
+            };
+        });
+        return {
+            id: group.id,
+            label: group.label,
+            backendIds: group.backendIds,
+            points: points,
+            committed: summarizePrettyRepeatedMemory(points, "committedBytes"),
+            resident: summarizePrettyRepeatedMemory(points, "residentBytes"),
+        };
+    });
+    return {
+        schemaVersion: 1,
+        sampleUnit: "cycle",
+        callsPerBackendPerCycle: callsPerCycle,
+        samples: samples,
+        series: series,
+    };
+}
+
+/**
  * Repeatedly alternate structurally distinct inputs in one backend instance.
  * This catches state leakage that same-input timing samples can miss and records
  * committed-memory growth over the retained-instance workload.
@@ -3224,6 +3360,10 @@ async function runPrettyRepeatedCallStudy(options) {
             });
         }
     }
+    /** @type {*[]} */
+    var memoryTraceSamples = [];
+    /** @type {string[]} */
+    var tracedBackendIds = [];
     var report = await runPrettyDifferentialCorpus({
         backendIds: settings.backendIds,
         scenarios: scenarios,
@@ -3231,10 +3371,36 @@ async function runPrettyRepeatedCallStudy(options) {
         samples: 1,
         batchTargetMs: 0,
         profile: true,
+        onBenchmarkStart: function (state) {
+            tracedBackendIds = state.backendIds;
+            /** @type {Record<string, number>} */
+            var callsByBackend = {};
+            tracedBackendIds.forEach(function (id) {
+                callsByBackend[id] = 0;
+            });
+            memoryTraceSamples.push({
+                cycle: 0,
+                callsByBackend: callsByBackend,
+                memory: state.memory,
+            });
+        },
+        onScenario: function (scenario) {
+            if ((scenario.sequenceIndex + 1) % workloads.length !== 0) return;
+            /** @type {Record<string, number>} */
+            var callsByBackend = {};
+            tracedBackendIds.forEach(function (id) {
+                callsByBackend[id] = scenario.repeatRound * workloads.length;
+            });
+            memoryTraceSamples.push({
+                cycle: scenario.repeatRound,
+                callsByBackend: callsByBackend,
+                memory: collectPrettyMemorySnapshot(tracedBackendIds),
+            });
+        },
         onProgress: settings.onProgress,
     });
     report.kind = "repeated";
-    report.schemaVersion = 1;
+    report.schemaVersion = 2;
     report.cycles = cycles;
     report.workloadCount = workloads.length;
     report.callsPerBackend = scenarios.length;
@@ -3274,6 +3440,11 @@ async function runPrettyRepeatedCallStudy(options) {
     });
     report.stabilityMismatches = stabilityMismatches;
     report.passed = report.passed && stabilityMismatches.length === 0;
+    report.memoryTrace = buildPrettyRepeatedMemoryTrace(
+        memoryTraceSamples,
+        report.backendIds,
+        workloads.length,
+    );
     /** @type {Record<string, *>} */
     report.memoryGrowth = {};
     report.backendIds.forEach(function (/** @type {string} */ id) {
