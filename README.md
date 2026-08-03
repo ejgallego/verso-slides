@@ -900,6 +900,21 @@ VIR JSON and VIR `Std.Format` in separate fresh browser contexts so
 their growth is not conflated. Its cold-start measurements still use
 five fresh browser contexts.
 
+The testing menu also exposes a consolidated **Results** dashboard.
+**Run suite** collects all five in-page studies in sequence and opens
+the dashboard directly; once any individual studies have run,
+**Results** combines the data already in memory. **Load JSON** accepts
+either a full checker report, a campaign aggregate, an individual
+study, or a previously exported dashboard bundle. Campaign data adds
+fresh-process min/max whiskers, coefficients of variation, artifact
+payload sizes, isolated VIR-mode memory, and range-aware baseline
+signals. Dashboard controls select backends, timing phase, logarithmic
+or linear scale, and absolute milliseconds or values normalized to the
+fastest selected backend. The view combines the formatter overview,
+pipeline phase composition, six scaling plots, startup and payload
+data, repeated-call memory, and baseline deltas; every plotted point
+retains a hover tooltip with exact values.
+
 The separate `window.__versoPrettyVirConfig` object only configures
 the VIR runtime. `window.__versoPrettyNativeConfig` configures the
 native runtime URLs. `window.__versoPrettyLlvmConfig` configures the

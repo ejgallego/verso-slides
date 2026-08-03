@@ -34,6 +34,10 @@
     var prettyInteractionReport = null;
     var prettyInteractionRunning = false;
     var prettyInteractionProgress = "";
+    /** @type {*} */
+    var prettyCampaignReport = null;
+    var prettySuiteRunning = false;
+    var prettySuiteProgress = "";
 
     function prettyBenchmarkRunning() {
         return (
@@ -41,7 +45,8 @@
             prettyScalingRunning ||
             prettyRepeatedRunning ||
             prettyMemoryRunning ||
-            prettyInteractionRunning
+            prettyInteractionRunning ||
+            prettySuiteRunning
         );
     }
 
@@ -310,6 +315,44 @@
         corpusLegend.textContent = "Benchmark data";
         var corpusActions = document.createElement("div");
         corpusActions.className = "pretty-controls-corpus-actions";
+        var runSuite = document.createElement("button");
+        runSuite.type = "button";
+        runSuite.className = "pretty-suite-run";
+        runSuite.disabled = prettyBenchmarkRunning();
+        runSuite.textContent = prettySuiteRunning ? "Running suite…" : "Run suite";
+        runSuite.addEventListener("click", runPrettySuiteFromControls);
+        corpusActions.appendChild(runSuite);
+        var loadData = document.createElement("button");
+        loadData.type = "button";
+        loadData.className = "pretty-dashboard-load";
+        loadData.disabled = prettyBenchmarkRunning();
+        loadData.textContent = "Load JSON";
+        var loadInput = document.createElement("input");
+        loadInput.type = "file";
+        loadInput.accept = "application/json,.json";
+        loadInput.className = "pretty-dashboard-file";
+        loadInput.hidden = true;
+        loadData.addEventListener("click", function () {
+            loadInput.click();
+        });
+        loadInput.addEventListener("change", function () {
+            var file = loadInput.files && loadInput.files[0];
+            if (!file) return;
+            file.text()
+                .then(function (body) {
+                    loadPrettyDashboardData(JSON.parse(body));
+                    renderPrettyControls();
+                    showPrettyResultsDashboard();
+                })
+                .catch(function (error) {
+                    console.warn("Pretty benchmark JSON could not be loaded.", error);
+                    window.alert(
+                        "Could not load benchmark JSON: " +
+                            (error instanceof Error ? error.message : String(error)),
+                    );
+                });
+        });
+        corpusActions.append(loadData, loadInput);
         var runCorpus = document.createElement("button");
         runCorpus.type = "button";
         runCorpus.className = "pretty-corpus-run";
@@ -397,9 +440,19 @@
             });
             corpusActions.appendChild(viewInteractions);
         }
+        if (prettyDashboardHasData()) {
+            var viewDashboard = document.createElement("button");
+            viewDashboard.type = "button";
+            viewDashboard.className = "pretty-dashboard-view";
+            viewDashboard.textContent = "Results";
+            viewDashboard.addEventListener("click", showPrettyResultsDashboard);
+            corpusActions.appendChild(viewDashboard);
+        }
         var corpusStatus = document.createElement("p");
         corpusStatus.className = "pretty-corpus-status";
-        if (prettyCorpusRunning) {
+        if (prettySuiteRunning) {
+            corpusStatus.textContent = prettySuiteProgress || "Preparing benchmark suite…";
+        } else if (prettyCorpusRunning) {
             corpusStatus.textContent = prettyCorpusProgress || "Preparing backends…";
         } else if (prettyScalingRunning) {
             corpusStatus.textContent = prettyScalingProgress || "Preparing scaling study…";
@@ -472,15 +525,173 @@
         if (!prettyControls) return;
         var status = prettyControls.querySelector(".pretty-corpus-status");
         if (status)
-            status.textContent = prettyScalingRunning
-                ? prettyScalingProgress
-                : prettyRepeatedRunning
-                  ? prettyRepeatedProgress
-                  : prettyMemoryRunning
-                    ? prettyMemoryProgress
-                    : prettyInteractionRunning
-                      ? prettyInteractionProgress
-                      : prettyCorpusProgress;
+            status.textContent = prettySuiteRunning
+                ? prettySuiteProgress
+                : prettyScalingRunning
+                  ? prettyScalingProgress
+                  : prettyRepeatedRunning
+                    ? prettyRepeatedProgress
+                    : prettyMemoryRunning
+                      ? prettyMemoryProgress
+                      : prettyInteractionRunning
+                        ? prettyInteractionProgress
+                        : prettyCorpusProgress;
+    }
+
+    function prettyDashboardHasData() {
+        return Boolean(
+            prettyCampaignReport ||
+            prettyCorpusReport ||
+            prettyScalingReport ||
+            prettyMemoryReport ||
+            prettyInteractionReport ||
+            prettyRepeatedReport,
+        );
+    }
+
+    /** @param {*} data */
+    function loadPrettyDashboardData(data) {
+        if (!data || typeof data !== "object" || typeof data.kind !== "string") {
+            throw new TypeError("expected a pretty benchmark report or campaign object");
+        }
+        if (data.kind === "pretty-benchmark-campaign") {
+            if (!Array.isArray(data.backendIds) || !data.corpus || !data.scaling) {
+                throw new TypeError("campaign JSON is missing benchmark aggregates");
+            }
+            prettyCampaignReport = data;
+            return;
+        }
+        if (data.kind === "pretty-results-dashboard") {
+            if (data.campaign) loadPrettyDashboardData(data.campaign);
+            if (data.reports) {
+                Object.keys(data.reports).forEach(function (key) {
+                    var report = data.reports[key];
+                    if (report) loadPrettyDashboardData(report);
+                });
+            }
+            return;
+        }
+        if (data.kind === "differential") {
+            prettyCorpusReport = data;
+            if (data.scaling) prettyScalingReport = data.scaling;
+            if (data.memory) prettyMemoryReport = data.memory;
+            if (data.interactions) prettyInteractionReport = data.interactions;
+            if (data.repeated) prettyRepeatedReport = data.repeated;
+            return;
+        }
+        if (data.kind === "scaling") prettyScalingReport = data;
+        else if (data.kind === "memory-retained") prettyMemoryReport = data;
+        else if (data.kind === "interactions") prettyInteractionReport = data;
+        else if (data.kind === "repeated") prettyRepeatedReport = data;
+        else throw new TypeError("unsupported pretty benchmark kind: " + data.kind);
+    }
+
+    async function runPrettySuiteFromControls() {
+        if (prettyBenchmarkRunning()) return;
+        prettySuiteRunning = true;
+        prettySuiteProgress = "Preparing benchmark suite…";
+        renderPrettyControls();
+
+        /**
+         * @param {string} label
+         * @param {string} kind
+         * @param {(progress: (detail: string) => void) => Promise<*>} run
+         */
+        async function stage(label, kind, run) {
+            prettySuiteProgress = label;
+            updatePrettyCorpusProgress();
+            try {
+                return await run(function (detail) {
+                    prettySuiteProgress = label + (detail ? " · " + detail : "");
+                    updatePrettyCorpusProgress();
+                });
+            } catch (error) {
+                console.warn("Pretty " + kind + " suite stage failed.", error);
+                return {
+                    kind: kind,
+                    passed: false,
+                    error: error instanceof Error ? error.message : String(error),
+                };
+            }
+        }
+
+        try {
+            if (typeof runPrettyDifferentialCorpus === "function") {
+                prettyCorpusReport = await stage("Corpus 1/5", "differential", function (progress) {
+                    return runPrettyDifferentialCorpus({
+                        profile: true,
+                        onProgress: function (item) {
+                            progress(
+                                item.completed +
+                                    "/" +
+                                    item.total +
+                                    " · " +
+                                    item.caseId +
+                                    " @ " +
+                                    item.width,
+                            );
+                        },
+                    });
+                });
+            }
+            if (typeof runPrettyScalingStudy === "function") {
+                prettyScalingReport = await stage("Scaling 2/5", "scaling", function (progress) {
+                    return runPrettyScalingStudy({
+                        onProgress: function (item) {
+                            progress(
+                                item.completed +
+                                    "/" +
+                                    item.total +
+                                    " · " +
+                                    (item.dimension || item.caseId),
+                            );
+                        },
+                    });
+                });
+            }
+            if (typeof runPrettyMemoryScalingStudy === "function") {
+                prettyMemoryReport = await stage(
+                    "Memory 3/5",
+                    "memory-retained",
+                    function (progress) {
+                        return runPrettyMemoryScalingStudy({
+                            onProgress: function (item) {
+                                progress(
+                                    item.completed + "/" + item.total + " · " + item.dimension,
+                                );
+                            },
+                        });
+                    },
+                );
+            }
+            if (typeof runPrettyInteractionStudy === "function") {
+                prettyInteractionReport = await stage(
+                    "Interactions 4/5",
+                    "interactions",
+                    function (progress) {
+                        return runPrettyInteractionStudy({
+                            onProgress: function (item) {
+                                progress(item.completed + "/" + item.total + " · " + item.caseId);
+                            },
+                        });
+                    },
+                );
+            }
+            if (typeof runPrettyRepeatedCallStudy === "function") {
+                prettyRepeatedReport = await stage("Repeats 5/5", "repeated", function (progress) {
+                    return runPrettyRepeatedCallStudy({
+                        onProgress: function (item) {
+                            progress(item.completed + "/" + item.total + " · " + item.caseId);
+                        },
+                    });
+                });
+            }
+            showPrettyResultsDashboard();
+        } finally {
+            prettySuiteRunning = false;
+            prettySuiteProgress = "";
+            renderPrettyControls();
+        }
     }
 
     async function runPrettyCorpusFromControls() {
@@ -692,6 +903,1159 @@
         setTimeout(function () {
             URL.revokeObjectURL(url);
         }, 0);
+    }
+
+    /** @type {Record<string, string>} */
+    var PRETTY_DASHBOARD_COLORS = {
+        js: "#74a9ff",
+        vir: "#f0a35e",
+        "vir-format": "#77c879",
+        native: "#d879c6",
+        llvm: "#d7c45c",
+    };
+
+    /** @return {string[]} */
+    function prettyDashboardBackendIds() {
+        var sources = [
+            prettyCampaignReport,
+            prettyCorpusReport,
+            prettyScalingReport,
+            prettyRepeatedReport,
+            prettyMemoryReport,
+        ];
+        for (var index = 0; index < sources.length; index++) {
+            if (sources[index] && Array.isArray(sources[index].backendIds)) {
+                return sources[index].backendIds.slice();
+            }
+        }
+        return [];
+    }
+
+    /** @param {string} id */
+    function prettyDashboardBackendLabel(id) {
+        if (prettyCampaignReport && prettyCampaignReport.corpus[id]) {
+            return prettyCampaignReport.corpus[id].label;
+        }
+        var reports = [prettyCorpusReport, prettyScalingReport, prettyRepeatedReport];
+        for (var index = 0; index < reports.length; index++) {
+            var report = reports[index];
+            if (report && report.summaries && report.summaries[id]) {
+                return report.summaries[id].label;
+            }
+        }
+        return id;
+    }
+
+    /** @param {*} stat @return {*} */
+    function prettyDashboardStat(stat) {
+        if (!stat || typeof stat.median !== "number") return null;
+        return {
+            median: stat.median,
+            min: typeof stat.min === "number" ? stat.min : stat.median,
+            max: typeof stat.max === "number" ? stat.max : stat.median,
+            p95: typeof stat.p95 === "number" ? stat.p95 : stat.median,
+            cv: typeof stat.cv === "number" ? stat.cv : null,
+            runs:
+                typeof stat.runs === "number"
+                    ? stat.runs
+                    : typeof stat.samples === "number"
+                      ? stat.samples
+                      : 1,
+        };
+    }
+
+    /** @param {string} id @param {string} phase @return {*} */
+    function prettyDashboardCorpusStat(id, phase) {
+        if (
+            prettyCampaignReport &&
+            prettyCampaignReport.corpus[id] &&
+            prettyCampaignReport.corpus[id].phases
+        ) {
+            return prettyDashboardStat(prettyCampaignReport.corpus[id].phases[phase]);
+        }
+        var summary = prettyCorpusReport && prettyCorpusReport.summaries[id];
+        return prettyDashboardStat(summary && summary.timing && summary.timing[phase]);
+    }
+
+    /** @return {*[]} */
+    function prettyDashboardScalingDimensions() {
+        if (
+            prettyCampaignReport &&
+            prettyCampaignReport.scaling &&
+            Array.isArray(prettyCampaignReport.scaling.dimensions)
+        ) {
+            return prettyCampaignReport.scaling.dimensions;
+        }
+        return prettyScalingReport && Array.isArray(prettyScalingReport.dimensions)
+            ? prettyScalingReport.dimensions
+            : [];
+    }
+
+    /** @param {*} point @param {string} id @param {string} phase @return {*} */
+    function prettyDashboardScalingStat(point, id, phase) {
+        var backend = point.backends && point.backends[id];
+        if (!backend) return null;
+        if (backend[phase]) return prettyDashboardStat(backend[phase]);
+        return prettyDashboardStat(backend.summary && backend.summary[phase]);
+    }
+
+    /** @param {string} id */
+    function prettyDashboardColor(id) {
+        return PRETTY_DASHBOARD_COLORS[id] || "#a8a8a8";
+    }
+
+    /** @param {string} label @param {string} value @param {string} note */
+    function createPrettyDashboardCard(label, value, note) {
+        var card = document.createElement("article");
+        card.className = "pretty-dashboard-card";
+        var heading = document.createElement("h3");
+        heading.textContent = label;
+        var main = document.createElement("strong");
+        main.textContent = value;
+        var detail = document.createElement("p");
+        detail.textContent = note;
+        card.append(heading, main, detail);
+        return card;
+    }
+
+    /**
+     * @param {string[]} backendIds
+     * @param {string} phase
+     * @param {string} phaseLabel
+     * @param {string} scale
+     * @param {boolean} normalized
+     */
+    function createPrettyDashboardOverviewChart(backendIds, phase, phaseLabel, scale, normalized) {
+        var namespace = "http://www.w3.org/2000/svg";
+        var height = Math.max(220, 86 + backendIds.length * 48);
+        var svg = /** @type {SVGSVGElement} */ (document.createElementNS(namespace, "svg"));
+        svg.classList.add("pretty-dashboard-chart", "pretty-dashboard-overview-chart");
+        svg.setAttribute("viewBox", "0 0 940 " + height);
+        svg.setAttribute("role", "img");
+        svg.setAttribute(
+            "aria-label",
+            "Backend " + phaseLabel.toLowerCase() + " comparison with process ranges",
+        );
+        var left = 145;
+        var right = 875;
+        var top = 52;
+        var bottom = height - 36;
+        var rows = backendIds
+            .map(function (id) {
+                return { id: id, stat: prettyDashboardCorpusStat(id, phase) };
+            })
+            .filter(function (row) {
+                return row.stat && row.stat.median >= 0;
+            });
+        var positive = rows
+            .map(function (row) {
+                return row.stat.median;
+            })
+            .filter(function (value) {
+                return value > 0;
+            });
+        var reference = normalized && positive.length > 0 ? Math.min.apply(null, positive) : 1;
+        if (!Number.isFinite(reference) || reference <= 0) reference = 1;
+        var values = rows.map(function (row) {
+            return row.stat.median / reference;
+        });
+        var ranges = rows.flatMap(function (row) {
+            return [row.stat.min / reference, row.stat.max / reference];
+        });
+        var maximum = Math.max.apply(null, values.concat(ranges, [1]));
+        var minimumPositive = Math.min.apply(
+            null,
+            values.concat(ranges).filter(function (value) {
+                return value > 0;
+            }),
+        );
+        if (!Number.isFinite(minimumPositive)) minimumPositive = 0.001;
+        var low = scale === "log" ? Math.log10(Math.max(0.0001, minimumPositive * 0.7)) : 0;
+        var high =
+            scale === "log"
+                ? Math.log10(Math.max(minimumPositive * 1.5, maximum * 1.2))
+                : Math.max(1, maximum * 1.12);
+
+        /** @param {string} name @param {Record<string, string>} attributes */
+        function element(name, attributes) {
+            var node = document.createElementNS(namespace, name);
+            Object.keys(attributes).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            svg.appendChild(node);
+            return node;
+        }
+        /** @param {string} value @param {number} x @param {number} y @param {string} anchor */
+        function label(value, x, y, anchor) {
+            var node = /** @type {SVGTextElement} */ (
+                element("text", { x: String(x), y: String(y), "text-anchor": anchor })
+            );
+            node.textContent = value;
+            return node;
+        }
+        /** @param {number} value */
+        function xFor(value) {
+            var transformed = scale === "log" ? Math.log10(Math.max(value, 10 ** low)) : value;
+            return left + ((transformed - low) / Math.max(0.000001, high - low)) * (right - left);
+        }
+
+        for (var tick = 0; tick <= 4; tick++) {
+            var transformed = low + ((high - low) * tick) / 4;
+            var value = scale === "log" ? 10 ** transformed : transformed;
+            var x = left + (tick / 4) * (right - left);
+            element("line", {
+                x1: String(x),
+                y1: String(top - 15),
+                x2: String(x),
+                y2: String(bottom),
+                class: "grid",
+            });
+            label(
+                normalized ? value.toFixed(value < 10 ? 1 : 0) + "×" : formatCorpusTiming(value),
+                x,
+                top - 25,
+                "middle",
+            );
+        }
+        rows.forEach(function (row, index) {
+            var y = top + index * 48;
+            var value = row.stat.median / reference;
+            var rangeMin = row.stat.min / reference;
+            var rangeMax = row.stat.max / reference;
+            var start = scale === "log" ? left : xFor(0);
+            var end = xFor(value);
+            label(prettyDashboardBackendLabel(row.id), left - 12, y + 5, "end");
+            var bar = element("rect", {
+                x: String(Math.min(start, end)),
+                y: String(y - 12),
+                width: String(Math.max(2, Math.abs(end - start))),
+                height: "24",
+                rx: "4",
+                fill: prettyDashboardColor(row.id),
+            });
+            var title = document.createElementNS(namespace, "title");
+            title.textContent =
+                prettyDashboardBackendLabel(row.id) +
+                " · median " +
+                formatCorpusTiming(row.stat.median) +
+                " ms · range " +
+                formatCorpusTiming(row.stat.min) +
+                "–" +
+                formatCorpusTiming(row.stat.max) +
+                " ms" +
+                (row.stat.cv === null ? "" : " · CV " + (row.stat.cv * 100).toFixed(1) + "%");
+            bar.appendChild(title);
+            if (row.stat.runs > 1) {
+                element("line", {
+                    x1: String(xFor(Math.max(rangeMin, 0))),
+                    y1: String(y),
+                    x2: String(xFor(rangeMax)),
+                    y2: String(y),
+                    class: "pretty-dashboard-range",
+                });
+                [rangeMin, rangeMax].forEach(function (rangeValue) {
+                    var rangeX = xFor(Math.max(rangeValue, 0));
+                    element("line", {
+                        x1: String(rangeX),
+                        y1: String(y - 7),
+                        x2: String(rangeX),
+                        y2: String(y + 7),
+                        class: "pretty-dashboard-range",
+                    });
+                });
+            }
+            label(
+                normalized
+                    ? value.toFixed(value < 10 ? 2 : 1) + "×"
+                    : formatCorpusTiming(row.stat.median) + " ms",
+                Math.min(right - 2, end + 8),
+                y + 5,
+                end > right - 95 ? "end" : "start",
+            );
+        });
+        label(
+            normalized
+                ? "relative to fastest selected backend"
+                : phaseLabel.toLowerCase() + " median ms" + (scale === "log" ? " (log)" : ""),
+            left,
+            height - 8,
+            "start",
+        );
+        return svg;
+    }
+
+    /** @param {string[]} backendIds */
+    function createPrettyDashboardPhaseChart(backendIds) {
+        var namespace = "http://www.w3.org/2000/svg";
+        var height = Math.max(225, 100 + backendIds.length * 42);
+        var svg = /** @type {SVGSVGElement} */ (document.createElementNS(namespace, "svg"));
+        svg.classList.add("pretty-dashboard-chart", "pretty-dashboard-phase-chart");
+        svg.setAttribute("viewBox", "0 0 940 " + height);
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", "Median formatter pipeline phase breakdown");
+        var phases = [
+            { id: "marshalMs", label: "Marshal", color: "#6baed6" },
+            { id: "executeMs", label: "Execute", color: "#74c476" },
+            { id: "decodeMs", label: "Decode", color: "#fd8d3c" },
+        ];
+        var left = 145;
+        var right = 875;
+        var top = 66;
+        var rows = backendIds.map(function (id) {
+            var values = phases.map(function (phase) {
+                var stat = prettyDashboardCorpusStat(id, phase.id);
+                return stat ? stat.median : 0;
+            });
+            return {
+                id: id,
+                values: values,
+                total: values.reduce(function (sum, value) {
+                    return sum + value;
+                }, 0),
+            };
+        });
+        var maximum = Math.max.apply(
+            null,
+            rows
+                .map(function (row) {
+                    return row.total;
+                })
+                .concat([0.001]),
+        );
+
+        /** @param {string} name @param {Record<string, string>} attributes */
+        function element(name, attributes) {
+            var node = document.createElementNS(namespace, name);
+            Object.keys(attributes).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            svg.appendChild(node);
+            return node;
+        }
+        /** @param {string} value @param {number} x @param {number} y @param {string} anchor */
+        function label(value, x, y, anchor) {
+            var node = /** @type {SVGTextElement} */ (
+                element("text", { x: String(x), y: String(y), "text-anchor": anchor })
+            );
+            node.textContent = value;
+            return node;
+        }
+        phases.forEach(function (phase, index) {
+            var x = left + index * 115;
+            element("rect", {
+                x: String(x),
+                y: "18",
+                width: "16",
+                height: "16",
+                rx: "2",
+                fill: phase.color,
+            });
+            label(phase.label, x + 23, 31, "start");
+        });
+        rows.forEach(function (row, rowIndex) {
+            var y = top + rowIndex * 42;
+            var x = left;
+            label(prettyDashboardBackendLabel(row.id), left - 12, y + 5, "end");
+            row.values.forEach(function (value, phaseIndex) {
+                var width = (value / maximum) * (right - left);
+                var rect = element("rect", {
+                    x: String(x),
+                    y: String(y - 12),
+                    width: String(Math.max(value > 0 ? 1 : 0, width)),
+                    height: "24",
+                    fill: phases[phaseIndex].color,
+                });
+                var title = document.createElementNS(namespace, "title");
+                title.textContent =
+                    prettyDashboardBackendLabel(row.id) +
+                    " · " +
+                    phases[phaseIndex].label +
+                    " · " +
+                    formatCorpusTiming(value) +
+                    " ms";
+                rect.appendChild(title);
+                x += width;
+            });
+            label(formatCorpusTiming(row.total) + " ms", Math.min(right, x + 8), y + 5, "start");
+        });
+        return svg;
+    }
+
+    /**
+     * @param {*} dimension
+     * @param {string[]} backendIds
+     * @param {string} phase
+     * @param {string} phaseLabel
+     * @param {string} scale
+     * @param {boolean} normalized
+     */
+    function createPrettyDashboardScalingChart(
+        dimension,
+        backendIds,
+        phase,
+        phaseLabel,
+        scale,
+        normalized,
+    ) {
+        var namespace = "http://www.w3.org/2000/svg";
+        var svg = /** @type {SVGSVGElement} */ (document.createElementNS(namespace, "svg"));
+        svg.classList.add("pretty-dashboard-chart", "pretty-dashboard-scaling-chart");
+        svg.setAttribute("viewBox", "0 0 470 265");
+        svg.setAttribute("role", "img");
+        svg.setAttribute(
+            "aria-label",
+            dimension.label + " versus " + phaseLabel.toLowerCase() + " runtime",
+        );
+        var left = 58;
+        var right = 444;
+        var top = 25;
+        var bottom = 215;
+        /** @type {{ id: string, points: { x: number, value: number, min: number, max: number, label: string }[] }[]} */
+        var series = [];
+        /** @type {number[]} */
+        var allValues = [];
+        backendIds.forEach(function (id) {
+            /** @type {{ x: number, value: number, min: number, max: number, label: string }[]} */
+            var points = [];
+            dimension.points.forEach(
+                function (/** @type {*} */ point, /** @type {number} */ pointIndex) {
+                    var stat = prettyDashboardScalingStat(point, id, phase);
+                    if (!stat) return;
+                    var reference = 1;
+                    if (normalized) {
+                        var candidates = backendIds
+                            .map(function (candidate) {
+                                var candidateStat = prettyDashboardScalingStat(
+                                    point,
+                                    candidate,
+                                    phase,
+                                );
+                                return candidateStat && candidateStat.median > 0
+                                    ? candidateStat.median
+                                    : null;
+                            })
+                            .filter(function (value) {
+                                return typeof value === "number";
+                            });
+                        reference = candidates.length > 0 ? Math.min.apply(null, candidates) : 1;
+                    }
+                    var value = stat.median / reference;
+                    points.push({
+                        x: pointIndex,
+                        value: value,
+                        min: stat.min / reference,
+                        max: stat.max / reference,
+                        label: point.sizeLabel || String(point.size),
+                    });
+                    allValues.push(value, stat.min / reference, stat.max / reference);
+                },
+            );
+            series.push({ id: id, points: points });
+        });
+        var positive = allValues.filter(function (value) {
+            return value > 0;
+        });
+        var minimum = positive.length > 0 ? Math.min.apply(null, positive) : 0.001;
+        var maximum = positive.length > 0 ? Math.max.apply(null, positive) : 1;
+        var low = scale === "log" ? Math.log10(Math.max(0.0001, minimum * 0.7)) : 0;
+        var high =
+            scale === "log"
+                ? Math.log10(Math.max(minimum * 1.5, maximum * 1.25))
+                : Math.max(1, maximum * 1.15);
+
+        /** @param {string} name @param {Record<string, string>} attributes */
+        function element(name, attributes) {
+            var node = document.createElementNS(namespace, name);
+            Object.keys(attributes).forEach(function (key) {
+                node.setAttribute(key, attributes[key]);
+            });
+            svg.appendChild(node);
+            return node;
+        }
+        /** @param {string} value @param {number} x @param {number} y @param {string} anchor */
+        function label(value, x, y, anchor) {
+            var node = /** @type {SVGTextElement} */ (
+                element("text", { x: String(x), y: String(y), "text-anchor": anchor })
+            );
+            node.textContent = value;
+            return node;
+        }
+        /** @param {number} value */
+        function yFor(value) {
+            var transformed = scale === "log" ? Math.log10(Math.max(value, 10 ** low)) : value;
+            return bottom - ((transformed - low) / Math.max(0.000001, high - low)) * (bottom - top);
+        }
+        /** @param {number} index */
+        function xFor(index) {
+            return dimension.points.length <= 1
+                ? left
+                : left + (index / (dimension.points.length - 1)) * (right - left);
+        }
+        for (var tick = 0; tick <= 3; tick++) {
+            var transformed = low + ((high - low) * tick) / 3;
+            var value = scale === "log" ? 10 ** transformed : transformed;
+            var y = bottom - (tick / 3) * (bottom - top);
+            element("line", {
+                x1: String(left),
+                y1: String(y),
+                x2: String(right),
+                y2: String(y),
+                class: "grid",
+            });
+            label(
+                normalized ? value.toFixed(value < 10 ? 1 : 0) + "×" : formatCorpusTiming(value),
+                left - 7,
+                y + 4,
+                "end",
+            );
+        }
+        dimension.points.forEach(function (/** @type {*} */ point, /** @type {number} */ index) {
+            if (index !== 0 && index !== dimension.points.length - 1 && index % 2 !== 0) return;
+            label(String(point.size), xFor(index), bottom + 20, "middle");
+        });
+        series.forEach(function (item) {
+            var color = prettyDashboardColor(item.id);
+            element("polyline", {
+                points: item.points
+                    .map(function (point) {
+                        return xFor(point.x) + "," + yFor(point.value);
+                    })
+                    .join(" "),
+                fill: "none",
+                stroke: color,
+                "stroke-width": "2",
+            });
+            item.points.forEach(function (point) {
+                var x = xFor(point.x);
+                var y = yFor(point.value);
+                if (point.max !== point.min) {
+                    element("line", {
+                        x1: String(x),
+                        y1: String(yFor(point.min)),
+                        x2: String(x),
+                        y2: String(yFor(point.max)),
+                        class: "pretty-dashboard-range",
+                    });
+                }
+                var circle = element("circle", {
+                    cx: String(x),
+                    cy: String(y),
+                    r: "3.2",
+                    fill: color,
+                });
+                var title = document.createElementNS(namespace, "title");
+                title.textContent =
+                    prettyDashboardBackendLabel(item.id) +
+                    " · " +
+                    point.label +
+                    " · " +
+                    (normalized
+                        ? point.value.toFixed(2) + "× fastest"
+                        : formatCorpusTiming(point.value) + " ms") +
+                    (point.max === point.min
+                        ? ""
+                        : " · range " +
+                          formatCorpusTiming(point.min) +
+                          "–" +
+                          formatCorpusTiming(point.max));
+                circle.appendChild(title);
+            });
+        });
+        label(normalized ? "relative runtime" : "median ms", left, 255, "start");
+        label("input size", right, 255, "end");
+        return svg;
+    }
+
+    /** @param {string} id @param {string} metric @return {*} */
+    function prettyDashboardColdStat(id, metric) {
+        if (
+            prettyCampaignReport &&
+            prettyCampaignReport.coldStart &&
+            prettyCampaignReport.coldStart[id]
+        ) {
+            return prettyDashboardStat(prettyCampaignReport.coldStart[id][metric]);
+        }
+        var cold =
+            prettyCorpusReport &&
+            prettyCorpusReport.coldStart &&
+            prettyCorpusReport.coldStart.backends &&
+            prettyCorpusReport.coldStart.backends[id];
+        if (cold) return prettyDashboardStat(cold[metric]);
+        var profile =
+            prettyCorpusReport &&
+            prettyCorpusReport.runtimeProfile &&
+            prettyCorpusReport.runtimeProfile.backends[id];
+        return profile && typeof profile[metric] === "number"
+            ? prettyDashboardStat({ median: profile[metric] })
+            : null;
+    }
+
+    /** @param {string} id @return {*} */
+    function prettyDashboardRuntimeProfile(id) {
+        var cold =
+            prettyCorpusReport &&
+            prettyCorpusReport.coldStart &&
+            prettyCorpusReport.coldStart.backends &&
+            prettyCorpusReport.coldStart.backends[id];
+        if (cold) return cold;
+        var live =
+            prettyCorpusReport &&
+            prettyCorpusReport.runtimeProfile &&
+            prettyCorpusReport.runtimeProfile.backends[id];
+        if (live) return live;
+        var fingerprint =
+            prettyCampaignReport &&
+            prettyCampaignReport.artifactFingerprint &&
+            prettyCampaignReport.artifactFingerprint[id];
+        if (!fingerprint || !Array.isArray(fingerprint.assets)) return null;
+        return {
+            assetBytes: fingerprint.assets.reduce(function (
+                /** @type {number} */ sum,
+                /** @type {*} */ asset,
+            ) {
+                return sum + (Array.isArray(asset) && typeof asset[2] === "number" ? asset[2] : 0);
+            }, 0),
+            wasmBytes: fingerprint.assets.reduce(function (
+                /** @type {number} */ sum,
+                /** @type {*} */ asset,
+            ) {
+                return (
+                    sum +
+                    (Array.isArray(asset) &&
+                    typeof asset[0] === "string" &&
+                    asset[0].endsWith(".wasm") &&
+                    typeof asset[2] === "number"
+                        ? asset[2]
+                        : 0)
+                );
+            }, 0),
+        };
+    }
+
+    /** @param {HTMLElement} content @param {string[]} backendIds */
+    function appendPrettyDashboardColdStart(content, backendIds) {
+        var rows = backendIds
+            .map(function (id) {
+                return {
+                    id: id,
+                    startup: prettyDashboardColdStat(id, "startupMs"),
+                    resource: prettyDashboardColdStat(id, "resourceLoadMs"),
+                    profile: prettyDashboardRuntimeProfile(id),
+                };
+            })
+            .filter(function (row) {
+                return row.startup || row.resource || row.profile;
+            });
+        if (rows.length === 0) return;
+        var heading = document.createElement("h3");
+        heading.textContent = "Startup and browser payload";
+        content.appendChild(heading);
+        var note = document.createElement("p");
+        note.className = "pretty-corpus-note";
+        note.textContent = prettyCampaignReport
+            ? "Startup medians and ranges aggregate fresh browser processes. Shared VIR entry points intentionally have the same runtime startup."
+            : "Current-page values are useful for inspection; load campaign JSON for independent-process ranges.";
+        content.appendChild(note);
+        var table = document.createElement("table");
+        table.className = "pretty-dashboard-startup-table";
+        var head = document.createElement("tr");
+        [
+            "Backend",
+            "Startup median",
+            "Process range",
+            "Startup CV",
+            "Resource wall",
+            "Assets",
+            "Wasm",
+        ].forEach(function (label) {
+            appendCorpusCell(head, label, "th");
+        });
+        table.appendChild(head);
+        rows.forEach(function (row) {
+            var tr = document.createElement("tr");
+            appendCorpusCell(tr, prettyDashboardBackendLabel(row.id));
+            appendCorpusCell(
+                tr,
+                row.startup ? formatCorpusTiming(row.startup.median) + " ms" : "—",
+            );
+            appendCorpusCell(
+                tr,
+                row.startup
+                    ? formatCorpusTiming(row.startup.min) +
+                          "–" +
+                          formatCorpusTiming(row.startup.max) +
+                          " ms"
+                    : "—",
+            );
+            appendCorpusCell(
+                tr,
+                row.startup && row.startup.cv !== null
+                    ? (row.startup.cv * 100).toFixed(1) + "%"
+                    : "—",
+            );
+            appendCorpusCell(
+                tr,
+                row.resource ? formatCorpusTiming(row.resource.median) + " ms" : "—",
+            );
+            appendCorpusCell(tr, row.profile ? formatCorpusBytes(row.profile.assetBytes) : "—");
+            appendCorpusCell(tr, row.profile ? formatCorpusBytes(row.profile.wasmBytes) : "—");
+            table.appendChild(tr);
+        });
+        content.appendChild(table);
+    }
+
+    /** @param {string} key @param {Set<string>} selected */
+    function prettyDashboardMemorySelected(key, selected) {
+        if (key === "vir-runtime") return selected.has("vir") || selected.has("vir-format");
+        return selected.has(key);
+    }
+
+    /** @param {HTMLElement} content @param {Set<string>} selected */
+    function appendPrettyDashboardMemory(content, selected) {
+        var campaignMemory = prettyCampaignReport && prettyCampaignReport.memory;
+        var trace = prettyRepeatedReport && prettyRepeatedReport.memoryTrace;
+        if (!campaignMemory && !trace) return;
+        var heading = document.createElement("h3");
+        heading.textContent = "Retained memory and repeated calls";
+        content.appendChild(heading);
+        var note = document.createElement("p");
+        note.className = "pretty-corpus-note";
+        note.textContent =
+            "Committed capacity is a high-water signal, not live/reachable memory. A tail plateau means only that no new Wasm pages were committed in the final observed window.";
+        content.appendChild(note);
+        if (trace && Array.isArray(trace.series)) {
+            var filteredTrace = Object.assign({}, trace, {
+                series: trace.series.filter(function (/** @type {*} */ series) {
+                    return series.backendIds.some(function (/** @type {string} */ id) {
+                        return selected.has(id);
+                    });
+                }),
+            });
+            if (filteredTrace.series.length > 0) {
+                content.appendChild(
+                    createPrettyRepeatedMemoryChart(
+                        filteredTrace,
+                        "committedBytes",
+                        "Committed Wasm capacity",
+                    ),
+                );
+            }
+        }
+        if (campaignMemory && campaignMemory.repeatedCommitted) {
+            var table = document.createElement("table");
+            table.className = "pretty-dashboard-memory-table";
+            var head = document.createElement("tr");
+            [
+                "Runtime",
+                "Observed runs",
+                "Growth median",
+                "Process range",
+                "Tail growth",
+                "Plateau runs",
+            ].forEach(function (label) {
+                appendCorpusCell(head, label, "th");
+            });
+            table.appendChild(head);
+            Object.keys(campaignMemory.repeatedCommitted).forEach(function (key) {
+                if (!prettyDashboardMemorySelected(key, selected)) return;
+                var item = campaignMemory.repeatedCommitted[key];
+                var row = document.createElement("tr");
+                appendCorpusCell(row, item.label);
+                appendCorpusCell(row, String(item.observedRuns));
+                appendCorpusCell(row, formatCorpusBytes(item.growthBytes.median));
+                appendCorpusCell(
+                    row,
+                    formatCorpusBytes(item.growthBytes.min) +
+                        "–" +
+                        formatCorpusBytes(item.growthBytes.max),
+                );
+                appendCorpusCell(row, formatCorpusBytes(item.tailGrowthBytes.median));
+                appendCorpusCell(row, item.plateauRuns + "/" + item.observedRuns);
+                table.appendChild(row);
+            });
+            content.appendChild(table);
+        }
+        if (campaignMemory && campaignMemory.isolatedVirModes) {
+            var isolatedHeading = document.createElement("h4");
+            isolatedHeading.textContent = "Fresh-runtime VIR modes";
+            content.appendChild(isolatedHeading);
+            var isolatedTable = document.createElement("table");
+            isolatedTable.className = "pretty-dashboard-isolated-table";
+            var isolatedHead = document.createElement("tr");
+            ["Mode", "Observed runs", "Growth median", "Tail growth", "Assessment"].forEach(
+                function (label) {
+                    appendCorpusCell(isolatedHead, label, "th");
+                },
+            );
+            isolatedTable.appendChild(isolatedHead);
+            Object.keys(campaignMemory.isolatedVirModes).forEach(function (id) {
+                if (!selected.has(id)) return;
+                var item = campaignMemory.isolatedVirModes[id];
+                var row = document.createElement("tr");
+                appendCorpusCell(row, item.label);
+                appendCorpusCell(row, String(item.observedRuns));
+                appendCorpusCell(row, formatCorpusBytes(item.growthBytes.median));
+                appendCorpusCell(row, formatCorpusBytes(item.tailGrowthBytes.median));
+                appendCorpusCell(
+                    row,
+                    item.plateauRuns === item.observedRuns
+                        ? "tail plateau in every run"
+                        : item.plateauRuns === 0
+                          ? "still growing in every tail"
+                          : "mixed tails",
+                );
+                isolatedTable.appendChild(row);
+            });
+            content.appendChild(isolatedTable);
+        }
+    }
+
+    /**
+     * @param {HTMLElement} content
+     * @param {string[]} backendIds
+     * @param {string} phase
+     * @param {string} phaseLabel
+     */
+    function appendPrettyDashboardBaseline(content, backendIds, phase, phaseLabel) {
+        var comparison = prettyCampaignReport && prettyCampaignReport.comparison;
+        if (!comparison) return;
+        var heading = document.createElement("h3");
+        heading.textContent = "Baseline comparison — " + phaseLabel;
+        content.appendChild(heading);
+        var note = document.createElement("p");
+        note.className = "pretty-corpus-note";
+        if (!comparison.compatible) {
+            note.textContent =
+                "The baseline protocol differs from this campaign, so timing deltas were intentionally suppressed.";
+            content.appendChild(note);
+            return;
+        }
+        note.textContent =
+            "A delta inside the candidate process range is descriptive noise, not a regression or improvement claim.";
+        content.appendChild(note);
+        var table = document.createElement("table");
+        table.className = "pretty-dashboard-baseline-table";
+        var head = document.createElement("tr");
+        ["Backend", "Baseline", "Candidate median", "Delta", "Range signal"].forEach(
+            function (label) {
+                appendCorpusCell(head, label, "th");
+            },
+        );
+        table.appendChild(head);
+        backendIds.forEach(function (id) {
+            var item = comparison.corpus && comparison.corpus[id] && comparison.corpus[id][phase];
+            if (!item) return;
+            var row = document.createElement("tr");
+            row.className =
+                item.relation === "within-candidate-run-range"
+                    ? "pretty-dashboard-signal-neutral"
+                    : item.relation === "candidate-above-run-range"
+                      ? "pretty-dashboard-signal-high"
+                      : "pretty-dashboard-signal-low";
+            appendCorpusCell(row, prettyDashboardBackendLabel(id));
+            appendCorpusCell(row, formatCorpusTiming(item.baseline) + " ms");
+            appendCorpusCell(row, formatCorpusTiming(item.candidateMedian) + " ms");
+            appendCorpusCell(
+                row,
+                typeof item.delta === "number"
+                    ? (item.delta >= 0 ? "+" : "") + (item.delta * 100).toFixed(1) + "%"
+                    : "—",
+            );
+            appendCorpusCell(
+                row,
+                item.relation === "within-candidate-run-range"
+                    ? "within process range"
+                    : item.relation === "candidate-above-run-range"
+                      ? "above process range"
+                      : "below process range",
+            );
+            table.appendChild(row);
+        });
+        content.appendChild(table);
+    }
+
+    function prettyDashboardExportData() {
+        return {
+            schemaVersion: 1,
+            kind: "pretty-results-dashboard",
+            generatedAt: new Date().toISOString(),
+            campaign: prettyCampaignReport,
+            reports: {
+                corpus: prettyCorpusReport,
+                scaling: prettyScalingReport,
+                memory: prettyMemoryReport,
+                interactions: prettyInteractionReport,
+                repeated: prettyRepeatedReport,
+            },
+        };
+    }
+
+    function showPrettyResultsDashboard() {
+        if (!prettyDashboardHasData()) return;
+        if (prettyCorpusOverlay) prettyCorpusOverlay.remove();
+        var overlay = document.createElement("section");
+        overlay.className = "pretty-corpus-overlay pretty-dashboard-overlay";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-label", "Pretty-printer benchmark results dashboard");
+        overlay.addEventListener("keydown", function (event) {
+            event.stopPropagation();
+            if (event.key === "Escape") overlay.remove();
+        });
+        var header = document.createElement("header");
+        var title = document.createElement("h2");
+        title.textContent = "Pretty-printer benchmark results";
+        var actions = document.createElement("div");
+        var exportButton = document.createElement("button");
+        exportButton.type = "button";
+        exportButton.textContent = "Export dashboard JSON";
+        exportButton.addEventListener("click", function () {
+            downloadPrettyCorpusReport(prettyDashboardExportData());
+        });
+        var closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "pretty-corpus-close";
+        closeButton.textContent = "Close";
+        closeButton.addEventListener("click", function () {
+            overlay.remove();
+        });
+        actions.append(exportButton, closeButton);
+        header.append(title, actions);
+        overlay.appendChild(header);
+
+        var source = document.createElement("p");
+        source.className = "pretty-corpus-note pretty-dashboard-source";
+        source.textContent = prettyCampaignReport
+            ? prettyCampaignReport.runCount +
+              " independent browser processes · campaign generated " +
+              new Date(prettyCampaignReport.generatedAt).toLocaleString() +
+              " · whiskers show the observed process range"
+            : "Live retained-page measurements · load campaign.json to add independent-process ranges and baseline signals";
+        overlay.appendChild(source);
+
+        var allBackendIds = prettyDashboardBackendIds();
+        var selected = new Set(allBackendIds);
+        var controls = document.createElement("div");
+        controls.className = "pretty-dashboard-controls";
+        var phaseControl = document.createElement("label");
+        phaseControl.appendChild(document.createTextNode("Timing phase "));
+        var phaseSelector = document.createElement("select");
+        phaseSelector.className = "pretty-dashboard-phase";
+        [
+            { id: "executeMs", label: "Execute" },
+            { id: "marshalMs", label: "Marshal" },
+            { id: "decodeMs", label: "Decode" },
+            { id: "totalMs", label: "Total" },
+        ].forEach(function (phase) {
+            var option = document.createElement("option");
+            option.value = phase.id;
+            option.textContent = phase.label;
+            phaseSelector.appendChild(option);
+        });
+        phaseControl.appendChild(phaseSelector);
+        var scaleControl = document.createElement("label");
+        scaleControl.appendChild(document.createTextNode("Scale "));
+        var scaleSelector = document.createElement("select");
+        scaleSelector.className = "pretty-dashboard-scale";
+        [
+            { id: "log", label: "Logarithmic" },
+            { id: "linear", label: "Linear" },
+        ].forEach(function (scale) {
+            var option = document.createElement("option");
+            option.value = scale.id;
+            option.textContent = scale.label;
+            scaleSelector.appendChild(option);
+        });
+        scaleControl.appendChild(scaleSelector);
+        var normalizationControl = document.createElement("label");
+        normalizationControl.appendChild(document.createTextNode("Values "));
+        var normalizationSelector = document.createElement("select");
+        normalizationSelector.className = "pretty-dashboard-normalization";
+        [
+            { id: "absolute", label: "Absolute milliseconds" },
+            { id: "fastest", label: "Relative to fastest" },
+        ].forEach(function (mode) {
+            var option = document.createElement("option");
+            option.value = mode.id;
+            option.textContent = mode.label;
+            normalizationSelector.appendChild(option);
+        });
+        normalizationControl.appendChild(normalizationSelector);
+        var backendControls = document.createElement("fieldset");
+        backendControls.className = "pretty-dashboard-backends";
+        var backendLegend = document.createElement("legend");
+        backendLegend.textContent = "Backends";
+        backendControls.appendChild(backendLegend);
+        allBackendIds.forEach(function (id) {
+            var label = document.createElement("label");
+            label.className = "pretty-dashboard-backend";
+            var input = document.createElement("input");
+            input.type = "checkbox";
+            input.value = id;
+            input.checked = true;
+            var swatch = document.createElement("span");
+            swatch.className = "pretty-dashboard-swatch";
+            swatch.style.backgroundColor = prettyDashboardColor(id);
+            label.append(input, swatch, document.createTextNode(prettyDashboardBackendLabel(id)));
+            backendControls.appendChild(label);
+            input.addEventListener("change", function () {
+                if (input.checked) selected.add(id);
+                else selected.delete(id);
+                if (selected.size === 0) {
+                    input.checked = true;
+                    selected.add(id);
+                }
+                renderDashboard();
+            });
+        });
+        controls.append(phaseControl, scaleControl, normalizationControl, backendControls);
+        overlay.appendChild(controls);
+        var content = document.createElement("div");
+        content.className = "pretty-dashboard-content";
+        overlay.appendChild(content);
+
+        function renderDashboard() {
+            content.replaceChildren();
+            var backendIds = allBackendIds.filter(function (id) {
+                return selected.has(id);
+            });
+            var phase = phaseSelector.value;
+            var phaseLabel =
+                phaseSelector.options[phaseSelector.selectedIndex].textContent || phase;
+            var scale = scaleSelector.value;
+            var normalized = normalizationSelector.value === "fastest";
+            var cards = document.createElement("div");
+            cards.className = "pretty-dashboard-cards";
+            var parityReports = [
+                prettyCorpusReport,
+                prettyScalingReport,
+                prettyMemoryReport,
+                prettyInteractionReport,
+            ].filter(function (report) {
+                return report && typeof report.parityCount === "number";
+            });
+            var parityCount = parityReports.reduce(function (sum, report) {
+                return sum + report.parityCount;
+            }, 0);
+            var scenarioCount = parityReports.reduce(function (sum, report) {
+                return sum + (report.scenarioCount || report.pointCount || 0);
+            }, 0);
+            cards.appendChild(
+                createPrettyDashboardCard(
+                    "Data source",
+                    prettyCampaignReport
+                        ? prettyCampaignReport.runCount + " processes"
+                        : "live page",
+                    prettyCampaignReport
+                        ? "Protocol and artifact provenance matched across reports."
+                        : "One retained browser instance; no process error bars.",
+                ),
+            );
+            cards.appendChild(
+                createPrettyDashboardCard(
+                    "Correctness",
+                    scenarioCount > 0 ? parityCount + "/" + scenarioCount : "campaign accepted",
+                    scenarioCount > 0
+                        ? "Exact styled-output parity across loaded studies."
+                        : "Only reports passing the campaign's core checks were aggregated.",
+                ),
+            );
+            var jsonStat = prettyDashboardCorpusStat("vir", phase);
+            var directStat = prettyDashboardCorpusStat("vir-format", phase);
+            cards.appendChild(
+                createPrettyDashboardCard(
+                    "VIR boundary",
+                    jsonStat && directStat && directStat.median > 0
+                        ? (jsonStat.median / directStat.median).toFixed(1) + "×"
+                        : "—",
+                    "JSON/direct ratio for the selected " + phaseLabel.toLowerCase() + " phase.",
+                ),
+            );
+            var isolated =
+                prettyCampaignReport &&
+                prettyCampaignReport.memory &&
+                prettyCampaignReport.memory.isolatedVirModes;
+            cards.appendChild(
+                createPrettyDashboardCard(
+                    "Isolated VIR memory",
+                    isolated && isolated.vir
+                        ? "+" + formatCorpusBytes(isolated.vir.growthBytes.median)
+                        : "load campaign",
+                    isolated && isolated["vir-format"]
+                        ? "JSON versus " +
+                              formatCorpusBytes(isolated["vir-format"].growthBytes.median) +
+                              " direct Format committed growth."
+                        : "Fresh-runtime mode separation is collected by the CLI.",
+                ),
+            );
+            content.appendChild(cards);
+
+            var overviewStats = backendIds.filter(function (id) {
+                return prettyDashboardCorpusStat(id, phase);
+            });
+            if (overviewStats.length > 0) {
+                var overviewHeading = document.createElement("h3");
+                overviewHeading.textContent = "Formatter overview — " + phaseLabel;
+                content.appendChild(overviewHeading);
+                content.appendChild(
+                    createPrettyDashboardOverviewChart(
+                        overviewStats,
+                        phase,
+                        phaseLabel,
+                        scale,
+                        normalized,
+                    ),
+                );
+                var phaseHeading = document.createElement("h3");
+                phaseHeading.textContent = "Pipeline phase composition";
+                content.appendChild(phaseHeading);
+                content.appendChild(createPrettyDashboardPhaseChart(overviewStats));
+            }
+
+            var dimensions = prettyDashboardScalingDimensions();
+            if (dimensions.length > 0) {
+                var scalingHeading = document.createElement("h3");
+                scalingHeading.textContent = "Input size versus runtime — " + phaseLabel;
+                content.appendChild(scalingHeading);
+                var scalingNote = document.createElement("p");
+                scalingNote.className = "pretty-corpus-note";
+                scalingNote.textContent = prettyCampaignReport
+                    ? "Points are process medians; hover for values and observed ranges."
+                    : "Points are warmed in-page medians; load campaign JSON for process ranges.";
+                content.appendChild(scalingNote);
+                var grid = document.createElement("div");
+                grid.className = "pretty-dashboard-scaling-grid";
+                dimensions.forEach(function (dimension) {
+                    var figure = document.createElement("figure");
+                    var caption = document.createElement("figcaption");
+                    caption.textContent = dimension.label;
+                    figure.append(
+                        caption,
+                        createPrettyDashboardScalingChart(
+                            dimension,
+                            backendIds,
+                            phase,
+                            phaseLabel,
+                            scale,
+                            normalized,
+                        ),
+                    );
+                    grid.appendChild(figure);
+                });
+                content.appendChild(grid);
+            }
+            appendPrettyDashboardColdStart(content, backendIds);
+            appendPrettyDashboardMemory(content, selected);
+            appendPrettyDashboardBaseline(content, backendIds, phase, phaseLabel);
+        }
+
+        phaseSelector.addEventListener("change", renderDashboard);
+        scaleSelector.addEventListener("change", renderDashboard);
+        normalizationSelector.addEventListener("change", renderDashboard);
+        renderDashboard();
+        document.body.appendChild(overlay);
+        prettyCorpusOverlay = overlay;
+        closeButton.focus();
     }
 
     /** @param {*} report */

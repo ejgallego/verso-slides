@@ -1,5 +1,7 @@
 """Tests for the optional VIR-backed pretty-printer hook."""
 
+import json
+
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
@@ -691,6 +693,264 @@ class TestPrettyDifferentialCorpus:
         assert repeated_report.locator(".pretty-repeated-workloads tr").count() == 6
         repeated_report.locator(".pretty-corpus-close").click()
         expect(repeated_report).not_to_be_visible()
+
+        expect(controls.locator(".pretty-dashboard-view")).to_be_visible()
+        controls.locator(".pretty-dashboard-view").click()
+        dashboard = page.locator(".pretty-dashboard-overlay")
+        expect(dashboard).to_be_visible()
+        assert dashboard.locator(".pretty-dashboard-card").count() == 4
+        assert dashboard.locator(".pretty-dashboard-overview-chart").count() == 1
+        assert dashboard.locator(".pretty-dashboard-phase-chart").count() == 1
+        assert dashboard.locator(".pretty-dashboard-scaling-chart").count() == 6
+        assert dashboard.locator(".pretty-dashboard-backend input").count() == 5
+        expect(dashboard.locator(".pretty-dashboard-phase")).to_have_value("executeMs")
+        expect(dashboard.locator(".pretty-dashboard-scale")).to_have_value("log")
+        expect(dashboard.locator(".pretty-dashboard-normalization")).to_have_value(
+            "absolute"
+        )
+        dashboard.locator(".pretty-dashboard-phase").select_option("totalMs")
+        expect(dashboard.locator(".pretty-dashboard-content > h3").first).to_contain_text(
+            "Total"
+        )
+        dashboard.locator(".pretty-dashboard-normalization").select_option("fastest")
+        expect(dashboard.locator(".pretty-dashboard-overview-chart")).to_have_attribute(
+            "aria-label", "Backend total comparison with process ranges"
+        )
+        dashboard.locator(".pretty-corpus-close").click()
+        expect(dashboard).not_to_be_visible()
+
+    def test_dashboard_loads_campaign_ranges(self, code_url: str, page: Page):
+        """Recorded campaigns render process ranges, memory, and baseline signals."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        index = page.evaluate("Reveal.getIndices().h")
+        page.goto(f"{code_url}/index.html?prettyControls=1#/{index}")
+        page.wait_for_function(
+            "(i) => window.Reveal && window.Reveal.isReady() && Reveal.getIndices().h === i",
+            arg=index,
+        )
+
+        def stat(value: float) -> dict[str, float | int]:
+            return {
+                "runs": 3,
+                "min": value * 0.8,
+                "median": value,
+                "p95": value * 1.2,
+                "max": value * 1.2,
+                "mean": value,
+                "stdev": value * 0.1,
+                "cv": 0.1,
+            }
+
+        backend_ids = ["js", "native"]
+        labels = {"js": "JS", "native": "Native"}
+        campaign = {
+            "schemaVersion": 1,
+            "kind": "pretty-benchmark-campaign",
+            "generatedAt": "2026-08-02T10:00:00Z",
+            "runCount": 3,
+            "backendIds": backend_ids,
+            "corpus": {
+                backend_id: {
+                    "label": labels[backend_id],
+                    "phases": {
+                        "marshalMs": stat(0.1 if backend_id == "native" else 0.01),
+                        "executeMs": stat(0.2 if backend_id == "native" else 0.02),
+                        "decodeMs": stat(0.05 if backend_id == "native" else 0.001),
+                        "totalMs": stat(0.35 if backend_id == "native" else 0.031),
+                    },
+                }
+                for backend_id in backend_ids
+            },
+            "scaling": {
+                "dimensions": [
+                    {
+                        "id": "text",
+                        "label": "Text volume",
+                        "points": [
+                            {
+                                "size": 8,
+                                "sizeLabel": "8 code points",
+                                "backends": {
+                                    backend_id: {
+                                        phase: stat(value)
+                                        for phase, value in {
+                                            "marshalMs": 0.01,
+                                            "executeMs": 0.02
+                                            if backend_id == "js"
+                                            else 0.2,
+                                            "decodeMs": 0.001,
+                                            "totalMs": 0.031
+                                            if backend_id == "js"
+                                            else 0.211,
+                                        }.items()
+                                    }
+                                    for backend_id in backend_ids
+                                },
+                            }
+                        ],
+                    }
+                ]
+            },
+            "coldStart": {
+                backend_id: {
+                    "label": labels[backend_id],
+                    "startupMs": stat(20 if backend_id == "js" else 40),
+                    "resourceLoadMs": stat(25 if backend_id == "js" else 80),
+                }
+                for backend_id in backend_ids
+            },
+            "memory": {
+                "repeatedCommitted": {
+                    "native": {
+                        "label": "Native",
+                        "observedRuns": 3,
+                        "plateauRuns": 0,
+                        "growthBytes": stat(1_048_576),
+                        "tailGrowthBytes": stat(262_144),
+                    }
+                },
+                "isolatedVirModes": {},
+            },
+            "comparison": {
+                "compatible": True,
+                "corpus": {
+                    backend_id: {
+                        phase: {
+                            "baseline": value,
+                            "candidateMedian": value,
+                            "delta": 0,
+                            "relation": "within-candidate-run-range",
+                        }
+                        for phase, value in {
+                            "marshalMs": 0.01,
+                            "executeMs": 0.02
+                            if backend_id == "js"
+                            else 0.2,
+                            "decodeMs": 0.001,
+                            "totalMs": 0.031 if backend_id == "js" else 0.35,
+                        }.items()
+                    }
+                    for backend_id in backend_ids
+                },
+            },
+        }
+        controls = page.locator(".pretty-controls")
+        controls.locator(".pretty-dashboard-file").set_input_files(
+            {
+                "name": "campaign.json",
+                "mimeType": "application/json",
+                "buffer": json.dumps(campaign).encode(),
+            }
+        )
+        dashboard = page.locator(".pretty-dashboard-overlay")
+        expect(dashboard).to_be_visible()
+        expect(dashboard.locator(".pretty-dashboard-source")).to_contain_text(
+            "3 independent browser processes"
+        )
+        assert dashboard.locator(".pretty-dashboard-range").count() > 0
+        assert dashboard.locator(".pretty-dashboard-scaling-chart").count() == 1
+        assert dashboard.locator(".pretty-dashboard-startup-table tr").count() == 3
+        assert dashboard.locator(".pretty-dashboard-memory-table tr").count() == 2
+        assert dashboard.locator(".pretty-dashboard-baseline-table tr").count() == 3
+        dashboard.locator(".pretty-dashboard-normalization").select_option("fastest")
+        dashboard.locator(".pretty-dashboard-scale").select_option("linear")
+        expect(dashboard.locator(".pretty-dashboard-normalization")).to_have_value("fastest")
+        expect(dashboard.locator(".pretty-dashboard-scale")).to_have_value("linear")
+        dashboard.locator(".pretty-corpus-close").click()
+        expect(dashboard).not_to_be_visible()
+
+    def test_run_suite_opens_consolidated_dashboard(self, code_url: str, page: Page):
+        """The one-click suite runs every study and opens their combined view."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        index = page.evaluate("Reveal.getIndices().h")
+        page.goto(f"{code_url}/index.html?prettyControls=1#/{index}")
+        page.wait_for_function(
+            "(i) => window.Reveal && window.Reveal.isReady() && Reveal.getIndices().h === i",
+            arg=index,
+        )
+        page.evaluate(
+            """() => {
+                const timing = value => ({
+                    samples: 3,
+                    min: value,
+                    median: value,
+                    p95: value,
+                    max: value,
+                    mean: value
+                });
+                const summary = {
+                    id: "js",
+                    label: "JS",
+                    status: "ready",
+                    timing: {
+                        marshalMs: timing(0.01),
+                        executeMs: timing(0.02),
+                        decodeMs: timing(0),
+                        totalMs: timing(0.03)
+                    }
+                };
+                window.__suiteCalls = [];
+                window.runPrettyDifferentialCorpus = async options => {
+                    window.__suiteCalls.push("corpus");
+                    options.onProgress({ completed: 1, total: 1, caseId: "case", width: 40 });
+                    return {
+                        kind: "differential", passed: true, backendIds: ["js"],
+                        summaries: { js: summary }, parityCount: 1, scenarioCount: 1
+                    };
+                };
+                window.runPrettyScalingStudy = async options => {
+                    window.__suiteCalls.push("scaling");
+                    options.onProgress({ completed: 1, total: 1, dimension: "text" });
+                    return {
+                        kind: "scaling", passed: true, backendIds: ["js"],
+                        summaries: { js: summary }, parityCount: 1, scenarioCount: 1,
+                        dimensions: []
+                    };
+                };
+                window.runPrettyMemoryScalingStudy = async options => {
+                    window.__suiteCalls.push("memory");
+                    options.onProgress({ completed: 1, total: 1, dimension: "text" });
+                    return {
+                        kind: "memory-retained", passed: true, backendIds: ["js"],
+                        parityCount: 1, pointCount: 1, dimensions: []
+                    };
+                };
+                window.runPrettyInteractionStudy = async options => {
+                    window.__suiteCalls.push("interactions");
+                    options.onProgress({ completed: 1, total: 1, caseId: "interaction" });
+                    return {
+                        kind: "interactions", passed: true, backendIds: ["js"],
+                        parityCount: 1, scenarioCount: 1, interactions: []
+                    };
+                };
+                window.runPrettyRepeatedCallStudy = async options => {
+                    window.__suiteCalls.push("repeated");
+                    options.onProgress({ completed: 1, total: 1, caseId: "repeat" });
+                    return {
+                        kind: "repeated", passed: true, backendIds: ["js"],
+                        summaries: { js: summary }, totalBackendCalls: 1
+                    };
+                };
+            }"""
+        )
+        controls = page.locator(".pretty-controls")
+        controls.locator("summary").click()
+        controls.locator(".pretty-suite-run").click()
+        dashboard = page.locator(".pretty-dashboard-overlay")
+        expect(dashboard).to_be_visible()
+        assert page.evaluate("window.__suiteCalls") == [
+            "corpus",
+            "scaling",
+            "memory",
+            "interactions",
+            "repeated",
+        ]
+        expect(dashboard.locator(".pretty-dashboard-source")).to_contain_text(
+            "Live retained-page measurements"
+        )
+        expect(dashboard.locator(".pretty-dashboard-card").nth(1)).to_contain_text("4/4")
+        dashboard.locator(".pretty-corpus-close").click()
+        expect(dashboard).not_to_be_visible()
 
 
 class TestPrettyVirComparisonPanel:
