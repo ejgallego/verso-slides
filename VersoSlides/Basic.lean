@@ -33,6 +33,18 @@ output directory) and as the {lit}`href` of the emitted {lit}`<link>` tag, and
 public abbrev CssFile := Verso.Genre.Manual.CssFile
 
 /--
+An ECMAScript module bundled alongside the slideshow.
+
+The {lit}`filename` is used both as the output path (relative to the slideshow
+output directory) and as the {lit}`src` of an emitted
+{lit}`<script type="module">` tag. The {lit}`contents` are written verbatim to
+that path.
+-/
+public structure JsModule where
+  filename : String
+  contents : Verso.Genre.Manual.JS
+
+/--
 A single binary file bundled with a custom theme.
 
 The {lit}`filename` is the output path relative to the slideshow output
@@ -178,7 +190,14 @@ public structure Config where
   extraCss : Array CssFile := #[]
   /-- Extra elements to add to the page's {lit}`head` tag. -/
   extraHead : Array Html := #[]
+  /-- URLs loaded as classic scripts before {lit}`Reveal.initialize`. -/
   extraJs : Array String := #[]
+  /--
+  ECMAScript modules bundled with the presentation and loaded after
+  {lit}`Reveal.initialize` has been called. Modules can await
+  {lit}`window.VersoSlides.ready` before using the Reveal API.
+  -/
+  extraJsModules : Array JsModule := #[]
   /--
   Math prelude evaluated once before any math on the page is rendered.
   Typical contents are {lit}`\def` / {lit}`\newcommand` / {lit}`\gdef`

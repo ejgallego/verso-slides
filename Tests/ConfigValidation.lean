@@ -15,6 +15,10 @@ def dummyAsset (name : String) (body : String := "") : ThemeAsset where
   filename := name
   contents := body.toUTF8
 
+def dummyJs (name : String) (body : String := "") : JsModule where
+  filename := name
+  contents := ⟨body⟩
+
 def dummyBundle (stylesheet : CssFile) (assets : Array ThemeAsset := #[]) : CustomTheme :=
   { stylesheet, assets }
 
@@ -71,6 +75,19 @@ def main : IO UInt32 := do
         extraCss := #[dummyCss "css/a.css"] },
     expectOk "duplicate extraCss filename with identical contents is deduped"
       { extraCss := #[dummyCss "a.css" "body", dummyCss "a.css" "body"] },
+    expectOk "bundled JavaScript modules with unique filenames"
+      { extraJsModules := #[dummyJs "js/a.mjs", dummyJs "js/b.mjs"] },
+    expectOk "duplicate JavaScript module with identical contents is deduped"
+      { extraJsModules := #[dummyJs "demo.mjs" "export {};",
+                            dummyJs "demo.mjs" "export {};"] },
+    expectFail "duplicate JavaScript module with different contents"
+      { extraJsModules := #[dummyJs "demo.mjs" "export const x = 1;",
+                            dummyJs "demo.mjs" "export const x = 2;"] },
+    expectFailMentioning
+      "error message names filename and both sources (CSS vs JavaScript)"
+      { extraCss := #[dummyCss "shared.asset" "same"],
+        extraJsModules := #[dummyJs "shared.asset" "same"] }
+      ["shared.asset", "extraCss", "extraJsModules", "JavaScript module"],
     expectFail "duplicate extraCss filename with different contents"
       { extraCss := #[dummyCss "a.css" "one", dummyCss "a.css" "two"] },
     expectOk "custom theme and extraCss with matching filename and contents"

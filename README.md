@@ -12,7 +12,8 @@ The [demo slides](./Demo.lean) can be seen at
 
 The VIR-backed pretty-printer prototype demo is published at
 <https://x80.org/vir-verso-slides-demo/>. Keep this URL stable for
-comparing the JavaScript, VIR JSON, and VIR `Std.Format` rendering modes.
+comparing the JavaScript, VIR JSON, and VIR `Std.Format` rendering
+modes.
 
 ## Requirements
 
@@ -723,8 +724,33 @@ becomes `data-transition="zoom"`.
   [Custom CSS](#custom-css).
 - `extraJs : Array String` — extra `<script src=…>` tags appended to
   the page.
+- `extraJsModules : Array JsModule` — ECMAScript modules written into
+  the presentation output and loaded after Reveal initialization
+  begins. Each module can await `window.VersoSlides.ready`, then use
+  `window.VersoSlides.reveal` for the initialized Reveal instance.
 - `outputDir : System.FilePath` — where to write `index.html` and the
   vendored assets. Defaults to `_slides`.
+
+For example, a self-contained browser integration can be embedded at
+compile time and initialized without racing Reveal:
+
+```lean
+def editorModule : JsModule where
+  filename := "js/editor.mjs"
+  contents := ⟨include_str "web/editor.mjs"⟩
+
+slidesMain
+  (config := { extraJsModules := #[editorModule] })
+  (doc := %doc MyPresentation)
+```
+
+```javascript
+const { ready, reveal } = window.VersoSlides;
+await ready;
+reveal.on("slidechanged", ({ currentSlide }) => {
+    // Update or pause slide-owned browser state.
+});
+```
 
 ### Auto-Advance
 
@@ -805,11 +831,11 @@ The script expects a lean-vir checkout at `/tmp/lean-vir`, or at
 `npm run build:demo:release`; the script refuses to publish if
 `vir-upstream.wasm` is byte-identical to the debug companion
 `vir-upstream.dev.wasm`. It rebuilds the fixture deck, copies it to
-`_test/vir-code`, generates
-`lib/verso-pretty.irpkg`, copies `vir-upstream.wasm`, bundles the
-lean-vir browser runtime into a single minified
-`lib/lean-vir/js/vir-runtime.js`, and enables the JavaScript, VIR JSON,
-and VIR `Std.Format` comparison panes. To publish the stable demo URL:
+`_test/vir-code`, generates `lib/verso-pretty.irpkg`, copies
+`vir-upstream.wasm`, bundles the lean-vir browser runtime into a
+single minified `lib/lean-vir/js/vir-runtime.js`, and enables the
+JavaScript, VIR JSON, and VIR `Std.Format` comparison panes. To
+publish the stable demo URL:
 
 ```
 scripts/build-vir-pretty-demo.sh --publish

@@ -39,9 +39,19 @@ def hlCustomCss : HighlightTheme where
   filename := "hl/my-hl.css"
   contents := ⟨".hljs { background: #abcdef; }\n"⟩
 
+/-- Browser fixture for bundled modules and the Reveal-ready API. -/
+def markupProbeJs : JsModule where
+  filename := "js/ready-probe.mjs"
+  contents := ⟨
+    "const slides = window.VersoSlides;\n" ++
+    "await slides.ready;\n" ++
+    "document.documentElement.dataset.versoSlidesModule =\n" ++
+    "  slides.reveal.isReady() ? \"ready\" : \"not-ready\";\n"⟩
+
 def main : IO UInt32 := do
   let rc ← slidesMain
     { theme := "black", outputDir := "_test/markup", extraCss := #[markupBannerCss]
+      extraJsModules := #[markupProbeJs]
       mathPrelude := "\\def\\RR{\\mathbb{R}}\n\\newcommand{\\Hom}[2]{\\mathrm{Hom}(#1, #2)}\n" }
     (%doc TestFixtures.Markup)
   if rc != 0 then return rc

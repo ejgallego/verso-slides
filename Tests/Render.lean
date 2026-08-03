@@ -226,3 +226,24 @@ where
     testHtmlHas "extraHead renders module script"
       fullHtml.asString
       s!"<script type=\"module\" src=\"{blueprintRuntime}\"></script>"
+
+    -- ---- Full page: bundled JS modules load after Reveal initialization ----
+    let demoModule : JsModule := {
+      filename := "js/demo.mjs"
+      contents := ⟨"export const demo = true;"⟩
+    }
+    let fullHtml := renderFullHtml
+      { extraJsModules := #[demoModule] }
+      "Deck" (.seq #[])
+    testHtmlHas "extraJsModules renders module script"
+      fullHtml.asString
+      "<script type=\"module\" src=\"js/demo.mjs\"></script>"
+    testHtmlHas "Reveal initialization exposes ready promise"
+      fullHtml.asString
+      "window.VersoSlides = window.VersoSlides || {};"
+    testHtmlHas "Reveal handle is exposed"
+      fullHtml.asString
+      "window.VersoSlides.reveal = Reveal;"
+    testHtmlHas "Reveal ready promise is exposed"
+      fullHtml.asString
+      "window.VersoSlides.ready = Reveal.initialize("

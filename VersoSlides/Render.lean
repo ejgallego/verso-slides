@@ -444,6 +444,8 @@ def renderFullHtml (config : Config) (title : String) (slidesBody : Html) (custo
     {{ <link rel="stylesheet" href={{css.filename}} /> }}
   let extraJsScripts := config.extraJs.map fun url =>
     {{ <script src={{url}}></script> }}
+  let extraJsModuleScripts := config.extraJsModules.map fun js =>
+    {{ <script type="module" src={{js.filename}}></script> }}
   let mathPreludeScripts : Array Html :=
     if config.mathPrelude.isEmpty then #[]
     else
@@ -460,7 +462,9 @@ def renderFullHtml (config : Config) (title : String) (slidesBody : Html) (custo
     | .down     => "() => Reveal.down()"
     | .js code  => code
   let initScript := s!"
-      Reveal.initialize(\{
+      window.VersoSlides = window.VersoSlides || \{};
+      window.VersoSlides.reveal = Reveal;
+      window.VersoSlides.ready = Reveal.initialize(\{
         hash: {jsBool config.hash},
         controls: {jsBool config.controls},
         progress: {jsBool config.progress},
@@ -513,6 +517,7 @@ def renderFullHtml (config : Config) (title : String) (slidesBody : Html) (custo
       <script src={{s!"{libPrefix}/math.js"}}></script>
       {{extraJsScripts}}
       <script>{{Html.text false initScript}}</script>
+      {{extraJsModuleScripts}}
       <script src={{s!"{libPrefix}/marked.min.js"}}></script>
       <script src={{s!"{libPrefix}/popper.js"}}></script>
       <script src={{s!"{libPrefix}/tippy.js"}}></script>
@@ -597,21 +602,25 @@ An entry in the asset plan assembled from a {name}`Config`, keyed by the
 output filename relative to the slideshow output directory.
 
 Entries tagged {lit}`.text` come from a {name}`CssFile` (custom theme
-stylesheet or an {lit}`extraCss` entry). Entries tagged {lit}`.binary` come
-from a {name}`ThemeAsset`. The distinction matters because two payloads at
-the same filename are only compatible if they share both tag and contents.
+stylesheet or an {lit}`extraCss` entry), entries tagged {lit}`.script` come
+from a {name}`JsModule`, and entries tagged {lit}`.binary` come from a
+{name}`ThemeAsset`. The distinction matters because two payloads at the same
+filename are only compatible if they share both tag and contents.
 -/
 private inductive AssetPayload
   | text (body : String)
+  | script (body : String)
   | binary (bytes : ByteArray)
 
 private def AssetPayload.equal : AssetPayload → AssetPayload → Bool
   | .text a, .text b => a == b
+  | .script a, .script b => a == b
   | .binary a, .binary b => a == b
   | _, _ => false
 
 private def AssetPayload.kind : AssetPayload → String
   | .text _ => "text"
+  | .script _ => "JavaScript module"
   | .binary _ => "binary"
 
 /--
@@ -637,8 +646,9 @@ private def recordAsset (seen : Std.HashMap String (String × AssetPayload))
 /--
 Builds the deduplicated asset plan for a {name}`Config`: the custom
 theme's stylesheet (if any), every bundled theme asset, and every
-{lit}`extraCss` entry. When two entries share a filename their contents
-must match; otherwise {name}`IO.userError` is raised.
+{lit}`extraCss` and {lit}`extraJsModules` entry. When two entries share a
+filename their contents must match and have the same kind; otherwise
+{name}`IO.userError` is raised.
 
 Returns the map of filenames to (source, payload) pairs so
 {lit}`slidesMain` can write each file exactly once without
@@ -658,14 +668,37 @@ def Config.collectAssets (config : Config) :
   for css in config.extraCss do
     seen ← recordAsset seen css.filename
       "extraCss" (.text css.contents.css)
+  for js in config.extraJsModules do
+    seen ← recordAsset seen js.filename
+      "extraJsModules" (.script js.contents.js)
   return seen
+
+/-- Write a previously validated asset plan into a slideshow output directory. -/
+private def writeAssetPlan
+    (outputDir : System.FilePath)
+    (assetPlan : Std.HashMap String (String × AssetPayload)) : IO Unit := do
+  for (filename, _source, payload) in assetPlan.toList do
+    match payload with
+    | .text body | .script body => writeFileWithDirs (outputDir / filename) body
+    | .binary bytes => writeBinFileWithDirs (outputDir / filename) bytes
+
+/--
+Validate and write every user-supplied asset in a {name}`Config`.
+
+This is the public asset-emission hook for renderers that extend Verso Slides
+and therefore cannot call {lit}`slidesMain` directly. It writes custom-theme
+files, the highlight theme, {lit}`extraCss`, and {lit}`extraJsModules`, using
+the same collision rules as {lit}`slidesMain`.
+-/
+def Config.writeAssets (config : Config) (outputDir : System.FilePath) : IO Unit := do
+  writeAssetPlan outputDir (← config.collectAssets)
 
 /--
 Checks that every filename supplied through {lit}`Config.theme` (when
-{lit}`.custom`), its bundled assets, and {lit}`extraCss` either is unique
-or is repeated with identical contents. Raises {name}`IO.userError` on
-divergent-contents clashes; duplicates with identical contents are
-silently deduplicated.
+{lit}`.custom`), its bundled assets, {lit}`extraCss`, and
+{lit}`extraJsModules` either is unique or is repeated with identical contents
+and the same kind. Raises {name}`IO.userError` on clashes; compatible
+duplicates are silently deduplicated.
 -/
 def Config.validateFilenames (config : Config) : IO Unit := do
   let _ ← config.collectAssets
@@ -714,10 +747,7 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
   -- Write the user-supplied custom-theme stylesheet, theme assets, and
   -- extraCss entries. The plan has already been deduplicated by filename
   -- (with matching-content duplicates collapsed into a single write).
-  for (filename, _source, payload) in assetPlan.toList do
-    match payload with
-    | .text body => writeFileWithDirs (dir / filename) body
-    | .binary bytes => writeBinFileWithDirs (dir / filename) bytes
+  writeAssetPlan dir assetPlan
 
   -- Copy local images to the output directory
   if !traverseState.imageFiles.isEmpty then
