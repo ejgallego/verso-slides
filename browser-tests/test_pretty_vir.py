@@ -318,6 +318,256 @@ class TestPrettyLlvmBridge:
 
 
 class TestPrettyDifferentialCorpus:
+    def test_report_contract_and_sampling_order(self, code_url: str, page: Page):
+        """Freeze the differential runner contract before extracting its sampling loop."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        result = page.evaluate(
+            """async () => {
+                const calls = [];
+                ["contract-a", "contract-b"].forEach((id, index) => {
+                    registerPrettyBackend({
+                        id,
+                        label: id.toUpperCase(),
+                        status: () => "ready",
+                        renderTimed: () => {
+                            calls.push(id);
+                            return {
+                                segments: index === 0
+                                    ? [
+                                        { text: "ab", tags: [1] },
+                                        { text: "c", tags: [1] }
+                                    ]
+                                    : [{ text: "abc", tags: [1] }],
+                                memory: {
+                                    frontierBefore: index,
+                                    frontierAfterDecode: index + 64
+                                },
+                                timings: {
+                                    marshalMs: index + 0.1,
+                                    executeMs: index + 0.2,
+                                    decodeMs: index + 0.3,
+                                    renderMs: index + 0.4,
+                                    totalMs: index + 1
+                                }
+                            };
+                        }
+                    });
+                });
+                const starts = [];
+                const seenScenarios = [];
+                const progress = [];
+                const corpusCase = {
+                    id: "contract",
+                    label: "Contract case",
+                    origin: "characterization",
+                    dimension: "case-dimension",
+                    format: "ignored"
+                };
+                const report = await runPrettyDifferentialCorpus({
+                    backendIds: ["contract-a", "contract-b"],
+                    scenarios: [{
+                        case: corpusCase,
+                        width: 7,
+                        input: { workUnits: 3 },
+                        dimension: "payload",
+                        dimensionLabel: "Payload",
+                        interaction: "payload-width",
+                        interactionLabel: "Payload × width",
+                        xAxis: "payload",
+                        x: 3,
+                        xLabel: "3 units",
+                        yAxis: "width",
+                        y: 7,
+                        yLabel: "7 columns",
+                        size: 3,
+                        sizeLabel: "small",
+                        repeatRound: 4,
+                        sequenceIndex: 9
+                    }],
+                    warmup: 1,
+                    samples: 2,
+                    batchTargetMs: 0,
+                    profile: false,
+                    onBenchmarkStart: start => starts.push(start),
+                    onScenario: scenario => seenScenarios.push({
+                        caseId: scenario.caseId,
+                        sequenceIndex: scenario.sequenceIndex,
+                        parity: scenario.parity
+                    }),
+                    onProgress: update => progress.push(update)
+                });
+                return {
+                    report,
+                    calls,
+                    starts: starts.map(start => ({
+                        backendIds: start.backendIds,
+                        hasMemory: !!start.memory
+                    })),
+                    seenScenarios,
+                    progress
+                };
+            }"""
+        )
+
+        report = result["report"]
+        assert set(report) == {
+            "schemaVersion",
+            "kind",
+            "startedAt",
+            "generatedAt",
+            "backendReadyWaitMs",
+            "profileBeforeMs",
+            "benchmarkMs",
+            "profileMs",
+            "durationMs",
+            "warmup",
+            "samples",
+            "batchTargetMs",
+            "maxBatchIterations",
+            "batchMemoryBudgetBytes",
+            "widths",
+            "cases",
+            "backendIds",
+            "scenarioCount",
+            "parityCount",
+            "passed",
+            "unavailable",
+            "mismatches",
+            "summaries",
+            "scenarios",
+            "runtimeProfileBefore",
+            "runtimeProfile",
+        }
+        assert report["schemaVersion"] == 2
+        assert report["kind"] == "differential"
+        assert report["backendIds"] == ["contract-a", "contract-b"]
+        assert report["widths"] == [7]
+        assert report["cases"] == [
+            {"id": "contract", "label": "Contract case", "origin": "characterization"}
+        ]
+        assert report["scenarioCount"] == report["parityCount"] == 1
+        assert report["passed"]
+        assert report["unavailable"] == report["mismatches"] == []
+        assert report["runtimeProfileBefore"] is report["runtimeProfile"] is None
+
+        scenario = report["scenarios"][0]
+        assert set(scenario) == {
+            "caseId",
+            "label",
+            "origin",
+            "width",
+            "input",
+            "dimension",
+            "dimensionLabel",
+            "interaction",
+            "interactionLabel",
+            "xAxis",
+            "x",
+            "xLabel",
+            "yAxis",
+            "y",
+            "yLabel",
+            "size",
+            "sizeLabel",
+            "repeatRound",
+            "sequenceIndex",
+            "output",
+            "parity",
+            "backends",
+        }
+        assert scenario["input"] == {"workUnits": 3}
+        assert scenario["dimension"] == "payload"
+        assert scenario["interaction"] == "payload-width"
+        assert scenario["x"] == scenario["size"] == 3
+        assert scenario["y"] == scenario["width"] == 7
+        assert scenario["repeatRound"] == 4
+        assert scenario["sequenceIndex"] == 9
+        assert scenario["output"] == {
+            "textCodePoints": 3,
+            "textBytes": 3,
+            "segments": 1,
+            "lineBreaks": 0,
+            "lines": 1,
+            "maxTagDepth": 1,
+            "tagTransitions": 2,
+        }
+
+        backend_result_keys = {
+            "segments",
+            "signature",
+            "output",
+            "stable",
+            "errors",
+            "timings",
+            "memorySamples",
+            "batchIterations",
+            "batchResidentBytesPerCall",
+            "batchLimitReason",
+            "invocations",
+            "summary",
+        }
+        for backend_id in report["backendIds"]:
+            backend = scenario["backends"][backend_id]
+            assert set(backend) == backend_result_keys
+            assert backend["segments"] == [{"text": "abc", "tags": [1]}]
+            assert backend["signature"] == '[{"text":"abc","tags":[1]}]'
+            assert backend["stable"]
+            assert backend["errors"] == []
+            assert backend["batchIterations"] == 1
+            assert backend["batchResidentBytesPerCall"] is None
+            assert backend["batchLimitReason"] is None
+            assert backend["invocations"] == 2
+            assert len(backend["timings"]) == 2
+            assert len(backend["memorySamples"]) == 2
+            assert set(backend["timings"][0]) == {
+                "marshalMs",
+                "executeMs",
+                "decodeMs",
+                "renderMs",
+                "totalMs",
+                "batchIterations",
+                "batchWallMs",
+            }
+            assert set(backend["summary"]) == {
+                "marshalMs",
+                "executeMs",
+                "decodeMs",
+                "renderMs",
+                "totalMs",
+            }
+            assert set(report["summaries"][backend_id]) == {
+                "id",
+                "label",
+                "status",
+                "invocations",
+                "timing",
+            }
+
+        assert result["calls"] == [
+            "contract-a",
+            "contract-b",
+            "contract-a",
+            "contract-b",
+            "contract-b",
+            "contract-a",
+        ]
+        assert result["starts"] == [
+            {"backendIds": ["contract-a", "contract-b"], "hasMemory": True}
+        ]
+        assert result["seenScenarios"] == [
+            {"caseId": "contract", "sequenceIndex": 9, "parity": True}
+        ]
+        assert result["progress"] == [
+            {
+                "completed": 1,
+                "total": 1,
+                "caseId": "contract",
+                "width": 7,
+                "dimension": "payload",
+                "size": 3,
+            }
+        ]
+
     def test_five_backend_corpus_canonicalizes_segments_and_reports_timings(
         self, code_url: str, page: Page
     ):
