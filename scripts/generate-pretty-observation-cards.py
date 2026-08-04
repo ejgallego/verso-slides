@@ -108,13 +108,20 @@ def provenance_lines(
     ]
 
 
-def card_header(card_id: str, audience: str, title: str, summary: str) -> list[str]:
+def card_header(
+    card_id: str,
+    audience: str,
+    title: str,
+    summary: str,
+    status: str = "observed; needs owner-side profiling",
+    priority: str = "performance follow-up",
+) -> list[str]:
     return [
         f"# {card_id}: {title}",
         "",
         f"- Audience: {audience}",
-        "- Status: observed; needs owner-side profiling",
-        "- Priority: performance follow-up",
+        f"- Status: {status}",
+        f"- Priority: {priority}",
         "",
         "## Forwardable summary",
         "",
@@ -174,6 +181,8 @@ def json_boundary_card(
             "The JSON route should be treated as a compatibility path, not as the VIR "
             "compiler-performance baseline."
         ),
+        status="characterized; interface trade-off recorded",
+        priority="no immediate follow-up",
     )
     lines += [
         "## Evidence",
@@ -265,24 +274,19 @@ def json_boundary_card(
             "segment construction. Its remaining execute phase is the string ABI, "
             "Lean `Json.parse`/`Json.compress`, envelope construction, and VIR "
             "execution. The persistent gap therefore is not specific to the pretty "
-            "printer.",
+            "printer. This control was requested to characterize the cost of a simple "
+            "string-to-string interface relative to the lower-level object ABI; it is "
+            "not being treated as a performance regression.",
         ]
     lines += [
         "",
-        "## Requested follow-up",
+        "## Decision",
         "",
         "- Use the direct `Std.Format` route as the VIR performance baseline.",
-    ]
-    if json_round_trip:
-        lines += [
-            "- Profile the independent JSON round-trip control first; it is the "
-            "smallest reproduction and removes pretty-printer work.",
-        ]
-    lines += [
-        "- Add owner-side timings or counters around argument import, JSON parsing and "
-        "format construction, `prettyM`, result export, and JSON serialization.",
-        "- If JSON remains a supported route, investigate a compact binary or typed "
-        "boundary and compare it against the direct-object ABI.",
+        "- Keep the JSON route as the deliberately simpler string-to-string option "
+        "for consumers that accept its expected parsing and serialization cost.",
+        "- Do not spend further profiling or optimization effort on this experiment "
+        "without a concrete JSON-boundary use case or ABI proposal.",
         "",
         "## Caveats",
         "",

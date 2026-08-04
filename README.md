@@ -1028,14 +1028,18 @@ axis. It has no controls, dashboard, campaign format, or backend-specific
 memory study. Regenerate `verso-pretty.irpkg` before using its VIR candidate;
 the package must export `VersoSlides.Pretty.jsonRoundTripJsonForVir`.
 
-The possible VIR-upstream boundary is intentionally narrow. The interleaved
+The VIR-upstream boundary is intentionally narrow. The regenerated package now
+runs both `prettyM` and a non-pretty JSON study through the same interleaved
 warm-up/sample loop, adaptive batching, stability/parity checks, and phase
-distribution primitives can move together after the regenerated package runs
-both `prettyM` and JSON studies. The pretty/JSON corpora and adapters, report
-schemas, artifact orchestration, memory probes, dashboard, campaigns, and
-observation cards remain demo-owned. Until that two-function check is real,
-the sampler stays an internal function in `pretty.js`; there is no separate
-benchmark package or public configuration framework.
+distribution primitives. This satisfies the reuse check; the JSON ABI study is
+otherwise complete and is not proposed as an upstream benchmark. A small
+[lean-vir handoff bundle](handoffs/lean-vir-benchmark-sampler/README.md)
+contains the source map, a schema-neutral reference implementation, contract
+tests, and an integration task. The first upstream patch should retain VIR's
+fixed iteration counts and `lean-vir.bench.v1` schema. The pretty/JSON corpora
+and adapters, artifact orchestration, memory probes, dashboard, campaigns, and
+observation cards remain demo-owned; there is still no public benchmark plugin
+or configuration framework.
 
 To turn the latest report into self-contained, forwardable performance
 observation cards for compiler and runtime owners, run:

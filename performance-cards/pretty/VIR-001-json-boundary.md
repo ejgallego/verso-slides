@@ -1,8 +1,8 @@
 # VIR-001: the JSON boundary dominates VIR pretty-print time
 
 - Audience: lean-vir runtime and browser ABI owners
-- Status: observed; needs owner-side profiling
-- Priority: performance follow-up
+- Status: characterized; interface trade-off recorded
+- Priority: no immediate follow-up
 
 ## Forwardable summary
 
@@ -48,14 +48,13 @@ This control passed exact semantic parity at 7/7 points.
 
 The browser's `marshalMs` includes `JSON.stringify`, and `decodeMs` includes the final `JSON.parse` and segment validation. The much larger difference is inside `executeMs`: `runtime.call` plus Lean-side JSON parsing, recursive `Std.Format` construction, `prettyM`, result JSON construction, compression, and runtime return conversion. This card does not attribute the cost to one of those operations; the current boundary does not expose that split.
 
-The independent JSON control removes format decoding, `prettyM`, and segment construction. Its remaining execute phase is the string ABI, Lean `Json.parse`/`Json.compress`, envelope construction, and VIR execution. The persistent gap therefore is not specific to the pretty printer.
+The independent JSON control removes format decoding, `prettyM`, and segment construction. Its remaining execute phase is the string ABI, Lean `Json.parse`/`Json.compress`, envelope construction, and VIR execution. The persistent gap therefore is not specific to the pretty printer. This control was requested to characterize the cost of a simple string-to-string interface relative to the lower-level object ABI; it is not being treated as a performance regression.
 
-## Requested follow-up
+## Decision
 
 - Use the direct `Std.Format` route as the VIR performance baseline.
-- Profile the independent JSON round-trip control first; it is the smallest reproduction and removes pretty-printer work.
-- Add owner-side timings or counters around argument import, JSON parsing and format construction, `prettyM`, result export, and JSON serialization.
-- If JSON remains a supported route, investigate a compact binary or typed boundary and compare it against the direct-object ABI.
+- Keep the JSON route as the deliberately simpler string-to-string option for consumers that accept its expected parsing and serialization cost.
+- Do not spend further profiling or optimization effort on this experiment without a concrete JSON-boundary use case or ABI proposal.
 
 ## Caveats
 
