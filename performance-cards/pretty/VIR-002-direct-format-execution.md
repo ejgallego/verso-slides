@@ -6,7 +6,7 @@
 
 ## Forwardable summary
 
-> The direct VIR `Std.Format` ABI removes most boundary overhead and keeps representative-corpus median total latency at 0.155 ms. Its measured execute phase is nevertheless 5.1×–16.3× slower than FIR-native Wasm across the six large scaling endpoints, with the largest interaction gap on nested tags and output transitions.
+> The direct VIR `Std.Format` ABI removes most boundary overhead and keeps representative-corpus median total latency at 0.435 ms. Its measured execute phase is nevertheless 6.0×–18.3× slower than FIR-native Wasm across the six large scaling endpoints, with the largest interaction gap on nested tags and output transitions.
 
 ## Evidence
 
@@ -14,29 +14,29 @@ Representative corpus (1,620 timed invocations per backend):
 
 | Backend | Execute median | Execute p95 | Total median | Total p95 |
 | --- | ---: | ---: | ---: | ---: |
-| VIR Format | 0.155 ms | 0.590 ms | 0.155 ms | 0.590 ms |
-| Native | 0.015 ms | 0.090 ms | 0.045 ms | 0.240 ms |
-| LLVM | 0.025 ms | 0.110 ms | 0.040 ms | 0.195 ms |
+| VIR Format | 0.425 ms | 4.070 ms | 0.435 ms | 4.095 ms |
+| Native | 0.050 ms | 0.520 ms | 0.195 ms | 1.685 ms |
+| LLVM | 0.080 ms | 0.760 ms | 0.150 ms | 1.450 ms |
 
 Largest point in each one-dimensional scaling study:
 
 | Dimension | Endpoint | VIR execute | VIR / Native execute | VIR / LLVM execute | VIR / Native total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Text volume | 8192 code points | 0.071 ms | 5.6× | 0.9× | 2.0× |
-| Format nodes | 2047 nodes | 3.683 ms | 10.4× | 4.1× | 1.9× |
-| Nesting depth | 256 levels | 0.760 ms | 13.8× | 2.3× | 4.2× |
-| Break opportunities | 256 lines | 4.384 ms | 5.1× | 5.0× | 1.8× |
-| Tag depth | 256 tags | 0.980 ms | 16.3× | 2.1× | 2.6× |
-| Width budget | 160 columns | 1.091 ms | 5.6× | 4.8× | 1.7× |
+| Text volume | 8192 code points | 0.153 ms | 7.3× | 0.6× | 2.7× |
+| Format nodes | 2047 nodes | 24.495 ms | 18.3× | 4.8× | 2.7× |
+| Nesting depth | 256 levels | 4.737 ms | 11.7× | 2.9× | 3.6× |
+| Break opportunities | 256 lines | 26.390 ms | 16.9× | 4.9× | 4.2× |
+| Tag depth | 256 tags | 4.875 ms | 11.1× | 2.0× | 2.0× |
+| Width budget | 160 columns | 2.799 ms | 6.0× | 5.1× | 1.9× |
 
 Interaction endpoints:
 
 | Interaction | Endpoint | VIR execute | VIR / Native execute | VIR / Native total |
 | --- | --- | ---: | ---: | ---: |
-| Breaks × width | 256 breaks × 128 columns | 4.066 ms | 5.4× | 1.6× |
-| Nodes × depth | 512 leaves × 128 levels | 3.489 ms | 9.3× | 1.0× |
-| Tag depth × output transitions | 64 tags × 64 chunks | 15.845 ms | 16.6× | 2.2× |
-| Input bytes × output expansion | 8192 B input × 64 columns | 0.269 ms | 2.2× | 0.8× |
+| Breaks × width | 256 breaks × 128 columns | 31.630 ms | 28.8× | 5.0× |
+| Nodes × depth | 512 leaves × 128 levels | 18.230 ms | 30.1× | 4.6× |
+| Tag depth × output transitions | 64 tags × 64 chunks | 77.110 ms | 11.3× | 2.1× |
+| Input bytes × output expansion | 8192 B input × 64 columns | 0.905 ms | 2.8× | 1.1× |
 
 The end-to-end gap is smaller than the execute-only gap because the direct VIR bridge has very low separately measured marshal/decode cost, while the native and LLVM adapters perform explicit encoding and decoding.
 
@@ -44,7 +44,7 @@ The end-to-end gap is smaller than the execute-only gap because the direct VIR b
 
 `VIR Format` is the right path for interactive use, but its `executeMs` is still a user-visible `runtime.call` measurement. It includes importing the JavaScript `Std.Format` object, executing `formatSegmentsForVir`/`prettyM`, allocating the `StateM` arrays and strings, and exporting the segment array. The current harness cannot decide whether the gap belongs to VIR codegen, the runtime object ABI, allocation/GC, or the formatter implementation.
 
-The 64-tag × 64-chunk endpoint is the clearest profiling target: direct VIR takes 15.845 ms execute / 16.375 ms total, versus native at 0.955 ms execute / 7.345 ms total. The total-time result also shows why optimizing only core execution is insufficient: output transport remains material for all backends.
+The 64-tag × 64-chunk endpoint is the clearest profiling target: direct VIR takes 77.110 ms execute / 78.775 ms total, versus native at 6.795 ms execute / 37.965 ms total. The total-time result also shows why optimizing only core execution is insufficient: output transport remains material for all backends.
 
 ## Requested follow-up
 
@@ -62,13 +62,13 @@ The 64-tag × 64-chunk endpoint is the clearest profiling target: direct VIR tak
 ## Measurement context
 
 - Report: `_test/pretty-reports/pretty-benchmark.json`
-- Report generated: `2026-08-02T08:12:50.674Z`
-- Report SHA-256: `d6dcd8587f5061a7175641b9f68dd438f28e1a90b5e4fa7cbd9e7f1168825bf1`
+- Report generated: `2026-08-04T12:42:52.505Z`
+- Report SHA-256: `776f55b78fa5823e70c69719068fd659a67bc8b04aa3da9e1716ba6c1c672cdb`
 - Lean: `4.32.0` (`8c9756b28d64dab099da31a4c09229a9e6a2ef35`)
 - VIR Wasm: `bdedea22f964def5e013d695c6b1fd3a3764653e5d8e6ce55fb81ccbfae9ea3d` (617,363 bytes)
-- IR package: `96cff29ebd4dbbdaaf70a982e42f636248950519028c857fd6d2abba1132dd3b` (350,542 bytes)
+- IR package: `9f00af81f33e7f2fa343952c755108cc9bab2471fddf0a1b52a23d62783138ed` (352,863 bytes)
 - Browser: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36`
-- VIR cold start (5 fresh contexts): 44.280 ms median / 52.985 ms p95; resource-load wall 126.605 ms median
+- VIR cold start (5 fresh contexts): 211.980 ms median / 275.130 ms p95; resource-load wall 561.840 ms median
 - Correctness: `180/180` corpus scenarios passed; scaling and interaction parity passed
 - Scaling protocol: 9 logical samples, 2 warm-ups, adaptive batches targeting 20 ms, capped at 512 calls
 

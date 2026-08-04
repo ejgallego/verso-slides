@@ -1017,7 +1017,9 @@ uv run --project browser-tests python scripts/check-vir-pretty-demo.py
 The checker uses five fresh browser contexts for cold-start statistics
 and writes the complete report to
 `_test/pretty-reports/pretty-benchmark.json`. Both scripts reject
-filesystem paths outside this workspace.
+filesystem paths outside this workspace. It also runs the unbatched JSON
+round-trip control with the scaling study's warm-up and sample counts, stores
+it under `jsonRoundTrip`, and includes its parity result in the exit status.
 
 The browser harness now has one deliberately small non-pretty consumer:
 `runJsonRoundTripStudy` compares JSON parse-and-compact-serialize in

@@ -161,6 +161,7 @@ def json_boundary_card(
     )["points"][-1]
     tags_json = tags["backends"]["vir"]["summary"]["executeMs"]["median"]
     tags_direct = tags["backends"][direct]["summary"]["executeMs"]["median"]
+    json_round_trip = report.get("jsonRoundTrip")
     lines = card_header(
         "VIR-001",
         "lean-vir runtime and browser ABI owners",
@@ -218,6 +219,35 @@ def json_boundary_card(
         "through JSON versus "
         f"{milliseconds(tags_direct)} ms "
         "through the direct entry point.",
+    ]
+    if json_round_trip:
+        lines += [
+            "",
+            "Independent JSON parse-and-compact control (no `Std.Format` construction "
+            "or `prettyM`):",
+            "",
+            "| Payload | Bytes | JS execute | VIR execute | VIR / JS |",
+            "| ---: | ---: | ---: | ---: | ---: |",
+        ]
+        for point in json_round_trip["dimension"]["points"]:
+            js_value = point["candidates"]["js"]["summary"]["executeMs"][
+                "median"
+            ]
+            vir_value = point["candidates"]["vir"]["summary"]["executeMs"][
+                "median"
+            ]
+            lines.append(
+                f"| {point['sizeLabel']} | {point['input']['jsonBytes']:,} | "
+                f"{milliseconds(js_value)} ms | {milliseconds(vir_value)} ms | "
+                f"{ratio(vir_value, js_value)} |"
+            )
+        lines += [
+            "",
+            f"This control passed exact semantic parity at "
+            f"{json_round_trip['parityCount']}/{json_round_trip['pointCount']} points.",
+        ]
+
+    lines += [
         "",
         "## Interpretation",
         "",
@@ -227,10 +257,28 @@ def json_boundary_card(
         "`Std.Format` construction, `prettyM`, result JSON construction, compression, "
         "and runtime return conversion. This card does not attribute the cost to one "
         "of those operations; the current boundary does not expose that split.",
+    ]
+    if json_round_trip:
+        lines += [
+            "",
+            "The independent JSON control removes format decoding, `prettyM`, and "
+            "segment construction. Its remaining execute phase is the string ABI, "
+            "Lean `Json.parse`/`Json.compress`, envelope construction, and VIR "
+            "execution. The persistent gap therefore is not specific to the pretty "
+            "printer.",
+        ]
+    lines += [
         "",
         "## Requested follow-up",
         "",
         "- Use the direct `Std.Format` route as the VIR performance baseline.",
+    ]
+    if json_round_trip:
+        lines += [
+            "- Profile the independent JSON round-trip control first; it is the "
+            "smallest reproduction and removes pretty-printer work.",
+        ]
+    lines += [
         "- Add owner-side timings or counters around argument import, JSON parsing and "
         "format construction, `prettyM`, result export, and JSON serialization.",
         "- If JSON remains a supported route, investigate a compact binary or typed "
@@ -240,6 +288,14 @@ def json_boundary_card(
         "",
         "- These are warmed, adaptively batched browser medians, not pure Wasm "
         "instruction counts.",
+    ]
+    if json_round_trip:
+        lines += [
+            f"- The independent JSON control uses {json_round_trip['samples']} logical "
+            f"samples and {json_round_trip['warmup']} warm-ups with batching disabled; "
+            "its sub-millisecond JavaScript medians are timer-resolution-sensitive.",
+        ]
+    lines += [
         "- Both VIR modes share one runtime and artifact, which makes their relative "
         "comparison strong but prevents independent memory attribution.",
         "- Exact output parity passed at every reported scaling and interaction point.",
@@ -613,6 +669,8 @@ def validate_report(report: dict[str, Any]) -> None:
     for study in ("scaling", "memory", "interactions", "repeated"):
         if not report.get(study, {}).get("passed"):
             raise SystemExit(f"refusing to generate cards from failed {study} study")
+    if "jsonRoundTrip" in report and not report["jsonRoundTrip"].get("passed"):
+        raise SystemExit("refusing to generate cards from failed JSON round-trip study")
 
 
 def main() -> int:

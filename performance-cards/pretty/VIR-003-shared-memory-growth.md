@@ -6,19 +6,19 @@
 
 ## Forwardable summary
 
-> The shared VIR runtime starts with 4.00 MiB committed and ends the full suite at 94.50 MiB. In separate fresh runtimes, VIR JSON grew by 3.06 MiB over 160 calls; VIR Format grew by 0.00 MiB over 160 calls. Current telemetry exposes committed pages only, so this is a high-water/retention observation—not evidence of a live-memory leak.
+> The shared VIR runtime starts with 4.00 MiB committed and ends the full suite at 65.56 MiB. In separate fresh runtimes, VIR JSON grew by 3.06 MiB over 160 calls; VIR Format grew by 0.00 MiB over 160 calls. Current telemetry exposes committed pages only, so this is a high-water/retention observation—not evidence of a live-memory leak.
 
 ## Evidence
 
 | Observation window | Calls into shared VIR runtime | Before | After | Growth |
 | --- | ---: | ---: | ---: | ---: |
-| Retained one-call scaling study | 64 | 52.44 MiB | 54.62 MiB | 2.19 MiB |
-| Repeated-call study | 320 | 90.56 MiB | 94.50 MiB | 3.94 MiB |
+| Retained one-call scaling study | 64 | 34.00 MiB | 36.19 MiB | 2.19 MiB |
+| Repeated-call study | 320 | 61.62 MiB | 65.56 MiB | 3.94 MiB |
 | Fresh runtime · VIR JSON | 160 | 4.00 MiB | 7.06 MiB | 3.06 MiB (growing in tail; 0.81 MiB over final 8 cycles) |
 | Fresh runtime · VIR Format | 160 | 4.00 MiB | 4.00 MiB | 0.00 MiB (tail plateau; 0.00 MiB over final 8 cycles) |
 
 - Fresh-context committed memory after initialization: 4.00 MiB.
-- Committed memory after the complete benchmark sequence: 94.50 MiB.
+- Committed memory after the complete benchmark sequence: 65.56 MiB.
 - `VIR JSON` and `VIR Format` report the same `vir-runtime` memory group; their figures must not be added together.
 - All 800 calls in the five-backend repeated study preserved output stability; the shared VIR runtime received 160 JSON calls and 160 direct-Format calls.
 
@@ -46,13 +46,13 @@ The fresh-runtime JSON and direct-Format traces remove cross-mode contamination.
 ## Measurement context
 
 - Report: `_test/pretty-reports/pretty-benchmark.json`
-- Report generated: `2026-08-02T08:12:50.674Z`
-- Report SHA-256: `d6dcd8587f5061a7175641b9f68dd438f28e1a90b5e4fa7cbd9e7f1168825bf1`
+- Report generated: `2026-08-04T12:42:52.505Z`
+- Report SHA-256: `776f55b78fa5823e70c69719068fd659a67bc8b04aa3da9e1716ba6c1c672cdb`
 - Lean: `4.32.0` (`8c9756b28d64dab099da31a4c09229a9e6a2ef35`)
 - VIR Wasm: `bdedea22f964def5e013d695c6b1fd3a3764653e5d8e6ce55fb81ccbfae9ea3d` (617,363 bytes)
-- IR package: `96cff29ebd4dbbdaaf70a982e42f636248950519028c857fd6d2abba1132dd3b` (350,542 bytes)
+- IR package: `9f00af81f33e7f2fa343952c755108cc9bab2471fddf0a1b52a23d62783138ed` (352,863 bytes)
 - Browser: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36`
-- VIR cold start (5 fresh contexts): 44.280 ms median / 52.985 ms p95; resource-load wall 126.605 ms median
+- VIR cold start (5 fresh contexts): 211.980 ms median / 275.130 ms p95; resource-load wall 561.840 ms median
 - Correctness: `180/180` corpus scenarios passed; scaling and interaction parity passed
 - Scaling protocol: 9 logical samples, 2 warm-ups, adaptive batches targeting 20 ms, capped at 512 calls
 

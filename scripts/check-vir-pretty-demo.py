@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run correctness, startup, scaling, memory, interaction, and repeat studies."""
+"""Run correctness, startup, scaling, memory, interaction, repeat, and JSON studies."""
 
 import argparse
 import json
@@ -78,6 +78,7 @@ def wait_for_backends(page: Page, url: str) -> None:
             typeof runPrettyMemoryScalingPoint === "function" &&
             typeof runPrettyMemoryScalingStudy === "function" &&
             typeof runPrettyInteractionStudy === "function" &&
+            typeof runJsonRoundTripStudy === "function" &&
             typeof collectPrettyMemorySnapshot === "function" &&
             typeof collectPrettyRuntimeProfile === "function" &&
             typeof getPrettyBackends === "function" &&
@@ -415,6 +416,26 @@ def print_repeated_table(repeated: dict[str, Any]) -> None:
             )
 
 
+def print_json_round_trip_table(report: dict[str, Any]) -> None:
+    print(
+        f"\nJSON round trip: {report['parityCount']}/{report['pointCount']} "
+        "points agree"
+    )
+    print("payload        bytes   JS execute  VIR execute  VIR / JS")
+    for point in report["dimension"]["points"]:
+        js_ms = point["candidates"]["js"]["summary"]["executeMs"]["median"]
+        vir_ms = point["candidates"]["vir"]["summary"]["executeMs"]["median"]
+        ratio = vir_ms / js_ms if js_ms > 0 else math.inf
+        ratio_text = f"{ratio:.1f}×" if math.isfinite(ratio) else "—"
+        print(
+            f"{point['sizeLabel']:<12}"
+            f"{point['input']['jsonBytes']:>8}  "
+            f"{timing(js_ms):>10}  "
+            f"{timing(vir_ms):>11}  "
+            f"{ratio_text:>8}"
+        )
+
+
 def main() -> int:
     args = parse_args()
     if args.cold_runs < 1:
@@ -457,13 +478,20 @@ def main() -> int:
                 const repeated = await runPrettyRepeatedCallStudy({
                     cycles: options.repeatCycles
                 });
+                const postRunProfile = await collectPrettyRuntimeProfile();
+                const jsonRoundTrip = await runJsonRoundTripStudy({
+                    warmup: options.scalingWarmup,
+                    samples: options.scalingSamples,
+                    batchTargetMs: 0
+                });
                 return {
                     corpus,
                     scaling,
                     memory,
                     interactions,
                     repeated,
-                    postRunProfile: await collectPrettyRuntimeProfile()
+                    jsonRoundTrip,
+                    postRunProfile
                 };
             }""",
             {
@@ -514,6 +542,7 @@ def main() -> int:
     corpus["memory"] = memory
     corpus["interactions"] = interactions
     corpus["repeated"] = repeated
+    corpus["jsonRoundTrip"] = results["jsonRoundTrip"]
     corpus["postRunProfile"] = results["postRunProfile"]
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(corpus, indent=2, ensure_ascii=False) + "\n")
@@ -534,12 +563,14 @@ def main() -> int:
         print_memory_table(isolated_memory, "fresh context")
     print_interaction_table(interactions)
     print_repeated_table(repeated)
+    print_json_round_trip_table(corpus["jsonRoundTrip"])
     all_mismatches = (
         corpus["mismatches"]
         + scaling["mismatches"]
         + memory["mismatches"]
         + interactions["mismatches"]
         + repeated["mismatches"]
+        + corpus["jsonRoundTrip"]["mismatches"]
         + (
             []
             if isolated_repeats is None
@@ -554,7 +585,10 @@ def main() -> int:
     if all_mismatches:
         print("mismatches:")
         for mismatch in all_mismatches:
-            print(f"  {mismatch['caseId']} @ {mismatch['width']} columns")
+            where = (
+                f" @ {mismatch['width']} columns" if "width" in mismatch else ""
+            )
+            print(f"  {mismatch['caseId']}{where}")
             for backend_id, errors in mismatch.get("backendErrors", {}).items():
                 for error in errors:
                     print(f"    {backend_id}: {error}")
@@ -565,6 +599,7 @@ def main() -> int:
         and memory["passed"]
         and interactions["passed"]
         and repeated["passed"]
+        and corpus["jsonRoundTrip"]["passed"]
     )
     isolated_passed = (isolated_repeats is None or isolated_repeats["passed"]) and (
         isolated_memory is None or isolated_memory["passed"]
