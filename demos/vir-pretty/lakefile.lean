@@ -2,8 +2,9 @@ import Lake
 
 open Lake DSL
 
-require «verso-slides» from git
-  "https://github.com/leanprover/verso-slides.git" @ "v4.32.0"
+-- During upstream development this points at the containing checkout. Once
+-- `Config.panelPlugins` is released, this becomes the corresponding git tag.
+require «verso-slides» from "../.."
 
 package «vir-pretty-demo» where
   version := v!"0.1.0"

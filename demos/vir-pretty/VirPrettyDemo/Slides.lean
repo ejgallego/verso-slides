@@ -1,31 +1,206 @@
-import VirPrettyDemo.Extension
+/-
+Copyright (c) 2026 Lean FRO LLC. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Author: David Thrane Christiansen
+-/
+import VersoSlides
+import Verso.Doc.Concrete
 
 open VersoSlides
 
-namespace VirPrettyDemo
+#doc (Slides) "Lean prettyM backend demo" =>
 
-#doc (Slides) "Lean prettyM across five WebAssembly backends" =>
+# Dark Code
 
-# One formatter, five execution paths
+```lean
+def hello : IO Unit := do
+  IO.println "Hello from VersoSlides!"
+```
 
-The same compact `Std.Format` input is rendered with the same column budget and
-compared as a tagged segment stream.
+```lean -stretch
+#check hello
+```
 
-:::virPrettyDemo
-:::
+# Stretch Default
 
-# What this isolates
+```lean
+def stretchedDef : Nat := 1
+```
 
-- JavaScript is the browser reference implementation.
-- VIR JSON includes the string boundary; VIR direct calls the typed format ABI.
-- Native is FIR's compiler-generated Lean-to-Wasm artifact.
-- LLVM is the Emscripten-produced Wasm artifact.
-- Hover any timing to inspect marshal, execute, decode, render, and total time.
+# Stretch Off
 
-# Standalone by construction
+```lean -stretch
+def unstretchedDef : Nat := 1
+```
 
-This deck depends on the unmodified `v4.32.0` release of Verso Slides. Its
-directive, stylesheet, application code, adapters, artifacts, benchmarks, and
-charts all live in the demo package.
+# Light Code
+%%%
+backgroundColor := some "#f5f5f5"
+%%%
 
-end VirPrettyDemo
+```lean
+def greet (name : String) : String :=
+  s!"Hello, {name}!"
+
+#eval greet "Lean"
+```
+
+# Proof
+
+```lean
+theorem and_comm_ex (p q : Prop) (h : p ∧ q) : q ∧ p := by
+  obtain ⟨hp, hq⟩ := h
+  exact ⟨hq, hp⟩
+```
+
+# Nested Tactic
+
+```lean
+example : a = b → b = c → c = d → d = e → a = e := by
+  intro h1 h2 h3 h4
+  rw [h1, h2, h3, ←h4]
+```
+
+# Obtain State
+
+```lean
+/-- A prime is a number larger than 1 with no trivial divisors -/
+def IsPrime (n : Nat) := 1 < n ∧ ∀ k, 1 < k → k < n → ¬ k ∣ n
+
+/-- Every number larger than 1 has a prime factor -/
+theorem exists_prime_factor :
+    ∀ n, 1 < n → ∃ k, IsPrime k ∧ k ∣ n := by
+  intro n h1
+  -- Either `n` is prime...
+  by_cases hprime : IsPrime n
+  · grind [Nat.dvd_refl]
+  -- ... or it has a non-trivial divisor with a prime factor
+  · obtain ⟨k, _⟩ : ∃ k, 1 < k ∧ k < n ∧ k ∣ n := by
+      simp_all [IsPrime]
+    obtain ⟨p, _, _⟩ := exists_prime_factor k (by grind)
+    grind [Nat.dvd_trans]
+```
+
+# Inline Lean
+
+The function {lean}`hello` was defined above.
+Also try {lean}`Nat.add`.
+
+# Fragment Effects
+
+```lean
+-- !fragment grow
+def growDef : Nat := 1
+-- !fragment highlight-current-red
+def redDef : Nat := 2
+```
+
+# No Panel
+
+```lean -panel
+def noPanelDef : Nat := 99
+```
+
+# Replace
+
+```lean
+def replaced : Nat :=
+  /- !replace ... -/ List.length [1, 2, 3] /- !end replace -/
+```
+
+# Comments
+
+```lean
+-- A line comment
+def commented : Nat := 42
+/- A block comment -/
+```
+
+# Eval Ordering
+
+```lean
+#eval s!"It is {1 + 1} first"
+def evalMiddle := 5
+#eval s!"Then it is {2 + 2}"
+#eval s!"Then it is {4 + 4}"
+```
+
+# Eval Multiline
+
+```lean
+#eval 1 +
+
+  2 +
+
+3
+```
+
+# Check Ordering
+
+```lean
+def checkTarget := 42
+#check checkTarget
+def checkMiddle := "hi"
+#check checkMiddle
+```
+
+# Print Ordering
+
+```lean
+def printTarget := 100
+#print printTarget
+def printMiddle := true
+#print printMiddle
+```
+
+# Reduce Ordering
+
+```lean
+#reduce 2 + 3
+def reduceMiddle := 10
+#reduce 10 * 2
+```
+
+# Expected Error
+
+```lean +error
+#check (42 : String)
+```
+
+# Empty Code Block
+
+```lean
+```
+
+# Whitespace-Only Code Block
+
+```lean
+
+
+
+
+```
+
+# Comment-Only Code Block
+
+```lean
+-- This comment stands alone
+```
+
+# Rust Code
+
+```code rust
+fn main() {
+    let nums = vec![3, 1, 4, 1, 5];
+    for n in &nums {
+        println!("{n}");
+    }
+}
+```
+
+# Light Inline Lean
+%%%
+backgroundColor := some "#f5f5f5"
+%%%
+
+{lean}`hello` on a light slide.

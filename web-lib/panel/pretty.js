@@ -3032,6 +3032,7 @@ function createJsonRoundTripScenarios(sizes) {
             throw new TypeError("invalid JSON round-trip payload size");
         }
     });
+    /** @type {*[]} */
     var corpus = [
         {
             id: "json-unicode",
@@ -3050,6 +3051,7 @@ function createJsonRoundTripScenarios(sizes) {
             value: { integers: [-7, 0, 42], decimal: 1.25, empty: [[], {}] },
         },
     ];
+    /** @type {*[]} */
     var scenarios = corpus.map(function (item) {
         var input = JSON.stringify(item.value, null, 2);
         return {
@@ -3133,6 +3135,13 @@ async function runJsonRoundTripStudy(options) {
 
     var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
         .__versoPrettyVir;
+    /** @type {{
+     *   id: string,
+     *   label: string,
+     *   ready?: Promise<*>,
+     *   status: () => string,
+     *   run: (input: string) => *
+     * }[]} */
     var allCandidates = [
         {
             id: "js",

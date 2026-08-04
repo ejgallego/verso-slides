@@ -34,7 +34,7 @@ done
   lake build vir-pretty-demo VirPrettyDemo.Pretty &&
   lake exe vir-pretty-demo)
 
-for asset in core.js pretty-vir.js pretty-native.js pretty-llvm.js coi-register.js; do
+for asset in pretty-vir.js pretty-native.js pretty-llvm.js coi-register.js; do
   install -D -m 0644 "$demo_root/web/$asset" "$out_dir/vir-pretty/$asset"
 done
 install -D -m 0644 "$demo_root/web/coi-serviceworker.js" "$out_dir/coi-serviceworker.js"

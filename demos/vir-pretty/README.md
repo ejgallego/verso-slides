@@ -1,9 +1,9 @@
-# VIR pretty-printer demo on vanilla Verso Slides
+# VIR pretty-printer demo as a Verso Slides panel extension
 
 This is a standalone five-backend `Std.Format.prettyM` correctness and timing
-demo. It depends on the unmodified `v4.32.0` release of Verso Slides; the
-directive, application, adapters, artifact staging, benchmark, and chart are
-owned by this package.
+demo. During development it uses the containing Verso Slides checkout through
+a path dependency. Once `Config.panelPlugins` is released, `lakefile.lean` can
+switch directly to that release tag without changing the demo.
 
 ## Build and serve
 
@@ -31,20 +31,25 @@ With Playwright available, run the browser smoke test against a served deck:
 python3 scripts/browser-smoke.py http://127.0.0.1:18332
 ```
 
-## Extension boundary
+## Panel extension boundary
 
-The demo uses only released extension surfaces:
+The demo uses two configuration surfaces:
 
-- `:::virPrettyDemo` elaborates to the public `VersoSlides.BlockExt.ofHtml`.
-- `Config.extraCss` bundles the stylesheet.
-- `Config.extraHead` loads the demo-owned bootstrap and candidate adapters.
-- Vanilla `lib/pretty.js` remains the JavaScript reference formatter.
-- `scripts/assemble.sh` copies opaque artifacts after `slidesMain`; it does not
-  parse or rewrite generated HTML.
+- `Config.extraHead` installs runtime URLs and the cross-origin-isolation
+  bootstrap before page initialization.
+- `Config.panelPlugins` loads the VIR, native, and LLVM candidate adapters in
+  order after the built-in formatter registry and before the panel consumer.
 
-The generated HTML therefore contains both the extension-provided scripts and
-the stock Verso `lib/pretty.js`. No source file in the Verso dependency is
-patched or shadowed.
+The JavaScript reference, comparison renderer, benchmark sampler, controls, and
+dashboard remain Verso Slides panel functionality. The demo owns only candidate
+adapters, Wasm artifacts, runtime configuration, and presentation content.
+`scripts/assemble.sh` copies opaque artifacts after `slidesMain`; it neither
+rewrites HTML nor replaces `lib/pretty.js`, `lib/panel.js`, or `lib/panel.css`.
+
+`panelPlugins` is intentionally a narrow API: its classic scripts execute
+synchronously in array order at the point where formatter registration is
+valid and panel initialization has not yet begun. It avoids a generic lifecycle
+framework while supporting this and other formatter/panel integrations.
 
 ## Measurements in this first extraction
 
@@ -57,14 +62,17 @@ deterministic character-column budget to all five candidates:
 4. FIR native Wasm
 5. LLVM/Emscripten Wasm
 
-It compares canonical tagged segment streams, exposes marshal/execute/decode/
-render/total timings on hover, and plots repeated-call median timing against
-text volume, format leaves, nesting, break opportunities, or tag depth.
+The restored deck has the same functionality as the in-tree prototype:
 
-This intentionally does not pull the full campaign runner, fresh-process
-launcher, memory sampler, report archive, or performance-card machinery into
-the slide package. Those remain useful headless infrastructure, but are not
-needed to prove that the presentation itself works as a vanilla extension.
+- live Lean code panels and draggable panel sizing;
+- interactive processor selection and single/compare modes;
+- shared column budgets and exact tagged-segment comparison;
+- hoverable marshal/execute/decode/HTML/total timing detail;
+- corpus, scaling, repeated-call, memory, and interaction studies;
+- consolidated results dashboard and recorded JSON loading.
+
+Fresh-process campaign orchestration and report archival remain CLI concerns;
+their consolidated output is consumed by the same dashboard.
 
 ## Artifact refresh contract
 
@@ -85,7 +93,7 @@ package. Its exported names deliberately retain the existing
 `VersoSlides.Pretty.*` ABI so current artifacts remain usable while the demo is
 moved out of the Verso implementation repository.
 
-The next refresh should move the dependency, `lean-toolchain`, compact-format
-ABI metadata, and all three Wasm artifact families to Lean 4.33 together. The
-current 4.32 pin is deliberate: it separates the architectural extraction from
-an ABI/toolchain migration and lets us compare the two changes independently.
+The next refresh should move `lean-toolchain`, compact-format ABI metadata, and
+all three Wasm artifact families to Lean 4.33 together. The current 4.32 pin is
+deliberate: it separates the architectural extraction from an ABI/toolchain
+migration and lets us compare the two changes independently.
