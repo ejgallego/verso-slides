@@ -2336,6 +2336,240 @@ function collectPrettyMemorySnapshot(backendIds) {
 }
 
 /**
+ * Interleave differential candidates, retain phase samples, and compare their
+ * canonical outputs. Domain adapters supply invocation and report assembly;
+ * this loop deliberately knows nothing about `Std.Format` or scaling axes.
+ *
+ * @param {{
+ *   candidates: *[],
+ *   scenarios: *[],
+ *   warmup: number,
+ *   samples: number,
+ *   batchTargetMs: number,
+ *   maxBatchIterations: number,
+ *   batchMemoryBudgetBytes: number,
+ *   prepareScenario?: (scenario: *) => *,
+ *   invoke: (scenario: *, candidate: *, context: *) => { ok: boolean, value: *, timings: PrettyTimings, memory?: Record<string, number>, error?: string },
+ *   canonicalize: (value: *) => *,
+ *   measureOutput: (value: *) => *,
+ *   residentBytes?: (observation: *) => number | null,
+ *   buildScenario: (scenario: *, index: number, results: Record<string, *>, firstOutput: *, parity: boolean) => *,
+ *   buildProgress?: (scenario: *, completed: number, total: number) => *,
+ *   onScenario?: (scenario: *) => void,
+ *   onProgress?: (progress: *) => void
+ * }} options
+ * @return {Promise<{ candidateStates: *[], scenarios: *[] }>}
+ */
+async function runDifferentialSamples(options) {
+    var candidates = options.candidates;
+    var scenarioInputs = options.scenarios;
+    var candidateStates = candidates.map(function (candidate) {
+        return {
+            id: candidate.id,
+            label: candidate.label,
+            status: typeof candidate.status === "function" ? candidate.status() : "ready",
+            timings: /** @type {PrettyTimings[]} */ ([]),
+            invocations: 0,
+        };
+    });
+    var readyCandidates = candidates.filter(function (_candidate, index) {
+        return candidateStates[index].status === "ready";
+    });
+    var total = scenarioInputs.length;
+    var completed = 0;
+    var scenarios = [];
+
+    for (var scenarioIndex = 0; scenarioIndex < scenarioInputs.length; scenarioIndex++) {
+        var scenarioInput = scenarioInputs[scenarioIndex];
+        var scenarioContext = options.prepareScenario
+            ? options.prepareScenario(scenarioInput)
+            : null;
+        /** @type {Record<string, *>} */
+        var candidateResults = {};
+        readyCandidates.forEach(function (candidate) {
+            candidateResults[candidate.id] = {
+                value: null,
+                signature: null,
+                metrics: null,
+                stable: true,
+                errors: [],
+                timings: [],
+                memorySamples: [],
+                batchIterations: 1,
+                batchResidentBytesPerCall: null,
+                batchLimitReason: null,
+                invocations: 0,
+                summary: null,
+            };
+        });
+
+        /**
+         * @param {*} result
+         * @param {{ ok: boolean, value: *, timings: PrettyTimings, memory?: Record<string, number>, error?: string }} observation
+         * @return {boolean}
+         */
+        function observe(result, observation) {
+            if (!observation.ok) {
+                result.stable = false;
+                if (observation.error && !result.errors.includes(observation.error)) {
+                    result.errors.push(observation.error);
+                }
+                return false;
+            }
+            var value = options.canonicalize(observation.value);
+            var signature = JSON.stringify(value);
+            if (result.signature !== null && result.signature !== signature) {
+                result.stable = false;
+            }
+            result.value = value;
+            result.signature = signature;
+            result.metrics = options.measureOutput(value);
+            return true;
+        }
+
+        if (options.batchTargetMs > 0) {
+            readyCandidates.forEach(function (candidate) {
+                var calibrationStarted = performance.now();
+                var calibration = options.invoke(scenarioInput, candidate, scenarioContext);
+                var calibrationWallMs = performance.now() - calibrationStarted;
+                observe(candidateResults[candidate.id], calibration);
+                var observedMs = Math.max(
+                    0.01,
+                    calibrationWallMs,
+                    Number(calibration.timings.totalMs || 0),
+                );
+                var requestedIterations = Math.max(
+                    1,
+                    Math.min(
+                        options.maxBatchIterations,
+                        Math.ceil(options.batchTargetMs / observedMs),
+                    ),
+                );
+                var result = candidateResults[candidate.id];
+                var residentDelta = options.residentBytes
+                    ? options.residentBytes(calibration)
+                    : null;
+                result.batchResidentBytesPerCall = residentDelta;
+                if (
+                    residentDelta !== null &&
+                    residentDelta > 0 &&
+                    options.batchMemoryBudgetBytes > 0
+                ) {
+                    var perScenarioBudget =
+                        options.batchMemoryBudgetBytes / scenarioInputs.length;
+                    var memoryLimitedIterations = Math.max(
+                        1,
+                        Math.floor(
+                            perScenarioBudget /
+                                residentDelta /
+                                Math.max(1, options.warmup + options.samples),
+                        ),
+                    );
+                    result.batchIterations = Math.min(
+                        requestedIterations,
+                        memoryLimitedIterations,
+                    );
+                    if (result.batchIterations < requestedIterations) {
+                        result.batchLimitReason = "resident-memory-budget";
+                    }
+                } else {
+                    result.batchIterations = requestedIterations;
+                }
+            });
+        }
+
+        for (var round = -options.warmup; round < options.samples; round++) {
+            for (var offset = 0; offset < readyCandidates.length; offset++) {
+                var candidate =
+                    readyCandidates[
+                        (offset + Math.max(0, round)) % readyCandidates.length
+                    ];
+                var result = candidateResults[candidate.id];
+                var iterations = result.batchIterations;
+                var summedTimings = emptyPrettyTimings();
+                var measuredIterations = 0;
+                /** @type {Record<string, number> | null} */
+                var lastMemory = null;
+                var batchStarted = performance.now();
+                for (var iteration = 0; iteration < iterations; iteration++) {
+                    var observation = options.invoke(scenarioInput, candidate, scenarioContext);
+                    if (!observe(result, observation)) continue;
+                    addPrettyTimings(summedTimings, observation.timings);
+                    measuredIterations += 1;
+                    if (observation.memory) lastMemory = observation.memory;
+                }
+                var batchWallMs = performance.now() - batchStarted;
+                if (round >= 0) {
+                    var averaged = averagePrettyTimings(
+                        summedTimings,
+                        Math.max(1, measuredIterations),
+                        batchWallMs,
+                    );
+                    result.timings.push(averaged);
+                    result.invocations += iterations;
+                    if (lastMemory) result.memorySamples.push(lastMemory);
+                    var state = candidateStates.find(function (item) {
+                        return item.id === candidate.id;
+                    });
+                    if (state) {
+                        state.timings.push(averaged);
+                        state.invocations += iterations;
+                    }
+                }
+            }
+        }
+
+        Object.keys(candidateResults).forEach(function (id) {
+            candidateResults[id].summary = summarizePrettyTimings(
+                candidateResults[id].timings,
+            );
+        });
+        var signatures = Object.keys(candidateResults)
+            .map(function (id) {
+                return candidateResults[id].signature;
+            })
+            .filter(function (signature) {
+                return signature !== null;
+            });
+        var parity =
+            readyCandidates.length === candidates.length &&
+            signatures.length === candidates.length &&
+            signatures.every(function (signature) {
+                return signature === signatures[0];
+            }) &&
+            Object.keys(candidateResults).every(function (id) {
+                return candidateResults[id].stable;
+            });
+        var firstOutput =
+            readyCandidates.length > 0 && candidateResults[readyCandidates[0].id]
+                ? candidateResults[readyCandidates[0].id].metrics
+                : null;
+        var scenarioReport = options.buildScenario(
+            scenarioInput,
+            scenarioIndex,
+            candidateResults,
+            firstOutput,
+            parity,
+        );
+        scenarios.push(scenarioReport);
+        if (typeof options.onScenario === "function") options.onScenario(scenarioReport);
+        completed += 1;
+        if (typeof options.onProgress === "function") {
+            options.onProgress(
+                options.buildProgress
+                    ? options.buildProgress(scenarioInput, completed, total)
+                    : { completed: completed, total: total },
+            );
+        }
+        await new Promise(function (resolve) {
+            setTimeout(resolve, 0);
+        });
+    }
+
+    return { candidateStates: candidateStates, scenarios: scenarios };
+}
+
+/**
  * Compare the registered pretty-printer backends over a representative corpus.
  * Runs are interleaved and their starting backend is rotated to reduce ordering
  * bias. Warm-up observations are excluded from the returned statistics.
@@ -2454,238 +2688,121 @@ async function runPrettyDifferentialCorpus(options) {
     }
     var benchmarkStarted = performance.now();
 
-    var backendStates = backends.map(function (backend) {
-        return {
-            id: backend.id,
-            label: backend.label,
-            status: typeof backend.status === "function" ? backend.status() : "ready",
-            timings: /** @type {PrettyTimings[]} */ ([]),
-            invocations: 0,
-        };
-    });
-    var readyBackends = backends.filter(function (_backend, index) {
-        return backendStates[index].status === "ready";
-    });
-    var total = scenarioInputs.length;
-    var completed = 0;
-    var scenarios = [];
-
-    for (var scenarioIndex = 0; scenarioIndex < scenarioInputs.length; scenarioIndex++) {
-        var scenarioInput = scenarioInputs[scenarioIndex];
-        var corpusCase = scenarioInput.case;
-        var width = scenarioInput.width;
-        var measurer = createColumnMeasurer(width);
-        /** @type {Record<string, { segments: Segment[] | null, signature: string | null, output: ReturnType<typeof measurePrettyOutput> | null, stable: boolean, errors: string[], timings: PrettyTimings[], memorySamples: Record<string, number>[], batchIterations: number, batchResidentBytesPerCall: number | null, batchLimitReason: string | null, invocations: number, summary: * }>} */
-        var backendResults = {};
-        readyBackends.forEach(function (backend) {
-            backendResults[backend.id] = {
-                segments: null,
-                signature: null,
-                output: null,
-                stable: true,
-                errors: [],
-                timings: [],
-                memorySamples: [],
-                batchIterations: 1,
-                batchResidentBytesPerCall: null,
-                batchLimitReason: null,
-                invocations: 0,
-                summary: null,
+    var sampled = await runDifferentialSamples({
+        candidates: backends,
+        scenarios: scenarioInputs,
+        warmup: warmup,
+        samples: samples,
+        batchTargetMs: batchTargetMs,
+        maxBatchIterations: maxBatchIterations,
+        batchMemoryBudgetBytes: batchMemoryBudgetBytes,
+        prepareScenario: function (scenario) {
+            return createColumnMeasurer(scenario.width);
+        },
+        invoke: function (scenario, backend, measurer) {
+            var rendered = renderPrettySegmentsTimed(
+                scenario.case.format,
+                {},
+                scenario.width,
+                measurer,
+                backend,
+            );
+            return {
+                ok: rendered.segments !== null,
+                value: rendered.segments,
+                timings: rendered.timings,
+                memory: rendered.memory,
+                error: rendered.error,
             };
-        });
-
-        /**
-         * @param {*} result
-         * @param {PrettySegmentResult} rendered
-         * @return {boolean}
-         */
-        function observeRendered(result, rendered) {
-            if (rendered.segments === null) {
-                result.stable = false;
-                if (rendered.error && !result.errors.includes(rendered.error)) {
-                    result.errors.push(rendered.error);
-                }
-                return false;
-            }
-            var segments = canonicalizePrettySegments(rendered.segments);
-            var signature = JSON.stringify(segments);
-            if (result.signature !== null && result.signature !== signature) {
-                result.stable = false;
-            }
-            result.segments = segments;
-            result.signature = signature;
-            result.output = measurePrettyOutput(segments);
-            return true;
-        }
-
-        if (batchTargetMs > 0) {
-            readyBackends.forEach(function (backend) {
-                var calibrationStarted = performance.now();
-                var calibration = renderPrettySegmentsTimed(
-                    corpusCase.format,
-                    {},
-                    width,
-                    measurer,
-                    backend,
-                );
-                var calibrationWallMs = performance.now() - calibrationStarted;
-                observeRendered(backendResults[backend.id], calibration);
-                var observedMs = Math.max(
-                    0.01,
-                    calibrationWallMs,
-                    Number(calibration.timings.totalMs || 0),
-                );
-                var requestedIterations = Math.max(
-                    1,
-                    Math.min(maxBatchIterations, Math.ceil(batchTargetMs / observedMs)),
-                );
-                var result = backendResults[backend.id];
-                var memory = calibration.memory;
-                var residentDelta =
-                    memory &&
-                    typeof memory.frontierBefore === "number" &&
-                    typeof memory.frontierAfterDecode === "number"
-                        ? memory.frontierAfterDecode - memory.frontierBefore
-                        : null;
-                result.batchResidentBytesPerCall = residentDelta;
-                if (residentDelta !== null && residentDelta > 0 && batchMemoryBudgetBytes > 0) {
-                    var perScenarioBudget = batchMemoryBudgetBytes / scenarioInputs.length;
-                    var memoryLimitedIterations = Math.max(
-                        1,
-                        Math.floor(
-                            perScenarioBudget / residentDelta / Math.max(1, warmup + samples),
-                        ),
-                    );
-                    result.batchIterations = Math.min(requestedIterations, memoryLimitedIterations);
-                    if (result.batchIterations < requestedIterations) {
-                        result.batchLimitReason = "resident-memory-budget";
-                    }
-                } else {
-                    result.batchIterations = requestedIterations;
-                }
-            });
-        }
-
-        for (var round = -warmup; round < samples; round++) {
-            for (var offset = 0; offset < readyBackends.length; offset++) {
-                var backend = readyBackends[(offset + Math.max(0, round)) % readyBackends.length];
-                var result = backendResults[backend.id];
-                var iterations = result.batchIterations;
-                var summedTimings = emptyPrettyTimings();
-                var measuredIterations = 0;
-                /** @type {Record<string, number> | null} */
-                var lastMemory = null;
-                var batchStarted = performance.now();
-                for (var iteration = 0; iteration < iterations; iteration++) {
-                    var rendered = renderPrettySegmentsTimed(
-                        corpusCase.format,
-                        {},
-                        width,
-                        measurer,
-                        backend,
-                    );
-                    if (!observeRendered(result, rendered)) continue;
-                    addPrettyTimings(summedTimings, rendered.timings);
-                    measuredIterations += 1;
-                    if (rendered.memory) lastMemory = rendered.memory;
-                }
-                var batchWallMs = performance.now() - batchStarted;
-                if (round >= 0) {
-                    var averaged = averagePrettyTimings(
-                        summedTimings,
-                        Math.max(1, measuredIterations),
-                        batchWallMs,
-                    );
-                    result.timings.push(averaged);
-                    result.invocations += iterations;
-                    if (lastMemory) result.memorySamples.push(lastMemory);
-                    var state = backendStates.find(function (candidate) {
-                        return candidate.id === backend.id;
-                    });
-                    if (state) {
-                        state.timings.push(averaged);
-                        state.invocations += iterations;
-                    }
-                }
-            }
-        }
-
-        Object.keys(backendResults).forEach(function (id) {
-            backendResults[id].summary = summarizePrettyTimings(backendResults[id].timings);
-        });
-        var signatures = Object.keys(backendResults)
-            .map(function (id) {
-                return backendResults[id].signature;
-            })
-            .filter(function (signature) {
-                return signature !== null;
-            });
-        var parity =
-            readyBackends.length === backends.length &&
-            signatures.length === backends.length &&
-            signatures.every(function (signature) {
-                return signature === signatures[0];
-            }) &&
-            Object.keys(backendResults).every(function (id) {
-                return backendResults[id].stable;
-            });
-        var inputMetrics = scenarioInput.input || measureCompactFormat(corpusCase.format);
-        var firstOutput =
-            readyBackends.length > 0 && backendResults[readyBackends[0].id]
-                ? backendResults[readyBackends[0].id].output
+        },
+        canonicalize: canonicalizePrettySegments,
+        measureOutput: measurePrettyOutput,
+        residentBytes: function (observation) {
+            var memory = observation.memory;
+            return memory &&
+                typeof memory.frontierBefore === "number" &&
+                typeof memory.frontierAfterDecode === "number"
+                ? memory.frontierAfterDecode - memory.frontierBefore
                 : null;
-        var scenarioReport = {
-            caseId: corpusCase.id,
-            label: corpusCase.label || corpusCase.id,
-            origin: corpusCase.origin || "synthetic",
-            width: width,
-            input: inputMetrics,
-            dimension: scenarioInput.dimension || corpusCase.dimension || null,
-            dimensionLabel: scenarioInput.dimensionLabel || null,
-            interaction: scenarioInput.interaction || null,
-            interactionLabel: scenarioInput.interactionLabel || null,
-            xAxis: scenarioInput.xAxis || null,
-            x: typeof scenarioInput.x === "number" ? scenarioInput.x : null,
-            xLabel: scenarioInput.xLabel || null,
-            yAxis: scenarioInput.yAxis || null,
-            y: typeof scenarioInput.y === "number" ? scenarioInput.y : null,
-            yLabel: scenarioInput.yLabel || null,
-            size:
-                typeof scenarioInput.size === "number"
-                    ? scenarioInput.size
-                    : typeof corpusCase.size === "number"
-                      ? corpusCase.size
-                      : null,
-            sizeLabel: scenarioInput.sizeLabel || null,
-            repeatRound:
-                typeof scenarioInput.repeatRound === "number" ? scenarioInput.repeatRound : null,
-            sequenceIndex:
-                typeof scenarioInput.sequenceIndex === "number"
-                    ? scenarioInput.sequenceIndex
-                    : scenarioIndex,
-            output: firstOutput,
-            parity: parity,
-            backends: backendResults,
-        };
-        scenarios.push(scenarioReport);
-        if (typeof settings.onScenario === "function") {
-            settings.onScenario(scenarioReport);
-        }
-        completed += 1;
-        if (typeof settings.onProgress === "function") {
-            settings.onProgress({
+        },
+        buildScenario: function (
+            scenarioInput,
+            scenarioIndex,
+            candidateResults,
+            firstOutput,
+            parity,
+        ) {
+            var corpusCase = scenarioInput.case;
+            /** @type {Record<string, *>} */
+            var backendResults = {};
+            Object.keys(candidateResults).forEach(function (id) {
+                var result = candidateResults[id];
+                backendResults[id] = {
+                    segments: result.value,
+                    signature: result.signature,
+                    output: result.metrics,
+                    stable: result.stable,
+                    errors: result.errors,
+                    timings: result.timings,
+                    memorySamples: result.memorySamples,
+                    batchIterations: result.batchIterations,
+                    batchResidentBytesPerCall: result.batchResidentBytesPerCall,
+                    batchLimitReason: result.batchLimitReason,
+                    invocations: result.invocations,
+                    summary: result.summary,
+                };
+            });
+            return {
+                caseId: corpusCase.id,
+                label: corpusCase.label || corpusCase.id,
+                origin: corpusCase.origin || "synthetic",
+                width: scenarioInput.width,
+                input: scenarioInput.input || measureCompactFormat(corpusCase.format),
+                dimension: scenarioInput.dimension || corpusCase.dimension || null,
+                dimensionLabel: scenarioInput.dimensionLabel || null,
+                interaction: scenarioInput.interaction || null,
+                interactionLabel: scenarioInput.interactionLabel || null,
+                xAxis: scenarioInput.xAxis || null,
+                x: typeof scenarioInput.x === "number" ? scenarioInput.x : null,
+                xLabel: scenarioInput.xLabel || null,
+                yAxis: scenarioInput.yAxis || null,
+                y: typeof scenarioInput.y === "number" ? scenarioInput.y : null,
+                yLabel: scenarioInput.yLabel || null,
+                size:
+                    typeof scenarioInput.size === "number"
+                        ? scenarioInput.size
+                        : typeof corpusCase.size === "number"
+                          ? corpusCase.size
+                          : null,
+                sizeLabel: scenarioInput.sizeLabel || null,
+                repeatRound:
+                    typeof scenarioInput.repeatRound === "number"
+                        ? scenarioInput.repeatRound
+                        : null,
+                sequenceIndex:
+                    typeof scenarioInput.sequenceIndex === "number"
+                        ? scenarioInput.sequenceIndex
+                        : scenarioIndex,
+                output: firstOutput,
+                parity: parity,
+                backends: backendResults,
+            };
+        },
+        buildProgress: function (scenarioInput, completed, total) {
+            return {
                 completed: completed,
                 total: total,
-                caseId: corpusCase.id,
-                width: width,
-                dimension: scenarioInput.dimension || corpusCase.dimension,
+                caseId: scenarioInput.case.id,
+                width: scenarioInput.width,
+                dimension: scenarioInput.dimension || scenarioInput.case.dimension,
                 size: scenarioInput.size,
-            });
-        }
-        await new Promise(function (resolve) {
-            setTimeout(resolve, 0);
-        });
-    }
+            };
+        },
+        onScenario: settings.onScenario,
+        onProgress: settings.onProgress,
+    });
+    var backendStates = sampled.candidateStates;
+    var scenarios = sampled.scenarios;
 
     /** @type {Record<string, *>} */
     var summaries = {};
