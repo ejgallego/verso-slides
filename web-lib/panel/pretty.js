@@ -88,8 +88,10 @@
  *   runtime?: { call: (name: string, ...args: *[]) => * },
  *   jsonExportName?: string,
  *   formatExportName?: string,
+ *   jsonRoundTripExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
  *   formatSegments?: (fmt: *, width: number, indent: number) => *,
+ *   jsonRoundTripJson?: (json: string) => string,
  *   ready?: Promise<*>,
  *   status?: string,
  *   assets?: string[],
@@ -2455,8 +2457,7 @@ async function runDifferentialSamples(options) {
                     residentDelta > 0 &&
                     options.batchMemoryBudgetBytes > 0
                 ) {
-                    var perScenarioBudget =
-                        options.batchMemoryBudgetBytes / scenarioInputs.length;
+                    var perScenarioBudget = options.batchMemoryBudgetBytes / scenarioInputs.length;
                     var memoryLimitedIterations = Math.max(
                         1,
                         Math.floor(
@@ -2465,10 +2466,7 @@ async function runDifferentialSamples(options) {
                                 Math.max(1, options.warmup + options.samples),
                         ),
                     );
-                    result.batchIterations = Math.min(
-                        requestedIterations,
-                        memoryLimitedIterations,
-                    );
+                    result.batchIterations = Math.min(requestedIterations, memoryLimitedIterations);
                     if (result.batchIterations < requestedIterations) {
                         result.batchLimitReason = "resident-memory-budget";
                     }
@@ -2481,9 +2479,7 @@ async function runDifferentialSamples(options) {
         for (var round = -options.warmup; round < options.samples; round++) {
             for (var offset = 0; offset < readyCandidates.length; offset++) {
                 var candidate =
-                    readyCandidates[
-                        (offset + Math.max(0, round)) % readyCandidates.length
-                    ];
+                    readyCandidates[(offset + Math.max(0, round)) % readyCandidates.length];
                 var result = candidateResults[candidate.id];
                 var iterations = result.batchIterations;
                 var summedTimings = emptyPrettyTimings();
@@ -2520,9 +2516,7 @@ async function runDifferentialSamples(options) {
         }
 
         Object.keys(candidateResults).forEach(function (id) {
-            candidateResults[id].summary = summarizePrettyTimings(
-                candidateResults[id].timings,
-            );
+            candidateResults[id].summary = summarizePrettyTimings(candidateResults[id].timings);
         });
         var signatures = Object.keys(candidateResults)
             .map(function (id) {
@@ -2889,6 +2883,410 @@ async function runPrettyDifferentialCorpus(options) {
         scenarios: scenarios,
         runtimeProfileBefore: runtimeProfileBefore,
         runtimeProfile: runtimeProfile,
+    };
+}
+
+/**
+ * Canonicalize object key order so JSON implementations are compared by value,
+ * not by the incidental ordering chosen by their object representation.
+ * @param {*} value
+ * @return {*}
+ */
+function canonicalizeJsonValue(value) {
+    if (Array.isArray(value)) return value.map(canonicalizeJsonValue);
+    if (value !== null && typeof value === "object") {
+        /** @type {Record<string, *>} */
+        var canonical = {};
+        Object.keys(value)
+            .sort()
+            .forEach(function (key) {
+                canonical[key] = canonicalizeJsonValue(value[key]);
+            });
+        return canonical;
+    }
+    return value;
+}
+
+/**
+ * @param {*} value
+ * @return {{ jsonBytes: number, jsonNodes: number, maxDepth: number, objectFields: number, arrayItems: number, scalarValues: number }}
+ */
+function measureJsonValue(value) {
+    var metrics = {
+        jsonBytes: new TextEncoder().encode(JSON.stringify(value)).byteLength,
+        jsonNodes: 0,
+        maxDepth: 0,
+        objectFields: 0,
+        arrayItems: 0,
+        scalarValues: 0,
+    };
+    /** @param {*} item @param {number} depth */
+    function visit(item, depth) {
+        metrics.jsonNodes += 1;
+        metrics.maxDepth = Math.max(metrics.maxDepth, depth);
+        if (Array.isArray(item)) {
+            metrics.arrayItems += item.length;
+            item.forEach(function (child) {
+                visit(child, depth + 1);
+            });
+        } else if (item !== null && typeof item === "object") {
+            var keys = Object.keys(item);
+            metrics.objectFields += keys.length;
+            keys.forEach(function (key) {
+                visit(item[key], depth + 1);
+            });
+        } else {
+            metrics.scalarValues += 1;
+        }
+    }
+    visit(value, 0);
+    return metrics;
+}
+
+/**
+ * @param {string} input
+ * @return {{ ok: boolean, value: *, timings: PrettyTimings, error?: string }}
+ */
+function runJsonRoundTripWithJsTimed(input) {
+    var started = performance.now();
+    var marshaled = started;
+    var executed = started;
+    try {
+        var rendered = JSON.stringify({ ok: true, value: JSON.parse(input) });
+        executed = performance.now();
+        var result = JSON.parse(rendered);
+        var decoded = performance.now();
+        return {
+            ok: result.ok === true,
+            value: result.value,
+            timings: prettyPhaseTimings(started, marshaled, executed, decoded),
+        };
+    } catch (error) {
+        var failed = performance.now();
+        return {
+            ok: false,
+            value: null,
+            error: String(error),
+            timings: prettyPhaseTimings(started, marshaled, executed, failed),
+        };
+    }
+}
+
+/**
+ * @param {string} input
+ * @param {PrettyVirBridge | undefined} bridge
+ * @return {{ ok: boolean, value: *, timings: PrettyTimings, error?: string }}
+ */
+function runJsonRoundTripWithVirTimed(input, bridge) {
+    var started = performance.now();
+    var marshaled = started;
+    var executed = started;
+    try {
+        var rendered;
+        if (bridge && typeof bridge.jsonRoundTripJson === "function") {
+            rendered = bridge.jsonRoundTripJson(input);
+        } else if (bridge && bridge.runtime && typeof bridge.runtime.call === "function") {
+            rendered = bridge.runtime.call(
+                bridge.jsonRoundTripExportName || "VersoSlides.Pretty.jsonRoundTripJsonForVir",
+                input,
+            );
+        } else {
+            throw new Error("VIR JSON round-trip export is unavailable");
+        }
+        executed = performance.now();
+        var result = typeof rendered === "string" ? JSON.parse(rendered) : rendered;
+        var decoded = performance.now();
+        if (!result || result.ok !== true) {
+            return {
+                ok: false,
+                value: null,
+                error: String(result && result.error ? result.error : "invalid VIR result"),
+                timings: prettyPhaseTimings(started, marshaled, executed, decoded),
+            };
+        }
+        return {
+            ok: true,
+            value: result.value,
+            timings: prettyPhaseTimings(started, marshaled, executed, decoded),
+        };
+    } catch (error) {
+        var failed = performance.now();
+        return {
+            ok: false,
+            value: null,
+            error: String(error),
+            timings: prettyPhaseTimings(started, marshaled, executed, failed),
+        };
+    }
+}
+
+/**
+ * A compact correctness corpus plus one payload-item scaling axis.
+ * @param {number[]} [sizes]
+ * @return {*[]}
+ */
+function createJsonRoundTripScenarios(sizes) {
+    var requestedSizes = Array.isArray(sizes) ? sizes : [1, 8, 64, 512, 4096];
+    requestedSizes.forEach(function (size) {
+        if (!Number.isSafeInteger(size) || size < 1 || size > 100000) {
+            throw new TypeError("invalid JSON round-trip payload size");
+        }
+    });
+    var corpus = [
+        {
+            id: "json-unicode",
+            label: "Unicode and nested values",
+            origin: "corpus",
+            value: {
+                message: "Lean λ → Wasm",
+                flags: [true, false, null],
+                nested: { count: 3, labels: ["α", "β", "γ"] },
+            },
+        },
+        {
+            id: "json-numbers",
+            label: "Numbers and empty containers",
+            origin: "corpus",
+            value: { integers: [-7, 0, 42], decimal: 1.25, empty: [[], {}] },
+        },
+    ];
+    var scenarios = corpus.map(function (item) {
+        var input = JSON.stringify(item.value, null, 2);
+        return {
+            case: item,
+            json: input,
+            input: measureJsonValue(item.value),
+            dimension: null,
+            dimensionLabel: null,
+            size: null,
+            sizeLabel: null,
+        };
+    });
+    requestedSizes.forEach(function (size) {
+        var value = {
+            items: Array.from({ length: size }, function (_item, index) {
+                return {
+                    id: index,
+                    label: "item-" + (index % 16),
+                    active: index % 3 === 0,
+                };
+            }),
+        };
+        var corpusCase = {
+            id: "json-items-" + size,
+            label: size + " object" + (size === 1 ? "" : "s"),
+            origin: "scaling",
+            value: value,
+        };
+        scenarios.push({
+            case: corpusCase,
+            json: JSON.stringify(value),
+            input: measureJsonValue(value),
+            dimension: "payload-items",
+            dimensionLabel: "Payload items",
+            size: size,
+            sizeLabel: size + " item" + (size === 1 ? "" : "s"),
+        });
+    });
+    return scenarios;
+}
+
+/**
+ * Benchmark one non-pretty function through the shared differential sampler.
+ * This intentionally exposes only a corpus and one size axis.
+ * @param {{
+ *   candidateIds?: string[],
+ *   sizes?: number[],
+ *   warmup?: number,
+ *   samples?: number,
+ *   batchTargetMs?: number,
+ *   maxBatchIterations?: number,
+ *   onProgress?: (progress: *) => void
+ * }} [options]
+ * @return {Promise<*>}
+ */
+async function runJsonRoundTripStudy(options) {
+    var settings = options || {};
+    var startedAt = new Date().toISOString();
+    var started = performance.now();
+    var warmup = settings.warmup === undefined ? 1 : Number(settings.warmup);
+    var samples = settings.samples === undefined ? 5 : Number(settings.samples);
+    var batchTargetMs = settings.batchTargetMs === undefined ? 10 : Number(settings.batchTargetMs);
+    var maxBatchIterations =
+        settings.maxBatchIterations === undefined ? 512 : Number(settings.maxBatchIterations);
+    if (!Number.isSafeInteger(warmup) || warmup < 0 || warmup > 100) {
+        throw new TypeError("invalid JSON round-trip warm-up count");
+    }
+    if (!Number.isSafeInteger(samples) || samples < 1 || samples > 1000) {
+        throw new TypeError("invalid JSON round-trip sample count");
+    }
+    if (!Number.isFinite(batchTargetMs) || batchTargetMs < 0 || batchTargetMs > 1000) {
+        throw new TypeError("invalid JSON round-trip batch target");
+    }
+    if (
+        !Number.isSafeInteger(maxBatchIterations) ||
+        maxBatchIterations < 1 ||
+        maxBatchIterations > 100000
+    ) {
+        throw new TypeError("invalid JSON round-trip maximum batch size");
+    }
+
+    var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
+        .__versoPrettyVir;
+    var allCandidates = [
+        {
+            id: "js",
+            label: "JS",
+            status: function () {
+                return "ready";
+            },
+            run: function (input) {
+                return runJsonRoundTripWithJsTimed(input);
+            },
+        },
+        {
+            id: "vir",
+            label: "VIR",
+            ready: bridge && bridge.ready,
+            status: function () {
+                return bridge && bridge.status ? bridge.status : "unavailable";
+            },
+            run: function (input) {
+                return runJsonRoundTripWithVirTimed(input, bridge);
+            },
+        },
+    ];
+    var candidateIds = Array.isArray(settings.candidateIds)
+        ? settings.candidateIds
+        : allCandidates.map(function (candidate) {
+              return candidate.id;
+          });
+    var candidates = candidateIds.map(function (id) {
+        var candidate = allCandidates.find(function (item) {
+            return item.id === id;
+        });
+        if (!candidate) throw new Error("unknown JSON round-trip candidate " + id);
+        return candidate;
+    });
+    await Promise.all(
+        candidates.map(function (candidate) {
+            return candidate.ready && typeof candidate.ready.then === "function"
+                ? Promise.resolve(candidate.ready).catch(function () {
+                      return null;
+                  })
+                : Promise.resolve();
+        }),
+    );
+    var scenarioInputs = createJsonRoundTripScenarios(settings.sizes);
+    var sampled = await runDifferentialSamples({
+        candidates: candidates,
+        scenarios: scenarioInputs,
+        warmup: warmup,
+        samples: samples,
+        batchTargetMs: batchTargetMs,
+        maxBatchIterations: maxBatchIterations,
+        batchMemoryBudgetBytes: 0,
+        invoke: function (scenario, candidate) {
+            return candidate.run(scenario.json);
+        },
+        canonicalize: canonicalizeJsonValue,
+        measureOutput: measureJsonValue,
+        buildScenario: function (
+            scenarioInput,
+            _scenarioIndex,
+            candidateResults,
+            firstOutput,
+            parity,
+        ) {
+            /** @type {Record<string, *>} */
+            var results = {};
+            Object.keys(candidateResults).forEach(function (id) {
+                var result = candidateResults[id];
+                results[id] = {
+                    value: result.value,
+                    signature: result.signature,
+                    output: result.metrics,
+                    stable: result.stable,
+                    errors: result.errors,
+                    timings: result.timings,
+                    batchIterations: result.batchIterations,
+                    invocations: result.invocations,
+                    summary: result.summary,
+                };
+            });
+            return {
+                caseId: scenarioInput.case.id,
+                label: scenarioInput.case.label,
+                origin: scenarioInput.case.origin,
+                dimension: scenarioInput.dimension,
+                dimensionLabel: scenarioInput.dimensionLabel,
+                size: scenarioInput.size,
+                sizeLabel: scenarioInput.sizeLabel,
+                input: scenarioInput.input,
+                output: firstOutput,
+                parity: parity,
+                candidates: results,
+            };
+        },
+        buildProgress: function (scenario, completed, total) {
+            return {
+                completed: completed,
+                total: total,
+                caseId: scenario.case.id,
+                dimension: scenario.dimension,
+                size: scenario.size,
+            };
+        },
+        onProgress: settings.onProgress,
+    });
+    /** @type {Record<string, *>} */
+    var summaries = {};
+    sampled.candidateStates.forEach(function (state) {
+        summaries[state.id] = {
+            id: state.id,
+            label: state.label,
+            status: state.status,
+            invocations: state.invocations,
+            timing: summarizePrettyTimings(state.timings),
+        };
+    });
+    var mismatches = sampled.scenarios.filter(function (scenario) {
+        return !scenario.parity;
+    });
+    var unavailable = sampled.candidateStates
+        .filter(function (state) {
+            return state.status !== "ready";
+        })
+        .map(function (state) {
+            return { id: state.id, label: state.label, status: state.status };
+        });
+    return {
+        schemaVersion: 1,
+        kind: "json-round-trip",
+        startedAt: startedAt,
+        generatedAt: new Date().toISOString(),
+        durationMs: performance.now() - started,
+        warmup: warmup,
+        samples: samples,
+        batchTargetMs: batchTargetMs,
+        maxBatchIterations: maxBatchIterations,
+        candidateIds: candidateIds,
+        pointCount: sampled.scenarios.length,
+        parityCount: sampled.scenarios.length - mismatches.length,
+        passed: mismatches.length === 0 && unavailable.length === 0,
+        unavailable: unavailable,
+        mismatches: mismatches.map(function (scenario) {
+            return { caseId: scenario.caseId, label: scenario.label };
+        }),
+        summaries: summaries,
+        dimension: {
+            id: "payload-items",
+            label: "Payload items",
+            points: sampled.scenarios.filter(function (scenario) {
+                return scenario.dimension === "payload-items";
+            }),
+        },
+        points: sampled.scenarios,
     };
 }
 

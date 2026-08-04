@@ -156,6 +156,22 @@ where
         ("ok", true),
         ("segments", toJson (#[{ text := "hello", tags := #[7] }] : Array Segment))
       ])
+    testJsonExceptEq "json round trip for VIR"
+      (Json.parse (jsonRoundTripJsonForVir "{\"z\":[1,true,null],\"a\":\"α\"}"))
+      (Json.mkObj [
+        ("ok", true),
+        ("value", Json.mkObj [
+          ("z", Json.arr #[1, true, Json.null]),
+          ("a", "α")
+        ])
+      ])
+    match Json.parse (jsonRoundTripJsonForVir "{") with
+    | .ok errorWrapper =>
+      match errorWrapper.getObjVal? "ok" with
+      | .ok (.bool false) => pass
+      | .ok actual => fail "json round trip error for VIR" "false" (Json.compress actual)
+      | .error err => fail "json round trip error for VIR" "false" err
+    | .error err => fail "json round trip error for VIR" "false" err
 
 end Tests.Pretty
 

@@ -21,6 +21,7 @@ class TestPrettyVirAssets:
         assert "./lean-vir/wasm/vir-upstream.wasm" in body
         assert "VersoSlides.Pretty.formatJsonSegmentsJsonForVir" in body
         assert "VersoSlides.Pretty.formatSegmentsForVir" in body
+        assert "VersoSlides.Pretty.jsonRoundTripJsonForVir" in body
 
     def test_pretty_native_asset_written(self, site_dir):
         """The FIR-produced native Wasm bootstrap is also vendored but opt-in."""
@@ -318,6 +319,66 @@ class TestPrettyLlvmBridge:
 
 
 class TestPrettyDifferentialCorpus:
+    def test_json_round_trip_study_reuses_differential_sampler(
+        self, code_url: str, page: Page
+    ):
+        """A second function gets corpus parity and one-axis scaling without pretty UI."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        result = page.evaluate(
+            """async () => {
+                const virCalls = [];
+                window.__versoPrettyVir = {
+                    status: "ready",
+                    ready: Promise.resolve(),
+                    jsonRoundTripJson: input => {
+                        virCalls.push(input);
+                        return JSON.stringify({ value: JSON.parse(input), ok: true });
+                    }
+                };
+                const progress = [];
+                const matching = await runJsonRoundTripStudy({
+                    sizes: [1, 4],
+                    warmup: 1,
+                    samples: 2,
+                    batchTargetMs: 0,
+                    onProgress: update => progress.push(update)
+                });
+                window.__versoPrettyVir.jsonRoundTripJson = () =>
+                    JSON.stringify({ ok: true, value: { different: true } });
+                const differing = await runJsonRoundTripStudy({
+                    sizes: [1],
+                    warmup: 0,
+                    samples: 1,
+                    batchTargetMs: 0
+                });
+                return { matching, differing, progress, virCallCount: virCalls.length };
+            }"""
+        )
+
+        matching = result["matching"]
+        assert matching["schemaVersion"] == 1
+        assert matching["kind"] == "json-round-trip"
+        assert matching["candidateIds"] == ["js", "vir"]
+        assert matching["pointCount"] == matching["parityCount"] == 4
+        assert matching["passed"]
+        assert matching["unavailable"] == matching["mismatches"] == []
+        assert matching["dimension"]["id"] == "payload-items"
+        assert [point["size"] for point in matching["dimension"]["points"]] == [1, 4]
+        assert matching["summaries"]["js"]["invocations"] == 8
+        assert matching["summaries"]["vir"]["invocations"] == 8
+        assert matching["summaries"]["vir"]["timing"]["executeMs"]["samples"] == 8
+        assert result["virCallCount"] == 12
+        assert [update["completed"] for update in result["progress"]] == [1, 2, 3, 4]
+        assert matching["points"][0]["input"]["jsonNodes"] > 1
+        assert matching["points"][0]["output"]["jsonBytes"] > 0
+        assert matching["points"][0]["candidates"]["vir"]["stable"]
+        assert len(matching["points"][0]["candidates"]["vir"]["timings"]) == 2
+
+        differing = result["differing"]
+        assert not differing["passed"]
+        assert differing["parityCount"] == 0
+        assert len(differing["mismatches"]) == 3
+
     def test_report_contract_and_sampling_order(self, code_url: str, page: Page):
         """Freeze the differential runner contract before extracting its sampling loop."""
         goto_slide_by_title(page, code_url, "Dark Code")

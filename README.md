@@ -1019,6 +1019,22 @@ and writes the complete report to
 `_test/pretty-reports/pretty-benchmark.json`. Both scripts reject
 filesystem paths outside this workspace.
 
+The browser harness now has one deliberately small non-pretty consumer:
+`runJsonRoundTripStudy` compares JSON parse-and-compact-serialize in
+JavaScript and VIR over two correctness cases and one payload-item size
+axis. It has no controls, dashboard, campaign format, or backend-specific
+memory study. Regenerate `verso-pretty.irpkg` before using its VIR candidate;
+the package must export `VersoSlides.Pretty.jsonRoundTripJsonForVir`.
+
+The possible VIR-upstream boundary is intentionally narrow. The interleaved
+warm-up/sample loop, adaptive batching, stability/parity checks, and phase
+distribution primitives can move together after the regenerated package runs
+both `prettyM` and JSON studies. The pretty/JSON corpora and adapters, report
+schemas, artifact orchestration, memory probes, dashboard, campaigns, and
+observation cards remain demo-owned. Until that two-function check is real,
+the sampler stays an internal function in `pretty.js`; there is no separate
+benchmark package or public configuration framework.
+
 To turn the latest report into self-contained, forwardable performance
 observation cards for compiler and runtime owners, run:
 
