@@ -321,8 +321,7 @@ fi
   "$report_path" \
   --target "$repo_root/VersoSlides/Pretty.lean" \
   VersoSlides.Pretty.formatJsonSegmentsJsonForVir \
-  VersoSlides.Pretty.formatSegmentsForVir \
-  VersoSlides.Pretty.jsonRoundTripJsonForVir)
+  VersoSlides.Pretty.formatSegmentsForVir)
 
 cp "$release_wasm" "$lib_dir/lean-vir/wasm/vir-upstream.wasm"
 

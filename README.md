@@ -1005,86 +1005,35 @@ scripts/build-vir-pretty-demo.sh --publish
 ```
 
 Serve a local build with the required isolation headers, then run the
-artifact-backed correctness, cold-start, footprint, scaling, memory,
-interaction, and repeated-call suite:
+presentation's five-backend interaction smoke test:
 
 ```
 scripts/serve-vir-pretty-demo.py
-
-uv run --project browser-tests python scripts/check-vir-pretty-demo.py
+python3 demos/vir-pretty/scripts/browser-smoke.py http://127.0.0.1:18321
 ```
 
-The checker uses five fresh browser contexts for cold-start statistics
-and writes the complete report to
-`_test/pretty-reports/pretty-benchmark.json`. Both scripts reject
-filesystem paths outside this workspace. It also runs the unbatched JSON
-round-trip control with the scaling study's warm-up and sample counts, stores
-it under `jsonRoundTrip`, and includes its parity result in the exit status.
-
-The browser harness now has one deliberately small non-pretty consumer:
-`runJsonRoundTripStudy` compares JSON parse-and-compact-serialize in
-JavaScript and VIR over two correctness cases and one payload-item size
-axis. It has no controls, dashboard, campaign format, or backend-specific
-memory study. Regenerate `verso-pretty.irpkg` before using its VIR candidate;
-the package must export `VersoSlides.Pretty.jsonRoundTripJsonForVir`.
-
-The VIR-upstream boundary is intentionally narrow. The regenerated package now
-runs both `prettyM` and a non-pretty JSON study through the same interleaved
-warm-up/sample loop, adaptive batching, stability/parity checks, and phase
-distribution primitives. This satisfies the reuse check; the JSON ABI study is
-otherwise complete and is not proposed as an upstream benchmark. A small
-[lean-vir handoff bundle](handoffs/lean-vir-benchmark-sampler/README.md)
-contains the source map, a schema-neutral reference implementation, contract
-tests, and an integration task. The first upstream patch should retain VIR's
-fixed iteration counts and `lean-vir.bench.v1` schema. The pretty/JSON corpora
-and adapters, artifact orchestration, memory probes, dashboard, campaigns, and
-observation cards remain demo-owned; there is still no public benchmark plugin
-or configuration framework.
-
-To turn the latest report into self-contained, forwardable performance
-observation cards for compiler and runtime owners, run:
+Benchmark collection is intentionally absent from Verso Slides. The standalone
+application under `benchmarks/prettyM-web/` in the VIR repository now owns the
+corpus, scaling, interaction, retained and isolated memory, repeated-call,
+cold-start, fresh-process campaign, dashboard, and observation-card workflows.
+From that directory, the corresponding entry points are:
 
 ```
-python3 scripts/generate-pretty-observation-cards.py
-python3 scripts/generate-pretty-observation-cards.py --check
+npm run report
+npm run campaign
+npm run cards
+npm run refresh
 ```
 
-The generated index is `performance-cards/pretty/README.md`. Each card
-includes its report and artifact provenance, measured evidence,
-interpretation, requested owner follow-up, and caveats. The generator
-rejects reports with failed correctness, scaling, retained-memory,
-interaction, or repeated-call studies; the intentionally separate
-isolated-memory study may still contain a backend-specific failure
-card candidate.
+The independent JSON parse/serialize control is retired. The two VIR candidates
+remain in the suite, so the deliberately simple string ABI and lower-level
+direct `Std.Format` ABI can still be compared without maintaining a separate
+experiment. Historical VIR-001 cards record why the direct ABI is the compiler
+performance baseline.
 
-For run-to-run variability, launch a campaign. Every non-seed report
-is collected by a separate checker subprocess and therefore a fresh
-Chromium process. The campaign rejects mixed artifact provenance or
-benchmark protocols, then writes `campaign.json` and a Markdown
-summary containing medians, ranges, coefficients of variation, and
-optional baseline deltas:
-
-```
-python3 scripts/run-pretty-benchmark-campaign.py \
-  --runs 3 \
-  --baseline _test/pretty-reports/pretty-benchmark.json
-```
-
-The complete workspace-only refresh workflow expects staged inputs at
-`_artifacts/lean-vir`, `_artifacts/pretty-native-current`, and
-`_artifacts/pretty-llvm-current`. It preserves the previous report as
-a baseline, rebuilds the demo, starts a private local server, collects
-the full report plus isolated VIR traces, runs the fresh-process
-campaign, regenerates the cards, and writes a refresh manifest under
-`_test/pretty-refresh/`:
-
-```
-python3 scripts/refresh-pretty-benchmark.py --campaign-runs 3
-```
-
-The refresh command refuses paths outside this workspace and never
-publishes. Use `--skip-build` to exercise the reporting workflow
-against the already-built local demo.
+A small [lean-vir handoff bundle](handoffs/lean-vir-benchmark-sampler/README.md)
+still documents the schema-neutral sampler extraction. The webapp remains
+`prettyM`-specific until a second real function supplies concrete requirements.
 
 By default, `--publish` syncs to
 `x80.org:/srv/www/vir-verso-slides-demo/`, which is served at

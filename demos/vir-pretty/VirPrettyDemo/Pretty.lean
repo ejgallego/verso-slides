@@ -162,14 +162,6 @@ public partial def formatOfJson (json : Json) : Except String Std.Format := do
 public def formatOfJsonString (s : String) : Except String Std.Format := do
   formatOfJson (← Json.parse s)
 
-/-- Parse JSON and serialize it compactly behind a string-only browser ABI. -/
-public def jsonRoundTripJsonForVir (s : String) : String :=
-  let result : Json :=
-    match Json.parse s with
-    | .ok value => Json.mkObj [("ok", true), ("value", value)]
-    | .error err => Json.mkObj [("ok", false), ("error", err)]
-  Json.compress result
-
 /-- Parse compact format JSON and render it into annotated text segments. -/
 public def formatJsonSegments (s : String) (width : Nat) (indent : Nat := 0) :
     Except String (Array Segment) := do

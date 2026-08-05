@@ -21,7 +21,7 @@ class TestPrettyVirAssets:
         assert "./lean-vir/wasm/vir-upstream.wasm" in body
         assert "VersoSlides.Pretty.formatJsonSegmentsJsonForVir" in body
         assert "VersoSlides.Pretty.formatSegmentsForVir" in body
-        assert "VersoSlides.Pretty.jsonRoundTripJsonForVir" in body
+        assert "jsonRoundTrip" not in body
 
     def test_pretty_native_asset_written(self, site_dir):
         """The FIR-produced native Wasm bootstrap is also vendored but opt-in."""

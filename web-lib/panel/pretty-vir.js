@@ -13,8 +13,7 @@
      *   fetchCache?: RequestCache,
      *   irPackageUrl?: string,
      *   jsonExportName?: string,
-     *   formatExportName?: string,
-     *   jsonRoundTripExportName?: string
+     *   formatExportName?: string
      * }} PrettyVirConfig
      *
      * @typedef {{
@@ -22,10 +21,8 @@
      *   runtime?: { call: (name: string, ...args: *[]) => * },
      *   jsonExportName?: string,
      *   formatExportName?: string,
-     *   jsonRoundTripExportName?: string,
      *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
      *   formatSegments?: (fmt: *, width: number, indent: number) => *,
-     *   jsonRoundTripJson?: (json: string) => string,
      *   ready?: Promise<*>,
      *   status?: string,
      *   error?: *,
@@ -71,10 +68,6 @@
         config.formatExportName ||
         bridge.formatExportName ||
         "VersoSlides.Pretty.formatSegmentsForVir";
-    bridge.jsonRoundTripExportName =
-        config.jsonRoundTripExportName ||
-        bridge.jsonRoundTripExportName ||
-        "VersoSlides.Pretty.jsonRoundTripJsonForVir";
     bridge.assets = [scriptUrl, runtimeUrl, wasmUrl, irPackageUrl];
     root.__versoPrettyVir = bridge;
 
@@ -120,11 +113,6 @@
                 if (!bridge.formatExportName)
                     throw new Error("missing VIR Std.Format pretty export name");
                 return runtime.call(bridge.formatExportName, fmt, width, indent);
-            };
-            bridge.jsonRoundTripJson = function (json) {
-                if (!bridge.jsonRoundTripExportName)
-                    throw new Error("missing VIR JSON round-trip export name");
-                return runtime.call(bridge.jsonRoundTripExportName, json);
             };
             return runtime;
         })
