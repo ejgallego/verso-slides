@@ -40,9 +40,11 @@ The demo uses two configuration surfaces:
 - `Config.panelPlugins` loads the VIR, native, and LLVM candidate adapters in
   order after the built-in formatter registry and before the panel consumer.
 
-The JavaScript reference, comparison renderer, benchmark sampler, controls, and
-dashboard remain Verso Slides panel functionality. The demo owns only candidate
-adapters, Wasm artifacts, runtime configuration, and presentation content.
+Verso Slides owns the JavaScript reference renderer, formatter registry, panel
+comparison UI, and the generic plugin hook. The demo owns candidate adapters,
+Wasm artifacts, runtime configuration, processor controls, and presentation
+content. Benchmark execution and report visualization are intentionally absent:
+they now belong to the standalone VIR benchmark webapp.
 `scripts/assemble.sh` copies opaque artifacts after `slidesMain`; it neither
 rewrites HTML nor replaces `lib/pretty.js`, `lib/panel.js`, or `lib/panel.css`.
 
@@ -68,11 +70,11 @@ The restored deck has the same functionality as the in-tree prototype:
 - interactive processor selection and single/compare modes;
 - shared column budgets and exact tagged-segment comparison;
 - hoverable marshal/execute/decode/HTML/total timing detail;
-- corpus, scaling, repeated-call, memory, and interaction studies;
-- consolidated results dashboard and recorded JSON loading.
+- no benchmark sampler or dashboard code in the slide runtime.
 
-Fresh-process campaign orchestration and report archival remain CLI concerns;
-their consolidated output is consumed by the same dashboard.
+The full benchmark interface is developed independently under
+`benchmarks/prettyM-web/` in the VIR repository. The deck may link to recorded
+results, but it does not execute the measurement harness.
 
 ## Artifact refresh contract
 

@@ -36,16 +36,7 @@ async def main() -> None:
         await controls.locator("summary").click()
         assert await controls.locator(".pretty-controls-backend").count() == 5
         assert await controls.locator(".pretty-controls-status.status-ready").count() == 5
-        for selector in [
-            ".pretty-suite-run",
-            ".pretty-corpus-run",
-            ".pretty-scaling-run",
-            ".pretty-repeated-run",
-            ".pretty-memory-run",
-            ".pretty-interaction-run",
-            ".pretty-dashboard-load",
-        ]:
-            assert await controls.locator(selector).count() == 1, selector
+        assert await controls.locator("button").count() == 0
 
         proof_index = await page.evaluate(
             """() => [...document.querySelectorAll('.slides > section')]
@@ -83,23 +74,7 @@ async def main() -> None:
         await shared_columns.press("Tab")
         assert await shared_columns.input_value() == "32"
 
-        report = await page.evaluate(
-            """async ids => runPrettyDifferentialCorpus({
-              backendIds: ids,
-              warmup: 0,
-              samples: 1,
-              batchTargetMs: 0,
-              maxBatchIterations: 1,
-              scenarios: [{
-                case: { id: 'smoke', label: 'smoke', format: [5, [4, 'a', [4, 1, 'b']]], origin: 'smoke' },
-                width: 8
-              }]
-            })""",
-            BACKEND_IDS,
-        )
-        assert report["passed"] is True, report
-        assert report["backendIds"] == BACKEND_IDS
-        assert report["parityCount"] == report["scenarioCount"] == 1
+        assert await page.evaluate("typeof runPrettyDifferentialCorpus") == "undefined"
         assert not page_errors, page_errors
         await browser.close()
 
