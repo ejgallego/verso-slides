@@ -62,6 +62,15 @@ async def main() -> None:
         )
         assert all("Marshal:" in title and "Execute:" in title for title in timing_titles)
 
+        timing_display = controls.locator(".pretty-controls-timing select")
+        assert await timing_display.input_value() == "total"
+        await timing_display.select_option("execute")
+        timing_texts = await panes.locator(".pretty-compare-time").all_inner_texts()
+        assert all(text.startswith("Execute · ") for text in timing_texts)
+        await timing_display.select_option("tracks")
+        assert await panes.locator(".pretty-timing-track").count() == 20
+        assert "prettyTiming=tracks" in page.url
+
         llvm_toggle = controls.locator('input[value="llvm"]')
         await llvm_toggle.uncheck()
         await page.wait_for_function(

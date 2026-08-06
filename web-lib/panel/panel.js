@@ -6,12 +6,34 @@
     /**
      * @typedef {HTMLElement & { _activeSource: Element | null }} PanelBlock
      * @typedef {HTMLElement & { _richFormatSource: Element | null }} InfoPanel
+     * @typedef {{
+     *   id: VersoPrettyTimingDisplay,
+     *   label: string,
+     *   shortLabel: string,
+     *   key: string | null
+     * }} PrettyTimingDisplay
      */
 
     /** @type {Record<string, *> | null} */
     var docsJson = null; // fetched once on init
     /** @type {HTMLDetailsElement | null} */
     var prettyControls = null;
+    /** @type {PrettyTimingDisplay[]} */
+    var PRETTY_TIMING_DISPLAYS = [
+        { id: "total", label: "Formatter total", shortLabel: "Total", key: "totalMs" },
+        { id: "execute", label: "Execute", shortLabel: "Execute", key: "executeMs" },
+        { id: "marshal", label: "Marshal", shortLabel: "Marshal", key: "marshalMs" },
+        { id: "decode", label: "Decode", shortLabel: "Decode", key: "decodeMs" },
+        { id: "render", label: "HTML", shortLabel: "HTML", key: "renderMs" },
+        { id: "wall", label: "Panel wall", shortLabel: "Wall", key: "wallMs" },
+        { id: "tracks", label: "Phase tracks", shortLabel: "Phases", key: null },
+    ];
+    var PRETTY_TIMING_PHASES = [
+        { key: "marshalMs", label: "Marshal", shortLabel: "M" },
+        { key: "executeMs", label: "Execute", shortLabel: "E" },
+        { key: "decodeMs", label: "Decode", shortLabel: "D" },
+        { key: "renderMs", label: "HTML", shortLabel: "H" },
+    ];
 
     function init() {
         initializePrettyConfig();
@@ -82,7 +104,11 @@
                 config.columns = columns;
             }
         }
+        if (params.has("prettyTiming")) {
+            config.timing = prettyTimingDisplayById(params.get("prettyTiming")).id;
+        }
         if (!Number.isInteger(config.columns)) config.columns = 40;
+        config.timing = selectedPrettyTimingDisplay().id;
     }
 
     /** @return {PrettyBackendDefinition[]} */
@@ -102,6 +128,25 @@
         var root = /** @type {Window} */ (window);
         var columns = root.__versoPrettyConfig && root.__versoPrettyConfig.columns;
         return Number.isInteger(columns) ? Math.max(1, Math.min(240, Number(columns))) : 40;
+    }
+
+    /**
+     * @param {string | null | undefined} selected
+     * @return {PrettyTimingDisplay}
+     */
+    function prettyTimingDisplayById(selected) {
+        return (
+            PRETTY_TIMING_DISPLAYS.find(function (display) {
+                return display.id === selected;
+            }) || PRETTY_TIMING_DISPLAYS[0]
+        );
+    }
+
+    /** @return {PrettyTimingDisplay} */
+    function selectedPrettyTimingDisplay() {
+        var root = /** @type {Window} */ (window);
+        var selected = root.__versoPrettyConfig && root.__versoPrettyConfig.timing;
+        return prettyTimingDisplayById(selected);
     }
 
     function reflowPrettyPanels() {
@@ -127,6 +172,7 @@
         url.searchParams.set("prettyBackend", config.backend || "js");
         url.searchParams.set("prettyColumns", String(prettyComparisonColumns()));
         url.searchParams.set("prettyControls", config.controls === true ? "1" : "0");
+        url.searchParams.set("prettyTiming", selectedPrettyTimingDisplay().id);
         window.history.replaceState(null, "", url);
     }
 
@@ -271,6 +317,26 @@
         });
         primaryLabel.appendChild(primary);
         menu.appendChild(primaryLabel);
+
+        var timingLabel = document.createElement("label");
+        timingLabel.className = "pretty-controls-timing";
+        timingLabel.appendChild(document.createTextNode("Timing display "));
+        var timing = document.createElement("select");
+        var selectedTiming = selectedPrettyTimingDisplay();
+        PRETTY_TIMING_DISPLAYS.forEach(function (display) {
+            var option = document.createElement("option");
+            option.value = display.id;
+            option.textContent = display.label;
+            option.selected = display.id === selectedTiming.id;
+            timing.appendChild(option);
+        });
+        timing.addEventListener("change", function () {
+            config.timing = prettyTimingDisplayById(timing.value).id;
+            persistPrettyConfig();
+            refreshTimingDisplays(document);
+        });
+        timingLabel.appendChild(timing);
+        menu.appendChild(timingLabel);
 
         var note = document.createElement("p");
         note.className = "pretty-controls-note";
@@ -783,12 +849,106 @@
     }
 
     /**
+     * Track lanes are intentionally compact; the control and hover detail
+     * establish that these unitless labels are milliseconds.
+     *
+     * @param {number} ms
+     * @return {string}
+     */
+    function formatTimingTrackValue(ms) {
+        if (!Number.isFinite(ms)) return "";
+        if (ms < 0.1) return "<.1";
+        return ms.toFixed(ms < 10 ? 1 : 0);
+    }
+
+    /**
+     * @param {HTMLElement} timeEl
+     * @param {string} key
+     * @return {number}
+     */
+    function timingValue(timeEl, key) {
+        var value = Number(timeEl.dataset[key]);
+        return Number.isFinite(value) ? Math.max(0, value) : 0;
+    }
+
+    /**
+     * Use one absolute scale across every phase and backend in a comparison.
+     * This makes the tracks directly comparable instead of normalizing each
+     * backend independently.
+     *
+     * @param {HTMLElement} timeEl
+     * @return {number}
+     */
+    function timingTrackScale(timeEl) {
+        var comparison = timeEl.closest(".pretty-compare");
+        if (!comparison) return Math.max(0.001, timingValue(timeEl, "totalMs"));
+        var scale = 0;
+        comparison.querySelectorAll(".pretty-compare-time").forEach(function (candidate) {
+            var candidateEl = /** @type {HTMLElement} */ (candidate);
+            scale = Math.max(scale, timingValue(candidateEl, "totalMs"));
+        });
+        return Math.max(0.001, scale);
+    }
+
+    /**
+     * @param {HTMLElement} timeEl
+     */
+    function renderTimingDisplay(timeEl) {
+        var display = selectedPrettyTimingDisplay();
+        timeEl.classList.toggle("pretty-timing-tracks", display.id === "tracks");
+        var header = timeEl.closest(".pretty-compare-header");
+        if (header) header.classList.toggle("pretty-timing-header-tracks", display.id === "tracks");
+        if (display.id !== "tracks" && display.key !== null) {
+            timeEl.textContent =
+                display.shortLabel + " · " + formatTiming(timingValue(timeEl, display.key));
+            return;
+        }
+
+        var scale = timingTrackScale(timeEl);
+        var tracks = document.createDocumentFragment();
+        PRETTY_TIMING_PHASES.forEach(function (phase) {
+            var value = timingValue(timeEl, phase.key);
+            var row = document.createElement("span");
+            row.className = "pretty-timing-track";
+            row.dataset.timingPhase = phase.key;
+            row.title = phase.label + ": " + formatTiming(value);
+
+            var label = document.createElement("span");
+            label.className = "pretty-timing-track-label";
+            label.textContent = phase.shortLabel;
+            label.setAttribute("aria-hidden", "true");
+
+            var rail = document.createElement("span");
+            rail.className = "pretty-timing-track-rail";
+            var fill = document.createElement("span");
+            fill.className = "pretty-timing-track-fill";
+            fill.style.width = Math.min(100, (value / scale) * 100) + "%";
+            rail.appendChild(fill);
+
+            var number = document.createElement("span");
+            number.className = "pretty-timing-track-value";
+            number.textContent = formatTimingTrackValue(value);
+            row.append(label, rail, number);
+            tracks.appendChild(row);
+        });
+        timeEl.replaceChildren(tracks);
+    }
+
+    /**
+     * @param {ParentNode} root
+     */
+    function refreshTimingDisplays(root) {
+        root.querySelectorAll(".pretty-compare-time[data-total-ms]").forEach(function (time) {
+            renderTimingDisplay(/** @type {HTMLElement} */ (time));
+        });
+    }
+
+    /**
      * @param {HTMLElement} timeEl
      * @param {PrettyTimings} timings
      * @param {number} wallMs
      */
     function setTimingDetails(timeEl, timings, wallMs) {
-        timeEl.textContent = formatTiming(timings.totalMs);
         var details = [
             "Formatter total: " + formatTiming(timings.totalMs),
             "Marshal: " + formatTiming(timings.marshalMs),
@@ -863,6 +1023,9 @@
         timeEl.dataset.renderMs = String(timings.renderMs);
         timeEl.dataset.totalMs = String(timings.totalMs);
         timeEl.dataset.wallMs = String(wallMs);
+        var comparison = timeEl.closest(".pretty-compare");
+        if (comparison) refreshTimingDisplays(comparison);
+        else renderTimingDisplay(timeEl);
     }
 
     /**

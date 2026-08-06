@@ -499,6 +499,21 @@ class TestPrettyVirComparisonPanel:
         block.locator(".tactic .keyword").first.click()
         assert panel.locator(".pretty-compare-pane").count() == 2
 
+        timing = controls.locator(".pretty-controls-timing select")
+        expect(timing).to_have_value("total")
+        timing.select_option("execute")
+        assert all(
+            text.startswith("Execute · ")
+            for text in panel.locator(".pretty-compare-time").all_inner_texts()
+        )
+        assert "prettyTiming=execute" in page.url
+
+        timing.select_option("tracks")
+        assert panel.locator(".pretty-timing-tracks").count() == 2
+        assert panel.locator(".pretty-timing-track").count() == 8
+        assert panel.locator('[data-timing-phase="executeMs"]').count() == 2
+        assert "prettyTiming=tracks" in page.url
+
         controls.locator('input[value="vir"]').uncheck()
         expect(panel.locator('.pretty-compare-pane[data-pretty-backend="js"]')).to_be_visible()
         assert panel.locator(".pretty-compare-pane").count() == 1

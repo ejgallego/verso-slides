@@ -119,12 +119,22 @@ interface VersoPrettyLlvmConfig {
     maximumBytes?: number;
 }
 
+type VersoPrettyTimingDisplay =
+    | "total"
+    | "execute"
+    | "marshal"
+    | "decode"
+    | "render"
+    | "wall"
+    | "tracks";
+
 interface VersoPrettyConfig {
     compare?: boolean;
     backend?: string;
     backends?: string[];
     columns?: number;
     controls?: boolean;
+    timing?: VersoPrettyTimingDisplay;
 }
 
 interface Window {

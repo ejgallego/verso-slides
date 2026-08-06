@@ -69,7 +69,8 @@ The restored deck has the same functionality as the in-tree prototype:
 - live Lean code panels and draggable panel sizing;
 - interactive processor selection and single/compare modes;
 - shared column budgets and exact tagged-segment comparison;
-- hoverable marshal/execute/decode/HTML/total timing detail;
+- selectable total/execute/marshal/decode/HTML/wall timing, plus compact
+  four-lane phase tracks and complete hover detail;
 - no benchmark sampler or dashboard code in the slide runtime.
 
 The full benchmark interface is developed independently under

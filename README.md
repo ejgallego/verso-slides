@@ -816,6 +816,9 @@ copied or reloaded:
   renderer outside comparison mode.
 - `prettyColumns=40` sets the common comparison width.
 - `prettyControls=1` displays the menu.
+- `prettyTiming=execute` selects the primary timing shown in every pane;
+  supported values are `total`, `execute`, `marshal`, `decode`, `render`,
+  `wall`, and `tracks`.
 
 Comparison mode deliberately gives every processor the same
 deterministic character-column budget. This avoids deriving separate
@@ -823,9 +826,11 @@ widths from panes whose sizes and output styling differ. Outside
 comparison mode, the JavaScript renderer retains its DOM-measured
 pixel width.
 
-Each comparison header displays formatter time. Hovering it shows the
-marshal, execution, decode, and HTML-construction phases, plus total
-panel wall time. These are synchronous per-render measurements taken
+Each comparison header can display formatter total, execution, marshal,
+decode, HTML-construction, or panel wall time. The `tracks` display is a
+compact four-lane view of marshal, execute, decode, and HTML time on one
+absolute scale across the visible backends. Hovering either display shows the
+complete timing breakdown. These are synchronous per-render measurements taken
 after artifact instantiation: download and instantiation are excluded,
 while an early observation may still include engine warm-up. Goal
 panes sum the phase times of all formatted hypotheses and conclusions.

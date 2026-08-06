@@ -161,6 +161,7 @@
 
 .pretty-controls-columns,
 .pretty-controls-primary,
+.pretty-controls-timing,
 .pretty-controls-toggle {
     display: flex;
     align-items: center;
@@ -172,7 +173,8 @@
     width: 4.5rem;
 }
 
-.pretty-controls-primary select {
+.pretty-controls-primary select,
+.pretty-controls-timing select {
     min-width: 8rem;
 }
 
@@ -324,7 +326,7 @@
 
 .info-panel .pretty-compare-header {
     display: flex;
-    align-items: baseline;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 0.5em;
     margin-bottom: 0.25em;
@@ -340,6 +342,71 @@
     cursor: help;
     text-decoration: underline dotted rgba(150, 150, 150, 0.55);
     text-underline-offset: 0.18em;
+}
+
+.info-panel .pretty-compare-time.pretty-timing-tracks {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: 0.12em;
+    text-decoration: none;
+}
+
+.info-panel .pretty-compare-header.pretty-timing-header-tracks {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25em;
+}
+
+.info-panel .pretty-timing-track {
+    display: grid;
+    grid-template-columns: 1em minmax(1.8em, 1fr) 2.7em;
+    align-items: center;
+    gap: 0.3em;
+    min-width: 0;
+}
+
+.info-panel .pretty-timing-track-label {
+    color: rgba(180, 180, 180, 0.9);
+    font-size: 0.82em;
+    font-weight: 700;
+    text-align: center;
+}
+
+.info-panel .pretty-timing-track-rail {
+    display: block;
+    height: 0.45em;
+    overflow: hidden;
+    background: rgba(128, 128, 128, 0.22);
+    border-radius: 0.2em;
+}
+
+.info-panel .pretty-timing-track-fill {
+    display: block;
+    height: 100%;
+    min-width: 1px;
+    background: #d9a441;
+    border-radius: inherit;
+}
+
+.info-panel [data-timing-phase="executeMs"] .pretty-timing-track-fill {
+    background: #55a868;
+}
+
+.info-panel [data-timing-phase="decodeMs"] .pretty-timing-track-fill {
+    background: #4c8eda;
+}
+
+.info-panel [data-timing-phase="renderMs"] .pretty-timing-track-fill {
+    background: #9b72cf;
+}
+
+.info-panel .pretty-timing-track-value {
+    overflow: hidden;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 .info-panel .pretty-compare-body {
