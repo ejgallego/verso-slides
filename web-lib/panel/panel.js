@@ -906,6 +906,14 @@
 
         var scale = timingTrackScale(timeEl);
         var tracks = document.createDocumentFragment();
+        var total = document.createElement("span");
+        total.className = "pretty-timing-tracks-total";
+        var totalLabel = document.createElement("span");
+        totalLabel.textContent = "Total";
+        var totalValue = document.createElement("span");
+        totalValue.textContent = formatTiming(timingValue(timeEl, "totalMs"));
+        total.append(totalLabel, totalValue);
+        tracks.appendChild(total);
         PRETTY_TIMING_PHASES.forEach(function (phase) {
             var value = timingValue(timeEl, phase.key);
             var row = document.createElement("span");

@@ -68,6 +68,9 @@ async def main() -> None:
         timing_texts = await panes.locator(".pretty-compare-time").all_inner_texts()
         assert all(text.startswith("Execute · ") for text in timing_texts)
         await timing_display.select_option("tracks")
+        total_texts = await panes.locator(".pretty-timing-tracks-total").all_inner_texts()
+        assert len(total_texts) == 5
+        assert all("Total" in text and "ms" in text for text in total_texts)
         assert await panes.locator(".pretty-timing-track").count() == 20
         assert "prettyTiming=tracks" in page.url
 

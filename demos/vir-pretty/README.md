@@ -70,7 +70,7 @@ The restored deck has the same functionality as the in-tree prototype:
 - interactive processor selection and single/compare modes;
 - shared column budgets and exact tagged-segment comparison;
 - selectable total/execute/marshal/decode/HTML/wall timing, plus compact
-  four-lane phase tracks and complete hover detail;
+  four-lane phase tracks with the total above and complete hover detail;
 - no benchmark sampler or dashboard code in the slide runtime.
 
 The full benchmark interface is developed independently under

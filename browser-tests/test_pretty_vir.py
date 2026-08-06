@@ -510,6 +510,11 @@ class TestPrettyVirComparisonPanel:
 
         timing.select_option("tracks")
         assert panel.locator(".pretty-timing-tracks").count() == 2
+        assert panel.locator(".pretty-timing-tracks-total").count() == 2
+        assert all(
+            "Total" in text and "ms" in text
+            for text in panel.locator(".pretty-timing-tracks-total").all_inner_texts()
+        )
         assert panel.locator(".pretty-timing-track").count() == 8
         assert panel.locator('[data-timing-phase="executeMs"]').count() == 2
         assert "prettyTiming=tracks" in page.url

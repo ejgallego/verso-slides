@@ -827,12 +827,12 @@ comparison mode, the JavaScript renderer retains its DOM-measured
 pixel width.
 
 Each comparison header can display formatter total, execution, marshal,
-decode, HTML-construction, or panel wall time. The `tracks` display is a
-compact four-lane view of marshal, execute, decode, and HTML time on one
-absolute scale across the visible backends. Hovering either display shows the
-complete timing breakdown. These are synchronous per-render measurements taken
-after artifact instantiation: download and instantiation are excluded,
-while an early observation may still include engine warm-up. Goal
+decode, HTML-construction, or panel wall time. The `tracks` display places the
+formatter total above a compact four-lane view of marshal, execute, decode, and
+HTML time on one absolute scale across the visible backends. Hovering either
+display shows the complete timing breakdown. These are synchronous per-render
+measurements taken after artifact instantiation: download and instantiation are
+excluded, while an early observation may still include engine warm-up. Goal
 panes sum the phase times of all formatted hypotheses and conclusions.
 The native adapter additionally breaks preparation into Verso-input
 conversion, normalization, one bulk resident allocation, and raw
