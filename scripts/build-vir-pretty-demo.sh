@@ -335,12 +335,9 @@ cp "$release_wasm" "$lib_dir/lean-vir/wasm/vir-upstream.wasm"
 
 if [[ "$native_enabled" -eq 1 ]]; then
   mkdir -p "$lib_dir/lean-native"
-  install -m 0644 "$native_pretty_dir/BUILD.json" "$lib_dir/lean-native/BUILD.json"
-  install -m 0644 "$native_pretty_dir/prettyM.wasm" "$lib_dir/lean-native/prettyM.wasm"
-  install -m 0644 "$native_pretty_dir/prettyM.wasm.json" \
-    "$lib_dir/lean-native/prettyM.wasm.json"
-  install -m 0644 "$native_pretty_dir/prettyM-browser-adapter.mjs" \
-    "$lib_dir/lean-native/prettyM-browser-adapter.mjs"
+  for native_file in "${native_required[@]}"; do
+    install -m 0644 "$native_pretty_dir/$native_file" "$lib_dir/lean-native/$native_file"
+  done
 fi
 
 if [[ "$llvm_enabled" -eq 1 ]]; then

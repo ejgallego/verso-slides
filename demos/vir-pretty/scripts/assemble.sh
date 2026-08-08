@@ -10,6 +10,7 @@ required=(
   lean-vir/wasm/vir-upstream.wasm
   verso-pretty.irpkg
   lean-native/BUILD.json
+  lean-native/SHA256SUMS
   lean-native/prettyM-browser-adapter.mjs
   lean-native/prettyM.wasm
   lean-native/prettyM.wasm.json

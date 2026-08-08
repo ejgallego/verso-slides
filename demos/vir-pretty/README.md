@@ -86,7 +86,8 @@ The seed directory has the following stable layout:
 lean-vir/js/vir-runtime.js
 lean-vir/wasm/vir-upstream.wasm
 verso-pretty.irpkg
-lean-native/{BUILD.json,prettyM-browser-adapter.mjs,prettyM.wasm,prettyM.wasm.json}
+lean-native/{BUILD.json,SHA256SUMS,prettyM-browser-adapter.mjs,
+             prettyM.wasm,prettyM.wasm.json}
 lean-llvm/{README.md,SHA256SUMS,emscripten-loader.mjs,
            prettyM-emscripten-adapter.mjs,prettyM.manifest.json,
            prettyM.mjs,prettyM.wasm}
@@ -97,7 +98,8 @@ package. Its exported names deliberately retain the existing
 `VersoSlides.Pretty.*` ABI so current artifacts remain usable while the demo is
 moved out of the Verso implementation repository.
 
-The next refresh should move `lean-toolchain`, compact-format ABI metadata, and
-all three Wasm artifact families to Lean 4.33 together. The current 4.32 pin is
-deliberate: it separates the architectural extraction from an ABI/toolchain
-migration and lets us compare the two changes independently.
+The host deck and VIR package follow this checkout's Lean toolchain. Native and
+LLVM packages are self-contained bounded runtimes and retain their own Lean
+version and ABI provenance in capability metadata; they need not match the host
+toolchain. Refresh tooling validates each package against its declared boundary
+before staging it.
