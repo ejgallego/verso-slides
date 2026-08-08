@@ -37,9 +37,14 @@
  *   renderMs: number,
  *   totalMs: number,
  *   adapterInputMs?: number,
+ *   adapterOutputMs?: number,
  *   normalizeMs?: number,
  *   allocateMs?: number,
  *   encodeMs?: number,
+ *   runtimeMarshalMs?: number,
+ *   runtimeDecodeMs?: number,
+ *   runtimeTotalMs?: number,
+ *   hostMs?: number,
  *   inputBytes?: number,
  *   rawObjects?: number,
  *   allocationCalls?: number,
@@ -57,6 +62,16 @@
  * @typedef {{ text: string, events: PrettyTraceEvent[] }} PrettyTrace
  *
  * @typedef {{ segments: Segment[] | null, timings: PrettyTimings, memory?: Record<string, number>, error?: string }} PrettySegmentResult
+ *
+ * @typedef {{
+ *   marshalMs: number,
+ *   executeMs: number,
+ *   decodeMs: number,
+ *   hostMs: number,
+ *   totalMs: number
+ * }} VirCallTimings
+ *
+ * @typedef {{ value: *, timings: VirCallTimings }} VirTimedCallResult
  *
  * @typedef {{
  *   output: "segments" | "text",
@@ -85,11 +100,16 @@
  *
  * @typedef {{
  *   enabled?: boolean,
- *   runtime?: { call: (name: string, ...args: *[]) => * },
+ *   runtime?: {
+ *     call: (name: string, ...args: *[]) => *,
+ *     callTimed?: (name: string, ...args: *[]) => VirTimedCallResult
+ *   },
  *   jsonExportName?: string,
  *   formatExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
  *   formatSegments?: (fmt: *, width: number, indent: number) => *,
+ *   formatJsonSegmentsJsonTimed?: (fmtJson: string, width: number, indent: number) => VirTimedCallResult,
+ *   formatSegmentsTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
  *   ready?: Promise<*>,
  *   status?: string,
  *   assets?: string[],
@@ -830,9 +850,14 @@ function addPrettyTimings(target, source) {
     /** @type {(keyof PrettyTimings)[]} */
     var detailKeys = [
         "adapterInputMs",
+        "adapterOutputMs",
         "normalizeMs",
         "allocateMs",
         "encodeMs",
+        "runtimeMarshalMs",
+        "runtimeDecodeMs",
+        "runtimeTotalMs",
+        "hostMs",
         "inputBytes",
         "rawObjects",
         "allocationCalls",
@@ -879,9 +904,14 @@ function averagePrettyTimings(timings, iterations, wallMs) {
         "renderMs",
         "totalMs",
         "adapterInputMs",
+        "adapterOutputMs",
         "normalizeMs",
         "allocateMs",
         "encodeMs",
+        "runtimeMarshalMs",
+        "runtimeDecodeMs",
+        "runtimeTotalMs",
+        "hostMs",
         "inputBytes",
         "rawObjects",
         "allocationCalls",
@@ -935,6 +965,58 @@ function prettyPhaseTimings(started, marshaled, executed, decoded) {
         decodeMs: Math.max(0, decoded - executed),
         renderMs: 0,
         totalMs: Math.max(0, decoded - started),
+    };
+}
+
+/**
+ * Validate VIR's stable opt-in timing result before composing it with the
+ * consumer-owned adapter and output phases.
+ * @param {*} value
+ * @return {VirCallTimings}
+ */
+function requireVirCallTimings(value) {
+    var keys = ["marshalMs", "executeMs", "decodeMs", "hostMs", "totalMs"];
+    if (!value || typeof value !== "object") {
+        throw new Error("VIR timed call did not return timings");
+    }
+    /** @type {Record<string, number>} */
+    var checked = {};
+    keys.forEach(function (key) {
+        var timing = value[key];
+        if (typeof timing !== "number" || !Number.isFinite(timing) || timing < 0) {
+            throw new Error("VIR timed call returned invalid " + key);
+        }
+        checked[key] = timing;
+    });
+    return /** @type {VirCallTimings} */ (checked);
+}
+
+/**
+ * Compose VIR's runtime-internal phases with Verso's input/output adapters.
+ * `hostMs` remains a nested detail of `executeMs`, never an additive lane.
+ * @param {number} started
+ * @param {number} marshaled
+ * @param {number} executed
+ * @param {number} decoded
+ * @param {VirCallTimings | null} runtime
+ * @return {PrettyTimings}
+ */
+function composeVirPrettyTimings(started, marshaled, executed, decoded, runtime) {
+    if (runtime === null) return prettyPhaseTimings(started, marshaled, executed, decoded);
+    var adapterInputMs = Math.max(0, marshaled - started);
+    var adapterOutputMs = Math.max(0, decoded - executed);
+    return {
+        marshalMs: adapterInputMs + runtime.marshalMs,
+        executeMs: runtime.executeMs,
+        decodeMs: runtime.decodeMs + adapterOutputMs,
+        renderMs: 0,
+        totalMs: Math.max(0, decoded - started),
+        adapterInputMs: adapterInputMs,
+        adapterOutputMs: adapterOutputMs,
+        runtimeMarshalMs: runtime.marshalMs,
+        runtimeDecodeMs: runtime.decodeMs,
+        runtimeTotalMs: runtime.totalMs,
+        hostMs: runtime.hostMs,
     };
 }
 
@@ -998,6 +1080,8 @@ function tryFormatSegmentsWithVirTimed(fmtJson, pixelWidth, measurer) {
     }
 
     var fmtString = JSON.stringify(fmtJson);
+    var width = pixelWidthToFormatColumns(pixelWidth, measurer);
+    var indent = 0;
     marshaled = performance.now();
     if (typeof fmtString !== "string") {
         return {
@@ -1006,11 +1090,24 @@ function tryFormatSegmentsWithVirTimed(fmtJson, pixelWidth, measurer) {
         };
     }
 
+    /** @type {VirCallTimings | null} */
+    var runtimeTimings = null;
     try {
-        var width = pixelWidthToFormatColumns(pixelWidth, measurer);
-        var indent = 0;
         var rendered;
-        if (typeof bridge.formatJsonSegmentsJson === "function") {
+        if (typeof bridge.formatJsonSegmentsJsonTimed === "function") {
+            var timed = bridge.formatJsonSegmentsJsonTimed(fmtString, width, indent);
+            rendered = timed.value;
+            runtimeTimings = requireVirCallTimings(timed.timings);
+        } else if (bridge.runtime && typeof bridge.runtime.callTimed === "function") {
+            var runtimeTimed = bridge.runtime.callTimed(
+                bridge.jsonExportName || "VersoSlides.Pretty.formatJsonSegmentsJsonForVir",
+                fmtString,
+                width,
+                indent,
+            );
+            rendered = runtimeTimed.value;
+            runtimeTimings = requireVirCallTimings(runtimeTimed.timings);
+        } else if (typeof bridge.formatJsonSegmentsJson === "function") {
             rendered = bridge.formatJsonSegmentsJson(fmtString, width, indent);
         } else if (bridge.runtime && typeof bridge.runtime.call === "function") {
             rendered = bridge.runtime.call(
@@ -1033,7 +1130,13 @@ function tryFormatSegmentsWithVirTimed(fmtJson, pixelWidth, measurer) {
             var failedAt = performance.now();
             return {
                 segments: null,
-                timings: prettyPhaseTimings(started, marshaled, executed, failedAt),
+                timings: composeVirPrettyTimings(
+                    started,
+                    marshaled,
+                    executed,
+                    failedAt,
+                    runtimeTimings,
+                ),
             };
         }
         var segments = normalizeVirSegments(result.segments);
@@ -1042,24 +1145,31 @@ function tryFormatSegmentsWithVirTimed(fmtJson, pixelWidth, measurer) {
             var invalidAt = performance.now();
             return {
                 segments: null,
-                timings: prettyPhaseTimings(started, marshaled, executed, invalidAt),
+                timings: composeVirPrettyTimings(
+                    started,
+                    marshaled,
+                    executed,
+                    invalidAt,
+                    runtimeTimings,
+                ),
             };
         }
         var decoded = performance.now();
         return {
             segments: segments,
-            timings: prettyPhaseTimings(started, marshaled, executed, decoded),
+            timings: composeVirPrettyTimings(started, marshaled, executed, decoded, runtimeTimings),
         };
     } catch (error) {
         warnPrettyVirFailure(bridge, "vir", error);
         var failed = performance.now();
         return {
             segments: null,
-            timings: prettyPhaseTimings(
+            timings: composeVirPrettyTimings(
                 started,
                 marshaled,
                 executed === started ? failed : executed,
                 failed,
+                runtimeTimings || null,
             ),
         };
     }
@@ -1086,13 +1196,28 @@ function tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
         return { segments: null, timings: emptyPrettyTimings() };
     }
 
+    /** @type {VirCallTimings | null} */
+    var runtimeTimings = null;
     try {
         var width = pixelWidthToFormatColumns(pixelWidth, measurer);
         var indent = 0;
         var fmt = compactFormatToStdFormat(fmtJson);
         marshaled = performance.now();
         var rendered;
-        if (typeof bridge.formatSegments === "function") {
+        if (typeof bridge.formatSegmentsTimed === "function") {
+            var timed = bridge.formatSegmentsTimed(fmt, width, indent);
+            rendered = timed.value;
+            runtimeTimings = requireVirCallTimings(timed.timings);
+        } else if (bridge.runtime && typeof bridge.runtime.callTimed === "function") {
+            var runtimeTimed = bridge.runtime.callTimed(
+                bridge.formatExportName || "VersoSlides.Pretty.formatSegmentsForVir",
+                fmt,
+                width,
+                indent,
+            );
+            rendered = runtimeTimed.value;
+            runtimeTimings = requireVirCallTimings(runtimeTimed.timings);
+        } else if (typeof bridge.formatSegments === "function") {
             rendered = bridge.formatSegments(fmt, width, indent);
         } else if (bridge.runtime && typeof bridge.runtime.call === "function") {
             rendered = bridge.runtime.call(
@@ -1115,24 +1240,31 @@ function tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
             var invalidAt = performance.now();
             return {
                 segments: null,
-                timings: prettyPhaseTimings(started, marshaled, executed, invalidAt),
+                timings: composeVirPrettyTimings(
+                    started,
+                    marshaled,
+                    executed,
+                    invalidAt,
+                    runtimeTimings,
+                ),
             };
         }
         var decoded = performance.now();
         return {
             segments: segments,
-            timings: prettyPhaseTimings(started, marshaled, executed, decoded),
+            timings: composeVirPrettyTimings(started, marshaled, executed, decoded, runtimeTimings),
         };
     } catch (error) {
         warnPrettyVirFailure(bridge, "vir-format", error);
         var failed = performance.now();
         return {
             segments: null,
-            timings: prettyPhaseTimings(
+            timings: composeVirPrettyTimings(
                 started,
                 marshaled,
                 executed === started ? failed : executed,
                 failed,
+                runtimeTimings || null,
             ),
         };
     }

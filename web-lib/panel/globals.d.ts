@@ -23,6 +23,20 @@ declare var marked: { parse(text: string): string } | undefined;
 
 interface VersoPrettyVirRuntime {
     call(name: string, ...args: any[]): any;
+    callTimed?(name: string, ...args: any[]): VersoPrettyVirTimedCall;
+}
+
+interface VersoPrettyVirCallTimings {
+    marshalMs: number;
+    executeMs: number;
+    decodeMs: number;
+    hostMs: number;
+    totalMs: number;
+}
+
+interface VersoPrettyVirTimedCall {
+    value: any;
+    timings: VersoPrettyVirCallTimings;
 }
 
 interface VersoPrettyVirBridge {
@@ -32,6 +46,12 @@ interface VersoPrettyVirBridge {
     formatExportName?: string;
     formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string;
     formatSegments?: (fmt: unknown, width: number, indent: number) => unknown;
+    formatJsonSegmentsJsonTimed?: (
+        fmtJson: string,
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
+    formatSegmentsTimed?: (fmt: unknown, width: number, indent: number) => VersoPrettyVirTimedCall;
     ready?: Promise<unknown>;
     status?: string;
     error?: unknown;

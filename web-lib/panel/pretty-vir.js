@@ -18,11 +18,16 @@
      *
      * @typedef {{
      *   enabled?: boolean,
-     *   runtime?: { call: (name: string, ...args: *[]) => * },
+     *   runtime?: {
+     *     call: (name: string, ...args: *[]) => *,
+     *     callTimed?: (name: string, ...args: *[]) => VirTimedCallResult
+     *   },
      *   jsonExportName?: string,
      *   formatExportName?: string,
      *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
      *   formatSegments?: (fmt: *, width: number, indent: number) => *,
+     *   formatJsonSegmentsJsonTimed?: (fmtJson: string, width: number, indent: number) => VirTimedCallResult,
+     *   formatSegmentsTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
      *   ready?: Promise<*>,
      *   status?: string,
      *   error?: *,
@@ -30,6 +35,16 @@
      *   startupTimings?: { importMs: number, initializeMs: number, totalMs: number },
      *   warnings?: Record<string, boolean>
      * }} PrettyVirBridge
+     *
+     * @typedef {{
+     *   marshalMs: number,
+     *   executeMs: number,
+     *   decodeMs: number,
+     *   hostMs: number,
+     *   totalMs: number
+     * }} VirCallTimings
+     *
+     * @typedef {{ value: *, timings: VirCallTimings }} VirTimedCallResult
      */
 
     var root = /** @type {Window & {
@@ -124,6 +139,18 @@
                     throw new Error("missing VIR Std.Format pretty export name");
                 return runtime.call(bridge.formatExportName, fmt, width, indent);
             };
+            if (typeof runtime.callTimed === "function") {
+                bridge.formatJsonSegmentsJsonTimed = function (fmtJson, width, indent) {
+                    if (!bridge.jsonExportName)
+                        throw new Error("missing VIR JSON pretty export name");
+                    return runtime.callTimed(bridge.jsonExportName, fmtJson, width, indent);
+                };
+                bridge.formatSegmentsTimed = function (fmt, width, indent) {
+                    if (!bridge.formatExportName)
+                        throw new Error("missing VIR Std.Format pretty export name");
+                    return runtime.callTimed(bridge.formatExportName, fmt, width, indent);
+                };
+            }
             return runtime;
         })
         .catch(function (error) {

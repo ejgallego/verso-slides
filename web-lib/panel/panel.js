@@ -957,16 +957,18 @@
      * @param {number} wallMs
      */
     function setTimingDetails(timeEl, timings, wallMs) {
-        var details = [
-            "Formatter total: " + formatTiming(timings.totalMs),
-            "Marshal: " + formatTiming(timings.marshalMs),
-        ];
+        var details = ["Formatter total: " + formatTiming(timings.totalMs)];
+        if (typeof timings.runtimeTotalMs === "number" && Number.isFinite(timings.runtimeTotalMs)) {
+            details.push("  VIR call total: " + formatTiming(timings.runtimeTotalMs));
+        }
+        details.push("Marshal: " + formatTiming(timings.marshalMs));
         /** @type {Array<[keyof PrettyTimings, string]>} */
         var phaseDetails = [
             ["adapterInputMs", "  Verso input"],
             ["normalizeMs", "  Normalize"],
             ["allocateMs", "  Allocate"],
             ["encodeMs", "  Encode"],
+            ["runtimeMarshalMs", "  VIR runtime"],
         ];
         phaseDetails.forEach(function (detail) {
             var value = timings[detail[0]];
@@ -974,11 +976,24 @@
                 details.push(detail[1] + ": " + formatTiming(value));
             }
         });
-        details.push(
-            "Execute: " + formatTiming(timings.executeMs),
-            "Decode: " + formatTiming(timings.decodeMs),
-            "HTML: " + formatTiming(timings.renderMs),
-        );
+        details.push("Execute: " + formatTiming(timings.executeMs));
+        if (typeof timings.hostMs === "number" && Number.isFinite(timings.hostMs)) {
+            details.push("  JS host imports (included): " + formatTiming(timings.hostMs));
+        }
+        details.push("Decode: " + formatTiming(timings.decodeMs));
+        if (
+            typeof timings.runtimeDecodeMs === "number" &&
+            Number.isFinite(timings.runtimeDecodeMs)
+        ) {
+            details.push("  VIR runtime: " + formatTiming(timings.runtimeDecodeMs));
+        }
+        if (
+            typeof timings.adapterOutputMs === "number" &&
+            Number.isFinite(timings.adapterOutputMs)
+        ) {
+            details.push("  Verso output: " + formatTiming(timings.adapterOutputMs));
+        }
+        details.push("HTML: " + formatTiming(timings.renderMs));
         if (
             typeof timings.inputBytes === "number" &&
             typeof timings.rawObjects === "number" &&

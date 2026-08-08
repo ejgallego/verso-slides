@@ -22,6 +22,8 @@ class TestPrettyVirAssets:
         assert "./lean-vir/wasm/vir-upstream.wasm" in body
         assert "VersoSlides.Pretty.formatJsonSegmentsJsonForVir" in body
         assert "VersoSlides.Pretty.formatSegmentsForVir" in body
+        assert "runtime.callTimed" in body
+        assert "formatSegmentsTimed" in body
         assert "jsonRoundTrip" not in body
 
     def test_pretty_native_asset_written(self, site_dir):
@@ -117,7 +119,30 @@ class TestPrettyVirBridge:
                         ok: true,
                         segments: [{ text: "from-vir", tags: [] }]
                     }),
-                    formatSegments: () => [{ text: "from-format", tags: [] }]
+                    formatSegments: () => [{ text: "from-format", tags: [] }],
+                    formatJsonSegmentsJsonTimed: () => ({
+                        value: JSON.stringify({
+                            ok: true,
+                            segments: [{ text: "from-vir", tags: [] }]
+                        }),
+                        timings: {
+                            marshalMs: 0.1,
+                            executeMs: 0.2,
+                            decodeMs: 0.1,
+                            hostMs: 0.05,
+                            totalMs: 0.45
+                        }
+                    }),
+                    formatSegmentsTimed: () => ({
+                        value: [{ text: "from-format", tags: [] }],
+                        timings: {
+                            marshalMs: 0.2,
+                            executeMs: 0.3,
+                            decodeMs: 0.1,
+                            hostMs: 0.05,
+                            totalMs: 0.65
+                        }
+                    })
                 };
                 const measurer = {
                     spaceWidth: 10,
@@ -144,6 +169,12 @@ class TestPrettyVirBridge:
             "decodeMs",
             "renderMs",
             "totalMs",
+            "adapterInputMs",
+            "adapterOutputMs",
+            "runtimeMarshalMs",
+            "runtimeDecodeMs",
+            "runtimeTotalMs",
+            "hostMs",
         }
         assert all(value >= 0 for value in result["timed"]["timings"].values())
 
@@ -165,6 +196,46 @@ class TestPrettyVirBridge:
         assert result["html"] == "left\nright"
         assert result["timings"]["executeMs"] >= 0
         assert result["timings"]["totalMs"] >= result["timings"]["executeMs"]
+
+    def test_vir_timed_call_phases_are_composed_with_verso_adapters(
+        self, code_url: str, page: Page
+    ):
+        """Runtime phases refine VIR timing without absorbing Verso-owned work."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        result = page.evaluate(
+            """() => {
+                window.__versoPrettyVir = {
+                    status: "ready",
+                    formatSegmentsTimed: () => ({
+                        value: [{ text: "timed-format", tags: [] }],
+                        timings: {
+                            marshalMs: 1,
+                            executeMs: 2,
+                            decodeMs: 3,
+                            hostMs: 0.5,
+                            totalMs: 6.75
+                        }
+                    })
+                };
+                return formatToHtmlTimed("ignored", {}, 200, {
+                    spaceWidth: 10,
+                    measure: s => s.length * 10,
+                    measureElWidth: () => 200,
+                    cleanup: () => {}
+                }, "vir-format");
+            }"""
+        )
+        timings = result["timings"]
+        assert result["html"] == "timed-format"
+        assert timings["executeMs"] == 2
+        assert timings["hostMs"] == 0.5
+        assert timings["runtimeMarshalMs"] == 1
+        assert timings["runtimeDecodeMs"] == 3
+        assert timings["runtimeTotalMs"] == 6.75
+        assert timings["marshalMs"] >= timings["runtimeMarshalMs"]
+        assert timings["decodeMs"] >= timings["runtimeDecodeMs"]
+        assert timings["adapterInputMs"] >= 0
+        assert timings["adapterOutputMs"] >= 0
 
     def test_js_segments_match_lean_newline_shape(self, code_url: str, page: Page):
         """A newline and its indentation use the same single segment as Lean."""
@@ -335,7 +406,30 @@ class TestPrettyVirComparisonPanel:
                         ok: true,
                         segments: [{ text: "from-vir", tags: [] }]
                     }),
-                    formatSegments: () => [{ text: "from-format", tags: [] }]
+                    formatSegments: () => [{ text: "from-format", tags: [] }],
+                    formatJsonSegmentsJsonTimed: () => ({
+                        value: JSON.stringify({
+                            ok: true,
+                            segments: [{ text: "from-vir", tags: [] }]
+                        }),
+                        timings: {
+                            marshalMs: 0.1,
+                            executeMs: 0.2,
+                            decodeMs: 0.1,
+                            hostMs: 0.05,
+                            totalMs: 0.45
+                        }
+                    }),
+                    formatSegmentsTimed: () => ({
+                        value: [{ text: "from-format", tags: [] }],
+                        timings: {
+                            marshalMs: 0.2,
+                            executeMs: 0.3,
+                            decodeMs: 0.1,
+                            hostMs: 0.05,
+                            totalMs: 0.65
+                        }
+                    })
                 };
                 registerPrettyBackend({
                     id: "native",
@@ -467,6 +561,14 @@ class TestPrettyVirComparisonPanel:
         assert "Encode:" in llvm_timing
         assert "Wire: 1200 B request, 1600 B response, 48 nodes" in llvm_timing
         assert "Emscripten heap: 16777216 → 16777216 B" in llvm_timing
+        vir_timing = panel.locator(
+            '[data-pretty-backend="vir-format"] .pretty-compare-time'
+        ).get_attribute("title")
+        assert vir_timing is not None
+        assert "VIR call total:" in vir_timing
+        assert "VIR runtime:" in vir_timing
+        assert "JS host imports (included):" in vir_timing
+        assert "Verso output:" in vir_timing
 
     def test_controls_select_processors_and_share_column_budget(
         self, code_url: str, page: Page
