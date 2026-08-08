@@ -17,6 +17,7 @@ class TestPrettyVirAssets:
         assert path.exists(), f"Expected pretty-vir.js at {path}"
         body = path.read_text()
         assert "createVirRuntime" in body
+        assert "irPackageSetBytes" in body
         assert "./lean-vir/js/vir-runtime.js" in body
         assert "./lean-vir/wasm/vir-upstream.wasm" in body
         assert "VersoSlides.Pretty.formatJsonSegmentsJsonForVir" in body

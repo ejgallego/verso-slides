@@ -43,8 +43,9 @@ The demo uses two configuration surfaces:
 Verso Slides owns the JavaScript reference renderer, formatter registry, panel
 comparison UI, and the generic plugin hook. The demo owns candidate adapters,
 Wasm artifacts, runtime configuration, processor controls, and presentation
-content. Benchmark execution and report visualization are intentionally absent:
-they now belong to the standalone VIR benchmark webapp.
+content. Its VIR adapter accepts both the historical single-package API and the
+current package-set API. Benchmark execution and report visualization are
+intentionally absent: they now belong to the standalone VIR benchmark webapp.
 `scripts/assemble.sh` copies opaque artifacts after `slidesMain`; it neither
 rewrites HTML nor replaces `lib/pretty.js`, `lib/panel.js`, or `lib/panel.css`.
 

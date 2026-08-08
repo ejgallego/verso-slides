@@ -88,13 +88,23 @@
                     return response.arrayBuffer();
                 });
             }
-            return runtimeModule.createVirRuntime({
+            /** @type {Record<string, *>} */
+            var runtimeOptions = {
                 wasmUrl: wasmUrl,
                 wasmDebugUrl: config.wasmDebugUrl,
                 debugWasm: config.debugWasm === true,
-                irPackageUrl: irPackageUrl,
                 fetchBytes: fetchBytes,
-            });
+            };
+            if (typeof runtimeModule.IR_PACKAGE_SET_FORMAT === "string") {
+                return fetchBytes(irPackageUrl).then(
+                    function (/** @type {ArrayBuffer | Uint8Array} */ packageBytes) {
+                        runtimeOptions.irPackageSetBytes = [packageBytes];
+                        return runtimeModule.createVirRuntime(runtimeOptions);
+                    },
+                );
+            }
+            runtimeOptions.irPackageUrl = irPackageUrl;
+            return runtimeModule.createVirRuntime(runtimeOptions);
         })
         .then(function (runtime) {
             var initialized = performance.now();

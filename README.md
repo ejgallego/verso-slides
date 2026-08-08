@@ -788,7 +788,9 @@ slidesMain
 `pretty-vir.js` loads the runtime asynchronously. The ordinary
 `formatToHtml` entry point always uses the existing synchronous
 JavaScript formatter; VIR candidates are selected explicitly or shown
-in comparison mode.
+in comparison mode. The adapter accepts both the older single-package runtime
+API and the current VIR package-set API, treating this focused package as a
+one-member set.
 
 When comparison mode is disabled, the panel can select a specific
 renderer with `window.__versoPrettyConfig.backend`. Supported values
