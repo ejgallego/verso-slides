@@ -23,9 +23,28 @@ actual source revision.
 
 Please publish a clean, remotely resolvable branch containing either:
 
-1. current clean head `8c58a94d2de903f6d3f484a9ab0449a57abae2a2`; or
-2. a clean revision containing the original source refactor
-   `81803c6486e610c5b0a0cb11d7942340ff01b3c6`.
+1. current clean head `8c58a94d2de903f6d3f484a9ab0449a57abae2a2`
+   plus the compiler-neutral capture refactor described below; or
+2. a clean revision based on the original Flat handoff
+   `81803c6486e610c5b0a0cb11d7942340ff01b3c6` plus that refactor.
+
+The required refactor is preserved in the clean disposable source repository
+`/tmp/verso-flat-clean` as commit
+`e9ae2ed6bea4c2eaa243c6d7ff639185f7de2f7f`, directly above `81803c6`.
+It makes the `RenderedM` dictionary explicit and reducible and replaces
+`String.join st.chunks.toList` with a local Nat-indexed tail-recursive chunk
+join. It does not change `formatRenderedForRuntime` semantics, but it keeps the
+real implementation visible to final-LCNF capture and avoids pulling the
+generic list conversion/join boundary into the artifact. The resulting
+`VersoSlides/Pretty.lean` SHA-256 is
+`60ad578083483bc6592421f23b5350835f19de27e42414a4d04785b33ed8cc42`.
+The exact change can be reviewed with:
+
+```sh
+git -C /tmp/verso-flat-clean diff \
+  81803c6486e610c5b0a0cb11d7942340ff01b3c6..e9ae2ed6bea4c2eaa243c6d7ff639185f7de2f7f \
+  -- VersoSlides/Pretty.lean
+```
 
 Then record the remote branch, full commit, and intended
 `VersoSlides/Pretty.lean` SHA-256 here. FIR will compile the real
