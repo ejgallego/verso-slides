@@ -822,10 +822,13 @@ configuration can be copied or reloaded.
 
 Applications may also provide named experiment presets through
 `window.__versoPrettyConfig.experiments`. Each preset has an ID,
-label, question, and backend ID list. The controls show the question
-being answered and switch the complete backend set atomically;
-manually changing a backend creates a custom selection. Presets are
-application configuration rather than hard-coded Verso policy.
+label, question, and backend ID list. It may also describe its design
+(`controlled`, `end-to-end`, or `exploratory`), variable, controls,
+and what its measurements mean. The panel presents these as an
+explicit test-boundary card and highlights runtime/input/output/width
+dimensions that differ between selected candidates. Manually changing
+a backend creates a custom selection. Presets remain application
+configuration rather than hard-coded Verso policy.
 
 Relevant query parameters are:
 

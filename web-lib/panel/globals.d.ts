@@ -240,6 +240,10 @@ interface PrettyExperimentDefinition {
     label: string;
     question: string;
     backends: string[];
+    design?: "controlled" | "end-to-end" | "exploratory";
+    variable?: string;
+    controls?: string[];
+    measures?: string;
 }
 
 declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;

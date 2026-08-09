@@ -71,6 +71,16 @@
                 question:
                     "What changes when FIR returns direct flat text/style events instead of PrettyTrace, with its input adapter and runtime held fixed?",
                 backends: ["native", "native-flat"],
+                design: "controlled",
+                variable: "FIR output: PrettyTrace ↔ direct text + style events",
+                controls: [
+                    "FIR compiler/runtime",
+                    "browser Format adapter",
+                    "prettyM logic",
+                    "column budget",
+                ],
+                measures:
+                    "Incremental execute, decode, payload, and total cost of removing PrettyTrace.",
             });
         }
         var allExperiment = prettyConfig.experiments.find(function (experiment) {

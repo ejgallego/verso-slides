@@ -37,7 +37,7 @@ async def main() -> None:
         controls = page.locator(".pretty-controls")
         await controls.wait_for(state="visible")
         assert await controls.locator("summary").inner_text() == (
-            f"Formatters {len(IMPLEMENTATION_IDS)}/{len(backend_ids)} · End-to-end implementations"
+            f"End-to-end implementations · {len(IMPLEMENTATION_IDS)}/{len(backend_ids)} candidates"
         )
         await controls.locator("summary").click()
         assert await controls.locator(".pretty-controls-backend").count() == len(backend_ids)
@@ -59,6 +59,16 @@ async def main() -> None:
         assert "typed input held fixed" in await controls.locator(
             ".pretty-controls-question"
         ).inner_text()
+        boundary = controls.locator(".pretty-controls-boundary")
+        assert await boundary.get_attribute("data-design") == "controlled"
+        facts = await boundary.locator("dl > div").all_inner_texts()
+        assert any("CHANGES" in fact and "Output representation" in fact for fact in facts)
+        assert any("HELD FIXED" in fact and "VIR runtime" in fact for fact in facts)
+        selected_rows = controls.locator(".pretty-controls-backend:has(input:checked)")
+        assert await selected_rows.locator(".pretty-controls-dimension.is-variable").count() == 2
+        assert await selected_rows.locator(
+            '.pretty-controls-dimension.is-variable .pretty-controls-dimension-name'
+        ).all_inner_texts() == ["OUTPUT", "OUTPUT"]
         if "native-flat" in backend_ids:
             await experiment.select_option("fir-output")
             checked = await controls.locator(
@@ -67,8 +77,9 @@ async def main() -> None:
             assert checked == ["native", "native-flat"]
         await experiment.select_option("all")
         assert await controls.locator("summary").inner_text() == (
-            f"Formatters {len(backend_ids)}/{len(backend_ids)} · All backends"
+            f"All backends · {len(backend_ids)}/{len(backend_ids)} candidates"
         )
+        assert await boundary.get_attribute("data-design") == "exploratory"
 
         proof_index = await page.evaluate(
             """() => [...document.querySelectorAll('.slides > section')]

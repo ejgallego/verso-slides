@@ -578,6 +578,8 @@ class TestPrettyNativeFlatBridge:
             "width": "columns",
         }
         assert result["experiment"]["backends"] == ["native", "native-flat"]
+        assert result["experiment"]["design"] == "controlled"
+        assert result["experiment"]["variable"].startswith("FIR output:")
 
 
 class TestPrettyVirComparisonPanel:
@@ -612,6 +614,29 @@ class TestPrettyVirComparisonPanel:
         expect(controls.locator(".pretty-controls-question")).to_contain_text(
             "typed input held fixed"
         )
+        boundary = controls.locator(".pretty-controls-boundary")
+        expect(boundary.locator(".pretty-controls-design")).to_have_text(
+            "Controlled boundary test"
+        )
+        facts = boundary.locator("dl > div")
+        expect(facts.filter(has_text="Changes")).to_contain_text("Output representation")
+        expect(facts.filter(has_text="Held fixed")).to_contain_text("VIR runtime")
+        expect(facts.filter(has_text="Measures")).to_contain_text("Incremental execute")
+
+        selected_rows = controls.locator(".pretty-controls-backend:has(input:checked)")
+        expect(selected_rows).to_have_count(2)
+        assert selected_rows.locator(
+            ".pretty-controls-dimension.is-variable .pretty-controls-dimension-name"
+        ).all_inner_texts() == ["OUTPUT", "OUTPUT"]
+        first_dimensions = selected_rows.first.locator(".pretty-controls-dimension")
+        assert first_dimensions.evaluate_all(
+            "els => els.map(el => el.textContent.trim())"
+        ) == [
+            "RuntimeVIR",
+            "InputLean Format",
+            "Outputsegments",
+            "Widthcolumns",
+        ]
 
         proof_index = page.evaluate(
             """() => [...document.querySelectorAll('.slides > section')]
@@ -633,9 +658,16 @@ class TestPrettyVirComparisonPanel:
             "els => els.map(el => el.dataset.prettyInput)"
         ) == ["lean-format", "resident-id"]
         assert "prettyExperiment=vir-residency" in page.url
+        assert selected_rows.locator(
+            ".pretty-controls-dimension.is-variable .pretty-controls-dimension-name"
+        ).all_inner_texts() == ["INPUT", "INPUT"]
 
         controls.locator('input[value="js"]').check()
         expect(controls.locator(".pretty-controls-experiment select")).to_have_value("custom")
+        expect(controls.locator(".pretty-controls-design")).to_have_text("Custom comparison")
+        expect(controls.locator(".pretty-controls-boundary")).to_contain_text(
+            "deltas are not causal"
+        )
         assert "prettyExperiment=custom" in page.url
 
     def test_tactic_panel_renders_registered_backends_side_by_side(

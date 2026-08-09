@@ -97,7 +97,8 @@ The restored deck has the same functionality as the in-tree prototype:
 - live Lean code panels and draggable panel sizing;
 - interactive processor selection and single/compare modes;
 - named end-to-end, VIR transport, VIR output, and VIR residency
-  experiments, with a visible statement of the question each answers;
+  experiments, with explicit changed/held-fixed/measures descriptions
+  and a visible boundary matrix for every candidate;
 - shared column budgets and exact tagged-segment comparison;
 - selectable timed workload volume (one pass or at least 256/2K/8K
   source code points), repeating the complete visible format set

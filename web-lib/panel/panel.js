@@ -16,7 +16,11 @@
      *   id: string,
      *   label: string,
      *   question: string,
-     *   backends: string[]
+     *   backends: string[],
+     *   design?: "controlled" | "end-to-end" | "exploratory",
+     *   variable?: string,
+     *   controls?: string[],
+     *   measures?: string
      * }} PrettyExperiment
      */
 
@@ -355,16 +359,132 @@
 
     /**
      * @param {PrettyBackendDefinition} backend
-     * @return {string}
+     * @param {string} key
+     * @return {string | undefined}
      */
-    function prettyBackendBoundarySummary(backend) {
+    function prettyBackendCapability(backend, key) {
         var capabilities = backend.capabilities;
-        if (!capabilities) return "custom boundary";
-        return (
-            prettyBoundaryLabel(capabilities.input) +
-            " → " +
-            prettyBoundaryLabel(capabilities.output)
+        if (!capabilities) return undefined;
+        if (key === "runtime") return capabilities.runtime;
+        if (key === "input") return capabilities.input;
+        if (key === "output") return capabilities.output;
+        if (key === "width") return capabilities.width;
+        return undefined;
+    }
+
+    /**
+     * @param {PrettyBackendDefinition[]} backends
+     * @param {Set<string>} selected
+     * @return {Set<string>}
+     */
+    function varyingPrettyCapabilityKeys(backends, selected) {
+        var keys = ["runtime", "input", "output", "width"];
+        return new Set(
+            keys.filter(function (key) {
+                var values = new Set();
+                backends.forEach(function (backend) {
+                    if (!selected.has(backend.id)) return;
+                    values.add(prettyBackendCapability(backend, key) || "unspecified");
+                });
+                return values.size > 1;
+            }),
         );
+    }
+
+    /**
+     * @param {PrettyBackendDefinition} backend
+     * @param {Set<string>} varying
+     * @param {boolean} active
+     * @return {HTMLElement}
+     */
+    function prettyBackendBoundaryMatrix(backend, varying, active) {
+        var capability = document.createElement("span");
+        capability.className = "pretty-controls-capability";
+        var capabilities = backend.capabilities;
+        if (!capabilities) {
+            capability.textContent = "Boundary metadata unavailable";
+            return capability;
+        }
+        [
+            ["runtime", "Runtime"],
+            ["input", "Input"],
+            ["output", "Output"],
+            ["width", "Width"],
+        ].forEach(function (entry) {
+            var key = entry[0];
+            var dimension = document.createElement("span");
+            dimension.className =
+                "pretty-controls-dimension" + (active && varying.has(key) ? " is-variable" : "");
+            var dimensionName = document.createElement("span");
+            dimensionName.className = "pretty-controls-dimension-name";
+            dimensionName.textContent = entry[1];
+            var value = document.createElement("span");
+            value.textContent = prettyBoundaryLabel(prettyBackendCapability(backend, key));
+            dimension.append(dimensionName, value);
+            capability.appendChild(dimension);
+        });
+        return capability;
+    }
+
+    /**
+     * @param {HTMLElement} parent
+     * @param {string} term
+     * @param {string} description
+     */
+    function appendPrettyBoundaryFact(parent, term, description) {
+        var row = document.createElement("div");
+        var label = document.createElement("dt");
+        label.textContent = term;
+        var value = document.createElement("dd");
+        value.textContent = description;
+        row.append(label, value);
+        parent.appendChild(row);
+    }
+
+    /**
+     * @param {PrettyExperiment | null} experiment
+     * @return {HTMLElement}
+     */
+    function prettyBoundaryCard(experiment) {
+        var card = document.createElement("section");
+        card.className = "pretty-controls-boundary";
+        var design = experiment && experiment.design ? experiment.design : "custom";
+        card.dataset.design = design;
+
+        var designLabel = document.createElement("span");
+        designLabel.className = "pretty-controls-design";
+        designLabel.textContent =
+            {
+                controlled: "Controlled boundary test",
+                "end-to-end": "End-to-end comparison",
+                exploratory: "Exploratory view",
+                custom: "Custom comparison",
+            }[design] || design;
+        card.appendChild(designLabel);
+
+        var question = document.createElement("p");
+        question.className = "pretty-controls-question";
+        question.textContent = experiment
+            ? experiment.question
+            : "This selection does not match a named test boundary.";
+        card.appendChild(question);
+
+        var facts = document.createElement("dl");
+        if (experiment && experiment.variable) {
+            appendPrettyBoundaryFact(facts, "Changes", experiment.variable);
+        }
+        if (experiment && Array.isArray(experiment.controls) && experiment.controls.length > 0) {
+            appendPrettyBoundaryFact(facts, "Held fixed", experiment.controls.join(" · "));
+        }
+        appendPrettyBoundaryFact(
+            facts,
+            "Measures",
+            experiment && experiment.measures
+                ? experiment.measures
+                : "Exploration only; multiple boundaries may differ, so deltas are not causal.",
+        );
+        card.appendChild(facts);
+        return card;
     }
 
     /**
@@ -403,11 +523,12 @@
         var experiment = matchingPrettyExperiment();
         var summary = document.createElement("summary");
         summary.textContent =
-            "Formatters " +
+            (experiment ? experiment.label : "Custom comparison") +
+            " · " +
             selectedCount +
             "/" +
             backends.length +
-            (experiment ? " · " + experiment.label : " · Custom");
+            " candidates";
         var menu = document.createElement("div");
         menu.className = "pretty-controls-menu";
 
@@ -428,7 +549,7 @@
         if (experiments.length > 0) {
             var experimentLabel = document.createElement("label");
             experimentLabel.className = "pretty-controls-experiment";
-            experimentLabel.appendChild(document.createTextNode("Experiment "));
+            experimentLabel.appendChild(document.createTextNode("Test boundary "));
             var experimentSelect = document.createElement("select");
             experiments.forEach(function (candidate) {
                 var option = document.createElement("option");
@@ -454,19 +575,14 @@
             });
             experimentLabel.appendChild(experimentSelect);
             menu.appendChild(experimentLabel);
-
-            var question = document.createElement("p");
-            question.className = "pretty-controls-question";
-            question.textContent = experiment
-                ? experiment.question
-                : "Custom selection: interpret boundary changes manually.";
-            menu.appendChild(question);
+            menu.appendChild(prettyBoundaryCard(experiment));
         }
 
         var processors = document.createElement("fieldset");
         var legend = document.createElement("legend");
-        legend.textContent = "Backends";
+        legend.textContent = "Candidates · checked = included";
         processors.appendChild(legend);
+        var varyingCapabilities = varyingPrettyCapabilityKeys(backends, selected);
         backends.forEach(function (backend) {
             var label = document.createElement("label");
             label.className = "pretty-controls-backend";
@@ -477,17 +593,20 @@
             var name = document.createElement("span");
             name.className = "pretty-controls-name";
             name.textContent = backend.label;
+            var description = document.createElement("span");
+            description.className = "pretty-controls-backend-description";
+            description.append(
+                name,
+                prettyBackendBoundaryMatrix(backend, varyingCapabilities, selected.has(backend.id)),
+            );
             var state = typeof backend.status === "function" ? backend.status() : "ready";
             var status = document.createElement("span");
             status.className =
                 "pretty-controls-status status-" +
                 state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
             status.textContent = state;
-            var capability = document.createElement("span");
-            capability.className = "pretty-controls-capability";
-            capability.textContent = prettyBackendBoundarySummary(backend);
             label.title = prettyBackendBoundaryDetails(backend);
-            label.append(input, name, capability, status);
+            label.append(input, description, status);
             input.addEventListener("change", function () {
                 var next = new Set(
                     Array.isArray(config.backends)
