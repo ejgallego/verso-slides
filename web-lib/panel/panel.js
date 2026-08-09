@@ -22,7 +22,10 @@
      *   variable?: string,
      *   controls?: string[],
      *   measures?: string,
-     *   timing?: VersoPrettyTimingDisplay
+     *   excludes?: string[],
+     *   timing?: VersoPrettyTimingDisplay,
+     *   primaryTiming?: VersoPrettyTimingDisplay,
+     *   phaseKeys?: string[]
      * }} PrettyExperiment
      */
 
@@ -30,6 +33,7 @@
     var docsJson = null; // fetched once on init
     /** @type {HTMLDetailsElement | null} */
     var prettyControls = null;
+    var prettyCustomLabOpen = false;
     /** @type {PrettyTimingDisplay[]} */
     var PRETTY_TIMING_DISPLAYS = [
         {
@@ -303,7 +307,8 @@
         var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
         config.backends = availableExperimentBackendIds(experiment);
         config.experiment = experiment.id;
-        config.timing = prettyTimingDisplayById(experiment.timing || "total").id;
+        config.compare = true;
+        config.timing = prettyTimingDisplayById(experiment.timing || "tracks").id;
     }
 
     /** @return {PrettyBackendDefinition[]} */
@@ -353,6 +358,34 @@
         var root = /** @type {Window} */ (window);
         var selected = root.__versoPrettyConfig && root.__versoPrettyConfig.timing;
         return prettyTimingDisplayById(selected);
+    }
+
+    /** @param {PrettyTimingDisplay} display */
+    function prettyTimingDisplayScope(display) {
+        var experiment = matchingPrettyExperiment();
+        if (display.id !== "tracks" || !experiment || !Array.isArray(experiment.phaseKeys)) {
+            return display.scope;
+        }
+        return (
+            "Guided lanes: " +
+            selectedPrettyTimingPhases()
+                .map(function (phase) {
+                    return phase.label;
+                })
+                .join(" + ") +
+            ". Primary metric: " +
+            selectedPrettyExperimentPrimaryDisplay().label +
+            "."
+        );
+    }
+
+    /** @return {PrettyTimingDisplay} */
+    function selectedPrettyExperimentPrimaryDisplay() {
+        var experiment = matchingPrettyExperiment();
+        var display = prettyTimingDisplayById(
+            experiment && experiment.primaryTiming ? experiment.primaryTiming : "total",
+        );
+        return display.key === null ? prettyTimingDisplayById("total") : display;
     }
 
     function reflowPrettyPanels() {
@@ -555,6 +588,9 @@
                 ? experiment.measures
                 : "Exploration only; multiple boundaries may differ, so deltas are not causal.",
         );
+        if (experiment && Array.isArray(experiment.excludes) && experiment.excludes.length > 0) {
+            appendPrettyBoundaryFact(facts, "Excludes", experiment.excludes.join(" · "));
+        }
         card.appendChild(facts);
         return card;
     }
@@ -579,6 +615,8 @@
     function renderPrettyControls() {
         if (!prettyControls) return;
         var wasOpen = prettyControls.open;
+        var previousLab = prettyControls.querySelector(".pretty-controls-lab");
+        if (previousLab instanceof HTMLDetailsElement) prettyCustomLabOpen = previousLab.open;
         var root = /** @type {Window} */ (window);
         var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
         var backends = getPrettyBackends();
@@ -595,15 +633,35 @@
 
         var experiment = matchingPrettyExperiment();
         var summary = document.createElement("summary");
-        summary.textContent =
-            (experiment ? experiment.label : "Custom comparison") +
-            " · " +
-            selectedCount +
-            "/" +
-            backends.length +
-            " candidates";
+        summary.textContent = experiment
+            ? "Experiment · " + experiment.label
+            : "Custom Lab · " + selectedCount + "/" + backends.length + " candidates";
         var menu = document.createElement("div");
         menu.className = "pretty-controls-menu";
+
+        var guided = document.createElement("section");
+        guided.className = "pretty-controls-guided";
+        var guidedHeading = document.createElement("div");
+        guidedHeading.className = "pretty-controls-section-heading";
+        var guidedTitle = document.createElement("span");
+        guidedTitle.textContent = "Guided experiment";
+        var guidedCount = document.createElement("span");
+        guidedCount.className = "pretty-controls-section-count";
+        guidedCount.textContent = selectedCount + " candidate" + (selectedCount === 1 ? "" : "s");
+        guidedHeading.append(guidedTitle, guidedCount);
+        guided.appendChild(guidedHeading);
+        menu.appendChild(guided);
+
+        var lab = document.createElement("details");
+        lab.className = "pretty-controls-lab";
+        lab.open = prettyCustomLabOpen || !experiment;
+        lab.addEventListener("toggle", function () {
+            prettyCustomLabOpen = lab.open;
+        });
+        var labSummary = document.createElement("summary");
+        labSummary.textContent = "Custom Lab · processors and diagnostics";
+        var labBody = document.createElement("div");
+        labBody.className = "pretty-controls-lab-body";
 
         var compareLabel = document.createElement("label");
         compareLabel.className = "pretty-controls-toggle";
@@ -616,7 +674,7 @@
             persistPrettyConfig();
             reflowPrettyPanels();
         });
-        menu.appendChild(compareLabel);
+        labBody.appendChild(compareLabel);
 
         var experiments = prettyExperiments();
         if (experiments.length > 0) {
@@ -631,25 +689,32 @@
                 option.selected = !!experiment && candidate.id === experiment.id;
                 experimentSelect.appendChild(option);
             });
-            if (!experiment) {
-                var customOption = document.createElement("option");
-                customOption.value = "custom";
-                customOption.textContent = "Custom selection";
-                customOption.selected = true;
-                experimentSelect.appendChild(customOption);
-            }
+            var customOption = document.createElement("option");
+            customOption.value = "custom";
+            customOption.textContent = "Open Custom Lab…";
+            customOption.selected = !experiment;
+            experimentSelect.appendChild(customOption);
             experimentSelect.addEventListener("change", function () {
                 var next = prettyExperimentById(experimentSelect.value);
-                if (!next) return;
+                if (!next) {
+                    prettyCustomLabOpen = true;
+                    lab.open = true;
+                    experimentSelect.value = experiment ? experiment.id : "custom";
+                    return;
+                }
                 applyPrettyExperiment(next);
                 persistPrettyConfig();
                 reflowPrettyPanels();
                 renderPrettyControls();
             });
             experimentLabel.appendChild(experimentSelect);
-            menu.appendChild(experimentLabel);
-            menu.appendChild(prettyBoundaryCard(experiment));
+            guided.appendChild(experimentLabel);
+            guided.appendChild(prettyBoundaryCard(experiment));
         }
+
+        var settings = document.createElement("div");
+        settings.className = "pretty-controls-settings";
+        guided.appendChild(settings);
 
         var processors = document.createElement("fieldset");
         var legend = document.createElement("legend");
@@ -709,11 +774,11 @@
             });
             processors.appendChild(label);
         });
-        menu.appendChild(processors);
+        labBody.appendChild(processors);
 
         var columnsLabel = document.createElement("label");
         columnsLabel.className = "pretty-controls-columns";
-        columnsLabel.appendChild(document.createTextNode("Shared columns "));
+        columnsLabel.appendChild(document.createTextNode("Columns "));
         var columnsInput = document.createElement("input");
         columnsInput.type = "number";
         columnsInput.min = "1";
@@ -731,7 +796,7 @@
             reflowPrettyPanels();
         });
         columnsLabel.appendChild(columnsInput);
-        menu.appendChild(columnsLabel);
+        settings.appendChild(columnsLabel);
 
         var primaryLabel = document.createElement("label");
         primaryLabel.className = "pretty-controls-primary";
@@ -750,7 +815,7 @@
             reflowPrettyPanels();
         });
         primaryLabel.appendChild(primary);
-        menu.appendChild(primaryLabel);
+        labBody.appendChild(primaryLabel);
 
         var timingLabel = document.createElement("label");
         timingLabel.className = "pretty-controls-timing";
@@ -767,21 +832,21 @@
         timing.addEventListener("change", function () {
             var display = prettyTimingDisplayById(timing.value);
             config.timing = display.id;
-            timingScope.textContent = display.scope;
+            timingScope.textContent = prettyTimingDisplayScope(display);
             persistPrettyConfig();
             refreshTimingDisplays(document);
         });
         timingLabel.appendChild(timing);
-        menu.appendChild(timingLabel);
+        labBody.appendChild(timingLabel);
 
         var timingScope = document.createElement("p");
         timingScope.className = "pretty-controls-timing-scope";
-        timingScope.textContent = selectedTiming.scope;
-        menu.appendChild(timingScope);
+        timingScope.textContent = prettyTimingDisplayScope(selectedTiming);
+        labBody.appendChild(timingScope);
 
         var workloadLabel = document.createElement("label");
         workloadLabel.className = "pretty-controls-workload";
-        workloadLabel.appendChild(document.createTextNode("Timed workload "));
+        workloadLabel.appendChild(document.createTextNode("Workload "));
         var workload = document.createElement("select");
         PRETTY_WORKLOADS.forEach(function (choice) {
             var option = document.createElement("option");
@@ -796,13 +861,16 @@
             reflowPrettyPanels();
         });
         workloadLabel.appendChild(workload);
-        menu.appendChild(workloadLabel);
+        settings.appendChild(workloadLabel);
 
         var note = document.createElement("p");
         note.className = "pretty-controls-note";
         note.textContent =
-            "Comparison uses one deterministic column budget and repeats the complete visible format set to reach the selected code volume.";
-        menu.appendChild(note);
+            "Results use one column budget, repeat the same visible formats, and show the experiment's primary metric above the phase tracks.";
+        guided.appendChild(note);
+
+        lab.append(labSummary, labBody);
+        menu.appendChild(lab);
 
         prettyControls.replaceChildren(summary, menu);
         prettyControls.open = wasOpen;
@@ -1363,14 +1431,27 @@
      * @return {number}
      */
     function timingTrackScale(timeEl) {
+        var primary = selectedPrettyExperimentPrimaryDisplay();
+        var primaryKey = /** @type {string} */ (primary.key);
         var comparison = timeEl.closest(".pretty-compare");
-        if (!comparison) return Math.max(0.001, timingValue(timeEl, "committedTotalMs"));
+        if (!comparison) return Math.max(0.001, timingValue(timeEl, primaryKey));
         var scale = 0;
         comparison.querySelectorAll(".pretty-compare-time").forEach(function (candidate) {
             var candidateEl = /** @type {HTMLElement} */ (candidate);
-            scale = Math.max(scale, timingValue(candidateEl, "committedTotalMs"));
+            scale = Math.max(scale, timingValue(candidateEl, primaryKey));
         });
         return Math.max(0.001, scale);
+    }
+
+    /** @return {Array<{key: string, label: string, shortLabel: string}>} */
+    function selectedPrettyTimingPhases() {
+        var experiment = matchingPrettyExperiment();
+        if (!experiment || !Array.isArray(experiment.phaseKeys)) return PRETTY_TIMING_PHASES;
+        var selected = new Set(experiment.phaseKeys);
+        var phases = PRETTY_TIMING_PHASES.filter(function (phase) {
+            return selected.has(phase.key);
+        });
+        return phases.length > 0 ? phases : PRETTY_TIMING_PHASES;
     }
 
     /**
@@ -1392,12 +1473,15 @@
         var total = document.createElement("span");
         total.className = "pretty-timing-tracks-total";
         var totalLabel = document.createElement("span");
-        totalLabel.textContent = "Total";
+        var primaryDisplay = selectedPrettyExperimentPrimaryDisplay();
+        totalLabel.textContent = primaryDisplay.shortLabel;
         var totalValue = document.createElement("span");
-        totalValue.textContent = formatTiming(timingValue(timeEl, "committedTotalMs"));
+        totalValue.textContent = formatTiming(
+            timingValue(timeEl, /** @type {string} */ (primaryDisplay.key)),
+        );
         total.append(totalLabel, totalValue);
         tracks.appendChild(total);
-        PRETTY_TIMING_PHASES.forEach(function (phase) {
+        selectedPrettyTimingPhases().forEach(function (phase) {
             var value = timingValue(timeEl, phase.key);
             var row = document.createElement("span");
             row.className = "pretty-timing-track";
@@ -1564,7 +1648,8 @@
      * @return {Array<{
      *   backend: PrettyBackendDefinition,
      *   body: HTMLElement,
-     *   time: HTMLElement
+     *   time: HTMLElement,
+     *   parity: HTMLElement
      * }>}
      */
     function setupPrettyComparison(container) {
@@ -1577,7 +1662,10 @@
 
             var header = document.createElement("div");
             header.className = "pretty-compare-header";
+            var identity = document.createElement("div");
+            identity.className = "pretty-compare-identity";
             var label = document.createElement("span");
+            label.className = "pretty-compare-name";
             label.textContent = backend.label;
             if (backend.capabilities) {
                 label.title = prettyBackendBoundaryDetails(backend);
@@ -1589,16 +1677,56 @@
             }
             var time = document.createElement("span");
             time.className = "pretty-compare-time";
-            header.append(label, time);
+            var parity = document.createElement("span");
+            parity.className = "pretty-compare-parity";
+            parity.textContent = "Output · checking";
+            identity.append(label, parity);
+            header.append(identity, time);
 
             var body = document.createElement("div");
             body.className = "pretty-compare-body";
             pane.append(header, body);
             comparison.append(pane);
-            return { backend: backend, body: body, time: time };
+            return { backend: backend, body: body, time: time, parity: parity };
         });
         container.replaceChildren(comparison);
         return panes;
+    }
+
+    /**
+     * Report whether the candidates reached the same serialized DOM. This is a
+     * visible correctness guard for the current panel input, not a substitute
+     * for the corpus-level differential tests.
+     * @param {Array<{body: HTMLElement, parity: HTMLElement}>} panes
+     */
+    function setPrettyComparisonParity(panes) {
+        var available = panes.filter(function (pane) {
+            return !pane.body.querySelector(".pretty-compare-unavailable");
+        });
+        var equivalent =
+            available.length > 1 &&
+            available.every(function (pane) {
+                return pane.body.innerHTML === available[0].body.innerHTML;
+            });
+        panes.forEach(function (pane) {
+            var unavailable = !!pane.body.querySelector(".pretty-compare-unavailable");
+            var status = unavailable
+                ? "unavailable"
+                : available.length === 1
+                  ? "rendered"
+                  : equivalent
+                    ? "equivalent"
+                    : "differs";
+            pane.parity.dataset.outputParity = status;
+            pane.parity.textContent =
+                status === "equivalent"
+                    ? "Output ✓ equivalent"
+                    : status === "rendered"
+                      ? "Output ✓ rendered"
+                      : status === "differs"
+                        ? "Output ✕ differs"
+                        : "Output — unavailable";
+        });
     }
 
     /**
@@ -1641,6 +1769,7 @@
             panes.forEach(function (pane) {
                 renderGoalsPane(pane.body, goalsData, pane.backend.id, pane.time);
             });
+            setPrettyComparisonParity(panes);
             return;
         }
 
@@ -1700,6 +1829,7 @@
             panes.forEach(function (pane) {
                 renderSignaturePane(pane.body, fmtData, pane.backend.id, pane.time);
             });
+            setPrettyComparisonParity(panes);
             return;
         }
 

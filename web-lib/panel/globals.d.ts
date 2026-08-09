@@ -287,7 +287,10 @@ interface PrettyExperimentDefinition {
     variable?: string;
     controls?: string[];
     measures?: string;
+    excludes?: string[];
     timing?: VersoPrettyTimingDisplay;
+    primaryTiming?: VersoPrettyTimingDisplay;
+    phaseKeys?: string[];
 }
 
 declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;

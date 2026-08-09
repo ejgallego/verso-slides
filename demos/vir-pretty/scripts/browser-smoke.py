@@ -53,10 +53,13 @@ async def main() -> None:
 
         controls = page.locator(".pretty-controls")
         await controls.wait_for(state="visible")
-        assert await controls.locator("summary").inner_text() == (
-            f"End-to-end implementations · {len(IMPLEMENTATION_IDS)}/{len(backend_ids)} candidates"
+        assert await controls.locator(":scope > summary").inner_text() == (
+            "Experiment · End-to-end implementations"
         )
-        await controls.locator("summary").click()
+        await controls.locator(":scope > summary").click()
+        lab = controls.locator(".pretty-controls-lab")
+        assert await lab.get_attribute("open") is None
+        await lab.locator(":scope > summary").click()
         assert await controls.locator(".pretty-controls-backend").count() == len(backend_ids)
         assert await controls.locator(".pretty-controls-status.status-ready").count() == len(backend_ids)
         assert await controls.locator("button").count() == 0
@@ -109,8 +112,8 @@ async def main() -> None:
             ).evaluate_all("els => els.map(el => el.value)")
             assert checked == ["native", "native-flat"]
         await experiment.select_option("all")
-        assert await controls.locator("summary").inner_text() == (
-            f"All backends · {len(backend_ids)}/{len(backend_ids)} candidates"
+        assert await controls.locator(":scope > summary").inner_text() == (
+            "Experiment · All backends"
         )
         assert await boundary.get_attribute("data-design") == "exploratory"
 
@@ -172,6 +175,10 @@ async def main() -> None:
             f"VIR Direct DOM: {vir_dom_html!r}\n"
             f"Console: {console_warnings!r}"
         )
+        parity = await panes.locator(".pretty-compare-parity").evaluate_all(
+            "els => els.map(el => el.dataset.outputParity)"
+        )
+        assert parity == ["equivalent"] * len(backend_ids)
         timing_titles = await panes.locator(".pretty-compare-time").evaluate_all(
             "els => els.map(el => el.title)"
         )
@@ -191,7 +198,8 @@ async def main() -> None:
 
         timing_display = controls.locator(".pretty-controls-timing select")
         timing_scope = controls.locator(".pretty-controls-timing-scope")
-        assert await timing_display.input_value() == "total"
+        assert await timing_display.input_value() == "tracks"
+        await timing_display.select_option("total")
         assert "equivalent populated DOM" in await timing_scope.inner_text()
         await timing_display.select_option("execute")
         assert "VIR Render also resolves annotations" in await timing_scope.inner_text()

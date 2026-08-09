@@ -113,16 +113,17 @@ element/props model rather than introduce an unrelated tree vocabulary here.
 The restored deck has the same functionality as the in-tree prototype:
 
 - live Lean code panels and draggable panel sizing;
-- interactive processor selection and single/compare modes;
+- a guided experiment surface plus an expandable Custom Lab for arbitrary
+  processor selection, raw timing displays, and single/compare modes;
 - named end-to-end, VIR transport, VIR output, VIR rendering, VIR materializer, and VIR residency
-  experiments, with explicit changed/held-fixed/measures descriptions
+  experiments, with explicit changed/held-fixed/measures/excludes descriptions
   and a visible boundary matrix for every candidate;
-- shared column budgets and exact tagged-segment comparison;
+- shared column budgets and a visible exact-output equivalence verdict;
 - selectable timed workload volume (one pass or at least 256/2K/8K
   source code points), repeating the complete visible format set
   identically for every backend;
 - selectable committed-total/prepare/execute/marshal/decode/build/commit/host/wall timing, plus
-  compact five-lane phase tracks with the total above and complete
+  compact experiment-specific phase tracks with the primary metric above and complete
   hover detail; the controls state the selected timing envelope and
   distinguish backend-owned output construction from host materialization;
 - no benchmark sampler or dashboard code in the slide runtime.

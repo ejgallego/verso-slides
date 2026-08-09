@@ -812,9 +812,12 @@ unavailable instead of falling back to another candidate.
 
 Set `window.__versoPrettyConfig.compare` to `true` to render every
 selected candidate side by side. Set `controls` to `true` to add an
-interactive formatter menu. It can enable or disable individual
-comparison processors, switch comparison mode, choose the renderer and
-shared width, and select a timed source-code volume. Workload volumes
+interactive formatter menu. Named questions appear in a compact
+**Guided experiment** surface with their boundary card, shared width,
+workload, primary metric, phase tracks, and visible output-equivalence
+status. Arbitrary processor selection, single-backend mode, and raw
+timing displays remain available under the expandable **Custom Lab**.
+Workload volumes
 repeat the complete visible format set for every backend; they do not
 change the input shape. The default remains one pass, keeping ordinary
 slide interaction cheap. The menu updates the query string so a test
@@ -833,10 +836,12 @@ Applications may also provide named experiment presets through
 `window.__versoPrettyConfig.experiments`. Each preset has an ID,
 label, question, and backend ID list. It may also describe its design
 (`controlled`, `end-to-end`, or `exploratory`), variable, controls,
+excluded work, selected timing display, primary timing, phase subset,
 and what its measurements mean. The panel presents these as an
 explicit test-boundary card and highlights runtime/input/output/width/materializer
-dimensions that differ between selected candidates. Manually changing
-a backend creates a custom selection. Presets remain application
+dimensions that differ between selected candidates. Selecting a named
+experiment enables comparison and its guided DAW view. Manually changing
+a backend in Custom Lab creates a custom selection. Presets remain application
 configuration rather than hard-coded Verso policy.
 
 Relevant query parameters are:
@@ -861,11 +866,11 @@ widths from panes whose sizes and output styling differ. Outside
 comparison mode, the JavaScript renderer retains its DOM-measured
 pixel width.
 
-Each comparison header can display committed total, detached preparation,
+Each comparison header also reports whether the currently rendered output
+is equivalent across available candidates. It can display committed total, detached preparation,
 execution, marshal, decode, host construction, DOM commit, combined host,
-or panel wall time. The `tracks` display places the committed total above a
-compact five-lane view of marshal, execute, decode, host construction, and
-DOM commit on one absolute scale across
+or panel wall time. The `tracks` display places the experiment's primary
+metric above its relevant phase lanes on one absolute scale across
 the visible backends. Hovering either display shows the complete
 timing breakdown. These are synchronous per-render measurements taken
 after artifact instantiation: download and instantiation are excluded,

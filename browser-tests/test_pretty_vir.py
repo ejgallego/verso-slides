@@ -760,7 +760,10 @@ class TestPrettyVirComparisonPanel:
         page.wait_for_function("() => window.Reveal && window.Reveal.isReady()")
         controls = page.locator(".pretty-controls")
         controls.wait_for(state="visible")
-        controls.locator("summary").click()
+        controls.locator(":scope > summary").click()
+        lab = controls.locator(".pretty-controls-lab")
+        expect(lab).not_to_have_attribute("open", "")
+        lab.locator(":scope > summary").click()
 
         experiment = controls.locator(".pretty-controls-experiment select")
         expect(experiment).to_have_value("vir-output")
@@ -834,7 +837,16 @@ class TestPrettyVirComparisonPanel:
         expect(controls.locator(".pretty-controls-question")).to_contain_text(
             "reaches populated DOM"
         )
-        expect(controls.locator(".pretty-controls-timing select")).to_have_value("host")
+        expect(boundary.locator("dl > div").filter(has_text="Excludes")).to_contain_text(
+            "VIR execution"
+        )
+        expect(controls.locator(".pretty-controls-timing select")).to_have_value("tracks")
+        assert all(
+            text.startswith("Host")
+            for text in panel.locator(".pretty-timing-tracks-total").all_inner_texts()
+        )
+        assert panel.locator(".pretty-compare-parity[data-output-parity]").count() == 2
+        assert panel.locator(".pretty-timing-track").count() == 4
         assert selected_rows.locator(
             ".pretty-controls-dimension.is-variable .pretty-controls-dimension-name"
         ).all_inner_texts() == ["MATERIALIZER", "MATERIALIZER"]
@@ -1099,7 +1111,7 @@ class TestPrettyVirComparisonPanel:
         controls = page.locator(".pretty-controls")
         controls.wait_for(state="visible")
         expect(controls).to_be_visible()
-        controls.locator("summary").click()
+        controls.locator(":scope > summary").click()
         expect(controls.locator('input[value="js"]')).to_be_checked()
         expect(controls.locator('input[value="vir"]')).to_be_checked()
         expect(controls.locator('input[value="vir-format"]')).not_to_be_checked()

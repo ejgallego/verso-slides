@@ -106,8 +106,82 @@
 
 .pretty-controls-menu {
     display: grid;
-    gap: 0.55rem;
+    gap: 0.7rem;
     padding: 0 0.65rem 0.65rem;
+}
+
+.pretty-controls-guided,
+.pretty-controls-lab-body {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.pretty-controls-section-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    color: #dbe8fa;
+    font-size: 0.72em;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.pretty-controls-section-count {
+    color: #8f9cac;
+    font-size: 0.9em;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.pretty-controls-settings {
+    display: grid;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: 0.45rem;
+}
+
+.pretty-controls-settings > label {
+    display: grid;
+    gap: 0.18rem;
+    justify-content: stretch;
+    padding: 0.38rem 0.45rem;
+    border: 1px solid rgba(180, 180, 180, 0.2);
+    border-radius: 0.25rem;
+    background: rgba(255, 255, 255, 0.025);
+    color: #9ca8b6;
+    font-size: 0.76em;
+}
+
+.pretty-controls-settings input,
+.pretty-controls-settings select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+}
+
+.pretty-controls-lab {
+    border: 1px solid rgba(180, 180, 180, 0.2);
+    border-radius: 0.3rem;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.pretty-controls-lab > summary {
+    cursor: pointer;
+    padding: 0.45rem 0.5rem;
+    color: #aeb6c0;
+    font-size: 0.78em;
+    font-weight: 650;
+    user-select: none;
+}
+
+.pretty-controls-lab[open] > summary {
+    border-bottom: 1px solid rgba(180, 180, 180, 0.16);
+}
+
+.pretty-controls-lab-body {
+    padding: 0.5rem;
 }
 
 .pretty-controls fieldset {
@@ -463,6 +537,37 @@
     font-size: 0.78em;
     line-height: 1.2;
     color: rgba(150, 150, 150, 0.95);
+}
+
+.info-panel .pretty-compare-identity {
+    display: grid;
+    min-width: 0;
+    gap: 0.12em;
+}
+
+.info-panel .pretty-compare-name {
+    color: rgba(190, 190, 190, 0.98);
+    font-weight: 650;
+}
+
+.info-panel .pretty-compare-parity {
+    color: rgba(160, 160, 160, 0.9);
+    font-size: 0.74em;
+    white-space: nowrap;
+}
+
+.info-panel .pretty-compare-parity[data-output-parity="equivalent"],
+.info-panel .pretty-compare-parity[data-output-parity="rendered"] {
+    color: #70b982;
+}
+
+.info-panel .pretty-compare-parity[data-output-parity="differs"] {
+    color: #d46f7e;
+    font-weight: 700;
+}
+
+.info-panel .pretty-compare-parity[data-output-parity="unavailable"] {
+    color: #d9a441;
 }
 
 .info-panel .pretty-compare-time {

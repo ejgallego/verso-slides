@@ -12,7 +12,11 @@
      *   design: "controlled" | "end-to-end" | "exploratory",
      *   variable: string,
      *   controls: string[],
-     *   measures: string
+     *   measures: string,
+     *   excludes?: string[],
+     *   timing?: VersoPrettyTimingDisplay,
+     *   primaryTiming?: VersoPrettyTimingDisplay,
+     *   phaseKeys?: string[]
      * }} DemoExperiment
      * @typedef {{ experiment?: string, experiments?: DemoExperiment[] }} DemoPrettyConfig
      */
@@ -99,7 +103,10 @@
             ],
             measures:
                 "Host total compares construction plus commit into equivalent populated DOM. Build and commit remain visible separately for diagnosis; layout and paint are excluded.",
-            timing: "host",
+            excludes: ["VIR execution from the primary metric", "layout", "paint"],
+            timing: "tracks",
+            primaryTiming: "host",
+            phaseKeys: ["renderMs", "commitMs"],
         },
         {
             id: "vir-residency",

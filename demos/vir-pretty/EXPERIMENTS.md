@@ -16,9 +16,12 @@ Verso panel boundary.
 | VIR input residency        | VIR Flat, VIR Resident         | Imported tree versus package-resident ID            | Flat output, VIR runtime, `prettyM`          | Cost of transferring/reconstructing a static format               |
 | All backends               | All available                  | Several variables at once                           | Source format and columns only               | Exploratory overview; do not attribute a delta to one cause       |
 
-Manually changing backend checkboxes creates a **Custom selection**.
-The URL records both the resolved backend list and the matching preset
-ID, so a view can be shared and reproduced.
+Named presets use the **Guided experiment** surface: the selected question,
+boundary, shared settings, output-equivalence verdict, primary metric, and
+relevant phase lanes stay visible. Arbitrary backend checkboxes and raw timing
+views live in the expandable **Custom Lab**. Manually changing a backend there
+creates a **Custom selection**. The URL records both the resolved backend list
+and matching preset ID, so a view can be shared and reproduced.
 
 ## Timing envelope
 
@@ -72,7 +75,9 @@ detached `DocumentFragment`, then commits its children with
 `replaceChildren`. Neither path reconstructs style events or looks annotations
 up again. Both timed paths end with equivalent populated DOM. Host total is
 the controlled verdict; construction and commit stay separate to explain the
-tradeoff. Layout and paint remain outside the timing envelope.
+tradeoff. Its guided DAW therefore shows only **Build** and **Commit**, scaled
+by **Host total**; VIR execution and the full five-phase trace remain available
+as diagnostics in Custom Lab. Layout and paint remain outside the timing envelope.
 
 The semantic plan is also intentionally compatible with a future React
 endpoint: its annotation entries are props-like records and its ordered
