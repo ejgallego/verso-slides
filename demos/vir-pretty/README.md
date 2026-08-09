@@ -1,6 +1,6 @@
 # VIR pretty-printer demo as a Verso Slides panel extension
 
-This is a standalone eight-backend `Std.Format.prettyM` correctness
+This is a standalone nine-backend `Std.Format.prettyM` correctness
 and timing demo. During development it uses the containing Verso
 Slides checkout through a path dependency. Once `Config.panelPlugins`
 is released, `lakefile.lean` can switch directly to that release tag
@@ -72,18 +72,19 @@ formatter/panel integrations.
 ## Measurements in this first extraction
 
 The interactive comparison supplies the same format semantics and
-deterministic character-column budget to all eight candidates:
+deterministic character-column budget to all nine candidates:
 
 1. JavaScript reference
 2. VIR through the JSON/string boundary
 3. VIR through the typed `Std.Format` boundary
 4. VIR typed input with flat text/style-event output
-5. VIR package-resident Format plus annotations, selected by numeric
-   ID, with Lean-resolved semantic-node output
-6. VIR package-resident `Std.Format` selected by numeric ID, with flat
+5. VIR package-resident `Std.Format` selected by numeric ID, with flat
    output
-7. FIR-generated Wasm
-8. LLVM/Emscripten Wasm
+6. VIR package-resident Format plus annotations, selected by numeric
+   ID, with Lean-resolved semantic-node output and HTML-string materialization
+7. The same VIR semantic plan with direct `DocumentFragment` materialization
+8. FIR-generated Wasm
+9. LLVM/Emscripten Wasm
 
 The specialized VIR candidates isolate separate boundary experiments. `VIR Flat`
 removes per-segment tag-stack copies while preserving the direct typed
@@ -98,27 +99,30 @@ renderer runs.
 numeric ID addresses aligned package-resident Format and sparse annotation
 tables, Lean resolves the innermost active annotation during
 `prettyM`, interns annotation metadata once, and returns a flat
-semantic render plan whose nodes carry resolved slots. JavaScript only validates, escapes, and
-materializes those sibling text/span nodes. This is intentionally not
-a general recursive VDOM, because the panel output has no nested
-element structure today; DOM insertion remains browser-owned and
-outside the timer.
+semantic render plan whose nodes carry resolved slots. JavaScript only validates and
+materializes those sibling text/span nodes. `VIR Render` constructs an escaped HTML
+string; `VIR Direct DOM` constructs a detached `DocumentFragment` through DOM
+properties, avoiding an HTML parse. This is intentionally not a general recursive VDOM,
+because the panel output has no nested element structure today; DOM insertion remains
+browser-owned and outside the four formatter phases. The plan remains directly mappable
+to React string children and `span` elements, so a future Lean VDOM should target React's
+element/props model rather than introduce an unrelated tree vocabulary here.
 
 The restored deck has the same functionality as the in-tree prototype:
 
 - live Lean code panels and draggable panel sizing;
 - interactive processor selection and single/compare modes;
-- named end-to-end, VIR transport, VIR output, VIR rendering, and VIR residency
+- named end-to-end, VIR transport, VIR output, VIR rendering, VIR materializer, and VIR residency
   experiments, with explicit changed/held-fixed/measures descriptions
   and a visible boundary matrix for every candidate;
 - shared column budgets and exact tagged-segment comparison;
 - selectable timed workload volume (one pass or at least 256/2K/8K
   source code points), repeating the complete visible format set
   identically for every backend;
-- selectable total/execute/marshal/decode/HTML/wall timing, plus
+- selectable total/execute/marshal/decode/host/wall timing, plus
   compact four-lane phase tracks with the total above and complete
   hover detail; the controls state the selected timing envelope and
-  distinguish backend-owned output construction from shared HTML work;
+  distinguish backend-owned output construction from host materialization;
 - no benchmark sampler or dashboard code in the slide runtime.
 
 The full benchmark interface is developed independently under

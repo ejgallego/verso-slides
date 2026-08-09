@@ -228,7 +228,23 @@ declare function formatToHtmlTimed(
     measurer: DOMMeasurer,
     backend: string,
     formatId?: number,
-): { html: string | null; durationMs: number; timings: PrettyTimings };
+): {
+    html: string | null;
+    fragment: DocumentFragment | null;
+    durationMs: number;
+    timings: PrettyTimings;
+};
+
+declare function formatPrettyOutputTimed(
+    fmtJson: any,
+    annotations: Record<string, any>,
+    pixelWidth: number,
+    measurer: DOMMeasurer,
+    backend: string,
+    formatId?: number,
+): TimedPrettyResult;
+
+declare function insertPrettyOutput(target: Element, output: TimedPrettyResult | null): boolean;
 
 interface PrettyBackendDefinition {
     id: string;
@@ -240,6 +256,7 @@ interface PrettyBackendDefinition {
         input?: "compact-tree" | "json-string" | "lean-format" | "resident-id" | "browser-format";
         output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text";
         width: "pixels" | "columns";
+        materializer?: "html-string" | "dom-fragment";
     };
     renderSegments?(
         fmtJson: any,

@@ -179,13 +179,7 @@
             bridge.formatRenderPlan = function (fmt, annotations, width, indent) {
                 if (!bridge.renderPlanExportName)
                     throw new Error("missing VIR semantic render-plan export name");
-                return runtime.call(
-                    bridge.renderPlanExportName,
-                    fmt,
-                    annotations,
-                    width,
-                    indent,
-                );
+                return runtime.call(bridge.renderPlanExportName, fmt, annotations, width, indent);
             };
             bridge.formatRenderedById = function (formatId, width, indent) {
                 if (!bridge.residentExportName)
@@ -195,12 +189,7 @@
             bridge.formatRenderPlanById = function (formatId, width, indent) {
                 if (!bridge.residentRenderPlanExportName)
                     throw new Error("missing VIR resident render-plan export name");
-                return runtime.call(
-                    bridge.residentRenderPlanExportName,
-                    formatId,
-                    width,
-                    indent,
-                );
+                return runtime.call(bridge.residentRenderPlanExportName, formatId, width, indent);
             };
             if (typeof runtime.callTimed === "function") {
                 bridge.formatJsonSegmentsJsonTimed = function (fmtJson, width, indent) {
@@ -253,8 +242,10 @@
             console.warn("VIR pretty-printer bootstrap failed.", error);
             return null;
         });
-    ["vir", "vir-format", "vir-flat", "vir-resident", "vir-render"].forEach(function (id) {
-        var backend = getPrettyBackend(id);
-        if (backend) backend.ready = bridge.ready;
-    });
+    ["vir", "vir-format", "vir-flat", "vir-resident", "vir-render", "vir-dom"].forEach(
+        function (id) {
+            var backend = getPrettyBackend(id);
+            if (backend) backend.ready = bridge.ready;
+        },
+    );
 })();

@@ -88,7 +88,8 @@
  *   runtime?: "javascript" | "vir" | "fir-native" | "llvm-emscripten",
  *   input?: "compact-tree" | "json-string" | "lean-format" | "resident-id" | "browser-format",
  *   output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text",
- *   width: "pixels" | "columns"
+ *   width: "pixels" | "columns",
+ *   materializer?: "html-string" | "dom-fragment"
  * }} PrettyBackendCapabilities
  *
  * @typedef {{
@@ -163,7 +164,7 @@
  *
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
  *
- * @typedef {{ html: string | null, durationMs: number, timings: PrettyTimings }} TimedPrettyResult
+ * @typedef {{ html: string | null, fragment: DocumentFragment | null, durationMs: number, timings: PrettyTimings }} TimedPrettyResult
  */
 
 /** @type {PrettyBackend[]} */
@@ -1526,9 +1527,10 @@ function tryFormatRenderedWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
  * @param {number | undefined} formatId
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
+ * @param {string} warningKey
  * @return {PrettyRenderResult}
  */
-function tryFormatRenderPlanWithVirResidentTimed(formatId, pixelWidth, measurer) {
+function tryFormatRenderPlanWithVirResidentTimed(formatId, pixelWidth, measurer, warningKey) {
     var started = performance.now();
     var marshaled = started;
     var executed = started;
@@ -1588,7 +1590,7 @@ function tryFormatRenderPlanWithVirResidentTimed(formatId, pixelWidth, measurer)
         executed = performance.now();
 
         if (!result || result.found !== true) {
-            warnPrettyVirFailure(bridge, "vir-render", "resident render-plan ID was not found");
+            warnPrettyVirFailure(bridge, warningKey, "resident render-plan ID was not found");
             var missingAt = performance.now();
             return {
                 segments: null,
@@ -1604,7 +1606,7 @@ function tryFormatRenderPlanWithVirResidentTimed(formatId, pixelWidth, measurer)
         }
         var renderPlan = normalizeVirRenderPlan(result.renderPlan);
         if (renderPlan === null) {
-            warnPrettyVirFailure(bridge, "vir-render", "invalid semantic render plan");
+            warnPrettyVirFailure(bridge, warningKey, "invalid semantic render plan");
             var invalidAt = performance.now();
             return {
                 segments: null,
@@ -1625,7 +1627,7 @@ function tryFormatRenderPlanWithVirResidentTimed(formatId, pixelWidth, measurer)
             timings: composeVirPrettyTimings(started, marshaled, executed, decoded, runtimeTimings),
         };
     } catch (error) {
-        warnPrettyVirFailure(bridge, "vir-render", error);
+        warnPrettyVirFailure(bridge, warningKey, error);
         var failed = performance.now();
         return {
             segments: null,
@@ -1866,13 +1868,37 @@ registerPrettyBackend({
         input: "resident-id",
         output: "render-plan",
         width: "columns",
+        materializer: "html-string",
     },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;
         return bridge && bridge.status ? bridge.status : "unavailable";
     },
     renderTimed: function (_fmtJson, _annotations, pixelWidth, measurer, formatId) {
-        return tryFormatRenderPlanWithVirResidentTimed(formatId, pixelWidth, measurer);
+        return tryFormatRenderPlanWithVirResidentTimed(
+            formatId,
+            pixelWidth,
+            measurer,
+            "vir-render",
+        );
+    },
+});
+registerPrettyBackend({
+    id: "vir-dom",
+    label: "VIR Direct DOM",
+    capabilities: {
+        runtime: "vir",
+        input: "resident-id",
+        output: "render-plan",
+        width: "columns",
+        materializer: "dom-fragment",
+    },
+    status: function () {
+        var bridge = /** @type {Window} */ (window).__versoPrettyVir;
+        return bridge && bridge.status ? bridge.status : "unavailable";
+    },
+    renderTimed: function (_fmtJson, _annotations, pixelWidth, measurer, formatId) {
+        return tryFormatRenderPlanWithVirResidentTimed(formatId, pixelWidth, measurer, "vir-dom");
     },
 });
 
@@ -1915,7 +1941,8 @@ function renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, b
  * @return {string | null} HTML string, or null when the backend is unavailable
  */
 function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backend, formatId) {
-    return formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId).html;
+    return formatPrettyOutputTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId)
+        .html;
 }
 
 /**
@@ -1931,7 +1958,9 @@ function formatToHtml(fmtJson, annotations, pixelWidth, measurer) {
 }
 
 /**
- * Render a format tree and measure the synchronous render duration.
+ * Render a format tree and measure the synchronous render duration. The result
+ * owns either an HTML string or a detached `DocumentFragment`; inserting that
+ * output into the live DOM is deliberately outside these timings.
  * @param {*} fmtJson
  * @param {Record<string, TokenAnnotation>} annotations
  * @param {number} pixelWidth
@@ -1940,11 +1969,16 @@ function formatToHtml(fmtJson, annotations, pixelWidth, measurer) {
  * @param {number} [formatId]
  * @return {TimedPrettyResult}
  */
-function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId) {
+function formatPrettyOutputTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId) {
     var start = performance.now();
     var candidate = getPrettyBackend(backend);
     if (!candidate) {
-        return { html: null, durationMs: 0, timings: emptyPrettyTimings() };
+        return {
+            html: null,
+            fragment: null,
+            durationMs: 0,
+            timings: emptyPrettyTimings(),
+        };
     }
     var rendered = renderPrettySegmentsTimed(
         fmtJson,
@@ -1955,19 +1989,62 @@ function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend, 
         formatId,
     );
     var renderStart = performance.now();
-    var html = rendered.renderPlan
-        ? renderPlanToHtml(rendered.renderPlan)
-        : rendered.segments
-          ? segmentsToHtml(rendered.segments, annotations)
-          : null;
+    var html = null;
+    var fragment = null;
+    if (rendered.renderPlan) {
+        if (candidate.capabilities && candidate.capabilities.materializer === "dom-fragment") {
+            fragment = renderPlanToFragment(rendered.renderPlan);
+        } else {
+            html = renderPlanToHtml(rendered.renderPlan);
+        }
+    } else if (rendered.segments) {
+        html = segmentsToHtml(rendered.segments, annotations);
+    }
     var finished = performance.now();
     rendered.timings.renderMs += Math.max(0, finished - renderStart);
     rendered.timings.totalMs = Math.max(0, finished - start);
     return {
         html: html,
+        fragment: fragment,
         durationMs: rendered.timings.totalMs,
         timings: rendered.timings,
     };
+}
+
+/**
+ * Backwards-compatible HTML-oriented name. Direct-DOM candidates return
+ * `html: null` and their detached fragment in `fragment`.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @param {string} backend
+ * @param {number} [formatId]
+ * @return {TimedPrettyResult}
+ */
+function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId) {
+    return formatPrettyOutputTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId);
+}
+
+/**
+ * Insert a previously materialized formatter result. Fragment insertion moves
+ * its children into the target, matching `innerHTML` replacement semantics.
+ * This operation is intentionally outside `formatPrettyOutputTimed`.
+ * @param {Element} target
+ * @param {TimedPrettyResult | null} output
+ * @return {boolean}
+ */
+function insertPrettyOutput(target, output) {
+    if (output && output.fragment) {
+        target.replaceChildren(output.fragment);
+        return true;
+    }
+    if (output && output.html !== null) {
+        target.innerHTML = output.html;
+        return true;
+    }
+    target.innerHTML = '<span class="pretty-compare-unavailable">unavailable</span>';
+    return false;
 }
 
 /**
@@ -2013,6 +2090,34 @@ function renderPlanToHtml(plan) {
 }
 
 /**
+ * Materialize the same semantic render plan directly as detached DOM nodes.
+ * Text and attributes are assigned through DOM properties, so this path needs
+ * neither manual HTML escaping nor a subsequent HTML parse.
+ * @param {RenderPlan} plan
+ * @return {DocumentFragment}
+ */
+function renderPlanToFragment(plan) {
+    var fragment = document.createDocumentFragment();
+    for (var i = 0; i < plan.nodes.length; i++) {
+        var node = plan.nodes[i];
+        var annotation =
+            node.annotationSlot === 0 ? null : plan.annotations[node.annotationSlot - 1];
+        if (!annotation) {
+            fragment.appendChild(document.createTextNode(node.text));
+            continue;
+        }
+        var span = document.createElement("span");
+        span.className = annotation.cssClass + " token";
+        if (annotation.binding !== undefined && annotation.binding !== null) {
+            span.setAttribute("data-binding", annotation.binding);
+        }
+        span.textContent = node.text;
+        fragment.appendChild(span);
+    }
+    return fragment;
+}
+
+/**
  * @param {string} rawText
  * @param {TokenAnnotation | null} annotation
  * @return {string}
@@ -2021,9 +2126,10 @@ function annotatedTextToHtml(rawText, annotation) {
     var text = escapeHtml(rawText);
     if (!annotation) return text;
     var cls = escapeHtml(annotation.cssClass + " token");
-    var bindAttr = annotation.binding
-        ? ' data-binding="' + escapeHtml(annotation.binding) + '"'
-        : "";
+    var bindAttr =
+        annotation.binding !== undefined && annotation.binding !== null
+            ? ' data-binding="' + escapeHtml(annotation.binding) + '"'
+            : "";
     return '<span class="' + cls + '"' + bindAttr + ">" + text + "</span>";
 }
 
@@ -2141,7 +2247,7 @@ function fillReflowedSpans(container, formats, measurer, backend, fixedWidth) {
         var cell = span.closest(".type");
         if (!cell) continue;
         var width = typeof fixedWidth === "number" ? fixedWidth : measurer.measureElWidth(cell);
-        var timed = formatToHtmlTimed(
+        var timed = formatPrettyOutputTimed(
             entry.fmt,
             entry.annotations,
             width,
@@ -2150,10 +2256,7 @@ function fillReflowedSpans(container, formats, measurer, backend, fixedWidth) {
             entry.formatId,
         );
         addPrettyTimings(totals, timed.timings);
-        span.innerHTML =
-            timed.html === null
-                ? '<span class="pretty-compare-unavailable">unavailable</span>'
-                : timed.html;
+        insertPrettyOutput(span, timed);
     }
     return totals;
 }

@@ -14,6 +14,7 @@ BASE_BACKEND_IDS = [
     "vir-flat",
     "vir-resident",
     "vir-render",
+    "vir-dom",
     "native",
     "llvm",
 ]
@@ -93,6 +94,14 @@ async def main() -> None:
         assert "same resident ID" in await controls.locator(
             ".pretty-controls-question"
         ).inner_text()
+        await experiment.select_option("vir-materializer")
+        checked = await controls.locator(
+            ".pretty-controls-backend input:checked"
+        ).evaluate_all("els => els.map(el => el.value)")
+        assert checked == ["vir-render", "vir-dom"]
+        assert "detached DOM fragment" in await controls.locator(
+            ".pretty-controls-question"
+        ).inner_text()
         if "native-flat" in backend_ids:
             await experiment.select_option("fir-output")
             checked = await controls.locator(
@@ -133,6 +142,12 @@ async def main() -> None:
         assert await block.locator('[data-pretty-backend="vir-render"]').get_attribute(
             "data-pretty-input"
         ) == "resident-id"
+        assert await block.locator('[data-pretty-backend="vir-render"]').get_attribute(
+            "data-pretty-materializer"
+        ) == "html-string"
+        assert await block.locator('[data-pretty-backend="vir-dom"]').get_attribute(
+            "data-pretty-materializer"
+        ) == "dom-fragment"
         assert await block.locator('[data-pretty-backend="vir-resident"]').get_attribute(
             "data-pretty-input"
         ) == "resident-id"
@@ -142,10 +157,19 @@ async def main() -> None:
         vir_render_html = await block.locator(
             '[data-pretty-backend="vir-render"] .pretty-compare-body'
         ).inner_html()
+        vir_dom_html = await block.locator(
+            '[data-pretty-backend="vir-dom"] .pretty-compare-body'
+        ).inner_html()
         assert vir_render_html == js_html, (
             "VIR Render HTML differs from JavaScript\n"
             f"JavaScript: {js_html!r}\n"
             f"VIR Render: {vir_render_html!r}\n"
+            f"Console: {console_warnings!r}"
+        )
+        assert vir_dom_html == js_html, (
+            "VIR Direct DOM differs from JavaScript\n"
+            f"JavaScript: {js_html!r}\n"
+            f"VIR Direct DOM: {vir_dom_html!r}\n"
             f"Console: {console_warnings!r}"
         )
         timing_titles = await panes.locator(".pretty-compare-time").evaluate_all(
@@ -168,7 +192,7 @@ async def main() -> None:
         timing_display = controls.locator(".pretty-controls-timing select")
         timing_scope = controls.locator(".pretty-controls-timing-scope")
         assert await timing_display.input_value() == "total"
-        assert "final annotated HTML string" in await timing_scope.inner_text()
+        assert "detached browser output" in await timing_scope.inner_text()
         await timing_display.select_option("execute")
         assert "VIR Render also resolves annotations" in await timing_scope.inner_text()
         timing_texts = await panes.locator(".pretty-compare-time").all_inner_texts()
@@ -196,7 +220,7 @@ async def main() -> None:
         assert not page_errors, page_errors
         await browser.close()
 
-    print("PASS full vanilla Verso eight-backend panel smoke")
+    print("PASS full vanilla Verso nine-backend panel smoke")
 
 
 if __name__ == "__main__":

@@ -33,17 +33,17 @@
     var PRETTY_TIMING_DISPLAYS = [
         {
             id: "total",
-            label: "Pipeline total (pre-DOM)",
+            label: "Pipeline total (pre-insertion)",
             shortLabel: "Total",
             key: "totalMs",
-            scope: "Compact input → final annotated HTML string. Includes adapters, backend execution, output normalization, and HTML materialization; excludes DOM insertion.",
+            scope: "Compact input → detached browser output. Includes adapters, backend execution, output normalization, and host materialization; excludes insertion into the live DOM.",
         },
         {
             id: "execute",
             label: "Backend execute",
             shortLabel: "Execute",
             key: "executeMs",
-            scope: "Backend-owned layout and output construction only. JS ends at tagged segments; VIR Render also resolves annotations into semantic nodes. HTML escaping and materialization are excluded.",
+            scope: "Backend-owned layout and output construction only. JS ends at tagged segments; VIR Render also resolves annotations into semantic nodes. Host materialization is excluded.",
         },
         {
             id: "marshal",
@@ -61,10 +61,10 @@
         },
         {
             id: "render",
-            label: "HTML materialization",
-            shortLabel: "HTML",
+            label: "Host materialization",
+            shortLabel: "Host",
             key: "renderMs",
-            scope: "Browser-ready output → escaped HTML string. Segment backends include annotation lookup; VIR Render already resolved annotations. DOM insertion is excluded.",
+            scope: "Browser-ready output → escaped HTML string or detached DOM fragment. Segment backends include annotation lookup; VIR render-plan backends already resolved annotations. Live DOM insertion is excluded.",
         },
         {
             id: "wall",
@@ -78,14 +78,14 @@
             label: "Phase tracks",
             shortLabel: "Phases",
             key: null,
-            scope: "Marshal + Execute + Decode + HTML. Each backend's declared output stays in Execute; escaping and HTML-string materialization stay in HTML.",
+            scope: "Marshal + Execute + Decode + Host. Each backend's declared output stays in Execute; detached browser-output construction stays in Host.",
         },
     ];
     var PRETTY_TIMING_PHASES = [
         { key: "marshalMs", label: "Marshal", shortLabel: "M" },
         { key: "executeMs", label: "Execute", shortLabel: "E" },
         { key: "decodeMs", label: "Decode", shortLabel: "D" },
-        { key: "renderMs", label: "HTML", shortLabel: "H" },
+        { key: "renderMs", label: "Host", shortLabel: "H" },
     ];
     var PRETTY_WORKLOADS = [
         { codePoints: 0, label: "Visible code once" },
@@ -397,6 +397,8 @@
             text: "text",
             pixels: "pixels",
             columns: "columns",
+            "html-string": "HTML string",
+            "dom-fragment": "DOM fragment",
         };
         return value && labels[value] ? labels[value] : value || "unspecified";
     }
@@ -413,6 +415,7 @@
         if (key === "input") return capabilities.input;
         if (key === "output") return capabilities.output;
         if (key === "width") return capabilities.width;
+        if (key === "materializer") return capabilities.materializer || "html-string";
         return undefined;
     }
 
@@ -422,7 +425,7 @@
      * @return {Set<string>}
      */
     function varyingPrettyCapabilityKeys(backends, selected) {
-        var keys = ["runtime", "input", "output", "width"];
+        var keys = ["runtime", "input", "output", "width", "materializer"];
         return new Set(
             keys.filter(function (key) {
                 var values = new Set();
@@ -454,6 +457,7 @@
             ["input", "Input"],
             ["output", "Output"],
             ["width", "Width"],
+            ["materializer", "Materializer"],
         ].forEach(function (entry) {
             var key = entry[0];
             var dimension = document.createElement("span");
@@ -543,6 +547,7 @@
             "Input boundary: " + prettyBoundaryLabel(capabilities.input),
             "Output boundary: " + prettyBoundaryLabel(capabilities.output),
             "Backend width model: " + prettyBoundaryLabel(capabilities.width),
+            "Host materializer: " + prettyBoundaryLabel(capabilities.materializer || "html-string"),
             "Comparison width model: shared columns",
         ].join("\n");
     }
@@ -1412,7 +1417,8 @@
      */
     function setTimingDetails(timeEl, timings, wallMs) {
         var details = [
-            "Pipeline total (input → HTML string, pre-DOM): " + formatTiming(timings.totalMs),
+            "Pipeline total (input → detached output, pre-insertion): " +
+                formatTiming(timings.totalMs),
         ];
         if (
             typeof timings.batchIterations === "number" &&
@@ -1462,7 +1468,7 @@
         ) {
             details.push("  Verso output: " + formatTiming(timings.adapterOutputMs));
         }
-        details.push("HTML materialization: " + formatTiming(timings.renderMs));
+        details.push("Host materialization: " + formatTiming(timings.renderMs));
         if (
             typeof timings.inputBytes === "number" &&
             typeof timings.rawObjects === "number" &&
@@ -1545,6 +1551,8 @@
                 pane.dataset.prettyRuntime = backend.capabilities.runtime || "unspecified";
                 pane.dataset.prettyInput = backend.capabilities.input || "unspecified";
                 pane.dataset.prettyOutput = backend.capabilities.output;
+                pane.dataset.prettyMaterializer =
+                    backend.capabilities.materializer || "html-string";
             }
             var time = document.createElement("span");
             time.className = "pretty-compare-time";
@@ -1593,7 +1601,7 @@
      * @param {*} goalsData
      */
     function renderGoalsFormat(panel, goalsData) {
-        var comparing = prettyComparisonEnabled() && typeof formatToHtmlTimed === "function";
+        var comparing = prettyComparisonEnabled() && typeof formatPrettyOutputTimed === "function";
         setPrettyComparisonActive(panel, comparing);
         if (comparing) {
             var panes = setupPrettyComparison(panel);
@@ -1624,9 +1632,10 @@
         var codePoints = compactFormatSourceLength(fmtData.fmt);
         var iterations = prettyWorkloadIterations(codePoints);
         var timings = emptyPrettyTimings();
-        var html = null;
+        /** @type {TimedPrettyResult | null} */
+        var lastOutput = null;
         for (var iteration = 0; iteration < iterations; iteration++) {
-            var timed = formatToHtmlTimed(
+            var timed = formatPrettyOutputTimed(
                 fmtData.fmt,
                 fmtData.annotations,
                 columns,
@@ -1634,17 +1643,17 @@
                 backend,
                 fmtData.formatId,
             );
-            html = timed.html;
+            lastOutput = timed;
             addPrettyTimings(timings, timed.timings);
         }
+        var reflowed = document.createElement("span");
+        reflowed.className = "reflowed";
+        insertPrettyOutput(reflowed, lastOutput);
+        body.replaceChildren(reflowed);
         var wallMs = performance.now() - start;
         timings.batchIterations = iterations;
         timings.batchCodePoints = codePoints * iterations;
         timings.batchWallMs = wallMs;
-        body.innerHTML =
-            '<span class="reflowed">' +
-            (html === null ? '<span class="pretty-compare-unavailable">unavailable</span>' : html) +
-            "</span>";
         setTimingDetails(timeEl, timings, wallMs);
     }
 
@@ -1654,7 +1663,7 @@
      * @param {*} fmtData
      */
     function renderSignatureFormat(panel, sigCode, fmtData) {
-        var comparing = prettyComparisonEnabled() && typeof formatToHtmlTimed === "function";
+        var comparing = prettyComparisonEnabled() && typeof formatPrettyOutputTimed === "function";
         setPrettyComparisonActive(panel, comparing);
         if (comparing) {
             var panes = setupPrettyComparison(sigCode);
@@ -1665,7 +1674,7 @@
         }
 
         var measurer = getPanelMeasurer(panel);
-        var rendered = formatToHtmlWithBackend(
+        var rendered = formatPrettyOutputTimed(
             fmtData.fmt,
             fmtData.annotations,
             contentWidth(panel),
@@ -1673,12 +1682,10 @@
             selectedPrettyBackend(),
             fmtData.formatId,
         );
-        sigCode.innerHTML =
-            '<span class="reflowed">' +
-            (rendered === null
-                ? '<span class="pretty-compare-unavailable">unavailable</span>'
-                : rendered) +
-            "</span>";
+        var reflowed = document.createElement("span");
+        reflowed.className = "reflowed";
+        insertPrettyOutput(reflowed, rendered);
+        sigCode.replaceChildren(reflowed);
     }
 
     /**

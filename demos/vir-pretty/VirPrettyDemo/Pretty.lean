@@ -20,7 +20,7 @@ The browser still owns HTML construction and DOM measurement. In timing terms,
 the definitions here cover backend execution: `Std.Format.prettyM` plus the
 backend-owned output collector. The segment and flat-event surfaces leave
 annotation lookup to the browser; the render-plan surface resolves annotations
-in Lean and leaves only escaping and HTML materialization to the browser.
+in Lean and leaves only HTML-string or direct-DOM materialization to the browser.
 
 The exported `ForRuntime` entrypoints are deliberately compiler-neutral. VIR,
 FIR, or another bounded Lean runtime can compile the same surface. Historical

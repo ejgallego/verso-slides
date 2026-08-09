@@ -78,7 +78,27 @@
                 "final HTML semantics",
             ],
             measures:
-                "Cost and ownership shift across execute, decode, HTML materialization, and pipeline total.",
+                "Cost and ownership shift across execute, decode, host materialization, and pipeline total.",
+        },
+        {
+            id: "vir-materializer",
+            label: "VIR host materializer",
+            question:
+                "What changes when the same VIR semantic render plan becomes an HTML string versus a detached DOM fragment?",
+            backends: ["vir-render", "vir-dom"],
+            design: "controlled",
+            variable: "Host materializer: escaped HTML string ↔ direct DOM fragment",
+            controls: [
+                "resident format ID input",
+                "package-resident Format and annotation tables",
+                "VIR runtime and entrypoint",
+                "prettyM logic",
+                "semantic render plan",
+                "column budget",
+                "final DOM semantics",
+            ],
+            measures:
+                "Materialization time compares string construction with detached DOM construction; panel wall also observes HTML parsing and insertion.",
         },
         {
             id: "vir-residency",
@@ -104,6 +124,7 @@
                 "vir-flat",
                 "vir-resident",
                 "vir-render",
+                "vir-dom",
                 "native",
                 "llvm",
             ],

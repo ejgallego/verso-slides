@@ -174,7 +174,7 @@ FIR Wasm Flat  browser Format → Rendered text/events → shared segments
 ```
 
 Hold the compiler/runtime, browser input adapter, format corpus,
-width, indent, column, and shared HTML generation fixed. Report
+width, indent, column, and shared host materialization fixed. Report
 Execute, Output normalization, payload/memory, and Pipeline total
 separately.
 
@@ -182,7 +182,7 @@ For broader comparisons:
 
 - compare VIR and FIR **Backend execute** only when both compile this
   exact Lean entrypoint and output surface;
-- compare FIR Wasm Flat with JS using **Pipeline total (pre-DOM)** for
+- compare FIR Wasm Flat with JS using **Pipeline total (pre-insertion)** for
   the product-level path;
 - do not describe JS Execute as pure `prettyM`: it also includes
   JS-owned tagged-segment construction; and

@@ -820,11 +820,11 @@ change the input shape. The default remains one pass, keeping ordinary
 slide interaction cheap. The menu updates the query string so a test
 configuration can be copied or reloaded.
 
-The default timing display is **Pipeline total (pre-DOM)**: public
-compact input through the final annotated HTML string. **Backend
+The default timing display is **Pipeline total (pre-insertion)**: public
+compact input through detached browser output. **Backend
 execute** stops at backend-owned output construction; for JS that
 means `prettyM` plus tagged-segment collection, excluding annotation
-lookup and HTML generation. The controls show the active timing
+lookup and host materialization. The controls show the active timing
 envelope next to the selector.
 
 Applications may also provide named experiment presets through
@@ -832,7 +832,7 @@ Applications may also provide named experiment presets through
 label, question, and backend ID list. It may also describe its design
 (`controlled`, `end-to-end`, or `exploratory`), variable, controls,
 and what its measurements mean. The panel presents these as an
-explicit test-boundary card and highlights runtime/input/output/width
+explicit test-boundary card and highlights runtime/input/output/width/materializer
 dimensions that differ between selected candidates. Manually changing
 a backend creates a custom selection. Presets remain application
 configuration rather than hard-coded Verso policy.

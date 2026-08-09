@@ -12,6 +12,7 @@ Verso panel boundary.
 | VIR input transport        | VIR JSON, VIR Format           | JSON/string versus typed Lean object ABI            | VIR runtime, `prettyM`, segment output       | Cost of VIR input representation                                  |
 | VIR output boundary        | VIR Format, VIR Flat           | Copied tagged segments versus text plus flat events | Typed input, VIR runtime, `prettyM`          | Cost of VIR output representation                                 |
 | VIR rendering boundary     | VIR Resident, VIR Render       | JS tag resolution versus Lean-resolved semantic nodes | Resident ID, package tables, VIR runtime, `prettyM`, annotations, HTML semantics | Cost and ownership shift at the rendering endpoint                |
+| VIR host materializer      | VIR Render, VIR Direct DOM     | Escaped HTML-string construction versus detached DOM construction | Resident ID, package tables, VIR call, semantic render plan, columns, final DOM semantics | Cost of the browser endpoint after the VIR boundary               |
 | VIR input residency        | VIR Flat, VIR Resident         | Imported tree versus package-resident ID            | Flat output, VIR runtime, `prettyM`          | Cost of transferring/reconstructing a static format               |
 | All backends               | All available                  | Several variables at once                           | Source format and columns only               | Exploratory overview; do not attribute a delta to one cause       |
 
@@ -29,12 +30,12 @@ scope. In particular, “JS time” is not one indivisible quantity:
 | Input preparation    | Compact-tree deserialization and render-context setup             | Public input converted into the backend-owned representation         |
 | Backend execute      | `prettyM`, width measurement, tagged-segment and tag-stack output | Backend-owned layout plus construction of its declared output; VIR Render also resolves annotations |
 | Output normalization | Zero: JS already produced the shared segment form                 | Backend output validated or converted into browser-ready segments or semantic nodes                  |
-| HTML materialization | Annotation lookup, escaping, binding attributes, and span strings | Browser-ready output converted into the final HTML string; VIR Render already resolved annotations  |
-| Pipeline total       | All four phases above                                             | Public compact input through final HTML string, before DOM insertion |
+| Host materialization | Annotation lookup, escaping, binding attributes, and span strings | Browser-ready output converted into an HTML string or detached DOM fragment; VIR render-plan backends already resolved annotations |
+| Pipeline total       | All four phases above                                             | Public compact input through detached browser output, before live DOM insertion |
 
-Thus the default **Pipeline total (pre-DOM)** includes the extended
-annotation/HTML processing for JS and every other backend. **Backend
-execute** does not: JS execute ends at tagged segments. DOM
+Thus the default **Pipeline total (pre-insertion)** includes the extended
+annotation/host-materialization processing for JS and every other backend. **Backend
+execute** does not: JS execute ends at tagged segments. Live DOM
 assignment, layout, paint, control rendering, and startup are outside
 pipeline total.
 
@@ -48,7 +49,7 @@ the same interpretation across those runtimes.
 
 ## VIR semantic rendering experiment
 
-`VIR Render` calls
+`VIR Render` and `VIR Direct DOM` call
 `VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir` with the same
 numeric ID used by `VIR Resident`. The generated package contains
 aligned `Std.Format` and sparse tag/annotation tables. Lean/VIR runs
@@ -60,12 +61,20 @@ an already-resolved numeric slot.
 This is a deliberately flat VDOM. The panel's current result consists
 only of sibling text and `<span>` nodes, so a general recursive node
 language would add machinery without representing any real output.
-JavaScript validates the lifted nodes without copying them, escapes
-text and attributes, resolves the small plan-local slot, and
-materializes the final HTML string. It does
-not reconstruct style events or look annotations up again. Actual DOM
-insertion remains outside the measured pipeline and outside VIR, which
-keeps this experiment synchronous and comparable to the other paths.
+JavaScript validates the lifted nodes without copying them and resolves
+the small plan-local slot. `VIR Render` escapes text and attributes and
+materializes an HTML string. `VIR Direct DOM` instead uses DOM properties
+to create a detached `DocumentFragment`, avoiding both manual escaping
+and HTML parsing. Neither path reconstructs style events or looks
+annotations up again. DOM insertion remains outside the four formatter
+phases; panel wall time observes the surrounding insertion work.
+
+The semantic plan is also intentionally compatible with a future React
+endpoint: its annotation entries are props-like records and its ordered
+nodes map directly to string children or `span` elements. This demo does
+not load React, because doing so would change the runtime under test. If
+Verso adopts React, the preferred Lean VDOM target is React's element and
+props model rather than a second general-purpose VDOM vocabulary.
 
 The compiler-neutral
 `VersoSlides.Pretty.formatRenderPlanForRuntime` still accepts a typed

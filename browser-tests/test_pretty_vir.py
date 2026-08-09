@@ -371,7 +371,7 @@ class TestPrettyVirBridge:
     def test_vir_render_plan_resolves_annotations_before_html_materialization(
         self, code_url: str, page: Page
     ):
-        """A resident ID returns semantic nodes that need only HTML materialization."""
+        """A resident ID returns semantic nodes ready for host materialization."""
         goto_slide_by_title(page, code_url, "Dark Code")
         result = page.evaluate(
             r"""() => {
@@ -422,6 +422,67 @@ class TestPrettyVirBridge:
             "input": "resident-id",
             "output": "render-plan",
             "width": "columns",
+            "materializer": "html-string",
+        }
+
+    def test_vir_render_plan_can_materialize_a_direct_dom_fragment(
+        self, code_url: str, page: Page
+    ):
+        """The direct-DOM candidate consumes the same plan without HTML parsing."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        result = page.evaluate(
+            r"""() => {
+                window.__versoPrettyVir = {
+                    status: "ready",
+                    formatRenderPlanByIdTimed: () => ({
+                        value: {
+                            found: true,
+                            renderPlan: {
+                                annotations: [{ cssClass: 'keyword"quoted', binding: '' }],
+                                nodes: [
+                                    { text: "<α>", annotationSlot: 1 },
+                                    { text: " tail", annotationSlot: 0 }
+                                ]
+                            }
+                        },
+                        timings: {
+                            marshalMs: 0.1, executeMs: 0.2, decodeMs: 0.1,
+                            hostMs: 0, totalMs: 0.4
+                        }
+                    })
+                };
+                const args = ["ignored", {}, 80, createColumnMeasurer(80)];
+                const html = formatPrettyOutputTimed(...args, "vir-render", 23);
+                const dom = formatPrettyOutputTimed(...args, "vir-dom", 23);
+                const fragmentChildren = dom.fragment.childNodes.length;
+                const target = document.createElement("div");
+                const inserted = insertPrettyOutput(target, dom);
+                return {
+                    html: html.html,
+                    domHtml: target.innerHTML,
+                    domText: target.textContent,
+                    emptyBinding: target.firstElementChild.getAttribute("data-binding"),
+                    fragmentChildren,
+                    fragmentChildrenAfterInsert: dom.fragment.childNodes.length,
+                    inserted,
+                    capabilities: getPrettyBackend("vir-dom").capabilities,
+                    renderMs: dom.timings.renderMs
+                };
+            }"""
+        )
+        assert result["domHtml"] == result["html"]
+        assert result["domText"] == "<α> tail"
+        assert result["emptyBinding"] == ""
+        assert result["fragmentChildren"] == 2
+        assert result["fragmentChildrenAfterInsert"] == 0
+        assert result["inserted"] is True
+        assert result["renderMs"] >= 0
+        assert result["capabilities"] == {
+            "runtime": "vir",
+            "input": "resident-id",
+            "output": "render-plan",
+            "width": "columns",
+            "materializer": "dom-fragment",
         }
 
     def test_explicit_vir_backend_rejects_invalid_segments(self, code_url: str, page: Page):
@@ -721,6 +782,7 @@ class TestPrettyVirComparisonPanel:
             "InputLean Format",
             "Outputsegments",
             "Widthcolumns",
+            "MaterializerHTML string",
         ]
 
         proof_index = page.evaluate(
@@ -751,6 +813,20 @@ class TestPrettyVirComparisonPanel:
         assert selected_rows.locator(
             ".pretty-controls-dimension.is-variable .pretty-controls-dimension-name"
         ).all_inner_texts() == ["OUTPUT", "OUTPUT"]
+
+        experiment.select_option("vir-materializer")
+        assert panel.locator(".pretty-compare-pane").evaluate_all(
+            "els => els.map(el => [el.dataset.prettyOutput, el.dataset.prettyMaterializer])"
+        ) == [
+            ["render-plan", "html-string"],
+            ["render-plan", "dom-fragment"],
+        ]
+        expect(controls.locator(".pretty-controls-question")).to_contain_text(
+            "detached DOM fragment"
+        )
+        assert selected_rows.locator(
+            ".pretty-controls-dimension.is-variable .pretty-controls-dimension-name"
+        ).all_inner_texts() == ["MATERIALIZER", "MATERIALIZER"]
 
         experiment.select_option("vir-residency")
         assert panel.locator(".pretty-compare-pane").evaluate_all(
@@ -885,7 +961,7 @@ class TestPrettyVirComparisonPanel:
         tactic.click()
 
         expect(panel.locator(".pretty-compare")).to_be_visible()
-        assert panel.locator(".pretty-compare-pane").count() == 8
+        assert panel.locator(".pretty-compare-pane").count() == 9
         assert block.evaluate("el => el.classList.contains('pretty-compare-active')")
         layout = block.evaluate(
             """block => {
@@ -926,6 +1002,7 @@ class TestPrettyVirComparisonPanel:
         expect(panel.locator('[data-pretty-backend="vir-format"] .pretty-compare-header')).to_contain_text("VIR Format")
         expect(panel.locator('[data-pretty-backend="vir-flat"] .pretty-compare-header')).to_contain_text("VIR Flat")
         expect(panel.locator('[data-pretty-backend="vir-render"] .pretty-compare-header')).to_contain_text("VIR Render")
+        expect(panel.locator('[data-pretty-backend="vir-dom"] .pretty-compare-header')).to_contain_text("VIR Direct DOM")
         expect(panel.locator('[data-pretty-backend="vir-resident"] .pretty-compare-header')).to_contain_text("VIR Resident")
         expect(panel.locator('[data-pretty-backend="native"] .pretty-compare-header')).to_contain_text("FIR Wasm")
         expect(panel.locator('[data-pretty-backend="llvm"] .pretty-compare-header')).to_contain_text("LLVM")
@@ -939,6 +1016,9 @@ class TestPrettyVirComparisonPanel:
             "from-flat"
         )
         expect(panel.locator('[data-pretty-backend="vir-render"] .pretty-compare-body')).to_contain_text(
+            "unavailable"
+        )
+        expect(panel.locator('[data-pretty-backend="vir-dom"] .pretty-compare-body')).to_contain_text(
             "unavailable"
         )
         expect(panel.locator('[data-pretty-backend="vir-resident"] .pretty-compare-body')).to_contain_text(
@@ -958,7 +1038,7 @@ class TestPrettyVirComparisonPanel:
         assert all("Marshal:" in title for title in timing_titles)
         assert all("Backend execute (layout + owned output):" in title for title in timing_titles)
         assert all("Output normalization:" in title for title in timing_titles)
-        assert all("HTML materialization:" in title for title in timing_titles)
+        assert all("Host materialization:" in title for title in timing_titles)
         native_timing = panel.locator(
             '[data-pretty-backend="native"] .pretty-compare-time'
         ).get_attribute("title")
@@ -1021,12 +1101,12 @@ class TestPrettyVirComparisonPanel:
         timing = controls.locator(".pretty-controls-timing select")
         timing_scope = controls.locator(".pretty-controls-timing-scope")
         expect(timing).to_have_value("total")
-        expect(timing_scope).to_contain_text("final annotated HTML string")
-        expect(timing_scope).to_contain_text("excludes DOM insertion")
+        expect(timing_scope).to_contain_text("detached browser output")
+        expect(timing_scope).to_contain_text("excludes insertion into the live DOM")
         timing.select_option("execute")
         expect(timing_scope).to_contain_text("JS ends at tagged segments")
         expect(timing_scope).to_contain_text("VIR Render also resolves annotations")
-        expect(timing_scope).to_contain_text("HTML escaping and materialization are excluded")
+        expect(timing_scope).to_contain_text("Host materialization is excluded")
         assert all(
             text.startswith("Execute · ")
             for text in panel.locator(".pretty-compare-time").all_inner_texts()
@@ -1034,7 +1114,7 @@ class TestPrettyVirComparisonPanel:
         assert "prettyTiming=execute" in page.url
 
         timing.select_option("tracks")
-        expect(timing_scope).to_contain_text("escaping and HTML-string materialization stay in HTML")
+        expect(timing_scope).to_contain_text("detached browser-output construction stays in Host")
         assert panel.locator(".pretty-timing-tracks").count() == 2
         assert panel.locator(".pretty-timing-tracks-total").count() == 2
         assert all(
