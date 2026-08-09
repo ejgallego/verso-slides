@@ -87,8 +87,10 @@ python3 "$demo_root/scripts/generate-pretty-registry.py" \
   VersoSlides.Pretty.formatJsonSegmentsJsonForVir \
   VersoSlides.Pretty.formatSegmentsForVir \
   VersoSlides.Pretty.formatRenderedForVir \
+  VersoSlides.Pretty.formatRenderPlanForVir \
   VersoSlides.PrettyRegistry.formatCountForVir \
-  VersoSlides.PrettyRegistry.formatRenderedByIdForVir)
+  VersoSlides.PrettyRegistry.formatRenderedByIdForVir \
+  VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir)
 
 for asset in pretty-experiments.js pretty-vir.js pretty-native.js pretty-native-flat.js pretty-llvm.js coi-register.js; do
   install -D -m 0644 "$demo_root/web/$asset" "$out_dir/vir-pretty/$asset"

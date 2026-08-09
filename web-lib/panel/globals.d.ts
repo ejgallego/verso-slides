@@ -45,11 +45,20 @@ interface VersoPrettyVirBridge {
     jsonExportName?: string;
     formatExportName?: string;
     renderedExportName?: string;
+    renderPlanExportName?: string;
     residentExportName?: string;
+    residentRenderPlanExportName?: string;
     formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string;
     formatSegments?: (fmt: unknown, width: number, indent: number) => unknown;
     formatRendered?: (fmt: unknown, width: number, indent: number) => unknown;
+    formatRenderPlan?: (
+        fmt: unknown,
+        annotations: unknown[],
+        width: number,
+        indent: number,
+    ) => unknown;
     formatRenderedById?: (formatId: number, width: number, indent: number) => unknown;
+    formatRenderPlanById?: (formatId: number, width: number, indent: number) => unknown;
     formatJsonSegmentsJsonTimed?: (
         fmtJson: string,
         width: number,
@@ -57,7 +66,18 @@ interface VersoPrettyVirBridge {
     ) => VersoPrettyVirTimedCall;
     formatSegmentsTimed?: (fmt: unknown, width: number, indent: number) => VersoPrettyVirTimedCall;
     formatRenderedTimed?: (fmt: unknown, width: number, indent: number) => VersoPrettyVirTimedCall;
+    formatRenderPlanTimed?: (
+        fmt: unknown,
+        annotations: unknown[],
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
     formatRenderedByIdTimed?: (
+        formatId: number,
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
+    formatRenderPlanByIdTimed?: (
         formatId: number,
         width: number,
         indent: number,
@@ -79,7 +99,9 @@ interface VersoPrettyVirConfig {
     jsonExportName?: string;
     formatExportName?: string;
     renderedExportName?: string;
+    renderPlanExportName?: string;
     residentExportName?: string;
+    residentRenderPlanExportName?: string;
 }
 
 interface VersoPrettyNativeBridge {
@@ -216,7 +238,7 @@ interface PrettyBackendDefinition {
     capabilities?: {
         runtime?: "javascript" | "vir" | "fir-native" | "llvm-emscripten";
         input?: "compact-tree" | "json-string" | "lean-format" | "resident-id" | "browser-format";
-        output: "segments" | "text-events" | "pretty-trace" | "text";
+        output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text";
         width: "pixels" | "columns";
     };
     renderSegments?(
@@ -232,7 +254,7 @@ interface PrettyBackendDefinition {
         pixelWidth: number,
         measurer: DOMMeasurer,
         formatId?: number,
-    ): PrettySegmentResult;
+    ): PrettyRenderResult;
 }
 
 interface PrettyExperimentDefinition {

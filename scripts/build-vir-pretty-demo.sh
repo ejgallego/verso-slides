@@ -358,8 +358,10 @@ fi
   VersoSlides.Pretty.formatJsonSegmentsJsonForVir \
   VersoSlides.Pretty.formatSegmentsForVir \
   VersoSlides.Pretty.formatRenderedForVir \
+  VersoSlides.Pretty.formatRenderPlanForVir \
   VersoSlides.PrettyRegistry.formatCountForVir \
-  VersoSlides.PrettyRegistry.formatRenderedByIdForVir)
+  VersoSlides.PrettyRegistry.formatRenderedByIdForVir \
+  VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir)
 
 cp "$release_wasm" "$lib_dir/lean-vir/wasm/vir-upstream.wasm"
 

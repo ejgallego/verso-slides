@@ -1,6 +1,6 @@
 # VIR pretty-printer demo as a Verso Slides panel extension
 
-This is a standalone seven-backend `Std.Format.prettyM` correctness
+This is a standalone eight-backend `Std.Format.prettyM` correctness
 and timing demo. During development it uses the containing Verso
 Slides checkout through a path dependency. Once `Config.panelPlugins`
 is released, `lakefile.lean` can switch directly to that release tag
@@ -72,18 +72,20 @@ formatter/panel integrations.
 ## Measurements in this first extraction
 
 The interactive comparison supplies the same format semantics and
-deterministic character-column budget to all seven candidates:
+deterministic character-column budget to all eight candidates:
 
 1. JavaScript reference
 2. VIR through the JSON/string boundary
 3. VIR through the typed `Std.Format` boundary
 4. VIR typed input with flat text/style-event output
-5. VIR package-resident `Std.Format` selected by numeric ID, with flat
+5. VIR package-resident Format plus annotations, selected by numeric
+   ID, with Lean-resolved semantic-node output
+6. VIR package-resident `Std.Format` selected by numeric ID, with flat
    output
-6. FIR-generated Wasm
-7. LLVM/Emscripten Wasm
+7. FIR-generated Wasm
+8. LLVM/Emscripten Wasm
 
-The two new VIR candidates isolate the boundary experiment. `VIR Flat`
+The specialized VIR candidates isolate separate boundary experiments. `VIR Flat`
 removes per-segment tag-stack copies while preserving the direct typed
 input control. `VIR Resident` keeps deck formats in a
 package-initialized Lean array, so a reflow transfers only the format
@@ -92,11 +94,21 @@ and `text-events-utf8/v1` output contract. UTF-8 offsets are converted
 to JavaScript string boundaries before the existing segment/HTML
 renderer runs.
 
+`VIR Render` moves the next meaningful boundary into Lean: the same
+numeric ID addresses aligned package-resident Format and sparse annotation
+tables, Lean resolves the innermost active annotation during
+`prettyM`, interns annotation metadata once, and returns a flat
+semantic render plan whose nodes carry resolved slots. JavaScript only validates, escapes, and
+materializes those sibling text/span nodes. This is intentionally not
+a general recursive VDOM, because the panel output has no nested
+element structure today; DOM insertion remains browser-owned and
+outside the timer.
+
 The restored deck has the same functionality as the in-tree prototype:
 
 - live Lean code panels and draggable panel sizing;
 - interactive processor selection and single/compare modes;
-- named end-to-end, VIR transport, VIR output, and VIR residency
+- named end-to-end, VIR transport, VIR output, VIR rendering, and VIR residency
   experiments, with explicit changed/held-fixed/measures descriptions
   and a visible boundary matrix for every candidate;
 - shared column budgets and exact tagged-segment comparison;

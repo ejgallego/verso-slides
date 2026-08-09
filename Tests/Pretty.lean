@@ -41,6 +41,15 @@ private def taggedDoc : Format :=
 private def taggedUnicodeLineDoc : Format :=
   Format.tag 7 ("α" ++ Format.line ++ "β")
 
+private def nestedTaggedDoc : Format :=
+  Format.tag 7 ("outer" ++ Format.tag 8 "inner" ++ "tail")
+
+private def annotations : Array TaggedAnnotation :=
+  #[
+    { tag := 7, annotation := { cssClass := "outer", binding := some "decl" } },
+    { tag := 8, annotation := { cssClass := "inner", binding := none } }
+  ]
+
 private def groupedLineJson : String :=
   "[5,[4,\"hello\",[4,1,\"world\"]]]"
 
@@ -144,6 +153,41 @@ where
           { offset := 2, kind := 2, value := 0 },
           { offset := 5, kind := 1, value := 1 }
         ] }
+    testEq "render plan resolves innermost annotation"
+      (formatRenderPlan nestedTaggedDoc annotations 80)
+      { annotations := #[
+          { cssClass := "outer", binding := some "decl" },
+          { cssClass := "inner", binding := none }
+        ]
+        nodes := #[
+          { text := "outer", annotationSlot := 1 },
+          { text := "inner", annotationSlot := 2 },
+          { text := "tail", annotationSlot := 1 }
+        ] }
+    testEq "render plan keeps pretty newlines unstyled"
+      (formatRenderPlanForVir taggedUnicodeLineDoc annotations 80 0)
+      { annotations := #[
+          { cssClass := "outer", binding := some "decl" },
+          { cssClass := "inner", binding := none }
+        ]
+        nodes := #[
+          { text := "α", annotationSlot := 1 },
+          { text := "\n", annotationSlot := 0 },
+          { text := "β", annotationSlot := 1 }
+        ] }
+    testEq "resident render plan lookup"
+      (formatRenderPlanAt #[groupedLineDoc, taggedDoc] #[#[], annotations] 1 80 0)
+      { found := true
+        renderPlan := {
+          annotations := #[
+            { cssClass := "outer", binding := some "decl" },
+            { cssClass := "inner", binding := none }
+          ]
+          nodes := #[{ text := "hello", annotationSlot := 1 }]
+        } }
+    testEq "resident render plan rejects misaligned ID"
+      (formatRenderPlanAt #[taggedDoc] #[] 0 80 0).found
+      false
     testEq "resident format lookup"
       (formatRenderedAt #[groupedLineDoc, taggedDoc] 1 80 0)
       { found := true

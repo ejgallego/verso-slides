@@ -24,11 +24,15 @@ class TestPrettyVirAssets:
         assert "VersoSlides.Pretty.formatJsonSegmentsJsonForVir" in body
         assert "VersoSlides.Pretty.formatSegmentsForVir" in body
         assert "VersoSlides.Pretty.formatRenderedForVir" in body
+        assert "VersoSlides.Pretty.formatRenderPlanForVir" in body
         assert "VersoSlides.PrettyRegistry.formatRenderedByIdForVir" in body
+        assert "VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir" in body
         assert "runtime.callTimed" in body
         assert "formatSegmentsTimed" in body
         assert "formatRenderedTimed" in body
+        assert "formatRenderPlanTimed" in body
         assert "formatRenderedByIdTimed" in body
+        assert "formatRenderPlanByIdTimed" in body
         assert "jsonRoundTrip" not in body
 
     def test_pretty_native_asset_written(self, site_dir):
@@ -126,6 +130,13 @@ class TestPrettyVirBridge:
                     }),
                     formatSegments: () => [{ text: "from-format", tags: [] }],
                     formatRendered: () => ({ text: "from-flat", events: [] }),
+                    formatRenderPlanById: id => ({
+                        found: id === 3,
+                        renderPlan: {
+                            annotations: [],
+                            nodes: [{ text: "from-render", annotationSlot: 0 }]
+                        }
+                    }),
                     formatRenderedById: id => ({
                         found: id === 3,
                         rendered: { text: "from-resident", events: [] }
@@ -163,6 +174,22 @@ class TestPrettyVirBridge:
                             totalMs: 0.45
                         }
                     }),
+                    formatRenderPlanByIdTimed: id => ({
+                        value: {
+                            found: id === 3,
+                            renderPlan: {
+                                annotations: [],
+                                nodes: [{ text: "from-render", annotationSlot: 0 }]
+                            }
+                        },
+                        timings: {
+                            marshalMs: 0.1,
+                            executeMs: 0.2,
+                            decodeMs: 0.1,
+                            hostMs: 0.05,
+                            totalMs: 0.45
+                        }
+                    }),
                     formatRenderedByIdTimed: id => ({
                         value: {
                             found: id === 3,
@@ -188,6 +215,7 @@ class TestPrettyVirBridge:
                     vir: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir"),
                     format: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-format"),
                     flat: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-flat"),
+                    render: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-render", 3),
                     resident: formatToHtmlWithBackend([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-resident", 3),
                     timed: formatToHtmlTimed([5, [4, "hello", [4, 1, "world"]]], {}, 200, measurer, "vir-format")
                 };
@@ -197,6 +225,7 @@ class TestPrettyVirBridge:
         assert result["vir"] == "from-vir"
         assert result["format"] == "from-format"
         assert result["flat"] == "from-flat"
+        assert result["render"] == "from-render"
         assert result["resident"] == "from-resident"
         assert result["timed"]["html"] == "from-format"
         assert result["timed"]["durationMs"] >= 0
@@ -338,6 +367,62 @@ class TestPrettyVirBridge:
             })"""
         )
         assert segments is None
+
+    def test_vir_render_plan_resolves_annotations_before_html_materialization(
+        self, code_url: str, page: Page
+    ):
+        """A resident ID returns semantic nodes that need only HTML materialization."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        result = page.evaluate(
+            r"""() => {
+                let receivedId = null;
+                window.__versoPrettyVir = {
+                    status: "ready",
+                    formatRenderPlanByIdTimed: id => {
+                        receivedId = id;
+                        return {
+                            value: {
+                                found: true,
+                                renderPlan: {
+                                    annotations: [{
+                                        cssClass: 'keyword"quoted', binding: 'decl"7'
+                                    }],
+                                    nodes: [{ text: "<α>", annotationSlot: 1 }]
+                                }
+                            },
+                            timings: {
+                                marshalMs: 0.1, executeMs: 0.2, decodeMs: 0.1,
+                                hostMs: 0, totalMs: 0.4
+                            }
+                        };
+                    }
+                };
+                const html = formatToHtmlWithBackend(
+                    [7, 7, "<α>"],
+                    { "7": { cssClass: 'keyword"quoted', binding: 'decl"7' } },
+                    80,
+                    createColumnMeasurer(80),
+                    "vir-render",
+                    23
+                );
+                return {
+                    html,
+                    receivedId,
+                    capabilities: getPrettyBackend("vir-render").capabilities
+                };
+            }"""
+        )
+        assert result["html"] == (
+            '<span class="keyword&quot;quoted token" '
+            'data-binding="decl&quot;7">&lt;α&gt;</span>'
+        )
+        assert result["receivedId"] == 23
+        assert result["capabilities"] == {
+            "runtime": "vir",
+            "input": "resident-id",
+            "output": "render-plan",
+            "width": "columns",
+        }
 
     def test_explicit_vir_backend_rejects_invalid_segments(self, code_url: str, page: Page):
         """Malformed bridge payloads stay visible instead of falling back to JS."""
@@ -653,6 +738,20 @@ class TestPrettyVirComparisonPanel:
             "els => els.map(el => [el.dataset.prettyInput, el.dataset.prettyOutput])"
         ) == [["lean-format", "segments"], ["lean-format", "text-events"]]
 
+        experiment.select_option("vir-rendering")
+        assert panel.locator(".pretty-compare-pane").evaluate_all(
+            "els => els.map(el => [el.dataset.prettyInput, el.dataset.prettyOutput])"
+        ) == [
+            ["resident-id", "text-events"],
+            ["resident-id", "render-plan"],
+        ]
+        expect(controls.locator(".pretty-controls-question")).to_contain_text(
+            "same resident ID"
+        )
+        assert selected_rows.locator(
+            ".pretty-controls-dimension.is-variable .pretty-controls-dimension-name"
+        ).all_inner_texts() == ["OUTPUT", "OUTPUT"]
+
         experiment.select_option("vir-residency")
         assert panel.locator(".pretty-compare-pane").evaluate_all(
             "els => els.map(el => el.dataset.prettyInput)"
@@ -717,6 +816,22 @@ class TestPrettyVirComparisonPanel:
                             hostMs: 0.05,
                             totalMs: 0.45
                         }
+                    }),
+                    formatRenderPlanByIdTimed: id => ({
+                        value: {
+                            found: id === 3,
+                            renderPlan: {
+                                annotations: [],
+                                nodes: [{ text: "from-render", annotationSlot: 0 }]
+                            }
+                        },
+                        timings: {
+                            marshalMs: 0.1,
+                            executeMs: 0.2,
+                            decodeMs: 0.1,
+                            hostMs: 0.05,
+                            totalMs: 0.45
+                        }
                     })
                 };
                 registerPrettyBackend({
@@ -770,7 +885,7 @@ class TestPrettyVirComparisonPanel:
         tactic.click()
 
         expect(panel.locator(".pretty-compare")).to_be_visible()
-        assert panel.locator(".pretty-compare-pane").count() == 7
+        assert panel.locator(".pretty-compare-pane").count() == 8
         assert block.evaluate("el => el.classList.contains('pretty-compare-active')")
         layout = block.evaluate(
             """block => {
@@ -810,6 +925,7 @@ class TestPrettyVirComparisonPanel:
         expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-header')).to_contain_text("VIR JSON")
         expect(panel.locator('[data-pretty-backend="vir-format"] .pretty-compare-header')).to_contain_text("VIR Format")
         expect(panel.locator('[data-pretty-backend="vir-flat"] .pretty-compare-header')).to_contain_text("VIR Flat")
+        expect(panel.locator('[data-pretty-backend="vir-render"] .pretty-compare-header')).to_contain_text("VIR Render")
         expect(panel.locator('[data-pretty-backend="vir-resident"] .pretty-compare-header')).to_contain_text("VIR Resident")
         expect(panel.locator('[data-pretty-backend="native"] .pretty-compare-header')).to_contain_text("FIR Wasm")
         expect(panel.locator('[data-pretty-backend="llvm"] .pretty-compare-header')).to_contain_text("LLVM")
@@ -821,6 +937,9 @@ class TestPrettyVirComparisonPanel:
         )
         expect(panel.locator('[data-pretty-backend="vir-flat"] .pretty-compare-body')).to_contain_text(
             "from-flat"
+        )
+        expect(panel.locator('[data-pretty-backend="vir-render"] .pretty-compare-body')).to_contain_text(
+            "unavailable"
         )
         expect(panel.locator('[data-pretty-backend="vir-resident"] .pretty-compare-body')).to_contain_text(
             "unavailable"
@@ -839,7 +958,7 @@ class TestPrettyVirComparisonPanel:
         assert all("Marshal:" in title for title in timing_titles)
         assert all("Backend execute (layout + owned output):" in title for title in timing_titles)
         assert all("Output normalization:" in title for title in timing_titles)
-        assert all("Shared HTML generation:" in title for title in timing_titles)
+        assert all("HTML materialization:" in title for title in timing_titles)
         native_timing = panel.locator(
             '[data-pretty-backend="native"] .pretty-compare-time'
         ).get_attribute("title")
@@ -905,8 +1024,9 @@ class TestPrettyVirComparisonPanel:
         expect(timing_scope).to_contain_text("final annotated HTML string")
         expect(timing_scope).to_contain_text("excludes DOM insertion")
         timing.select_option("execute")
-        expect(timing_scope).to_contain_text("JS this is prettyM plus tagged-segment collection")
-        expect(timing_scope).to_contain_text("HTML generation are excluded")
+        expect(timing_scope).to_contain_text("JS ends at tagged segments")
+        expect(timing_scope).to_contain_text("VIR Render also resolves annotations")
+        expect(timing_scope).to_contain_text("HTML escaping and materialization are excluded")
         assert all(
             text.startswith("Execute · ")
             for text in panel.locator(".pretty-compare-time").all_inner_texts()
@@ -914,7 +1034,7 @@ class TestPrettyVirComparisonPanel:
         assert "prettyTiming=execute" in page.url
 
         timing.select_option("tracks")
-        expect(timing_scope).to_contain_text("shared annotation and HTML work stays in HTML")
+        expect(timing_scope).to_contain_text("escaping and HTML-string materialization stay in HTML")
         assert panel.locator(".pretty-timing-tracks").count() == 2
         assert panel.locator(".pretty-timing-tracks-total").count() == 2
         assert all(

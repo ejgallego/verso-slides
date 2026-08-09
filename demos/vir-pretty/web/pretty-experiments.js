@@ -24,7 +24,7 @@
             label: "End-to-end implementations",
             question:
                 "How do the complete JS, VIR, FIR Wasm, and LLVM paths compare from the shared compact Format input to panel HTML?",
-            backends: ["js", "vir-format", "native", "llvm"],
+            backends: ["js", "vir-render", "native", "llvm"],
             design: "end-to-end",
             variable: "Implementation, compiler/runtime, and browser adapter path",
             controls: [
@@ -60,6 +60,27 @@
                 "Incremental execute, decode, payload, and total cost of the output boundary.",
         },
         {
+            id: "vir-rendering",
+            label: "VIR rendering boundary",
+            question:
+                "What changes when the same resident ID returns Lean-resolved semantic nodes instead of text/style events for JavaScript to interpret?",
+            backends: ["vir-render", "vir-resident"],
+            design: "controlled",
+            variable:
+                "Rendering endpoint: flat events + JS tag resolution ↔ Lean-resolved semantic nodes",
+            controls: [
+                "resident format ID input",
+                "package-resident Format and annotation tables",
+                "VIR runtime",
+                "prettyM logic",
+                "annotations",
+                "column budget",
+                "final HTML semantics",
+            ],
+            measures:
+                "Cost and ownership shift across execute, decode, HTML materialization, and pipeline total.",
+        },
+        {
             id: "vir-residency",
             label: "VIR input residency",
             question:
@@ -76,7 +97,16 @@
             label: "All backends",
             question:
                 "Exploratory overview only: multiple implementation and ABI variables change at the same time.",
-            backends: ["js", "vir", "vir-format", "vir-flat", "vir-resident", "native", "llvm"],
+            backends: [
+                "js",
+                "vir",
+                "vir-format",
+                "vir-flat",
+                "vir-resident",
+                "vir-render",
+                "native",
+                "llvm",
+            ],
             design: "exploratory",
             variable: "Runtime, input, output, width, and ownership boundaries",
             controls: [

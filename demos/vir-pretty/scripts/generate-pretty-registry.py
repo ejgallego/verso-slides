@@ -65,20 +65,59 @@ def format_expr(value: Any) -> str:
     raise ValueError(f"invalid compact Std.Format node: {value!r}")
 
 
+def annotation_table_expr(value: Any) -> str:
+    if not isinstance(value, dict):
+        raise ValueError("format annotations must be an object")
+    indexed: dict[int, str] = {}
+    for raw_tag, raw_annotation in value.items():
+        try:
+            tag = int(raw_tag)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"invalid annotation tag: {raw_tag!r}") from error
+        if tag < 0 or str(tag) != str(raw_tag):
+            raise ValueError(f"invalid annotation tag: {raw_tag!r}")
+        if not isinstance(raw_annotation, dict):
+            raise ValueError(f"annotation {tag} must be an object")
+        css_class = raw_annotation.get("cssClass")
+        binding = raw_annotation.get("binding")
+        if not isinstance(css_class, str):
+            raise ValueError(f"annotation {tag} must provide a string cssClass")
+        if binding is not None and not isinstance(binding, str):
+            raise ValueError(f"annotation {tag} binding must be a string")
+        binding_expr = "none" if binding is None else f"some {lean_string(binding)}"
+        indexed[tag] = (
+            f"{{ tag := {tag}, annotation := {{ cssClass := {lean_string(css_class)}, "
+            f"binding := {binding_expr} }} }}"
+        )
+    if not indexed:
+        return "#[]"
+    return "#[" + ", ".join(indexed[tag] for tag in sorted(indexed)) + "]"
+
+
 class Registry:
     def __init__(self) -> None:
         self.formats: list[Any] = []
+        self.annotations: list[dict[str, Any]] = []
         self.ids: dict[str, int] = {}
 
     def attach(self, data: dict[str, Any]) -> None:
         if "fmt" not in data:
             raise ValueError("format data is missing its fmt field")
-        key = compact(data["fmt"])
+        annotations = data.get("annotations", {})
+        if not isinstance(annotations, dict):
+            raise ValueError("format data annotations must be an object")
+        key = json.dumps(
+            [data["fmt"], annotations],
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
         format_id = self.ids.get(key)
         if format_id is None:
             format_id = len(self.formats)
             self.ids[key] = format_id
             self.formats.append(data["fmt"])
+            self.annotations.append(annotations)
         data["formatId"] = format_id
 
     def patch_payload(self, data: Any) -> Any:
@@ -111,6 +150,9 @@ class Registry:
 
     def lean_module(self, pretty_source: Path | None = None) -> str:
         values = ",\n    ".join(format_expr(value) for value in self.formats)
+        annotation_values = ",\n    ".join(
+            annotation_table_expr(value) for value in self.annotations
+        )
         if pretty_source is None:
             prelude = "import VersoSlides.Pretty"
         else:
@@ -126,11 +168,20 @@ private initialize formats : Array Std.Format ← pure #[
     {values}
   ]
 
+private initialize annotationTables :
+    Array (Array VersoSlides.Pretty.TaggedAnnotation) ← pure #[
+    {annotation_values}
+  ]
+
 public def formatCountForVir : Nat := formats.size
 
 public def formatRenderedByIdForVir (id width indent : Nat) :
     VersoSlides.Pretty.ResidentRendered :=
   VersoSlides.Pretty.formatRenderedAt formats id width indent
+
+public def formatRenderPlanByIdForVir (id width indent : Nat) :
+    VersoSlides.Pretty.ResidentRenderPlan :=
+  VersoSlides.Pretty.formatRenderPlanAt formats annotationTables id width indent
 
 end VersoSlides.PrettyRegistry
 """
@@ -177,11 +228,13 @@ def main() -> None:
     args.metadata_output.write_text(
         json.dumps(
             {
-                "schemaVersion": 1,
+                "schemaVersion": 2,
                 "formatCount": len(registry.formats),
                 "idField": "formatId",
                 "entrypoint": "VersoSlides.PrettyRegistry.formatRenderedByIdForVir",
                 "output": "text-events-utf8/v1",
+                "renderPlanEntrypoint": "VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir",
+                "renderPlanOutput": "semantic-render-plan/v1",
             },
             indent=2,
         )

@@ -31,7 +31,9 @@ def test_registry_deduplicates_and_attaches_ids(tmp_path: Path):
         }
     ]
     (site / "index.html").write_text(
-        f"<div {rich_attribute(goal_payload)}></div><code {rich_attribute(shared)}></code>"
+        f"<div {rich_attribute(goal_payload)}></div>"
+        f"<code {rich_attribute(shared)}></code>"
+        f"<code {rich_attribute({'fmt': shared['fmt'], 'annotations': {'4': {'cssClass': 'alt', 'binding': 'decl'}}})}></code>"
     )
     docs = {
         "entry": f'<code {rich_attribute({"fmt": [5, "β"], "annotations": {}})}></code>'
@@ -55,22 +57,29 @@ def test_registry_deduplicates_and_attaches_ids(tmp_path: Path):
     index = BeautifulSoup((site / "index.html").read_text(), "html.parser")
     goal_after = json.loads(index.select_one("div")["data-rich-format"])
     nested_after = json.loads(goal_after[0]["hypotheses"][0]["ppType"])
-    direct_after = json.loads(index.select_one("code")["data-rich-format"])
+    direct_after = json.loads(index.select("code")[0]["data-rich-format"])
+    alternate_after = json.loads(index.select("code")[1]["data-rich-format"])
     assert nested_after["formatId"] == 0
     assert direct_after["formatId"] == 0
+    assert alternate_after["formatId"] == 1
     docs_after = json.loads((site / "-verso-docs.json").read_text())
-    assert '"formatId":1' in html.unescape(docs_after["entry"])
+    assert '"formatId":2' in html.unescape(docs_after["entry"])
 
     source = lean_output.read_text()
     assert 'Std.Format.tag 4 (Std.Format.text "α")' in source
     assert 'Std.Format.group (Std.Format.text "β") .allOrNone' in source
     assert "formatRenderedByIdForVir" in source
+    assert "formatRenderPlanByIdForVir" in source
+    assert '{ tag := 4, annotation := { cssClass := "const", binding := none } }' in source
+    assert '{ tag := 4, annotation := { cssClass := "alt", binding := some "decl" } }' in source
 
     metadata = json.loads(metadata_output.read_text())
     assert metadata == {
-        "schemaVersion": 1,
-        "formatCount": 2,
+        "schemaVersion": 2,
+        "formatCount": 3,
         "idField": "formatId",
         "entrypoint": "VersoSlides.PrettyRegistry.formatRenderedByIdForVir",
         "output": "text-events-utf8/v1",
+        "renderPlanEntrypoint": "VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir",
+        "renderPlanOutput": "semantic-render-plan/v1",
     }

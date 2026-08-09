@@ -8,9 +8,10 @@ Verso panel boundary.
 
 | Preset                     | Backends                       | Variable                                            | Held fixed                                   | Interpretation                                                    |
 | -------------------------- | ------------------------------ | --------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
-| End-to-end implementations | JS, VIR Format, FIR Wasm, LLVM | Complete implementation and adapter path            | Source format, columns, final HTML semantics | Product-level comparison; phase breakdown explains boundary costs |
+| End-to-end implementations | JS, VIR Render, FIR Wasm, LLVM | Complete implementation and adapter path            | Source format, annotations, columns, final HTML semantics | Product-level comparison; phase breakdown explains boundary costs |
 | VIR input transport        | VIR JSON, VIR Format           | JSON/string versus typed Lean object ABI            | VIR runtime, `prettyM`, segment output       | Cost of VIR input representation                                  |
 | VIR output boundary        | VIR Format, VIR Flat           | Copied tagged segments versus text plus flat events | Typed input, VIR runtime, `prettyM`          | Cost of VIR output representation                                 |
+| VIR rendering boundary     | VIR Resident, VIR Render       | JS tag resolution versus Lean-resolved semantic nodes | Resident ID, package tables, VIR runtime, `prettyM`, annotations, HTML semantics | Cost and ownership shift at the rendering endpoint                |
 | VIR input residency        | VIR Flat, VIR Resident         | Imported tree versus package-resident ID            | Flat output, VIR runtime, `prettyM`          | Cost of transferring/reconstructing a static format               |
 | All backends               | All available                  | Several variables at once                           | Source format and columns only               | Exploratory overview; do not attribute a delta to one cause       |
 
@@ -26,9 +27,9 @@ scope. In particular, “JS time” is not one indivisible quantity:
 | Phase                | JS includes                                                       | Cross-runtime meaning                                                |
 | -------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
 | Input preparation    | Compact-tree deserialization and render-context setup             | Public input converted into the backend-owned representation         |
-| Backend execute      | `prettyM`, width measurement, tagged-segment and tag-stack output | Backend-owned layout plus construction of its declared output        |
-| Output normalization | Zero: JS already produced the shared segment form                 | Backend output converted into shared tagged segments                 |
-| Shared HTML          | Annotation lookup, escaping, binding attributes, and span strings | Shared tagged segments converted into the final HTML string          |
+| Backend execute      | `prettyM`, width measurement, tagged-segment and tag-stack output | Backend-owned layout plus construction of its declared output; VIR Render also resolves annotations |
+| Output normalization | Zero: JS already produced the shared segment form                 | Backend output validated or converted into browser-ready segments or semantic nodes                  |
+| HTML materialization | Annotation lookup, escaping, binding attributes, and span strings | Browser-ready output converted into the final HTML string; VIR Render already resolved annotations  |
 | Pipeline total       | All four phases above                                             | Public compact input through final HTML string, before DOM insertion |
 
 Thus the default **Pipeline total (pre-DOM)** includes the extended
@@ -44,6 +45,36 @@ tracking, style-event construction, and the final text join. Both FIR
 and VIR can compile that same definition. Its output normalization and
 shared HTML phases remain in JavaScript, so execute and total retain
 the same interpretation across those runtimes.
+
+## VIR semantic rendering experiment
+
+`VIR Render` calls
+`VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir` with the same
+numeric ID used by `VIR Resident`. The generated package contains
+aligned `Std.Format` and sparse tag/annotation tables. Lean/VIR runs
+`prettyM`, maintains the active tag stack, applies the existing
+“innermost annotated tag wins” rule, and returns semantic text nodes.
+Annotation metadata is interned once per plan; each node carries only
+an already-resolved numeric slot.
+
+This is a deliberately flat VDOM. The panel's current result consists
+only of sibling text and `<span>` nodes, so a general recursive node
+language would add machinery without representing any real output.
+JavaScript validates the lifted nodes without copying them, escapes
+text and attributes, resolves the small plan-local slot, and
+materializes the final HTML string. It does
+not reconstruct style events or look annotations up again. Actual DOM
+insertion remains outside the measured pipeline and outside VIR, which
+keeps this experiment synchronous and comparable to the other paths.
+
+The compiler-neutral
+`VersoSlides.Pretty.formatRenderPlanForRuntime` still accepts a typed
+Format and annotation table directly. The demo does not use that
+object ABI on each reflow: a trial showed repeated structured
+annotation marshaling dominated the small formats in this deck. The
+resident wrapper is therefore the product candidate; the direct
+entrypoint remains useful to other bounded runtimes and focused ABI
+tests.
 
 ## Measurement levels
 
@@ -93,8 +124,9 @@ prevent attribution.
 
 ## Artifact ownership
 
-- Verso owns the compact input, annotations, experiment UI,
-  normalization, and final HTML rendering.
+- Verso owns the compact input, annotations, experiment UI, output
+  validation/materialization, and final DOM insertion. VIR Render owns
+  annotation resolution for its candidate path.
 - This demo owns preset definitions and artifact composition.
 - VIR, FIR Wasm, and LLVM packages own their raw runtime boundaries
   and provenance.

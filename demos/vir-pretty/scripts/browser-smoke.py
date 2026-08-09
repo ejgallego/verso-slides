@@ -7,8 +7,17 @@ import asyncio
 from playwright.async_api import async_playwright
 
 
-BASE_BACKEND_IDS = ["js", "vir", "vir-format", "vir-flat", "vir-resident", "native", "llvm"]
-IMPLEMENTATION_IDS = ["js", "vir-format", "native", "llvm"]
+BASE_BACKEND_IDS = [
+    "js",
+    "vir",
+    "vir-format",
+    "vir-flat",
+    "vir-resident",
+    "vir-render",
+    "native",
+    "llvm",
+]
+IMPLEMENTATION_IDS = ["js", "vir-render", "native", "llvm"]
 
 
 async def main() -> None:
@@ -16,11 +25,18 @@ async def main() -> None:
     parser.add_argument("url", nargs="?", default="http://127.0.0.1:18332")
     args = parser.parse_args()
     page_errors: list[str] = []
+    console_warnings: list[str] = []
 
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=True)
         page = await browser.new_page(viewport={"width": 1440, "height": 1000})
         page.on("pageerror", lambda error: page_errors.append(str(error)))
+        page.on(
+            "console",
+            lambda message: console_warnings.append(message.text)
+            if message.type in {"warning", "error"}
+            else None,
+        )
         await page.goto(args.url, wait_until="networkidle")
         backend_ids = list(BASE_BACKEND_IDS)
         if await page.evaluate("getPrettyBackend('native-flat') !== null"):
@@ -69,6 +85,14 @@ async def main() -> None:
         assert await selected_rows.locator(
             '.pretty-controls-dimension.is-variable .pretty-controls-dimension-name'
         ).all_inner_texts() == ["OUTPUT", "OUTPUT"]
+        await experiment.select_option("vir-rendering")
+        checked = await controls.locator(
+            ".pretty-controls-backend input:checked"
+        ).evaluate_all("els => els.map(el => el.value)")
+        assert checked == ["vir-resident", "vir-render"]
+        assert "same resident ID" in await controls.locator(
+            ".pretty-controls-question"
+        ).inner_text()
         if "native-flat" in backend_ids:
             await experiment.select_option("fir-output")
             checked = await controls.locator(
@@ -103,9 +127,27 @@ async def main() -> None:
         assert await block.locator('[data-pretty-backend="vir-flat"]').get_attribute(
             "data-pretty-input"
         ) == "lean-format"
+        assert await block.locator('[data-pretty-backend="vir-render"]').get_attribute(
+            "data-pretty-output"
+        ) == "render-plan"
+        assert await block.locator('[data-pretty-backend="vir-render"]').get_attribute(
+            "data-pretty-input"
+        ) == "resident-id"
         assert await block.locator('[data-pretty-backend="vir-resident"]').get_attribute(
             "data-pretty-input"
         ) == "resident-id"
+        js_html = await block.locator(
+            '[data-pretty-backend="js"] .pretty-compare-body'
+        ).inner_html()
+        vir_render_html = await block.locator(
+            '[data-pretty-backend="vir-render"] .pretty-compare-body'
+        ).inner_html()
+        assert vir_render_html == js_html, (
+            "VIR Render HTML differs from JavaScript\n"
+            f"JavaScript: {js_html!r}\n"
+            f"VIR Render: {vir_render_html!r}\n"
+            f"Console: {console_warnings!r}"
+        )
         timing_titles = await panes.locator(".pretty-compare-time").evaluate_all(
             "els => els.map(el => el.title)"
         )
@@ -128,7 +170,7 @@ async def main() -> None:
         assert await timing_display.input_value() == "total"
         assert "final annotated HTML string" in await timing_scope.inner_text()
         await timing_display.select_option("execute")
-        assert "prettyM plus tagged-segment collection" in await timing_scope.inner_text()
+        assert "VIR Render also resolves annotations" in await timing_scope.inner_text()
         timing_texts = await panes.locator(".pretty-compare-time").all_inner_texts()
         assert all(text.startswith("Execute · ") for text in timing_texts)
         await timing_display.select_option("tracks")
@@ -154,7 +196,7 @@ async def main() -> None:
         assert not page_errors, page_errors
         await browser.close()
 
-    print("PASS full vanilla Verso seven-backend panel smoke")
+    print("PASS full vanilla Verso eight-backend panel smoke")
 
 
 if __name__ == "__main__":

@@ -34,6 +34,12 @@
  *
  * @typedef {{ cssClass: string, binding?: string }} TokenAnnotation
  *
+ * @typedef {{ tag: number, annotation: TokenAnnotation }} TaggedAnnotation
+ *
+ * @typedef {{ text: string, annotationSlot: number }} RenderNode
+ *
+ * @typedef {{ annotations: TokenAnnotation[], nodes: RenderNode[] }} RenderPlan
+ *
  * @typedef {{
  *   marshalMs: number,
  *   executeMs: number,
@@ -66,7 +72,7 @@
  *
  * @typedef {{ text: string, events: PrettyTraceEvent[] }} PrettyTrace
  *
- * @typedef {{ segments: Segment[] | null, timings: PrettyTimings, memory?: Record<string, number>, error?: string }} PrettySegmentResult
+ * @typedef {{ segments: Segment[] | null, renderPlan?: RenderPlan | null, timings: PrettyTimings, memory?: Record<string, number>, error?: string }} PrettyRenderResult
  *
  * @typedef {{
  *   marshalMs: number,
@@ -81,7 +87,7 @@
  * @typedef {{
  *   runtime?: "javascript" | "vir" | "fir-native" | "llvm-emscripten",
  *   input?: "compact-tree" | "json-string" | "lean-format" | "resident-id" | "browser-format",
- *   output: "segments" | "text-events" | "pretty-trace" | "text",
+ *   output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text",
  *   width: "pixels" | "columns"
  * }} PrettyBackendCapabilities
  *
@@ -104,7 +110,7 @@
  *     pixelWidth: number,
  *     measurer: DOMMeasurer,
  *     formatId?: number
- *   ) => PrettySegmentResult
+ *   ) => PrettyRenderResult
  * }} PrettyBackend
  *
  * @typedef {{
@@ -116,15 +122,21 @@
  *   jsonExportName?: string,
  *   formatExportName?: string,
  *   renderedExportName?: string,
+ *   renderPlanExportName?: string,
  *   residentExportName?: string,
+ *   residentRenderPlanExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
  *   formatSegments?: (fmt: *, width: number, indent: number) => *,
  *   formatRendered?: (fmt: *, width: number, indent: number) => *,
+ *   formatRenderPlan?: (fmt: *, annotations: TaggedAnnotation[], width: number, indent: number) => *,
  *   formatRenderedById?: (formatId: number, width: number, indent: number) => *,
+ *   formatRenderPlanById?: (formatId: number, width: number, indent: number) => *,
  *   formatJsonSegmentsJsonTimed?: (fmtJson: string, width: number, indent: number) => VirTimedCallResult,
  *   formatSegmentsTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
  *   formatRenderedTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
+ *   formatRenderPlanTimed?: (fmt: *, annotations: TaggedAnnotation[], width: number, indent: number) => VirTimedCallResult,
  *   formatRenderedByIdTimed?: (formatId: number, width: number, indent: number) => VirTimedCallResult,
+ *   formatRenderPlanByIdTimed?: (formatId: number, width: number, indent: number) => VirTimedCallResult,
  *   ready?: Promise<*>,
  *   status?: string,
  *   assets?: string[],
@@ -1154,6 +1166,43 @@ function normalizeVirRendered(value) {
 }
 
 /**
+ * Validate the semantic render plan returned by Lean. The runtime has already
+ * lifted this value to JavaScript objects, so successful validation returns the
+ * same plan without another normalization copy. Lean `Nat` fields cross the
+ * VIR boundary as decimal strings, so slots are validated and narrowed to
+ * JavaScript numbers in place.
+ * @param {*} value
+ * @return {RenderPlan | null}
+ */
+function normalizeVirRenderPlan(value) {
+    if (!value || !Array.isArray(value.annotations) || !Array.isArray(value.nodes)) return null;
+    for (var ai = 0; ai < value.annotations.length; ai++) {
+        var annotation = value.annotations[ai];
+        if (
+            !annotation ||
+            typeof annotation.cssClass !== "string" ||
+            (annotation.binding !== null && typeof annotation.binding !== "string")
+        ) {
+            return null;
+        }
+    }
+    for (var i = 0; i < value.nodes.length; i++) {
+        var node = value.nodes[i];
+        if (!node || typeof node.text !== "string") return null;
+        var annotationSlot = Number(node.annotationSlot);
+        if (
+            !Number.isSafeInteger(annotationSlot) ||
+            annotationSlot < 0 ||
+            annotationSlot > value.annotations.length
+        ) {
+            return null;
+        }
+        node.annotationSlot = annotationSlot;
+    }
+    return /** @type {RenderPlan} */ (value);
+}
+
+/**
  * @param {PrettyVirBridge} bridge
  * @param {string} backend
  * @param {*} error
@@ -1170,7 +1219,7 @@ function warnPrettyVirFailure(bridge, backend, error) {
  * @param {*} fmtJson
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {PrettySegmentResult}
+ * @return {PrettyRenderResult}
  */
 function tryFormatSegmentsWithVirTimed(fmtJson, pixelWidth, measurer) {
     var started = performance.now();
@@ -1286,7 +1335,7 @@ function tryFormatSegmentsWithVirTimed(fmtJson, pixelWidth, measurer) {
  * @param {*} fmtJson
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {PrettySegmentResult}
+ * @return {PrettyRenderResult}
  */
 function tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
     var started = performance.now();
@@ -1381,7 +1430,7 @@ function tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
  * @param {*} fmtJson
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {PrettySegmentResult}
+ * @return {PrettyRenderResult}
  */
 function tryFormatRenderedWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
     var started = performance.now();
@@ -1471,13 +1520,135 @@ function tryFormatRenderedWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
 }
 
 /**
+ * Render a package-resident Format with its package-resident annotations,
+ * returning semantic sibling nodes that need only browser escaping and HTML
+ * materialization. The shared numeric ID addresses the aligned tables.
+ * @param {number | undefined} formatId
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {PrettyRenderResult}
+ */
+function tryFormatRenderPlanWithVirResidentTimed(formatId, pixelWidth, measurer) {
+    var started = performance.now();
+    var marshaled = started;
+    var executed = started;
+    var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
+        .__versoPrettyVir;
+    if (
+        !bridge ||
+        bridge.enabled === false ||
+        !Number.isSafeInteger(formatId) ||
+        /** @type {number} */ (formatId) < 0
+    ) {
+        return { segments: null, renderPlan: null, timings: emptyPrettyTimings() };
+    }
+    if (bridge.status && bridge.status !== "ready") {
+        return { segments: null, renderPlan: null, timings: emptyPrettyTimings() };
+    }
+    var residentId = /** @type {number} */ (formatId);
+
+    /** @type {VirCallTimings | null} */
+    var runtimeTimings = null;
+    try {
+        var width = pixelWidthToFormatColumns(pixelWidth, measurer);
+        var indent = 0;
+        marshaled = performance.now();
+        var result;
+        if (typeof bridge.formatRenderPlanByIdTimed === "function") {
+            var timed = bridge.formatRenderPlanByIdTimed(residentId, width, indent);
+            result = timed.value;
+            runtimeTimings = requireVirCallTimings(timed.timings);
+        } else if (bridge.runtime && typeof bridge.runtime.callTimed === "function") {
+            var runtimeTimed = bridge.runtime.callTimed(
+                bridge.residentRenderPlanExportName ||
+                    "VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir",
+                residentId,
+                width,
+                indent,
+            );
+            result = runtimeTimed.value;
+            runtimeTimings = requireVirCallTimings(runtimeTimed.timings);
+        } else if (typeof bridge.formatRenderPlanById === "function") {
+            result = bridge.formatRenderPlanById(residentId, width, indent);
+        } else if (bridge.runtime && typeof bridge.runtime.call === "function") {
+            result = bridge.runtime.call(
+                bridge.residentRenderPlanExportName ||
+                    "VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir",
+                residentId,
+                width,
+                indent,
+            );
+        } else {
+            return {
+                segments: null,
+                renderPlan: null,
+                timings: prettyPhaseTimings(started, marshaled, marshaled, marshaled),
+            };
+        }
+        executed = performance.now();
+
+        if (!result || result.found !== true) {
+            warnPrettyVirFailure(bridge, "vir-render", "resident render-plan ID was not found");
+            var missingAt = performance.now();
+            return {
+                segments: null,
+                renderPlan: null,
+                timings: composeVirPrettyTimings(
+                    started,
+                    marshaled,
+                    executed,
+                    missingAt,
+                    runtimeTimings,
+                ),
+            };
+        }
+        var renderPlan = normalizeVirRenderPlan(result.renderPlan);
+        if (renderPlan === null) {
+            warnPrettyVirFailure(bridge, "vir-render", "invalid semantic render plan");
+            var invalidAt = performance.now();
+            return {
+                segments: null,
+                renderPlan: null,
+                timings: composeVirPrettyTimings(
+                    started,
+                    marshaled,
+                    executed,
+                    invalidAt,
+                    runtimeTimings,
+                ),
+            };
+        }
+        var decoded = performance.now();
+        return {
+            segments: null,
+            renderPlan: renderPlan,
+            timings: composeVirPrettyTimings(started, marshaled, executed, decoded, runtimeTimings),
+        };
+    } catch (error) {
+        warnPrettyVirFailure(bridge, "vir-render", error);
+        var failed = performance.now();
+        return {
+            segments: null,
+            renderPlan: null,
+            timings: composeVirPrettyTimings(
+                started,
+                marshaled,
+                executed === started ? failed : executed,
+                failed,
+                runtimeTimings || null,
+            ),
+        };
+    }
+}
+
+/**
  * Render a deck-resident Lean `Std.Format`. The compact format is retained by
  * the caller only as the cross-backend control; this path sends its generated
  * numeric ID, width, and indent to VIR.
  * @param {number | undefined} formatId
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {PrettySegmentResult}
+ * @return {PrettyRenderResult}
  */
 function tryFormatRenderedWithVirResidentTimed(formatId, pixelWidth, measurer) {
     var started = performance.now();
@@ -1590,7 +1761,7 @@ function tryFormatRenderedWithVirResidentTimed(formatId, pixelWidth, measurer) {
  * @param {Record<string, TokenAnnotation>} annotations
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {PrettySegmentResult}
+ * @return {PrettyRenderResult}
  */
 function formatSegmentsWithJsTimed(fmtJson, annotations, pixelWidth, measurer) {
     var started = performance.now();
@@ -1687,6 +1858,23 @@ registerPrettyBackend({
         return tryFormatRenderedWithVirResidentTimed(formatId, pixelWidth, measurer);
     },
 });
+registerPrettyBackend({
+    id: "vir-render",
+    label: "VIR Render",
+    capabilities: {
+        runtime: "vir",
+        input: "resident-id",
+        output: "render-plan",
+        width: "columns",
+    },
+    status: function () {
+        var bridge = /** @type {Window} */ (window).__versoPrettyVir;
+        return bridge && bridge.status ? bridge.status : "unavailable";
+    },
+    renderTimed: function (_fmtJson, _annotations, pixelWidth, measurer, formatId) {
+        return tryFormatRenderPlanWithVirResidentTimed(formatId, pixelWidth, measurer);
+    },
+});
 
 /**
  * Execute one backend and normalize its phase timings.
@@ -1696,7 +1884,7 @@ registerPrettyBackend({
  * @param {DOMMeasurer} measurer
  * @param {PrettyBackend} backend
  * @param {number} [formatId]
- * @return {PrettySegmentResult}
+ * @return {PrettyRenderResult}
  */
 function renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId) {
     if (typeof backend.renderTimed === "function") {
@@ -1767,7 +1955,11 @@ function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend, 
         formatId,
     );
     var renderStart = performance.now();
-    var html = rendered.segments ? segmentsToHtml(rendered.segments, annotations) : null;
+    var html = rendered.renderPlan
+        ? renderPlanToHtml(rendered.renderPlan)
+        : rendered.segments
+          ? segmentsToHtml(rendered.segments, annotations)
+          : null;
     var finished = performance.now();
     rendered.timings.renderMs += Math.max(0, finished - renderStart);
     rendered.timings.totalMs = Math.max(0, finished - start);
@@ -1787,8 +1979,6 @@ function segmentsToHtml(segments, annotations) {
     var parts = [];
     for (var si = 0; si < segments.length; si++) {
         var seg = segments[si];
-        var text = escapeHtml(seg.text);
-
         // Find the innermost tag with annotation
         var annotation = null;
         for (var ti = seg.tags.length - 1; ti >= 0; ti--) {
@@ -1799,17 +1989,42 @@ function segmentsToHtml(segments, annotations) {
             }
         }
 
-        if (annotation) {
-            var cls = annotation.cssClass + " token";
-            var bindAttr = annotation.binding
-                ? ' data-binding="' + escapeHtml(annotation.binding) + '"'
-                : "";
-            parts.push('<span class="' + cls + '"' + bindAttr + ">" + text + "</span>");
-        } else {
-            parts.push(text);
-        }
+        parts.push(annotatedTextToHtml(seg.text, annotation));
     }
     return parts.join("");
+}
+
+/**
+ * Materialize Lean-resolved semantic sibling nodes into the HTML-string
+ * contract used by the current panel. No tag stack or browser annotation
+ * record is consulted; nodes address their plan-local interned metadata.
+ * @param {RenderPlan} plan
+ * @return {string}
+ */
+function renderPlanToHtml(plan) {
+    var parts = [];
+    for (var i = 0; i < plan.nodes.length; i++) {
+        var node = plan.nodes[i];
+        var annotation =
+            node.annotationSlot === 0 ? null : plan.annotations[node.annotationSlot - 1];
+        parts.push(annotatedTextToHtml(node.text, annotation));
+    }
+    return parts.join("");
+}
+
+/**
+ * @param {string} rawText
+ * @param {TokenAnnotation | null} annotation
+ * @return {string}
+ */
+function annotatedTextToHtml(rawText, annotation) {
+    var text = escapeHtml(rawText);
+    if (!annotation) return text;
+    var cls = escapeHtml(annotation.cssClass + " token");
+    var bindAttr = annotation.binding
+        ? ' data-binding="' + escapeHtml(annotation.binding) + '"'
+        : "";
+    return '<span class="' + cls + '"' + bindAttr + ">" + text + "</span>";
 }
 
 /**

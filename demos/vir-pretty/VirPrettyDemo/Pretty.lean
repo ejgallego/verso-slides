@@ -18,8 +18,9 @@ browser through Lean's own pretty-printer.
 
 The browser still owns HTML construction and DOM measurement. In timing terms,
 the definitions here cover backend execution: `Std.Format.prettyM` plus the
-backend-owned output collector. Annotation lookup, escaping, and HTML-string
-construction are a later shared browser phase.
+backend-owned output collector. The segment and flat-event surfaces leave
+annotation lookup to the browser; the render-plan surface resolves annotations
+in Lean and leaves only escaping and HTML materialization to the browser.
 
 The exported `ForRuntime` entrypoints are deliberately compiler-neutral. VIR,
 FIR, or another bounded Lean runtime can compile the same surface. Historical
@@ -59,6 +60,44 @@ public structure Rendered where
   events : Array StyleEvent
 deriving Repr, BEq, Inhabited, ToJson, FromJson
 
+/-- Browser styling metadata associated with a `Std.Format.tag` ID. -/
+public structure TokenAnnotation where
+  cssClass : String
+  binding : Option String
+deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/-- One sparse tag-to-annotation entry. Tag IDs need not be dense. -/
+public structure TaggedAnnotation where
+  tag : Nat
+  annotation : TokenAnnotation
+deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/--
+A semantic text node ready for browser materialization.
+
+`annotationSlot` already identifies the innermost active annotation. This is
+intentionally a flat render plan rather than a browser-specific HTML or DOM
+representation: the current panel output consists only of sibling text and
+span nodes.
+-/
+public structure RenderNode where
+  text : String
+  /-- `0` is unstyled; `n + 1` selects `RenderPlan.annotations[n]`. -/
+  annotationSlot : Nat
+deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/-- A compact semantic sibling-node plan with interned annotation metadata. -/
+public structure RenderPlan where
+  annotations : Array TokenAnnotation
+  nodes : Array RenderNode
+deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/-- Result envelope for a resident semantic-render lookup. -/
+public structure ResidentRenderPlan where
+  found : Bool
+  renderPlan : RenderPlan
+deriving Repr, BEq, Inhabited, ToJson, FromJson
+
 /-- Result envelope for a resident-format lookup across the VIR boundary. -/
 public structure ResidentRendered where
   found : Bool
@@ -81,6 +120,15 @@ private structure RenderedState where
 deriving Inhabited
 
 private abbrev RenderedM := StateM RenderedState
+
+private structure RenderPlanState where
+  nodes : Array RenderNode := #[]
+  column : Nat := 0
+  tagStack : Array Nat := #[]
+  annotations : Array TaggedAnnotation := #[]
+deriving Inhabited
+
+private abbrev RenderPlanM := StateM RenderPlanState
 
 private def popTags (tags : Array Nat) : Nat → Array Nat
   | 0 => tags
@@ -139,6 +187,50 @@ private instance : Std.Format.MonadPrettyFormat RenderedM where
         { st with
           events := st.events.push { offset := st.byteOffset, kind := 1, value := count } }
 
+private def annotationSlotFor
+    (annotations : Array TaggedAnnotation) (tag : Nat) : Nat :=
+  let rec visit : Nat → Nat
+    | 0 => 0
+    | index + 1 =>
+      let entry := annotations[index]!
+      if entry.tag == tag then index + 1 else visit index
+  visit annotations.size
+
+private def innermostAnnotationSlot
+    (annotations : Array TaggedAnnotation) (tags : Array Nat) : Nat :=
+  let rec visit : Nat → Nat
+    | 0 => 0
+    | index + 1 =>
+      let slot := annotationSlotFor annotations tags[index]!
+      if slot == 0 then visit index else slot
+  visit tags.size
+
+private instance : Std.Format.MonadPrettyFormat RenderPlanM where
+  pushOutput s :=
+    if s.isEmpty then
+      pure ()
+    else
+      modify fun st =>
+        { st with
+          nodes := st.nodes.push {
+            text := s
+            annotationSlot := innermostAnnotationSlot st.annotations st.tagStack
+          }
+          column := st.column + String.Internal.length s }
+  pushNewline indent :=
+    modify fun st =>
+      { st with
+        nodes := st.nodes.push {
+          text := String.Internal.pushn "\n" ' ' indent
+          annotationSlot := 0
+        }
+        column := indent }
+  currColumn := return (← get).column
+  startTag tag :=
+    modify fun st => { st with tagStack := st.tagStack.push tag }
+  endTags count :=
+    modify fun st => { st with tagStack := popTags st.tagStack count }
+
 /-- Render a `Std.Format` into text segments, preserving active tag IDs. -/
 public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0)
     (column : Nat := 0) :
@@ -181,6 +273,41 @@ public def formatRenderedForRuntime (f : Std.Format) (width indent column : Nat)
 /-- Compatibility alias for existing VIR packages. -/
 public def formatRenderedForVir (f : Std.Format) (width indent : Nat) : Rendered :=
   formatRenderedForRuntime f width indent 0
+
+/--
+Run `Std.Format.prettyM` and resolve active tag IDs to semantic render nodes.
+
+The sparse annotation array need not use dense tag IDs. The result is
+independent of HTML and the DOM, but unlike `Rendered` it needs no tag-stack
+reconstruction or annotation lookup in JavaScript.
+-/
+public def formatRenderPlan (f : Std.Format)
+    (annotations : Array TaggedAnnotation) (width : Nat) (indent : Nat := 0)
+    (column : Nat := 0) : RenderPlan :=
+  let act : RenderPlanM Unit := Std.Format.prettyM f width indent
+  let nodes := (act.run { column, annotations }).2.nodes
+  { annotations := annotations.map (·.annotation), nodes }
+
+/-- Runtime-neutral semantic-render entrypoint with no optional parameters. -/
+public def formatRenderPlanForRuntime (f : Std.Format)
+    (annotations : Array TaggedAnnotation) (width indent column : Nat) : RenderPlan :=
+  formatRenderPlan f annotations width indent column
+
+/-- Compatibility entrypoint for the VIR demo package. -/
+public def formatRenderPlanForVir (f : Std.Format)
+    (annotations : Array TaggedAnnotation) (width indent : Nat) : RenderPlan :=
+  formatRenderPlanForRuntime f annotations width indent 0
+
+/-- Render one format and its annotations from aligned package-resident tables. -/
+public def formatRenderPlanAt (formats : Array Std.Format)
+    (annotations : Array (Array TaggedAnnotation)) (id width indent : Nat) :
+    ResidentRenderPlan :=
+  match formats[id]?, annotations[id]? with
+  | some f, some table => {
+      found := true
+      renderPlan := formatRenderPlan f table width indent
+    }
+  | _, _ => { found := false, renderPlan := default }
 
 /--
 Render one format from a package-resident table. A deck-specific generated

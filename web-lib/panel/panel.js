@@ -36,14 +36,14 @@
             label: "Pipeline total (pre-DOM)",
             shortLabel: "Total",
             key: "totalMs",
-            scope: "Compact input → final annotated HTML string. Includes adapters, backend execution, output normalization, and shared HTML generation; excludes DOM insertion.",
+            scope: "Compact input → final annotated HTML string. Includes adapters, backend execution, output normalization, and HTML materialization; excludes DOM insertion.",
         },
         {
             id: "execute",
             label: "Backend execute",
             shortLabel: "Execute",
             key: "executeMs",
-            scope: "Backend-owned layout and output construction only. For JS this is prettyM plus tagged-segment collection; annotation lookup and HTML generation are excluded.",
+            scope: "Backend-owned layout and output construction only. JS ends at tagged segments; VIR Render also resolves annotations into semantic nodes. HTML escaping and materialization are excluded.",
         },
         {
             id: "marshal",
@@ -57,14 +57,14 @@
             label: "Output normalization",
             shortLabel: "Decode",
             key: "decodeMs",
-            scope: "Backend result → shared tagged segments. JS reports zero because its execute phase already constructs those segments.",
+            scope: "Backend result → browser-ready segments or semantic nodes. VIR Render validates its nodes without reconstructing tag stacks.",
         },
         {
             id: "render",
-            label: "Shared HTML generation",
+            label: "HTML materialization",
             shortLabel: "HTML",
             key: "renderMs",
-            scope: "Shared tagged segments → escaped, annotated HTML string. This includes annotation lookup and span construction, but not DOM insertion.",
+            scope: "Browser-ready output → escaped HTML string. Segment backends include annotation lookup; VIR Render already resolved annotations. DOM insertion is excluded.",
         },
         {
             id: "wall",
@@ -78,7 +78,7 @@
             label: "Phase tracks",
             shortLabel: "Phases",
             key: null,
-            scope: "Marshal + Execute + Decode + HTML. Backend-owned output construction stays in Execute; shared annotation and HTML work stays in HTML.",
+            scope: "Marshal + Execute + Decode + HTML. Each backend's declared output stays in Execute; escaping and HTML-string materialization stay in HTML.",
         },
     ];
     var PRETTY_TIMING_PHASES = [
@@ -392,6 +392,7 @@
             "browser-format": "browser Format",
             segments: "segments",
             "text-events": "text + events",
+            "render-plan": "semantic nodes",
             "pretty-trace": "PrettyTrace",
             text: "text",
             pixels: "pixels",
@@ -1461,7 +1462,7 @@
         ) {
             details.push("  Verso output: " + formatTiming(timings.adapterOutputMs));
         }
-        details.push("Shared HTML generation: " + formatTiming(timings.renderMs));
+        details.push("HTML materialization: " + formatTiming(timings.renderMs));
         if (
             typeof timings.inputBytes === "number" &&
             typeof timings.rawObjects === "number" &&
