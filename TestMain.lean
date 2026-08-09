@@ -34,6 +34,10 @@ def main (args : List String) : IO UInt32 := do
     "Running Std.Format pretty-printer prototype tests"
   if rc != 0 then return rc
 
+  let rc ← runCmd "lake" #["exe", "test-panel-component"]
+    "Running compiler-neutral panel component tests"
+  if rc != 0 then return rc
+
   let rc ← runCmd "lake" #["exe", "test-reveal-policy"]
     "Running Reveal animation policy unit tests"
   if rc != 0 then return rc

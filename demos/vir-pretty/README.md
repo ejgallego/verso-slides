@@ -51,17 +51,18 @@ The demo uses two configuration surfaces:
   adapters in order after the built-in formatter registry and before
   the panel consumer.
 
-Verso Slides owns the JavaScript reference renderer, formatter
-registry, panel comparison UI, and the generic plugin hook. The demo
-owns candidate adapters, Wasm artifacts, runtime configuration,
+Verso Slides owns the compact JavaScript reference renderer, ordinary panel,
+and the generic plugin hook. The demo owns the expanded formatter registry,
+comparison panel, candidate adapters, Wasm artifacts, runtime configuration,
 processor controls, and presentation content. Its VIR adapter accepts
 both the historical single-package API and the current package-set
 API. Benchmark execution and report visualization are intentionally
 absent: they now belong to the standalone VIR benchmark webapp. After
 `slidesMain`, `scripts/assemble.sh` assigns resident format IDs in the
-generated deck and builds the matching VIR package. It then copies
-opaque runtime/native/LLVM artifacts; it neither replaces
-`lib/pretty.js`, `lib/panel.js`, nor `lib/panel.css`.
+generated deck and builds the matching VIR package. It then copies opaque
+runtime/native/LLVM artifacts and deliberately replaces the generated
+`lib/pretty.js` and `lib/panel.js` with `web/formatter-lab.js` and
+`web/panel-lab.js`. It does not replace `lib/panel.css`.
 
 `panelPlugins` is intentionally a narrow API: its classic scripts
 execute synchronously in array order at the point where formatter

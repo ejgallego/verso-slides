@@ -50,6 +50,12 @@ fi
   lake build vir-pretty-demo VirPrettyDemo.Pretty &&
   lake exe vir-pretty-demo)
 
+# The ordinary Verso Slides package ships the compact production panel. This
+# standalone lab explicitly replaces those two generated assets with its matrix
+# formatter and control surface.
+install -m 0644 "$demo_root/web/formatter-lab.js" "$out_dir/lib/pretty.js"
+install -m 0644 "$demo_root/web/panel-lab.js" "$out_dir/lib/panel.js"
+
 if [[ "$native_flat_enabled" -eq 1 ]]; then
   python3 - "$out_dir/index.html" <<'PY'
 from pathlib import Path

@@ -150,7 +150,7 @@
                     maximumNodes: config.maximumNodes,
                     fetchImpl: fetchArtifact,
                 })
-                .then(function (adapter) {
+                .then(/** @param {*} adapter */ function (adapter) {
                     return { adapter: adapter, formatFactory: adapterModule.PrettyFormat };
                 });
         })

@@ -1,8 +1,10 @@
 """Tests for the optional VIR-backed pretty-printer hook."""
 
 import json
+import shutil
 from pathlib import Path
 
+import pytest
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
@@ -10,11 +12,42 @@ from playwright.sync_api import Page, expect
 
 from conftest import goto_slide_by_title
 
+DEMO_WEB = Path(__file__).parents[1] / "demos" / "vir-pretty" / "web"
+
+
+@pytest.fixture(scope="session")
+def code_url(site_dir, server):
+    """Serve the formatter lab as an explicit test-only variant of the code deck."""
+    source = site_dir / "code"
+    target = site_dir / "pretty-lab"
+    shutil.copytree(source, target, dirs_exist_ok=True)
+    lib = target / "lib"
+    assets = {
+        "formatter-lab.js": "pretty-lab-formatter.js",
+        "panel-lab.js": "pretty-lab.js",
+        "pretty-experiments.js": "pretty-experiments.js",
+        "pretty-vir.js": "pretty-vir.js",
+        "pretty-native.js": "pretty-native.js",
+        "pretty-native-flat.js": "pretty-native-flat.js",
+        "pretty-native-html.js": "pretty-native-html.js",
+        "pretty-llvm.js": "pretty-llvm.js",
+        "coi-register.js": "coi-register.js",
+    }
+    for source_name, target_name in assets.items():
+        shutil.copyfile(DEMO_WEB / source_name, lib / target_name)
+    shutil.copyfile(DEMO_WEB / "coi-serviceworker.js", target / "coi-serviceworker.js")
+    index = target / "index.html"
+    body = index.read_text()
+    body = body.replace('lib/pretty.js', 'lib/pretty-lab-formatter.js')
+    body = body.replace('lib/panel.js', 'lib/pretty-lab.js')
+    index.write_text(body)
+    return f"{server}/pretty-lab"
+
 
 class TestPrettyVirAssets:
-    def test_pretty_vir_asset_written(self, site_dir):
-        """The optional bootstrap asset is written next to pretty.js."""
-        path = site_dir / "code" / "lib" / "pretty-vir.js"
+    def test_pretty_vir_asset_owned_by_demo(self):
+        """The optional VIR bootstrap is owned by the formatter demo."""
+        path = DEMO_WEB / "pretty-vir.js"
         assert path.exists(), f"Expected pretty-vir.js at {path}"
         body = path.read_text()
         assert "createVirRuntime" in body
@@ -35,9 +68,9 @@ class TestPrettyVirAssets:
         assert "formatRenderPlanByIdTimed" in body
         assert "jsonRoundTrip" not in body
 
-    def test_pretty_native_asset_written(self, site_dir):
-        """The FIR-produced native Wasm bootstrap is also vendored but opt-in."""
-        path = site_dir / "code" / "lib" / "pretty-native.js"
+    def test_pretty_native_asset_owned_by_demo(self):
+        """The FIR-produced Wasm bootstrap is owned by the formatter demo."""
+        path = DEMO_WEB / "pretty-native.js"
         assert path.exists(), f"Expected pretty-native.js at {path}"
         body = path.read_text()
         assert 'id: "native"' in body
@@ -48,9 +81,9 @@ class TestPrettyVirAssets:
         assert "compactFormatToAdapterInput" in body
         assert "ConcreteHost" not in body
 
-    def test_pretty_llvm_asset_written(self, site_dir):
-        """The LLVM/Emscripten adapter bootstrap is vendored but opt-in."""
-        path = site_dir / "code" / "lib" / "pretty-llvm.js"
+    def test_pretty_llvm_asset_owned_by_demo(self):
+        """The LLVM/Emscripten bootstrap is owned by the formatter demo."""
+        path = DEMO_WEB / "pretty-llvm.js"
         assert path.exists(), f"Expected pretty-llvm.js at {path}"
         body = path.read_text()
         assert 'id: "llvm"' in body
@@ -59,11 +92,10 @@ class TestPrettyVirAssets:
         assert "compactFormatToAdapterInput" in body
         assert "prettyTraceToSegments" in body
 
-    def test_cross_origin_isolation_fallback_assets_written(self, site_dir):
-        """Static hosts can bootstrap the isolation required by threaded Wasm."""
-        root = site_dir / "code"
-        assert (root / "coi-serviceworker.js").exists()
-        register = (root / "lib" / "coi-register.js").read_text()
+    def test_cross_origin_isolation_fallback_owned_by_demo(self):
+        """The demo owns the isolation fallback required by threaded Wasm."""
+        assert (DEMO_WEB / "coi-serviceworker.js").exists()
+        register = (DEMO_WEB / "coi-register.js").read_text()
         assert 'updateViaCache: "none"' in register
         assert "reloadOnce" in register
         assert "sessionStorage" in register

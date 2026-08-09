@@ -16,6 +16,7 @@ lake exe test-fixtures-build
 # Type-check the JS bundles that have a full set of declarations available.
 npx --no-install tsc --noEmit -p web-lib/animate/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/panel/jsconfig.json
+npx --no-install tsc --noEmit -p demos/vir-pretty/web/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/service-worker/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/widget/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/math/jsconfig.json

@@ -2,7 +2,7 @@
     "scripts": {
         "format:check": "prettier --check web-lib/**/*.js web-lib/**/*.d.ts web-lib/**/*.json package.json",
         "format:write": "prettier --write web-lib/**/*.js web-lib/**/*.d.ts web-lib/**/*.json package.json",
-        "typecheck:panel": "tsc -p web-lib/panel/jsconfig.json",
+        "typecheck:panel": "tsc -p web-lib/panel/jsconfig.json && tsc -p demos/vir-pretty/web/jsconfig.json",
         "test:reveal-policy:vir": "bash scripts/build-vir-reveal-policy.sh",
         "stage:reveal-policy:vir": "bash scripts/stage-vir-reveal-policy.sh",
         "test:reveal-policy:browser": "npm run stage:reveal-policy:vir && browser-tests/.venv/bin/python scripts/test-vir-reveal-policy-browser.py _test/diagramanim"

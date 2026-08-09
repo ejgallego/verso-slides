@@ -315,6 +315,27 @@ install -m 0644 \
   "$repo_root/demos/vir-pretty/web/pretty-experiments.js" \
   "$lib_dir/pretty-experiments.js"
 install -m 0644 \
+  "$repo_root/demos/vir-pretty/web/formatter-lab.js" \
+  "$lib_dir/pretty-lab-formatter.js"
+install -m 0644 \
+  "$repo_root/demos/vir-pretty/web/panel-lab.js" \
+  "$lib_dir/pretty-lab.js"
+install -m 0644 \
+  "$repo_root/demos/vir-pretty/web/pretty-vir.js" \
+  "$lib_dir/pretty-vir.js"
+install -m 0644 \
+  "$repo_root/demos/vir-pretty/web/pretty-native.js" \
+  "$lib_dir/pretty-native.js"
+install -m 0644 \
+  "$repo_root/demos/vir-pretty/web/pretty-llvm.js" \
+  "$lib_dir/pretty-llvm.js"
+install -m 0644 \
+  "$repo_root/demos/vir-pretty/web/coi-register.js" \
+  "$lib_dir/coi-register.js"
+install -m 0644 \
+  "$repo_root/demos/vir-pretty/web/coi-serviceworker.js" \
+  "$out_dir/coi-serviceworker.js"
+install -m 0644 \
   "$repo_root/demos/vir-pretty/web/pretty-native-flat.js" \
   "$lib_dir/pretty-native-flat.js"
 registry_dir="$repo_root/.lake/verso-pretty-registry"
@@ -359,6 +380,7 @@ fi
   VersoSlides.Pretty.formatSegmentsForVir \
   VersoSlides.Pretty.formatRenderedForVir \
   VersoSlides.Pretty.formatRenderPlanForVir \
+  VersoSlides.Pretty.formatHtmlForVir \
   VersoSlides.PrettyRegistry.formatCountForVir \
   VersoSlides.PrettyRegistry.formatRenderedByIdForVir \
   VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir)
@@ -415,7 +437,7 @@ body = re.sub(
 )
 needle = '    <script src="lib/pretty.js"></script>\n    <script src="lib/panel.js"></script>'
 scripts = (
-    '    <script src="lib/pretty.js"></script>\n'
+    '    <script src="lib/pretty-lab-formatter.js"></script>\n'
     '    <script>\n'
     '      window.__versoPrettyConfig = { compare: true, controls: true, columns: 40 };\n'
 )
@@ -443,7 +465,7 @@ if native_flat_enabled:
     scripts += '    <script src="lib/pretty-native-flat.js"></script>\n'
 if llvm_enabled:
     scripts += '    <script src="lib/pretty-llvm.js"></script>\n'
-replacement = scripts + '    <script src="lib/panel.js"></script>'
+replacement = scripts + '    <script src="lib/pretty-lab.js"></script>'
 if needle not in body:
     raise SystemExit("could not find pretty.js/panel.js script sequence in generated deck")
 path.write_text(body.replace(needle, replacement, 1))
