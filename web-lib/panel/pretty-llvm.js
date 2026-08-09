@@ -73,7 +73,12 @@
     var llvmBackend = {
         id: "llvm",
         label: "LLVM",
-        capabilities: { output: "segments", width: "columns" },
+        capabilities: {
+            runtime: "llvm-emscripten",
+            input: "browser-format",
+            output: "pretty-trace",
+            width: "columns",
+        },
         status: function () {
             return bridge.status || "unavailable";
         },

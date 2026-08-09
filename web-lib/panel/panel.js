@@ -12,6 +12,12 @@
      *   shortLabel: string,
      *   key: string | null
      * }} PrettyTimingDisplay
+     * @typedef {{
+     *   id: string,
+     *   label: string,
+     *   question: string,
+     *   backends: string[]
+     * }} PrettyExperiment
      */
 
     /** @type {Record<string, *> | null} */
@@ -95,6 +101,13 @@
                 });
             config.backends = queryBackends.length > 0 ? queryBackends : undefined;
         }
+        if (!params.has("pretty") && params.has("prettyExperiment")) {
+            var requestedExperiment = prettyExperimentById(params.get("prettyExperiment"));
+            if (requestedExperiment) applyPrettyExperiment(requestedExperiment);
+        } else if (!params.has("pretty") && !Array.isArray(config.backends)) {
+            var configuredExperiment = prettyExperimentById(config.experiment);
+            if (configuredExperiment) applyPrettyExperiment(configuredExperiment);
+        }
         if (params.has("prettyCompare")) {
             config.compare = params.get("prettyCompare") !== "0";
         }
@@ -126,6 +139,100 @@
         if (!Number.isInteger(config.columns)) config.columns = 40;
         if (!Number.isInteger(config.workload)) config.workload = 0;
         config.timing = selectedPrettyTimingDisplay().id;
+        if (prettyExperiments().length > 0) {
+            var matchedExperiment = matchingPrettyExperiment();
+            config.experiment = matchedExperiment ? matchedExperiment.id : "custom";
+        }
+    }
+
+    /** @return {PrettyExperiment[]} */
+    function prettyExperiments() {
+        var root = /** @type {Window} */ (window);
+        var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.experiments;
+        if (!Array.isArray(configured)) return [];
+        var available = new Set(
+            getPrettyBackends().map(function (backend) {
+                return backend.id;
+            }),
+        );
+        var seen = new Set();
+        return configured.filter(function (candidate) {
+            if (
+                !candidate ||
+                typeof candidate.id !== "string" ||
+                candidate.id.length === 0 ||
+                seen.has(candidate.id) ||
+                typeof candidate.label !== "string" ||
+                typeof candidate.question !== "string" ||
+                !Array.isArray(candidate.backends) ||
+                !candidate.backends.some(function (id) {
+                    return available.has(id);
+                })
+            ) {
+                return false;
+            }
+            seen.add(candidate.id);
+            return true;
+        });
+    }
+
+    /**
+     * @param {PrettyExperiment} experiment
+     * @return {string[]}
+     */
+    function availableExperimentBackendIds(experiment) {
+        var available = new Set(
+            getPrettyBackends().map(function (backend) {
+                return backend.id;
+            }),
+        );
+        return experiment.backends.filter(function (id, index) {
+            return available.has(id) && experiment.backends.indexOf(id) === index;
+        });
+    }
+
+    /**
+     * @param {string | null | undefined} id
+     * @return {PrettyExperiment | null}
+     */
+    function prettyExperimentById(id) {
+        return (
+            prettyExperiments().find(function (experiment) {
+                return experiment.id === id;
+            }) || null
+        );
+    }
+
+    /** @return {PrettyExperiment | null} */
+    function matchingPrettyExperiment() {
+        var root = /** @type {Window} */ (window);
+        var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.backends;
+        var selected = new Set(
+            Array.isArray(configured)
+                ? configured
+                : getPrettyBackends().map(function (backend) {
+                      return backend.id;
+                  }),
+        );
+        return (
+            prettyExperiments().find(function (experiment) {
+                var ids = availableExperimentBackendIds(experiment);
+                return (
+                    ids.length === selected.size &&
+                    ids.every(function (id) {
+                        return selected.has(id);
+                    })
+                );
+            }) || null
+        );
+    }
+
+    /** @param {PrettyExperiment} experiment */
+    function applyPrettyExperiment(experiment) {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        config.backends = availableExperimentBackendIds(experiment);
+        config.experiment = experiment.id;
     }
 
     /** @return {PrettyBackendDefinition[]} */
@@ -202,6 +309,11 @@
         url.searchParams.set("prettyControls", config.controls === true ? "1" : "0");
         url.searchParams.set("prettyTiming", selectedPrettyTimingDisplay().id);
         url.searchParams.set("prettyWorkload", String(prettyWorkloadCodePoints()));
+        if (prettyExperiments().length > 0) {
+            var experiment = matchingPrettyExperiment();
+            config.experiment = experiment ? experiment.id : "custom";
+            url.searchParams.set("prettyExperiment", config.experiment);
+        }
         window.history.replaceState(null, "", url);
     }
 
@@ -213,6 +325,62 @@
         prettyControls.className = "pretty-controls";
         document.body.appendChild(prettyControls);
         renderPrettyControls();
+    }
+
+    /**
+     * @param {string | undefined} value
+     * @return {string}
+     */
+    function prettyBoundaryLabel(value) {
+        /** @type {Record<string, string>} */
+        var labels = {
+            javascript: "JavaScript",
+            vir: "VIR",
+            "fir-native": "FIR native",
+            "llvm-emscripten": "LLVM/Emscripten",
+            "compact-tree": "compact tree",
+            "json-string": "JSON string",
+            "lean-format": "Lean Format",
+            "resident-id": "resident ID",
+            "browser-format": "browser Format",
+            segments: "segments",
+            "text-events": "text + events",
+            "pretty-trace": "PrettyTrace",
+            text: "text",
+            pixels: "pixels",
+            columns: "columns",
+        };
+        return value && labels[value] ? labels[value] : value || "unspecified";
+    }
+
+    /**
+     * @param {PrettyBackendDefinition} backend
+     * @return {string}
+     */
+    function prettyBackendBoundarySummary(backend) {
+        var capabilities = backend.capabilities;
+        if (!capabilities) return "custom boundary";
+        return (
+            prettyBoundaryLabel(capabilities.input) +
+            " → " +
+            prettyBoundaryLabel(capabilities.output)
+        );
+    }
+
+    /**
+     * @param {PrettyBackendDefinition} backend
+     * @return {string}
+     */
+    function prettyBackendBoundaryDetails(backend) {
+        var capabilities = backend.capabilities;
+        if (!capabilities) return "Boundary metadata unavailable";
+        return [
+            "Runtime: " + prettyBoundaryLabel(capabilities.runtime),
+            "Input boundary: " + prettyBoundaryLabel(capabilities.input),
+            "Output boundary: " + prettyBoundaryLabel(capabilities.output),
+            "Backend width model: " + prettyBoundaryLabel(capabilities.width),
+            "Comparison width model: shared columns",
+        ].join("\n");
     }
 
     function renderPrettyControls() {
@@ -232,8 +400,14 @@
             return selected.has(backend.id);
         }).length;
 
+        var experiment = matchingPrettyExperiment();
         var summary = document.createElement("summary");
-        summary.textContent = "Formatters " + selectedCount + "/" + backends.length;
+        summary.textContent =
+            "Formatters " +
+            selectedCount +
+            "/" +
+            backends.length +
+            (experiment ? " · " + experiment.label : " · Custom");
         var menu = document.createElement("div");
         menu.className = "pretty-controls-menu";
 
@@ -250,9 +424,48 @@
         });
         menu.appendChild(compareLabel);
 
+        var experiments = prettyExperiments();
+        if (experiments.length > 0) {
+            var experimentLabel = document.createElement("label");
+            experimentLabel.className = "pretty-controls-experiment";
+            experimentLabel.appendChild(document.createTextNode("Experiment "));
+            var experimentSelect = document.createElement("select");
+            experiments.forEach(function (candidate) {
+                var option = document.createElement("option");
+                option.value = candidate.id;
+                option.textContent = candidate.label;
+                option.selected = !!experiment && candidate.id === experiment.id;
+                experimentSelect.appendChild(option);
+            });
+            if (!experiment) {
+                var customOption = document.createElement("option");
+                customOption.value = "custom";
+                customOption.textContent = "Custom selection";
+                customOption.selected = true;
+                experimentSelect.appendChild(customOption);
+            }
+            experimentSelect.addEventListener("change", function () {
+                var next = prettyExperimentById(experimentSelect.value);
+                if (!next) return;
+                applyPrettyExperiment(next);
+                persistPrettyConfig();
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+            experimentLabel.appendChild(experimentSelect);
+            menu.appendChild(experimentLabel);
+
+            var question = document.createElement("p");
+            question.className = "pretty-controls-question";
+            question.textContent = experiment
+                ? experiment.question
+                : "Custom selection: interpret boundary changes manually.";
+            menu.appendChild(question);
+        }
+
         var processors = document.createElement("fieldset");
         var legend = document.createElement("legend");
-        legend.textContent = "Processors";
+        legend.textContent = "Backends";
         processors.appendChild(legend);
         backends.forEach(function (backend) {
             var label = document.createElement("label");
@@ -270,12 +483,10 @@
                 "pretty-controls-status status-" +
                 state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
             status.textContent = state;
-            var capabilities = backend.capabilities;
             var capability = document.createElement("span");
             capability.className = "pretty-controls-capability";
-            capability.textContent = capabilities
-                ? capabilities.output + " · " + capabilities.width
-                : "custom";
+            capability.textContent = prettyBackendBoundarySummary(backend);
+            label.title = prettyBackendBoundaryDetails(backend);
             label.append(input, name, capability, status);
             input.addEventListener("change", function () {
                 var next = new Set(
@@ -298,6 +509,8 @@
                     .filter(function (id) {
                         return next.has(id);
                     });
+                var matched = matchingPrettyExperiment();
+                config.experiment = matched ? matched.id : "custom";
                 persistPrettyConfig();
                 reflowPrettyPanels();
                 renderPrettyControls();
@@ -1156,12 +1369,10 @@
             var label = document.createElement("span");
             label.textContent = backend.label;
             if (backend.capabilities) {
-                label.title =
-                    "Output: " +
-                    backend.capabilities.output +
-                    "\nBackend width model: " +
-                    backend.capabilities.width +
-                    "\nComparison width model: shared columns";
+                label.title = prettyBackendBoundaryDetails(backend);
+                pane.dataset.prettyRuntime = backend.capabilities.runtime || "unspecified";
+                pane.dataset.prettyInput = backend.capabilities.input || "unspecified";
+                pane.dataset.prettyOutput = backend.capabilities.output;
             }
             var time = document.createElement("span");
             time.className = "pretty-compare-time";

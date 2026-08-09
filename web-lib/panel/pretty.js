@@ -79,7 +79,9 @@
  * @typedef {{ value: *, timings: VirCallTimings }} VirTimedCallResult
  *
  * @typedef {{
- *   output: "segments" | "text-events" | "text",
+ *   runtime?: "javascript" | "vir" | "fir-native" | "llvm-emscripten",
+ *   input?: "compact-tree" | "json-string" | "lean-format" | "resident-id" | "browser-format",
+ *   output: "segments" | "text-events" | "pretty-trace" | "text",
  *   width: "pixels" | "columns"
  * }} PrettyBackendCapabilities
  *
@@ -1606,7 +1608,12 @@ function formatSegmentsWithJsTimed(fmtJson, annotations, pixelWidth, measurer) {
 registerPrettyBackend({
     id: "js",
     label: "JS",
-    capabilities: { output: "segments", width: "pixels" },
+    capabilities: {
+        runtime: "javascript",
+        input: "compact-tree",
+        output: "segments",
+        width: "pixels",
+    },
     status: function () {
         return "ready";
     },
@@ -1615,7 +1622,12 @@ registerPrettyBackend({
 registerPrettyBackend({
     id: "vir",
     label: "VIR JSON",
-    capabilities: { output: "segments", width: "columns" },
+    capabilities: {
+        runtime: "vir",
+        input: "json-string",
+        output: "segments",
+        width: "columns",
+    },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;
         return bridge && bridge.status ? bridge.status : "unavailable";
@@ -1627,7 +1639,12 @@ registerPrettyBackend({
 registerPrettyBackend({
     id: "vir-format",
     label: "VIR Format",
-    capabilities: { output: "segments", width: "columns" },
+    capabilities: {
+        runtime: "vir",
+        input: "lean-format",
+        output: "segments",
+        width: "columns",
+    },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;
         return bridge && bridge.status ? bridge.status : "unavailable";
@@ -1639,7 +1656,12 @@ registerPrettyBackend({
 registerPrettyBackend({
     id: "vir-flat",
     label: "VIR Flat",
-    capabilities: { output: "text-events", width: "columns" },
+    capabilities: {
+        runtime: "vir",
+        input: "lean-format",
+        output: "text-events",
+        width: "columns",
+    },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;
         return bridge && bridge.status ? bridge.status : "unavailable";
@@ -1651,7 +1673,12 @@ registerPrettyBackend({
 registerPrettyBackend({
     id: "vir-resident",
     label: "VIR Resident",
-    capabilities: { output: "text-events", width: "columns" },
+    capabilities: {
+        runtime: "vir",
+        input: "resident-id",
+        output: "text-events",
+        width: "columns",
+    },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;
         return bridge && bridge.status ? bridge.status : "unavailable";

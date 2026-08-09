@@ -8,6 +8,7 @@ from playwright.async_api import async_playwright
 
 
 BACKEND_IDS = ["js", "vir", "vir-format", "vir-flat", "vir-resident", "native", "llvm"]
+IMPLEMENTATION_IDS = ["js", "vir-format", "native", "llvm"]
 
 
 async def main() -> None:
@@ -32,11 +33,33 @@ async def main() -> None:
 
         controls = page.locator(".pretty-controls")
         await controls.wait_for(state="visible")
-        assert await controls.locator("summary").inner_text() == f"Formatters {len(BACKEND_IDS)}/{len(BACKEND_IDS)}"
+        assert await controls.locator("summary").inner_text() == (
+            f"Formatters {len(IMPLEMENTATION_IDS)}/{len(BACKEND_IDS)} · End-to-end implementations"
+        )
         await controls.locator("summary").click()
         assert await controls.locator(".pretty-controls-backend").count() == len(BACKEND_IDS)
         assert await controls.locator(".pretty-controls-status.status-ready").count() == len(BACKEND_IDS)
         assert await controls.locator("button").count() == 0
+
+        experiment = controls.locator(".pretty-controls-experiment select")
+        assert await experiment.input_value() == "implementations"
+        checked = await controls.locator(".pretty-controls-backend input:checked").evaluate_all(
+            "els => els.map(el => el.value)"
+        )
+        assert checked == IMPLEMENTATION_IDS
+        await experiment.select_option("vir-output")
+        checked = await controls.locator(".pretty-controls-backend input:checked").evaluate_all(
+            "els => els.map(el => el.value)"
+        )
+        assert checked == ["vir-format", "vir-flat"]
+        assert "prettyExperiment=vir-output" in page.url
+        assert "typed input held fixed" in await controls.locator(
+            ".pretty-controls-question"
+        ).inner_text()
+        await experiment.select_option("all")
+        assert await controls.locator("summary").inner_text() == (
+            f"Formatters {len(BACKEND_IDS)}/{len(BACKEND_IDS)} · All backends"
+        )
 
         proof_index = await page.evaluate(
             """() => [...document.querySelectorAll('.slides > section')]
@@ -57,6 +80,12 @@ async def main() -> None:
         assert await panes.evaluate_all(
             "els => els.map(el => el.dataset.prettyBackend)"
         ) == BACKEND_IDS
+        assert await block.locator('[data-pretty-backend="vir-flat"]').get_attribute(
+            "data-pretty-input"
+        ) == "lean-format"
+        assert await block.locator('[data-pretty-backend="vir-resident"]').get_attribute(
+            "data-pretty-input"
+        ) == "resident-id"
         timing_titles = await panes.locator(".pretty-compare-time").evaluate_all(
             "els => els.map(el => el.title)"
         )

@@ -1,6 +1,7 @@
 """Tests for the optional VIR-backed pretty-printer hook."""
 
 import json
+from pathlib import Path
 
 from urllib.parse import urljoin
 
@@ -382,7 +383,9 @@ class TestPrettyNativeBridge:
         )
         assert result["backend"]["label"] == "Native"
         assert result["backend"]["capabilities"] == {
-            "output": "segments",
+            "runtime": "fir-native",
+            "input": "browser-format",
+            "output": "pretty-trace",
             "width": "columns",
         }
         assert result["status"] == "disabled"
@@ -464,7 +467,9 @@ class TestPrettyLlvmBridge:
         )
         assert result["backend"]["label"] == "LLVM"
         assert result["backend"]["capabilities"] == {
-            "output": "segments",
+            "runtime": "llvm-emscripten",
+            "input": "browser-format",
+            "output": "pretty-trace",
             "width": "columns",
         }
         assert result["status"] == "disabled"
@@ -472,6 +477,63 @@ class TestPrettyLlvmBridge:
 
 
 class TestPrettyVirComparisonPanel:
+    def test_named_experiments_isolate_one_boundary(
+        self, code_url: str, page: Page
+    ):
+        """Configured presets select controls and explain the variable being changed."""
+        experiments = (
+            Path(__file__).parents[1]
+            / "demos"
+            / "vir-pretty"
+            / "web"
+            / "pretty-experiments.js"
+        )
+        page.add_init_script(path=experiments)
+        controlled_url = (
+            code_url
+            + "/index.html?prettyControls=1&prettyCompare=1"
+            + "&prettyExperiment=vir-output"
+        )
+        page.goto(controlled_url)
+        page.wait_for_function("() => window.Reveal && window.Reveal.isReady()")
+        controls = page.locator(".pretty-controls")
+        controls.wait_for(state="visible")
+        controls.locator("summary").click()
+
+        experiment = controls.locator(".pretty-controls-experiment select")
+        expect(experiment).to_have_value("vir-output")
+        assert controls.locator(
+            ".pretty-controls-backend input:checked"
+        ).evaluate_all("els => els.map(el => el.value)") == ["vir-format", "vir-flat"]
+        expect(controls.locator(".pretty-controls-question")).to_contain_text(
+            "typed input held fixed"
+        )
+
+        proof_index = page.evaluate(
+            """() => [...document.querySelectorAll('.slides > section')]
+              .findIndex(slide => slide.querySelector('h1, h2, h3')?.textContent.trim() === 'Proof')"""
+        )
+        assert proof_index >= 0
+        page.evaluate("index => Reveal.slide(index)", proof_index)
+        slide = page.locator(".slides > section").nth(proof_index)
+        block = slide.locator(".code-with-panel").first
+        block.locator(".tactic .keyword").first.click()
+        panel = block.locator(".info-panel")
+        assert panel.locator(".pretty-compare-pane").count() == 2
+        assert panel.locator(".pretty-compare-pane").evaluate_all(
+            "els => els.map(el => [el.dataset.prettyInput, el.dataset.prettyOutput])"
+        ) == [["lean-format", "segments"], ["lean-format", "text-events"]]
+
+        experiment.select_option("vir-residency")
+        assert panel.locator(".pretty-compare-pane").evaluate_all(
+            "els => els.map(el => el.dataset.prettyInput)"
+        ) == ["lean-format", "resident-id"]
+        assert "prettyExperiment=vir-residency" in page.url
+
+        controls.locator('input[value="js"]').check()
+        expect(controls.locator(".pretty-controls-experiment select")).to_have_value("custom")
+        assert "prettyExperiment=custom" in page.url
+
     def test_tactic_panel_renders_registered_backends_side_by_side(
         self, code_url: str, page: Page
     ):

@@ -290,6 +290,9 @@ fi
 lib_dir="$out_dir/lib"
 
 mkdir -p "$lib_dir/lean-vir/wasm" "$(dirname "$report_path")"
+install -m 0644 \
+  "$repo_root/demos/vir-pretty/web/pretty-experiments.js" \
+  "$lib_dir/pretty-experiments.js"
 registry_dir="$repo_root/.lake/verso-pretty-registry"
 registry_source="$registry_dir/PrettyRegistry.lean"
 python3 "$repo_root/demos/vir-pretty/scripts/generate-pretty-registry.py" \
@@ -368,6 +371,7 @@ llvm_enabled = sys.argv[3] == "1"
 body = path.read_text()
 body = re.sub(
     r'\n\s*<script>\s*window\.__versoPrettyConfig\s*=\s*\{.*?\};\s*</script>\s*'
+    r'(?:\n\s*<script src="lib/pretty-experiments\.js"></script>)?\s*'
     r'(?:\n\s*<script src="lib/coi-register\.js"></script>)?\s*'
     r'\n\s*<script src="lib/pretty-vir\.js"></script>'
     r'(?:\s*\n\s*<script src="lib/pretty-(?:native|llvm)\.js"></script>)*',
@@ -385,6 +389,7 @@ if llvm_enabled:
         '      window.__versoPrettyLlvmConfig = { enabled: globalThis.crossOriginIsolated };\n'
     )
 scripts += '    </script>\n'
+scripts += '    <script src="lib/pretty-experiments.js"></script>\n'
 if llvm_enabled:
     scripts += '    <script src="lib/coi-register.js"></script>\n'
 scripts += '    <script src="lib/pretty-vir.js"></script>\n'

@@ -35,6 +35,7 @@ def config : Config := {
     {{ <script src={{"vir-pretty/coi-register.js"}}></script> }}
   ]
   panelPlugins := #[
+    "vir-pretty/pretty-experiments.js",
     "vir-pretty/pretty-vir.js",
     "vir-pretty/pretty-native.js",
     "vir-pretty/pretty-llvm.js"

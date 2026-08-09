@@ -75,7 +75,12 @@
     var nativeBackend = {
         id: "native",
         label: "Native",
-        capabilities: { output: "segments", width: "columns" },
+        capabilities: {
+            runtime: "fir-native",
+            input: "browser-format",
+            output: "pretty-trace",
+            width: "columns",
+        },
         status: function () {
             return bridge.status || "unavailable";
         },

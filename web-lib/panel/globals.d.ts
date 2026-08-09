@@ -164,6 +164,8 @@ interface VersoPrettyConfig {
     compare?: boolean;
     backend?: string;
     backends?: string[];
+    experiment?: string;
+    experiments?: PrettyExperimentDefinition[];
     columns?: number;
     workload?: number;
     controls?: boolean;
@@ -212,7 +214,9 @@ interface PrettyBackendDefinition {
     ready?: Promise<unknown>;
     status?: () => string;
     capabilities?: {
-        output: "segments" | "text-events" | "text";
+        runtime?: "javascript" | "vir" | "fir-native" | "llvm-emscripten";
+        input?: "compact-tree" | "json-string" | "lean-format" | "resident-id" | "browser-format";
+        output: "segments" | "text-events" | "pretty-trace" | "text";
         width: "pixels" | "columns";
     };
     renderSegments?(
@@ -229,6 +233,13 @@ interface PrettyBackendDefinition {
         measurer: DOMMeasurer,
         formatId?: number,
     ): PrettySegmentResult;
+}
+
+interface PrettyExperimentDefinition {
+    id: string;
+    label: string;
+    question: string;
+    backends: string[];
 }
 
 declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;

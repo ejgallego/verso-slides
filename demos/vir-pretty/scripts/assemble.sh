@@ -60,7 +60,7 @@ python3 "$demo_root/scripts/generate-pretty-registry.py" \
   VersoSlides.PrettyRegistry.formatCountForVir \
   VersoSlides.PrettyRegistry.formatRenderedByIdForVir)
 
-for asset in pretty-vir.js pretty-native.js pretty-llvm.js coi-register.js; do
+for asset in pretty-experiments.js pretty-vir.js pretty-native.js pretty-llvm.js coi-register.js; do
   install -D -m 0644 "$demo_root/web/$asset" "$out_dir/vir-pretty/$asset"
 done
 install -D -m 0644 "$demo_root/web/coi-serviceworker.js" "$out_dir/coi-serviceworker.js"

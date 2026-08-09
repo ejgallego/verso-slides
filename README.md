@@ -814,9 +814,17 @@ comparison processors, switch comparison mode, choose the renderer and
 shared width, and select a timed source-code volume. Workload volumes
 repeat the complete visible format set for every backend; they do not
 change the input shape. The default remains one pass, keeping ordinary
-slide interaction cheap. used outside comparison mode, and change the
-shared comparison width. The menu updates the query string so a test
-configuration can be copied or reloaded:
+slide interaction cheap. The menu updates the query string so a test
+configuration can be copied or reloaded.
+
+Applications may also provide named experiment presets through
+`window.__versoPrettyConfig.experiments`. Each preset has an ID,
+label, question, and backend ID list. The controls show the question
+being answered and switch the complete backend set atomically;
+manually changing a backend creates a custom selection. Presets are
+application configuration rather than hard-coded Verso policy.
+
+Relevant query parameters are:
 
 - `pretty=js,vir,vir-format,native,llvm` selects comparison
   processors.
@@ -825,9 +833,12 @@ configuration can be copied or reloaded:
   renderer outside comparison mode.
 - `prettyColumns=40` sets the common comparison width.
 - `prettyControls=1` displays the menu.
+- `prettyExperiment=vir-output` selects a configured named experiment.
 - `prettyTiming=execute` selects the primary timing shown in every
   pane; supported values are `total`, `execute`, `marshal`, `decode`,
   `render`, `wall`, and `tracks`.
+- `prettyWorkload=2048` repeats the complete visible format set until
+  at least that many source code points have been processed.
 
 Comparison mode deliberately gives every processor the same
 deterministic character-column budget. This avoids deriving separate

@@ -160,6 +160,7 @@
 }
 
 .pretty-controls-columns,
+.pretty-controls-experiment,
 .pretty-controls-primary,
 .pretty-controls-timing,
 .pretty-controls-workload,
@@ -175,6 +176,7 @@
 }
 
 .pretty-controls-primary select,
+.pretty-controls-experiment select,
 .pretty-controls-timing select,
 .pretty-controls-workload select {
     min-width: 8rem;
@@ -189,10 +191,17 @@
     border-radius: 0.2rem;
 }
 
-.pretty-controls-note {
+.pretty-controls-note,
+.pretty-controls-question {
     margin: 0;
     color: #aaa;
     font-size: 0.78em;
+}
+
+.pretty-controls-question {
+    padding-left: 0.45rem;
+    border-left: 0.15rem solid rgba(109, 158, 235, 0.65);
+    color: #c7d8f2;
 }
 
 /* Focus/hover highlights are drawn as one contiguous SVG path per element

@@ -6,6 +6,12 @@ Slides checkout through a path dependency. Once `Config.panelPlugins`
 is released, `lakefile.lean` can switch directly to that release tag
 without changing the demo.
 
+The named comparisons and their controlled variables are listed in
+[EXPERIMENTS.md](EXPERIMENTS.md). Prefer a named experiment over an
+arbitrary collection of panes when drawing a performance conclusion.
+The initial view is **End-to-end implementations**; **All backends**
+remains available for exploration.
+
 ## Build and serve
 
 From this directory:
@@ -90,6 +96,8 @@ The restored deck has the same functionality as the in-tree prototype:
 
 - live Lean code panels and draggable panel sizing;
 - interactive processor selection and single/compare modes;
+- named end-to-end, VIR transport, VIR output, and VIR residency
+  experiments, with a visible statement of the question each answers;
 - shared column budgets and exact tagged-segment comparison;
 - selectable timed workload volume (one pass or at least 256/2K/8K
   source code points), repeating the complete visible format set
