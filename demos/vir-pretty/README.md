@@ -120,6 +120,8 @@ lean-vir/js/vir-runtime.js
 lean-vir/wasm/vir-upstream.wasm
 lean-native/{BUILD.json,SHA256SUMS,prettyM-browser-adapter.mjs,
              prettyM.wasm,prettyM.wasm.json}
+lean-native-flat/{BUILD.json,SHA256SUMS,prettyM-browser-adapter.mjs,
+                  prettyM.wasm,prettyM.wasm.json}  # optional
 lean-llvm/{README.md,SHA256SUMS,emscripten-loader.mjs,
            prettyM-emscripten-adapter.mjs,prettyM.manifest.json,
            prettyM.mjs,prettyM.wasm}
@@ -137,4 +139,8 @@ The host deck, VIR package generator, FIR-native package, and LLVM
 package may use different Lean versions: each artifact is a
 self-contained bounded runtime and carries its own toolchain/ABI
 provenance. Refresh tooling validates each package against its
-declared boundary before staging it.
+declared boundary before staging it. The optional native-flat
+directory must satisfy
+[`contracts/fir-native-flat-v1.json`](contracts/fir-native-flat-v1.json).
+Without it, neither the backend nor the FIR output experiment appears
+in the deck.

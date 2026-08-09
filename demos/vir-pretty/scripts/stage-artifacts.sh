@@ -42,7 +42,26 @@ done
 (cd "$seed_dir/lean-llvm" && sha256sum -c --quiet SHA256SUMS)
 
 for path in "${required[@]}"; do
+  case "$path" in
+    lean-native/*) continue ;;
+  esac
   install -D -m 0644 "$seed_dir/$path" "$artifact_dir/$path"
 done
+python3 "$demo_root/scripts/copy-checksummed-subset.py" \
+  "$seed_dir/lean-native" \
+  "$artifact_dir/lean-native" \
+  BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
 
-echo "Staged VIR runtime plus native and LLVM artifacts from $seed_dir"
+# Optional artifacts describe the current seed, not an accumulation of past
+# refreshes. Clear an older candidate before deciding whether this seed has one.
+rm -rf "$artifact_dir/lean-native-flat"
+if [[ -d "$seed_dir/lean-native-flat" ]]; then
+  python3 "$demo_root/scripts/validate-native-flat-package.py" \
+    "$seed_dir/lean-native-flat"
+  python3 "$demo_root/scripts/copy-checksummed-subset.py" \
+    "$seed_dir/lean-native-flat" \
+    "$artifact_dir/lean-native-flat" \
+    BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
+fi
+
+echo "Staged VIR runtime plus available native and LLVM artifacts from $seed_dir"

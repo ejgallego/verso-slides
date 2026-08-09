@@ -475,6 +475,110 @@ class TestPrettyLlvmBridge:
         assert result["status"] == "disabled"
 
 
+class TestPrettyNativeFlatBridge:
+    def test_absent_config_does_not_register_speculative_backend(
+        self, code_url: str, page: Page
+    ):
+        """The pending backend is invisible until a validated artifact is configured."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        script = (
+            Path(__file__).parents[1]
+            / "demos"
+            / "vir-pretty"
+            / "web"
+            / "pretty-native-flat.js"
+        ).read_text()
+        page.add_script_tag(content=script)
+        assert page.evaluate("getPrettyBackend('native-flat')") is None
+
+    def test_configured_flat_adapter_registers_and_renders_utf8_events(
+        self, code_url: str, page: Page
+    ):
+        """A genuine flat adapter is normalized without passing through PrettyTrace."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        module_url = code_url + "/fake-native-flat.mjs"
+        page.route(
+            module_url,
+            lambda route: route.fulfill(
+                content_type="text/javascript",
+                body="""
+                  export const PRETTY_M_BROWSER_API_VERSION = 'fir.prettyM.flat.browser/v1';
+                  export const PrettyFormat = {
+                    nil: () => ({}), line: () => ({}), align: () => ({}),
+                    text: text => ({ text }), nest: (_n, body) => body,
+                    append: (left, right) => ({ left, right }),
+                    group: body => body, tag: (_tag, body) => body
+                  };
+                  export async function fetchPrettyMAdapter() {
+                    return {
+                      build: { sourceCommit: 'fixture' }, startupTimings: {},
+                      render: () => ({
+                        rendered: {
+                          text: 'αx',
+                          events: [
+                            { offset: 0, kind: 0, value: 7 },
+                            { offset: 3, kind: 1, value: 1 }
+                          ]
+                        },
+                        timings: {
+                          prepareMs: 0.3, executeMs: 0.2, decodeMs: 0.1,
+                          normalizeMs: 0.1, allocateMs: 0.1, encodeMs: 0.1
+                        },
+                        memory: {
+                          inputBytes: 64, rawObjects: 1, residentAllocationCalls: 1
+                        }
+                      })
+                    };
+                  }
+                """,
+            ),
+        )
+        page.evaluate(
+            """url => {
+                window.__versoPrettyConfig.experiments = [{
+                    id: 'all', label: 'All backends', question: 'all',
+                    backends: ['js', 'native', 'native-flat']
+                }];
+                window.__versoPrettyNativeFlatConfig = {
+                    adapterUrl: url,
+                    wasmUrl: new URL('fake-flat.wasm', location.href).href,
+                    descriptorUrl: new URL('fake-flat.wasm.json', location.href).href,
+                    buildUrl: new URL('fake-flat-BUILD.json', location.href).href
+                };
+            }""",
+            module_url,
+        )
+        script = (
+            Path(__file__).parents[1]
+            / "demos"
+            / "vir-pretty"
+            / "web"
+            / "pretty-native-flat.js"
+        ).read_text()
+        page.add_script_tag(content=script)
+        page.wait_for_function("window.__versoPrettyNativeFlat?.status === 'ready'")
+
+        result = page.evaluate(
+            """() => ({
+                html: formatToHtmlWithBackend(
+                    'ignored', { '7': { cssClass: 'keyword' } }, 40,
+                    createColumnMeasurer(40), 'native-flat'
+                ),
+                capabilities: getPrettyBackend('native-flat').capabilities,
+                experiment: window.__versoPrettyConfig.experiments.find(
+                    experiment => experiment.id === 'fir-output'
+                )
+            })"""
+        )
+        assert result["html"] == '<span class="keyword token">αx</span>'
+        assert result["capabilities"] == {
+            "runtime": "fir-native",
+            "input": "browser-format",
+            "output": "text-events",
+            "width": "columns",
+        }
+        assert result["experiment"]["backends"] == ["native", "native-flat"]
+
 
 class TestPrettyVirComparisonPanel:
     def test_named_experiments_isolate_one_boundary(

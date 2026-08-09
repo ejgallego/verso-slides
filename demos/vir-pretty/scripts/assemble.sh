@@ -6,6 +6,8 @@ artifact_dir="$demo_root/_artifacts"
 out_dir="${OUT_DIR:-$demo_root/_site}"
 workspace_root="$(cd "$demo_root/../.." && pwd)"
 lean_vir_dir="${LEAN_VIR_DIR:-$workspace_root/_artifacts/lean-vir}"
+native_flat_dir="$artifact_dir/lean-native-flat"
+native_flat_enabled=0
 
 required=(
   lean-vir/js/vir-runtime.js
@@ -32,9 +34,37 @@ for path in "${required[@]}"; do
   fi
 done
 
+if [[ -d "$native_flat_dir" ]]; then
+  python3 "$demo_root/scripts/validate-native-flat-package.py" "$native_flat_dir"
+  native_flat_enabled=1
+fi
+
 (cd "$demo_root" &&
   lake build vir-pretty-demo VirPrettyDemo.Pretty &&
   lake exe vir-pretty-demo)
+
+if [[ "$native_flat_enabled" -eq 1 ]]; then
+  python3 - "$out_dir/index.html" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+body = path.read_text()
+needle = '    <script src="vir-pretty/pretty-native-flat.js"></script>'
+config = '''    <script>
+      window.__versoPrettyNativeFlatConfig = {
+        adapterUrl: new URL("vir-pretty/lean-native-flat/prettyM-browser-adapter.mjs", window.location.href).href,
+        wasmUrl: new URL("vir-pretty/lean-native-flat/prettyM.wasm", window.location.href).href,
+        descriptorUrl: new URL("vir-pretty/lean-native-flat/prettyM.wasm.json", window.location.href).href,
+        buildUrl: new URL("vir-pretty/lean-native-flat/BUILD.json", window.location.href).href
+      };
+    </script>
+'''
+if needle not in body:
+    raise SystemExit("could not find native-flat panel plugin in generated deck")
+path.write_text(body.replace(needle, config + needle, 1))
+PY
+fi
 
 if [[ ! -x "$lean_vir_dir/.lake/build/bin/vir_irpkg" ]]; then
   echo "lean-vir package generator not found: $lean_vir_dir/.lake/build/bin/vir_irpkg" >&2
@@ -60,14 +90,28 @@ python3 "$demo_root/scripts/generate-pretty-registry.py" \
   VersoSlides.PrettyRegistry.formatCountForVir \
   VersoSlides.PrettyRegistry.formatRenderedByIdForVir)
 
-for asset in pretty-experiments.js pretty-vir.js pretty-native.js pretty-llvm.js coi-register.js; do
+for asset in pretty-experiments.js pretty-vir.js pretty-native.js pretty-native-flat.js pretty-llvm.js coi-register.js; do
   install -D -m 0644 "$demo_root/web/$asset" "$out_dir/vir-pretty/$asset"
 done
 install -D -m 0644 "$demo_root/web/coi-serviceworker.js" "$out_dir/coi-serviceworker.js"
 install -D -m 0644 "$demo_root/web/htaccess" "$out_dir/.htaccess"
 
 for path in "${required[@]}"; do
+  case "$path" in
+    lean-native/*) continue ;;
+  esac
   install -D -m 0644 "$artifact_dir/$path" "$out_dir/vir-pretty/$path"
 done
+python3 "$demo_root/scripts/copy-checksummed-subset.py" \
+  "$artifact_dir/lean-native" \
+  "$out_dir/vir-pretty/lean-native" \
+  BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
+rm -rf "$out_dir/vir-pretty/lean-native-flat"
+if [[ "$native_flat_enabled" -eq 1 ]]; then
+  python3 "$demo_root/scripts/copy-checksummed-subset.py" \
+    "$native_flat_dir" \
+    "$out_dir/vir-pretty/lean-native-flat" \
+    BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
+fi
 
 echo "Assembled standalone demo at $out_dir"

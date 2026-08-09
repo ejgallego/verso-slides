@@ -32,9 +32,21 @@ ID, so a view can be shared and reproduced.
 
 ## Pending FIR output experiment
 
-When FIR publishes a direct flat-output entrypoint, register it as
-`native-flat` without replacing `native`. Add a **FIR output
-boundary** preset containing exactly those two backends:
+The current FIR control artifact, source `d4422df…`, still exposes
+`fir.prettyM.browser/v1` and `PrettyTrace`; JavaScript post-processing
+of that trace would not constitute this experiment.
+
+The required candidate package is specified by
+[`contracts/fir-native-flat-v1.json`](contracts/fir-native-flat-v1.json)
+and checked by `scripts/validate-native-flat-package.py`. Its browser
+API is `fir.prettyM.flat.browser/v1`, its public input and ownership
+protocols remain the same as the native control, and its Wasm result
+is `text-events-utf8/v1` directly. The artifact is staged separately
+as `lean-native-flat/`; it never replaces `lean-native/`.
+
+Once such a package is present, assembly registers `native-flat` and
+adds a **FIR output boundary** preset containing exactly the two FIR
+backends:
 
 ```text
 native       browser Format → PrettyTrace → panel segments

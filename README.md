@@ -801,10 +801,13 @@ are `"js"`, `"vir"` for the JSON boundary, `"vir-format"` for direct
 `Std.Format`/segment output, `"vir-flat"` for direct input/flat
 output, and `"vir-resident"` for package-resident input/flat output.
 Loading `lib/pretty-native.js` also registers `"native"`, a
-`Std.Format.prettyM` Wasm module produced from Lean LCNF by FIR.
-Loading `lib/pretty-llvm.js` registers `"llvm"`, the conventional Lean
-LCNF → C → LLVM/Emscripten Wasm route. With no selection, the panel
-uses `"js"`. An unavailable or unknown explicit selection is shown as
+`Std.Format.prettyM` Wasm module produced from Lean LCNF by FIR. When
+a separately validated direct-flat FIR package is configured,
+`lib/pretty-native-flat.js` registers `"native-flat"`; absent that
+package, the backend is not registered at all. Loading
+`lib/pretty-llvm.js` registers `"llvm"`, the conventional Lean LCNF →
+C → LLVM/Emscripten Wasm route. With no selection, the panel uses
+`"js"`. An unavailable or unknown explicit selection is shown as
 unavailable instead of falling back to another candidate.
 
 Set `window.__versoPrettyConfig.compare` to `true` to render every
@@ -1011,6 +1014,17 @@ production browser adapter and loads `lib/pretty-native.js`:
 
 ```
 NATIVE_PRETTY_DIR=_artifacts/pretty-native-current \
+  scripts/build-vir-pretty-demo.sh
+```
+
+The pending FIR output experiment uses a separate package rather than
+replacing the control. Pass it through `NATIVE_FLAT_PRETTY_DIR`; the
+build requires `fir.prettyM.flat.browser/v1` and direct
+`text-events-utf8/v1` output before registering `native-flat`:
+
+```
+NATIVE_PRETTY_DIR=_artifacts/pretty-native-current \
+NATIVE_FLAT_PRETTY_DIR=_artifacts/pretty-native-flat-current \
   scripts/build-vir-pretty-demo.sh
 ```
 

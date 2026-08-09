@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 lean_vir_dir="${LEAN_VIR_DIR:-$repo_root/_artifacts/lean-vir}"
 native_pretty_dir="${NATIVE_PRETTY_DIR:-}"
+native_flat_pretty_dir="${NATIVE_FLAT_PRETTY_DIR:-}"
 llvm_pretty_dir="${LLVM_PRETTY_DIR:-}"
 fixture_dir="$repo_root/_test/code"
 out_dir="${OUT_DIR:-$repo_root/_test/vir-code}"
@@ -23,6 +24,8 @@ Options:
   --lean-vir-dir DIR   lean-vir checkout to use (default: $LEAN_VIR_DIR or _artifacts/lean-vir)
   --native-pretty-dir DIR
                        prepared FIR prettyM package to include (default: $NATIVE_PRETTY_DIR)
+  --native-flat-pretty-dir DIR
+                       prepared FIR direct-flat prettyM package (default: $NATIVE_FLAT_PRETTY_DIR)
   --llvm-pretty-dir DIR
                        prepared LLVM/Emscripten prettyM package (default: $LLVM_PRETTY_DIR)
   --out-dir DIR        output deck directory (default: $OUT_DIR or _test/vir-code)
@@ -33,6 +36,8 @@ Options:
 Environment:
   LEAN_VIR_DIR         lean-vir checkout
   NATIVE_PRETTY_DIR    prepared FIR prettyM package; omit for the three-way demo
+  NATIVE_FLAT_PRETTY_DIR
+                       prepared FIR direct-flat prettyM package; omit until available
   LLVM_PRETTY_DIR      prepared LLVM/Emscripten prettyM package; omit for no LLVM pane
   OUT_DIR              generated deck output directory
   PUBLISH_TARGET       rsync target for --publish
@@ -48,6 +53,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --native-pretty-dir)
       native_pretty_dir="$2"
+      shift 2
+      ;;
+    --native-flat-pretty-dir)
+      native_flat_pretty_dir="$2"
       shift 2
       ;;
     --llvm-pretty-dir)
@@ -263,6 +272,18 @@ PY
   native_enabled=1
 fi
 
+native_flat_enabled=0
+if [[ -n "$native_flat_pretty_dir" ]]; then
+  if [[ ! -d "$native_flat_pretty_dir" ]]; then
+    echo "native-flat pretty package not found: $native_flat_pretty_dir" >&2
+    exit 1
+  fi
+  native_flat_pretty_dir="$(cd "$native_flat_pretty_dir" && pwd -P)"
+  python3 "$repo_root/demos/vir-pretty/scripts/validate-native-flat-package.py" \
+    "$native_flat_pretty_dir"
+  native_flat_enabled=1
+fi
+
 esbuild="$lean_vir_dir/node_modules/.bin/esbuild"
 if [[ ! -x "$esbuild" ]]; then
   echo "esbuild not found at $esbuild; run npm install in $lean_vir_dir" >&2
@@ -293,6 +314,9 @@ mkdir -p "$lib_dir/lean-vir/wasm" "$(dirname "$report_path")"
 install -m 0644 \
   "$repo_root/demos/vir-pretty/web/pretty-experiments.js" \
   "$lib_dir/pretty-experiments.js"
+install -m 0644 \
+  "$repo_root/demos/vir-pretty/web/pretty-native-flat.js" \
+  "$lib_dir/pretty-native-flat.js"
 registry_dir="$repo_root/.lake/verso-pretty-registry"
 registry_source="$registry_dir/PrettyRegistry.lean"
 python3 "$repo_root/demos/vir-pretty/scripts/generate-pretty-registry.py" \
@@ -303,6 +327,7 @@ python3 "$repo_root/demos/vir-pretty/scripts/generate-pretty-registry.py" \
 rm -rf "$lib_dir/lean-vir/js"
 mkdir -p "$lib_dir/lean-vir/js"
 rm -rf "$lib_dir/lean-native"
+rm -rf "$lib_dir/lean-native-flat"
 rm -rf "$lib_dir/lean-llvm"
 release_wasm="$lean_vir_dir/web/public/vir-upstream.wasm"
 debug_wasm="$lean_vir_dir/web/public/vir-upstream.dev.wasm"
@@ -347,10 +372,17 @@ cp "$release_wasm" "$lib_dir/lean-vir/wasm/vir-upstream.wasm"
   --outfile="$lib_dir/lean-vir/js/vir-runtime.js"
 
 if [[ "$native_enabled" -eq 1 ]]; then
-  mkdir -p "$lib_dir/lean-native"
-  for native_file in "${native_required[@]}"; do
-    install -m 0644 "$native_pretty_dir/$native_file" "$lib_dir/lean-native/$native_file"
-  done
+  python3 "$repo_root/demos/vir-pretty/scripts/copy-checksummed-subset.py" \
+    "$native_pretty_dir" \
+    "$lib_dir/lean-native" \
+    BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
+fi
+
+if [[ "$native_flat_enabled" -eq 1 ]]; then
+  python3 "$repo_root/demos/vir-pretty/scripts/copy-checksummed-subset.py" \
+    "$native_flat_pretty_dir" \
+    "$lib_dir/lean-native-flat" \
+    BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
 fi
 
 if [[ "$llvm_enabled" -eq 1 ]]; then
@@ -360,21 +392,22 @@ if [[ "$llvm_enabled" -eq 1 ]]; then
   done
 fi
 
-python3 - "$out_dir/index.html" "$native_enabled" "$llvm_enabled" <<'PY'
+python3 - "$out_dir/index.html" "$native_enabled" "$native_flat_enabled" "$llvm_enabled" <<'PY'
 from pathlib import Path
 import re
 import sys
 
 path = Path(sys.argv[1])
 native_enabled = sys.argv[2] == "1"
-llvm_enabled = sys.argv[3] == "1"
+native_flat_enabled = sys.argv[3] == "1"
+llvm_enabled = sys.argv[4] == "1"
 body = path.read_text()
 body = re.sub(
     r'\n\s*<script>\s*window\.__versoPrettyConfig\s*=\s*\{.*?\};\s*</script>\s*'
     r'(?:\n\s*<script src="lib/pretty-experiments\.js"></script>)?\s*'
     r'(?:\n\s*<script src="lib/coi-register\.js"></script>)?\s*'
     r'\n\s*<script src="lib/pretty-vir\.js"></script>'
-    r'(?:\s*\n\s*<script src="lib/pretty-(?:native|llvm)\.js"></script>)*',
+    r'(?:\s*\n\s*<script src="lib/pretty-(?:native(?:-flat)?|llvm)\.js"></script>)*',
     "",
     body,
 )
@@ -388,6 +421,15 @@ if llvm_enabled:
     scripts += (
         '      window.__versoPrettyLlvmConfig = { enabled: globalThis.crossOriginIsolated };\n'
     )
+if native_flat_enabled:
+    scripts += (
+        '      window.__versoPrettyNativeFlatConfig = {\n'
+        '        adapterUrl: new URL("lib/lean-native-flat/prettyM-browser-adapter.mjs", window.location.href).href,\n'
+        '        wasmUrl: new URL("lib/lean-native-flat/prettyM.wasm", window.location.href).href,\n'
+        '        descriptorUrl: new URL("lib/lean-native-flat/prettyM.wasm.json", window.location.href).href,\n'
+        '        buildUrl: new URL("lib/lean-native-flat/BUILD.json", window.location.href).href\n'
+        '      };\n'
+    )
 scripts += '    </script>\n'
 scripts += '    <script src="lib/pretty-experiments.js"></script>\n'
 if llvm_enabled:
@@ -395,6 +437,8 @@ if llvm_enabled:
 scripts += '    <script src="lib/pretty-vir.js"></script>\n'
 if native_enabled:
     scripts += '    <script src="lib/pretty-native.js"></script>\n'
+if native_flat_enabled:
+    scripts += '    <script src="lib/pretty-native-flat.js"></script>\n'
 if llvm_enabled:
     scripts += '    <script src="lib/pretty-llvm.js"></script>\n'
 replacement = scripts + '    <script src="lib/panel.js"></script>'

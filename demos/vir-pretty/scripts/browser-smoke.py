@@ -7,7 +7,7 @@ import asyncio
 from playwright.async_api import async_playwright
 
 
-BACKEND_IDS = ["js", "vir", "vir-format", "vir-flat", "vir-resident", "native", "llvm"]
+BASE_BACKEND_IDS = ["js", "vir", "vir-format", "vir-flat", "vir-resident", "native", "llvm"]
 IMPLEMENTATION_IDS = ["js", "vir-format", "native", "llvm"]
 
 
@@ -22,23 +22,26 @@ async def main() -> None:
         page = await browser.new_page(viewport={"width": 1440, "height": 1000})
         page.on("pageerror", lambda error: page_errors.append(str(error)))
         await page.goto(args.url, wait_until="networkidle")
+        backend_ids = list(BASE_BACKEND_IDS)
+        if await page.evaluate("getPrettyBackend('native-flat') !== null"):
+            backend_ids.insert(backend_ids.index("native") + 1, "native-flat")
         await page.wait_for_function(
             """ids => ids.every(id => {
               const backend = getPrettyBackend(id);
               return backend && (!backend.status || backend.status() === 'ready');
             })""",
-            arg=BACKEND_IDS,
+            arg=backend_ids,
             timeout=60_000,
         )
 
         controls = page.locator(".pretty-controls")
         await controls.wait_for(state="visible")
         assert await controls.locator("summary").inner_text() == (
-            f"Formatters {len(IMPLEMENTATION_IDS)}/{len(BACKEND_IDS)} · End-to-end implementations"
+            f"Formatters {len(IMPLEMENTATION_IDS)}/{len(backend_ids)} · End-to-end implementations"
         )
         await controls.locator("summary").click()
-        assert await controls.locator(".pretty-controls-backend").count() == len(BACKEND_IDS)
-        assert await controls.locator(".pretty-controls-status.status-ready").count() == len(BACKEND_IDS)
+        assert await controls.locator(".pretty-controls-backend").count() == len(backend_ids)
+        assert await controls.locator(".pretty-controls-status.status-ready").count() == len(backend_ids)
         assert await controls.locator("button").count() == 0
 
         experiment = controls.locator(".pretty-controls-experiment select")
@@ -56,9 +59,15 @@ async def main() -> None:
         assert "typed input held fixed" in await controls.locator(
             ".pretty-controls-question"
         ).inner_text()
+        if "native-flat" in backend_ids:
+            await experiment.select_option("fir-output")
+            checked = await controls.locator(
+                ".pretty-controls-backend input:checked"
+            ).evaluate_all("els => els.map(el => el.value)")
+            assert checked == ["native", "native-flat"]
         await experiment.select_option("all")
         assert await controls.locator("summary").inner_text() == (
-            f"Formatters {len(BACKEND_IDS)}/{len(BACKEND_IDS)} · All backends"
+            f"Formatters {len(backend_ids)}/{len(backend_ids)} · All backends"
         )
 
         proof_index = await page.evaluate(
@@ -72,14 +81,14 @@ async def main() -> None:
         await block.locator(".tactic .keyword").first.click()
         panes = block.locator(".pretty-compare-pane")
         await page.wait_for_function(
-            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(BACKEND_IDS)}",
+            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(backend_ids)}",
             arg=await block.element_handle(),
             timeout=30_000,
         )
-        assert await panes.count() == len(BACKEND_IDS)
+        assert await panes.count() == len(backend_ids)
         assert await panes.evaluate_all(
             "els => els.map(el => el.dataset.prettyBackend)"
-        ) == BACKEND_IDS
+        ) == backend_ids
         assert await block.locator('[data-pretty-backend="vir-flat"]').get_attribute(
             "data-pretty-input"
         ) == "lean-format"
@@ -107,15 +116,15 @@ async def main() -> None:
         assert all(text.startswith("Execute · ") for text in timing_texts)
         await timing_display.select_option("tracks")
         total_texts = await panes.locator(".pretty-timing-tracks-total").all_inner_texts()
-        assert len(total_texts) == len(BACKEND_IDS)
+        assert len(total_texts) == len(backend_ids)
         assert all("Total" in text and "ms" in text for text in total_texts)
-        assert await panes.locator(".pretty-timing-track").count() == 4 * len(BACKEND_IDS)
+        assert await panes.locator(".pretty-timing-track").count() == 4 * len(backend_ids)
         assert "prettyTiming=tracks" in page.url
 
         llvm_toggle = controls.locator('input[value="llvm"]')
         await llvm_toggle.uncheck()
         await page.wait_for_function(
-            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(BACKEND_IDS) - 1}",
+            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(backend_ids) - 1}",
             arg=await block.element_handle(),
         )
         await llvm_toggle.check()
