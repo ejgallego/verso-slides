@@ -80,12 +80,16 @@ how much code the backend owns:
 | Semantic rendering | Layout plus innermost annotation resolution into sibling nodes | HTML construction and DOM commit |
 | HTML rendering | Layout, annotation resolution, escaping, and span construction | DOM commit only |
 
-Every cell resolves to one explicit registered candidate. Unsupported cells are
-gray and never fall back to a narrower candidate. The historical VIR JSON path
-is no longer a named experiment or canonical cell; it remains temporarily in
-Custom Lab as a compatibility diagnostic. Flat events, resident IDs, and direct
-DOM materialization likewise remain diagnostics because they vary an ABI or host
-endpoint rather than compiled breadth.
+Every cell resolves to one explicit primary registered candidate. Unsupported
+cells are gray and never fall back to a narrower candidate. When several
+implementations share that compiled boundary, the cell reports the number of
+variants and its tooltip names them; Custom Lab selects those variants directly.
+The registry classifies VIR flat and resident output as layout variants, VIR
+resident render-plan and direct-DOM materialization as semantic variants, and
+the optional FIR flat adapter as a layout variant. They vary an ABI or host
+endpoint, not compiled breadth, so they do not become additional matrix columns.
+The historical VIR JSON path is no longer a named experiment or matrix member;
+it remains temporarily in Custom Lab as a compatibility diagnostic.
 
 The specialized VIR candidates isolate separate boundary experiments. `VIR Flat`
 removes per-segment tag-stack copies while preserving the direct typed

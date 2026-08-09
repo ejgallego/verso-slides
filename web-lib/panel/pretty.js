@@ -96,7 +96,11 @@
  *   output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text" | "html",
  *   width: "pixels" | "columns",
  *   materializer?: "html-string" | "dom-fragment",
- *   matrix?: { backend: PrettyBackendFamily, breadth: PrettyPipelineBreadth }
+ *   matrix?: {
+ *     backend: PrettyBackendFamily,
+ *     breadth: PrettyPipelineBreadth,
+ *     role?: "primary" | "variant"
+ *   }
  * }} PrettyBackendCapabilities
  *
  * @typedef {{
@@ -225,6 +229,44 @@ function getPrettyBackend(id) {
             return candidate.id === id;
         }) || null
     );
+}
+
+/**
+ * Return every implementation registered for one capability-matrix cell.
+ * The primary implementation is first, followed by explicitly declared
+ * variants in registration order. Legacy diagnostics without matrix metadata
+ * intentionally remain available through getPrettyBackends() only.
+ * @param {PrettyBackendFamily} family
+ * @param {PrettyPipelineBreadth} breadth
+ * @return {PrettyBackend[]}
+ */
+function getPrettyMatrixBackends(family, breadth) {
+    return prettyBackends
+        .filter(function (backend) {
+            var matrix = backend.capabilities && backend.capabilities.matrix;
+            return matrix && matrix.backend === family && matrix.breadth === breadth;
+        })
+        .sort(function (left, right) {
+            var leftRole =
+                left.capabilities && left.capabilities.matrix
+                    ? left.capabilities.matrix.role
+                    : undefined;
+            var rightRole =
+                right.capabilities && right.capabilities.matrix
+                    ? right.capabilities.matrix.role
+                    : undefined;
+            return (leftRole === "variant" ? 1 : 0) - (rightRole === "variant" ? 1 : 0);
+        });
+}
+
+/**
+ * Return the primary implementation for one capability-matrix cell.
+ * @param {PrettyBackendFamily} family
+ * @param {PrettyPipelineBreadth} breadth
+ * @return {PrettyBackend | null}
+ */
+function getPrettyMatrixBackend(family, breadth) {
+    return getPrettyMatrixBackends(family, breadth)[0] || null;
 }
 
 /**
@@ -2175,6 +2217,7 @@ registerPrettyBackend({
         input: "lean-format",
         output: "text-events",
         width: "columns",
+        matrix: { backend: "vir", breadth: "layout", role: "variant" },
     },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;
@@ -2192,6 +2235,7 @@ registerPrettyBackend({
         input: "resident-id",
         output: "text-events",
         width: "columns",
+        matrix: { backend: "vir", breadth: "layout", role: "variant" },
     },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;
@@ -2210,6 +2254,7 @@ registerPrettyBackend({
         output: "render-plan",
         width: "columns",
         materializer: "html-string",
+        matrix: { backend: "vir", breadth: "semantic", role: "variant" },
     },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;
@@ -2233,6 +2278,7 @@ registerPrettyBackend({
         output: "render-plan",
         width: "columns",
         materializer: "dom-fragment",
+        matrix: { backend: "vir", breadth: "semantic", role: "variant" },
     },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;

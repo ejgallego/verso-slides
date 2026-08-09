@@ -52,6 +52,8 @@ async def main() -> None:
         backend_ids = list(BASE_BACKEND_IDS)
         if await page.evaluate("getPrettyBackend('native-flat') !== null"):
             backend_ids.insert(backend_ids.index("native") + 1, "native-flat")
+        if await page.evaluate("getPrettyBackend('native-html') !== null"):
+            backend_ids.insert(backend_ids.index("native") + 1, "native-html")
         await page.wait_for_function(
             """ids => ids.every(id => {
               const backend = getPrettyBackend(id);
@@ -75,6 +77,29 @@ async def main() -> None:
         assert await matrix.locator(
             '.pretty-matrix-cell.is-current.is-unsupported'
         ).count() == 2
+        matrix_registry = await page.evaluate(
+            """() => ({
+              primaryLayout: getPrettyMatrixBackend('vir', 'layout').id,
+              virLayout: getPrettyMatrixBackends('vir', 'layout').map(x => x.id),
+              virSemantic: getPrettyMatrixBackends('vir', 'semantic').map(x => x.id),
+              legacyJsonInMatrix: getPrettyMatrixBackends('vir', 'layout')
+                .some(x => x.id === 'vir')
+            })"""
+        )
+        assert matrix_registry == {
+            "primaryLayout": "vir-format",
+            "virLayout": ["vir-format", "vir-flat", "vir-resident"],
+            "virSemantic": ["vir-semantic", "vir-render", "vir-dom"],
+            "legacyJsonInMatrix": False,
+        }
+        vir_layout_cell = matrix.locator(
+            '.pretty-matrix-cell[data-pretty-backend="vir"]'
+            '[data-pretty-breadth="layout"]'
+        )
+        assert await vir_layout_cell.locator(".pretty-matrix-variants").inner_text() == (
+            "+2 variants"
+        )
+        assert "VIR Flat, VIR Resident" in (await vir_layout_cell.get_attribute("title"))
         included = await matrix.locator(".pretty-matrix-cell.is-included").evaluate_all(
             "els => els.map(el => el.dataset.prettyBackend)"
         )

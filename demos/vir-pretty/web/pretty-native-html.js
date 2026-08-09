@@ -46,6 +46,21 @@
     bridge.status = bridge.enabled ? "loading" : "disabled";
     root.__versoPrettyNativeHtml = bridge;
 
+    var prettyConfig = root.__versoPrettyConfig;
+    if (prettyConfig && Array.isArray(prettyConfig.experiments)) {
+        var allExperiment = prettyConfig.experiments.find(function (experiment) {
+            return experiment.id === "all";
+        });
+        if (allExperiment && !allExperiment.backends.includes("native-html")) {
+            var nativeIndex = allExperiment.backends.indexOf("native");
+            allExperiment.backends.splice(
+                nativeIndex < 0 ? allExperiment.backends.length : nativeIndex + 1,
+                0,
+                "native-html",
+            );
+        }
+    }
+
     /** @param {string} key @param {string} message @param {*} error */
     function warnOnce(key, message, error) {
         var warnings = bridge.warnings || (bridge.warnings = {});

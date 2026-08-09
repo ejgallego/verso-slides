@@ -105,6 +105,7 @@
             input: "browser-format",
             output: "text-events",
             width: "columns",
+            matrix: { backend: "fir", breadth: "layout", role: "variant" },
         },
         status: function () {
             return bridge.status || "unavailable";

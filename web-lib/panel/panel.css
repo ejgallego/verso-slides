@@ -252,6 +252,16 @@ button.pretty-matrix-cell {
     white-space: nowrap;
 }
 
+.pretty-matrix-variants {
+    color: #7f8a98;
+    font-size: 0.61em;
+    line-height: 1.1;
+}
+
+.pretty-matrix-cell.is-included .pretty-matrix-variants {
+    color: #afc5e6;
+}
+
 .pretty-matrix-cell .pretty-controls-status {
     font-size: 0.64em;
 }

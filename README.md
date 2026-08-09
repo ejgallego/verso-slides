@@ -810,6 +810,14 @@ C → LLVM/Emscripten Wasm route. With no selection, the panel uses
 `"js"`. An unavailable or unknown explicit selection is shown as
 unavailable instead of falling back to another candidate.
 
+Candidate capability metadata is also the source of truth for the guided
+backend × compiled-breadth matrix. `getPrettyMatrixBackend` returns a cell's
+primary candidate and `getPrettyMatrixBackends` returns that primary plus its
+registered ABI/materialization variants. The shared FIR and LLVM adapters
+declare their layout cells, so this works for ordinary Verso-generated assets
+as well as for the demo's copied adapters. Legacy diagnostics without matrix
+metadata remain available only through Custom Lab.
+
 Set `window.__versoPrettyConfig.compare` to `true` to render every
 selected candidate side by side. Set `controls` to `true` to add an
 interactive formatter menu. Named questions appear in a compact

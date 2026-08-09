@@ -279,6 +279,7 @@ interface PrettyBackendDefinition {
         matrix?: {
             backend: "js" | "vir" | "fir" | "llvm";
             breadth: "layout" | "semantic" | "html";
+            role?: "primary" | "variant";
         };
     };
     renderSegments?(
@@ -315,6 +316,14 @@ interface PrettyExperimentDefinition {
 declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;
 declare function getPrettyBackends(): PrettyBackendDefinition[];
 declare function getPrettyBackend(id: string): PrettyBackendDefinition | null;
+declare function getPrettyMatrixBackends(
+    family: "js" | "vir" | "fir" | "llvm",
+    breadth: "layout" | "semantic" | "html",
+): PrettyBackendDefinition[];
+declare function getPrettyMatrixBackend(
+    family: "js" | "vir" | "fir" | "llvm",
+    breadth: "layout" | "semantic" | "html",
+): PrettyBackendDefinition | null;
 declare function createColumnMeasurer(columns: number): DOMMeasurer;
 declare function compactFormatSourceLength(fmtJson: any): number;
 declare function emptyPrettyTimings(): PrettyTimings;

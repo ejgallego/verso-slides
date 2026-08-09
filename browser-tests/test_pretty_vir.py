@@ -426,6 +426,7 @@ class TestPrettyVirBridge:
             "output": "render-plan",
             "width": "columns",
             "materializer": "html-string",
+            "matrix": {"backend": "vir", "breadth": "semantic", "role": "variant"},
         }
 
     def test_vir_render_plan_can_materialize_a_direct_dom_fragment(
@@ -493,6 +494,7 @@ class TestPrettyVirBridge:
             "output": "render-plan",
             "width": "columns",
             "materializer": "dom-fragment",
+            "matrix": {"backend": "vir", "breadth": "semantic", "role": "variant"},
         }
 
     def test_explicit_vir_backend_rejects_invalid_segments(self, code_url: str, page: Page):
@@ -543,6 +545,7 @@ class TestPrettyNativeBridge:
             "input": "browser-format",
             "output": "pretty-trace",
             "width": "columns",
+            "matrix": {"backend": "fir", "breadth": "layout"},
         }
         assert result["status"] == "disabled"
 
@@ -627,6 +630,7 @@ class TestPrettyLlvmBridge:
             "input": "browser-format",
             "output": "pretty-trace",
             "width": "columns",
+            "matrix": {"backend": "llvm", "breadth": "layout"},
         }
         assert result["status"] == "disabled"
 
@@ -732,10 +736,50 @@ class TestPrettyNativeFlatBridge:
             "input": "browser-format",
             "output": "text-events",
             "width": "columns",
+            "matrix": {"backend": "fir", "breadth": "layout", "role": "variant"},
         }
         assert result["experiment"]["backends"] == ["native", "native-flat"]
         assert result["experiment"]["design"] == "controlled"
         assert result["experiment"]["variable"].startswith("FIR output:")
+
+
+class TestPrettyNativeHtmlBridge:
+    def test_configured_html_adapter_registers_with_matrix_and_all_consumers(
+        self, code_url: str, page: Page
+    ):
+        """The optional FIR HTML package fills its matrix cell and overview preset."""
+        goto_slide_by_title(page, code_url, "Dark Code")
+        page.evaluate(
+            """() => {
+                window.__versoPrettyConfig.experiments = [{
+                    id: 'all', label: 'All backends', question: 'all',
+                    backends: ['js', 'native', 'llvm']
+                }];
+                window.__versoPrettyNativeHtmlConfig = { enabled: false };
+            }"""
+        )
+        script = (
+            Path(__file__).parents[1]
+            / "demos"
+            / "vir-pretty"
+            / "web"
+            / "pretty-native-html.js"
+        ).read_text()
+        page.add_script_tag(content=script)
+        result = page.evaluate(
+            """() => ({
+                candidate: getPrettyMatrixBackend('fir', 'html'),
+                allBackends: window.__versoPrettyConfig.experiments[0].backends,
+                status: window.__versoPrettyNativeHtml.status
+            })"""
+        )
+        assert result["candidate"]["id"] == "native-html"
+        assert result["candidate"]["capabilities"]["matrix"] == {
+            "backend": "fir",
+            "breadth": "html",
+        }
+        assert result["allBackends"] == ["js", "native", "native-html", "llvm"]
+        assert result["status"] == "disabled"
 
 
 class TestPrettyVirComparisonPanel:
@@ -860,7 +904,7 @@ class TestPrettyVirComparisonPanel:
             ".pretty-controls-dimension.is-variable .pretty-controls-dimension-name"
         ).all_inner_texts() == ["INPUT", "INPUT"]
 
-        controls.locator('input[value="js"]').check()
+        controls.locator('.pretty-controls-backend input[value="js"]').check()
         expect(controls.locator(".pretty-controls-experiment select")).to_have_value("custom")
         expect(controls.locator(".pretty-controls-design")).to_have_text("Custom comparison")
         expect(controls.locator(".pretty-controls-boundary")).to_contain_text(
@@ -984,7 +1028,7 @@ class TestPrettyVirComparisonPanel:
         tactic.click()
 
         expect(panel.locator(".pretty-compare")).to_be_visible()
-        assert panel.locator(".pretty-compare-pane").count() == 9
+        assert panel.locator(".pretty-compare-pane").count() == 13
         assert block.evaluate("el => el.classList.contains('pretty-compare-active')")
         layout = block.evaluate(
             """block => {
@@ -1112,9 +1156,11 @@ class TestPrettyVirComparisonPanel:
         controls.wait_for(state="visible")
         expect(controls).to_be_visible()
         controls.locator(":scope > summary").click()
-        expect(controls.locator('input[value="js"]')).to_be_checked()
-        expect(controls.locator('input[value="vir"]')).to_be_checked()
-        expect(controls.locator('input[value="vir-format"]')).not_to_be_checked()
+        expect(controls.locator('.pretty-controls-backend input[value="js"]')).to_be_checked()
+        expect(controls.locator('.pretty-controls-backend input[value="vir"]')).to_be_checked()
+        expect(
+            controls.locator('.pretty-controls-backend input[value="vir-format"]')
+        ).not_to_be_checked()
         expect(controls.locator(".pretty-controls-columns input")).to_have_value("32")
         expect(controls.locator(".pretty-controls-workload select")).to_have_value("0")
 
@@ -1129,9 +1175,9 @@ class TestPrettyVirComparisonPanel:
         expect(timing_scope).to_contain_text("equivalent populated DOM")
         expect(timing_scope).to_contain_text("excludes layout and paint")
         timing.select_option("execute")
-        expect(timing_scope).to_contain_text("JS ends at tagged segments")
-        expect(timing_scope).to_contain_text("VIR Render also resolves annotations")
-        expect(timing_scope).to_contain_text("Host materialization is excluded")
+        expect(timing_scope).to_contain_text("candidate's declared endpoint")
+        expect(timing_scope).to_contain_text("low-level styled output")
+        expect(timing_scope).to_contain_text("escaped HTML")
         assert all(
             text.startswith("Execute · ")
             for text in panel.locator(".pretty-compare-time").all_inner_texts()
@@ -1159,7 +1205,7 @@ class TestPrettyVirComparisonPanel:
         )
         assert all("Workload:" in title and "code points across" in title for title in workload_titles)
 
-        controls.locator('input[value="vir"]').uncheck()
+        controls.locator('.pretty-controls-backend input[value="vir"]').uncheck()
         expect(panel.locator('.pretty-compare-pane[data-pretty-backend="js"]')).to_be_visible()
         assert panel.locator(".pretty-compare-pane").count() == 1
         assert "pretty=js" in page.url

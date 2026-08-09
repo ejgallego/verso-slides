@@ -419,12 +419,7 @@
      * @return {PrettyBackendDefinition | null}
      */
     function prettyMatrixCandidate(family, breadth) {
-        return (
-            getPrettyBackends().find(function (backend) {
-                var matrix = backend.capabilities && backend.capabilities.matrix;
-                return matrix && matrix.backend === family && matrix.breadth === breadth;
-            }) || null
-        );
+        return getPrettyMatrixBackend(/** @type {*} */ (family), /** @type {*} */ (breadth));
     }
 
     /** @return {PrettyBackendDefinition[]} */
@@ -871,6 +866,10 @@
 
             PRETTY_MATRIX_BREADTHS.forEach(function (breadth) {
                 var candidate = prettyMatrixCandidate(family.id, breadth.id);
+                var candidates = getPrettyMatrixBackends(
+                    /** @type {*} */ (family.id),
+                    /** @type {*} */ (breadth.id),
+                );
                 if (!candidate) {
                     var unavailable = document.createElement("span");
                     unavailable.className =
@@ -896,13 +895,33 @@
                 var candidateName = document.createElement("span");
                 candidateName.className = "pretty-matrix-candidate";
                 candidateName.textContent = candidate.label;
+                var variantCount = candidates.length - 1;
+                if (variantCount > 0) {
+                    var variants = document.createElement("span");
+                    variants.className = "pretty-matrix-variants";
+                    variants.textContent =
+                        "+" + variantCount + (variantCount === 1 ? " variant" : " variants");
+                    cell.append(candidateName, variants);
+                } else {
+                    cell.appendChild(candidateName);
+                }
                 var candidateState = document.createElement("span");
                 candidateState.className =
                     "pretty-controls-status status-" +
                     state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
                 candidateState.textContent = state;
-                cell.append(candidateName, candidateState);
+                cell.appendChild(candidateState);
                 cell.title = prettyBackendBoundaryDetails(candidate);
+                if (variantCount > 0) {
+                    cell.title +=
+                        "\n\nOther implementations in Custom Lab: " +
+                        candidates
+                            .slice(1)
+                            .map(function (variant) {
+                                return variant.label;
+                            })
+                            .join(", ");
+                }
                 cell.addEventListener("click", function () {
                     var next = selectedPrettyFamilies();
                     next.add(family.id);
@@ -1045,7 +1064,7 @@
             });
             experimentLabel.appendChild(experimentSelect);
             labBody.appendChild(experimentLabel);
-            if (experiment) labBody.appendChild(prettyBoundaryCard(experiment));
+            labBody.appendChild(prettyBoundaryCard(experiment));
         }
 
         var settings = document.createElement("div");
