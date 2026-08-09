@@ -47,7 +47,7 @@ if [[ -d "$native_html_dir" ]]; then
 fi
 
 (cd "$demo_root" &&
-  lake build vir-pretty-demo VirPrettyDemo.Pretty &&
+  lake build vir-pretty-demo &&
   lake exe vir-pretty-demo)
 
 # The ordinary Verso Slides package ships the compact production panel. This
@@ -115,7 +115,7 @@ python3 "$demo_root/scripts/generate-pretty-registry.py" \
   "$out_dir" \
   "$registry_source" \
   "$out_dir/vir-pretty/verso-pretty-registry.json" \
-  --pretty-source "$demo_root/VirPrettyDemo/Pretty.lean"
+  --pretty-source "$workspace_root/VersoSlides/Pretty.lean"
 
 (cd "$lean_vir_dir" && lake exe vir_irpkg \
   "$out_dir/vir-pretty/verso-pretty.irpkg" \

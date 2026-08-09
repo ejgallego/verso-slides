@@ -22,6 +22,27 @@ demo build explicitly stages them. They are no longer vendored into every deck.
 Run `node scripts/panel-component-metrics.mjs` to reproduce the source and
 delivery numbers. The script uses deterministic gzip settings.
 
+## Management-facing source impact
+
+Assuming the VIR runtime and `VersoSlides.Pretty` are shared infrastructure,
+the current source comparison is:
+
+| Boundary | JavaScript baseline | Lean/VIR pilot | Physical-line change |
+| --- | ---: | ---: | ---: |
+| semantic formatter/component | 662 | 248 | -62.5% |
+| projected hybrid application code, before the final host bridge | 1,320 | 906 | -31.4% |
+
+The second row retains all 658 lines of the ordinary browser panel and replaces
+the 662-line JavaScript formatter with the 141-line compiler-neutral component
+and 107-line VIR/React view. It is a ceiling rather than a completed reduction:
+the final bridge will add code, so the pilot target is a 20--30% net reduction.
+
+The shared Lean formatter is 526 lines and serves the formatter matrix as well
+as this component. Assembly embeds that canonical source in its generated,
+self-contained VIR target; the demo no longer maintains an identical tracked
+copy. These figures deliberately charge the shared formatter once rather than
+once per consumer.
+
 ## Experiment boundary, with source lines
 
 The compiler-neutral Lean component is 141 lines:

@@ -11,6 +11,7 @@ const sources = {
     productionFormatter: "web-lib/panel/pretty.js",
     labPanel: "demos/vir-pretty/web/panel-lab.js",
     labFormatter: "demos/vir-pretty/web/formatter-lab.js",
+    sharedPretty: "VersoSlides/Pretty.lean",
     leanModel: "VersoSlides/Panel/Component.lean",
     virReactView: "experiments/vir-panel/VirPanelExperiment.lean",
 };
@@ -34,12 +35,29 @@ for (const [name, path] of Object.entries(sources)) {
 
 const production = sum(sourceMetrics.productionPanel, sourceMetrics.productionFormatter);
 const lab = sum(sourceMetrics.labPanel, sourceMetrics.labFormatter);
+const leanSemanticLines = sourceMetrics.leanModel.lines + sourceMetrics.virReactView.lines;
+const projectedHybridLines = sourceMetrics.productionPanel.lines + leanSemanticLines;
 const result = {
     sources: sourceMetrics,
     deliveredJavaScript: {
         production,
         lab,
         labMinusProduction: subtract(lab, production),
+    },
+    humanFactors: {
+        currentApplicationSpecificLines:
+            sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines,
+        leanSemanticLines,
+        projectedHybridLinesBeforeBridge: projectedHybridLines,
+        projectedHybridLineReductionPercent: roundPercent(
+            1 - projectedHybridLines /
+                (sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines),
+        ),
+        semanticLineReductionPercent: roundPercent(
+            1 - leanSemanticLines / sourceMetrics.productionFormatter.lines,
+        ),
+        sharedPrettyLines: sourceMetrics.sharedPretty.lines,
+        note: "The hybrid projection retains the complete browser panel, replaces the JavaScript formatter with the Lean component/view, and excludes the final host bridge.",
     },
 };
 
@@ -98,4 +116,8 @@ function sum(...values) {
 
 function subtract(left, right) {
     return { bytes: left.bytes - right.bytes, gzipBytes: left.gzipBytes - right.gzipBytes };
+}
+
+function roundPercent(value) {
+    return Math.round(value * 1000) / 10;
 }

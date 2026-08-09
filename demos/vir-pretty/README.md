@@ -157,8 +157,10 @@ lean-llvm/{README.md,SHA256SUMS,emscripten-loader.mjs,
 ```
 
 `scripts/assemble.sh` generates `verso-pretty.irpkg` for the assembled
-deck from `VirPrettyDemo/Pretty.lean` plus its deduplicated resident
-table. Set `LEAN_VIR_DIR` to a built VIR checkout when it is not
+deck from the canonical `../../VersoSlides/Pretty.lean` source plus its
+deduplicated resident table. The source is embedded into the generated target
+so the artifact remains self-contained without maintaining a second formatter
+copy in the demo. Set `LEAN_VIR_DIR` to a built VIR checkout when it is not
 available at `../../_artifacts/lean-vir`. The exported names
 deliberately retain the existing `VersoSlides.Pretty.*` ABI so current
 artifacts remain usable while the demo is moved out of the Verso
