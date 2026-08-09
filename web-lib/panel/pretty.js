@@ -49,17 +49,41 @@
  *
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
  *
+ * @typedef {"marshal" | "execute" | "decode" | "render" | "total"} PrettyTimingPhase
+ *
+ * @typedef {{ label: string, valueMs: number, phase?: PrettyTimingPhase }} PrettyTimingDetail
+ *
+ * @typedef {{
+ *   marshalMs: number,
+ *   executeMs: number,
+ *   decodeMs: number,
+ *   renderMs: number,
+ *   totalMs: number,
+ *   details?: PrettyTimingDetail[]
+ * }} PrettyTimings
+ *
+ * @typedef {{ segments: Segment[] | null, timings: PrettyTimings }} PrettySegmentResult
+ *
+ * @typedef {{ html: string | null, durationMs: number, timings: PrettyTimings }} TimedPrettyResult
+ *
  * @typedef {{
  *   id: string,
  *   label: string,
+ *   capabilities?: { output: string, width: string },
  *   status?: () => string,
  *   ready?: Promise<*>,
- *   renderSegments: (
+ *   renderSegments?: (
  *     fmtJson: *,
  *     annotations: Record<string, TokenAnnotation>,
  *     pixelWidth: number,
  *     measurer: DOMMeasurer
- *   ) => Segment[] | null
+ *   ) => Segment[] | null,
+ *   renderTimed?: (
+ *     fmtJson: *,
+ *     annotations: Record<string, TokenAnnotation>,
+ *     pixelWidth: number,
+ *     measurer: DOMMeasurer
+ *   ) => PrettySegmentResult
  * }} PrettyBackend
  */
 
@@ -79,7 +103,7 @@ function registerPrettyBackend(backend) {
         backend.id.length === 0 ||
         typeof backend.label !== "string" ||
         backend.label.length === 0 ||
-        typeof backend.renderSegments !== "function"
+        (typeof backend.renderSegments !== "function" && typeof backend.renderTimed !== "function")
     ) {
         throw new TypeError("invalid pretty backend registration");
     }
@@ -567,34 +591,206 @@ function makeRenderContext(annotations, measurer) {
     };
 }
 
+/** @return {PrettyTimings} */
+function emptyPrettyTimings() {
+    return {
+        marshalMs: 0,
+        executeMs: 0,
+        decodeMs: 0,
+        renderMs: 0,
+        totalMs: 0,
+    };
+}
+
 /**
- * Run the built-in JavaScript formatter.
+ * @param {*} value
+ * @return {PrettyTimings}
+ */
+function requirePrettyTimings(value) {
+    if (!value || typeof value !== "object") {
+        throw new TypeError("pretty backend did not return phase timings");
+    }
+    var checked = emptyPrettyTimings();
+    /** @type {Array<"marshalMs" | "executeMs" | "decodeMs" | "renderMs" | "totalMs">} */
+    var timingKeys = ["marshalMs", "executeMs", "decodeMs", "renderMs", "totalMs"];
+    timingKeys.forEach(function (key) {
+        var timing = value[key];
+        if (typeof timing !== "number" || !Number.isFinite(timing) || timing < 0) {
+            throw new TypeError("invalid pretty backend timing: " + key);
+        }
+        checked[key] = timing;
+    });
+    if (value.details !== undefined) {
+        if (!Array.isArray(value.details)) {
+            throw new TypeError("pretty backend timing details must be an array");
+        }
+        var inputDetails = /** @type {*[]} */ (value.details);
+        checked.details = inputDetails.map(function (detail) {
+            if (
+                !detail ||
+                typeof detail.label !== "string" ||
+                detail.label.length === 0 ||
+                typeof detail.valueMs !== "number" ||
+                !Number.isFinite(detail.valueMs) ||
+                detail.valueMs < 0 ||
+                (detail.phase !== undefined &&
+                    !["marshal", "execute", "decode", "render", "total"].includes(detail.phase))
+            ) {
+                throw new TypeError("invalid pretty backend timing detail");
+            }
+            return {
+                label: detail.label,
+                valueMs: detail.valueMs,
+                phase: detail.phase,
+            };
+        });
+    }
+    return checked;
+}
+
+/**
+ * @param {PrettyTimings} target
+ * @param {PrettyTimings} source
+ * @return {PrettyTimings}
+ */
+function addPrettyTimings(target, source) {
+    target.marshalMs += source.marshalMs;
+    target.executeMs += source.executeMs;
+    target.decodeMs += source.decodeMs;
+    target.renderMs += source.renderMs;
+    target.totalMs += source.totalMs;
+    if (source.details) {
+        var details = target.details || (target.details = []);
+        source.details.forEach(function (sourceDetail) {
+            var existing = details.find(function (detail) {
+                return detail.label === sourceDetail.label && detail.phase === sourceDetail.phase;
+            });
+            if (existing) {
+                existing.valueMs += sourceDetail.valueMs;
+            } else {
+                details.push(Object.assign({}, sourceDetail));
+            }
+        });
+    }
+    return target;
+}
+
+/**
+ * A deterministic character-column measurer for formatter comparison. Every
+ * backend receives the same budget instead of deriving it independently from
+ * the width of its pane.
+ * @param {number} columns
+ * @return {DOMMeasurer}
+ */
+function createColumnMeasurer(columns) {
+    var width = Math.max(1, Math.floor(columns));
+    return {
+        measure: function (text) {
+            return Array.from(text).length;
+        },
+        spaceWidth: 1,
+        measureElWidth: function () {
+            return width;
+        },
+        cleanup: function () {},
+    };
+}
+
+/**
+ * Run and time the built-in JavaScript formatter.
  * @param {*} fmtJson
  * @param {Record<string, TokenAnnotation>} annotations
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {Segment[]}
+ * @return {PrettySegmentResult}
  */
-function formatSegmentsWithJs(fmtJson, annotations, pixelWidth, measurer) {
+function formatSegmentsWithJsTimed(fmtJson, annotations, pixelWidth, measurer) {
+    var started = performance.now();
     var fmt = deserializeFormat(fmtJson);
     var ctx = makeRenderContext(annotations, measurer);
+    var marshaled = performance.now();
     prettyM(fmt, pixelWidth, 0, ctx, measurer);
-    return ctx.segments;
+    var executed = performance.now();
+    return {
+        segments: ctx.segments,
+        timings: {
+            marshalMs: Math.max(0, marshaled - started),
+            executeMs: Math.max(0, executed - marshaled),
+            decodeMs: 0,
+            renderMs: 0,
+            totalMs: Math.max(0, executed - started),
+        },
+    };
 }
 
 registerPrettyBackend({
     id: "js",
     label: "JavaScript",
+    capabilities: { output: "segments", width: "pixels" },
     status: function () {
         return "ready";
     },
-    renderSegments: formatSegmentsWithJs,
+    renderTimed: formatSegmentsWithJsTimed,
 });
 
 /**
- * Render a format tree through one explicitly selected backend. Missing or
- * unavailable backends return `null`; callers decide how to present that
- * state instead of silently falling back to another implementation.
+ * Execute one backend and normalize its phase timings.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @param {PrettyBackend} backend
+ * @return {PrettySegmentResult}
+ */
+function renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, backend) {
+    if (backend.status && backend.status() !== "ready") {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    if (typeof backend.renderTimed === "function") {
+        var result = backend.renderTimed(fmtJson, annotations, pixelWidth, measurer);
+        if (!result || (result.segments !== null && !Array.isArray(result.segments))) {
+            throw new TypeError("invalid timed pretty backend result");
+        }
+        return { segments: result.segments, timings: requirePrettyTimings(result.timings) };
+    }
+    if (typeof backend.renderSegments !== "function") {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    var started = performance.now();
+    var segments = backend.renderSegments(fmtJson, annotations, pixelWidth, measurer);
+    var finished = performance.now();
+    var timings = emptyPrettyTimings();
+    timings.executeMs = Math.max(0, finished - started);
+    timings.totalMs = timings.executeMs;
+    return { segments: segments, timings: timings };
+}
+
+/**
+ * Render a format tree and retain normalized formatter and HTML timings.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @param {string} backendId
+ * @return {TimedPrettyResult}
+ */
+function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backendId) {
+    var started = performance.now();
+    var backend = getPrettyBackend(backendId);
+    if (!backend) {
+        return { html: null, durationMs: 0, timings: emptyPrettyTimings() };
+    }
+    var result = renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, backend);
+    var renderStarted = performance.now();
+    var html = result.segments === null ? null : segmentsToHtml(result.segments, annotations);
+    var finished = performance.now();
+    result.timings.renderMs += Math.max(0, finished - renderStarted);
+    result.timings.totalMs = Math.max(0, finished - started);
+    return { html: html, durationMs: result.timings.totalMs, timings: result.timings };
+}
+
+/**
+ * Render a format tree through one explicitly selected backend.
  * @param {*} fmtJson
  * @param {Record<string, TokenAnnotation>} annotations
  * @param {number} pixelWidth
@@ -603,11 +799,7 @@ registerPrettyBackend({
  * @return {string | null}
  */
 function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backendId) {
-    var backend = getPrettyBackend(backendId);
-    if (!backend) return null;
-    if (backend.status && backend.status() !== "ready") return null;
-    var segments = backend.renderSegments(fmtJson, annotations, pixelWidth, measurer);
-    return segments === null ? null : segmentsToHtml(segments, annotations);
+    return formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backendId).html;
 }
 
 /**
@@ -749,8 +941,11 @@ function goalsToHtml(goalsJson) {
  * @param {FormatData[]} formats
  * @param {DOMMeasurer} measurer
  * @param {string} [backendId]
+ * @param {number} [fixedWidth]
+ * @return {PrettyTimings}
  */
-function fillReflowedSpans(container, formats, measurer, backendId) {
+function fillReflowedSpans(container, formats, measurer, backendId, fixedWidth) {
+    var totals = emptyPrettyTimings();
     var spans = container.querySelectorAll(".reflowed[data-fmt-idx]");
     for (var i = 0; i < spans.length; i++) {
         var span = spans[i];
@@ -759,15 +954,19 @@ function fillReflowedSpans(container, formats, measurer, backendId) {
         if (!entry) continue;
         var cell = span.closest(".type");
         if (!cell) continue;
-        var width = measurer.measureElWidth(cell);
-        var rendered = formatToHtmlWithBackend(
+        var width = typeof fixedWidth === "number" ? fixedWidth : measurer.measureElWidth(cell);
+        var rendered = formatToHtmlTimed(
             entry.fmt,
             entry.annotations,
             width,
             measurer,
             backendId || "js",
         );
+        addPrettyTimings(totals, rendered.timings);
         span.innerHTML =
-            rendered === null ? '<span class="pretty-unavailable">unavailable</span>' : rendered;
+            rendered.html === null
+                ? '<span class="pretty-compare-unavailable">unavailable</span>'
+                : rendered.html;
     }
+    return totals;
 }

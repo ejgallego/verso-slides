@@ -759,6 +759,46 @@ The built-in backend has ID `js`. Registering an existing ID replaces
 its definition, while `getPrettyBackends()` returns a copy of the
 ordered registry.
 
+### Formatter Comparison and Timings
+
+Panels can compare registered formatters with one deterministic
+character-column budget. Enable the floating options control and
+comparison mode before panel initialization:
+
+```javascript
+window.__versoPrettyConfig = {
+    compare: true,
+    controls: true,
+    backends: ["js", "candidate"],
+    columns: 40,
+    timing: "tracks",
+};
+```
+
+The control selects participating processors, the primary formatter,
+comparison mode, column budget, and timing presentation. Its choices
+are reflected in URL parameters so a configured view can be shared.
+The primary timing can show total, execute, marshal, decode, HTML
+rendering, or panel wall time. The `"tracks"` view shows total time
+above marshal/execute/decode/HTML lanes.
+
+A backend that needs phase attribution implements `renderTimed`
+instead of `renderSegments`. It returns the same segments plus
+non-negative `marshalMs`, `executeMs`, `decodeMs`, `renderMs`, and
+`totalMs` values. Optional backend-specific hover information uses
+data rather than core conditionals:
+
+```javascript
+details: [
+    { label: "Runtime input", valueMs: 0.12, phase: "marshal" },
+    { label: "Host calls", valueMs: 0.34, phase: "execute" },
+];
+```
+
+Verso measures HTML generation and the complete panel wall time
+itself. Missing or malformed phase data is rejected instead of being
+presented as a valid measurement.
+
 ### Auto-Advance
 
 `autoSlide`, `autoSlideStoppable`, and `autoSlideMethod` together

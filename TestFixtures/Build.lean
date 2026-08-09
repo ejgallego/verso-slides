@@ -39,6 +39,8 @@ def hlCustomCss : HighlightTheme where
   filename := "hl/my-hl.css"
   contents := ⟨".hljs { background: #abcdef; }\n"⟩
 
+def prettyPluginJs : String := include_str "pretty-plugin.js"
+
 def main : IO UInt32 := do
   let rc ← slidesMain
     { theme := "black", outputDir := "_test/markup", extraCss := #[markupBannerCss]
@@ -46,9 +48,11 @@ def main : IO UInt32 := do
     (%doc TestFixtures.Markup)
   if rc != 0 then return rc
   let rc ← slidesMain
-    { theme := "black", outputDir := "_test/code" }
+    { theme := "black", outputDir := "_test/code",
+      panelPlugins := #["fixture-pretty-plugin.js"] }
     (%doc TestFixtures.Code)
   if rc != 0 then return rc
+  IO.FS.writeFile "_test/code/fixture-pretty-plugin.js" prettyPluginJs
   let rc ← slidesMain
     { theme := "black", outputDir := "_test/paneloption" }
     (%doc TestFixtures.PanelOption)

@@ -24,6 +24,11 @@
     overflow-y: auto;
 }
 
+.code-with-panel.pretty-compare-active {
+    grid-template-columns: var(--code-ratio, 1fr) auto var(--panel-ratio, 3fr);
+    grid-template-rows: minmax(0, 1fr);
+}
+
 /* Code block inside panel — override standalone margins/shadow */
 .code-with-panel > code.hl.lean.block {
     position: relative; /* anchor for the .panel-outline-svg overlay */
@@ -66,9 +71,126 @@
     text-align: left;
 }
 
-.info-panel .pretty-unavailable {
-    opacity: 0.65;
-    font-style: italic;
+.pretty-compare-active .info-panel {
+    overflow-x: auto;
+}
+
+.pretty-compare-active > .panel-cell {
+    min-height: 0;
+}
+
+/* Global testing controls are opt-in through __versoPrettyConfig.controls. */
+.pretty-controls {
+    position: fixed;
+    top: 0.65rem;
+    right: 0.65rem;
+    z-index: 1000;
+    width: min(20rem, calc(100vw - 1.3rem));
+    color: #ddd;
+    background: rgba(28, 30, 34, 0.96);
+    border: 1px solid rgba(180, 180, 180, 0.35);
+    border-radius: 0.4rem;
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.35);
+    font: 0.82rem/1.35 sans-serif;
+    text-align: left;
+}
+
+.pretty-controls > summary {
+    cursor: pointer;
+    padding: 0.4rem 0.6rem;
+    user-select: none;
+    font-weight: 600;
+}
+
+.pretty-controls-menu {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0 0.65rem 0.65rem;
+}
+
+.pretty-controls fieldset {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.35rem 0.45rem 0.45rem;
+    border: 1px solid rgba(180, 180, 180, 0.25);
+    border-radius: 0.25rem;
+}
+
+.pretty-controls legend {
+    padding: 0 0.25rem;
+    color: #bbb;
+}
+
+.pretty-controls-backend {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.pretty-controls-capability,
+.pretty-controls-status {
+    color: #aaa;
+    font-size: 0.78em;
+    white-space: nowrap;
+}
+
+.pretty-controls-status::before {
+    content: "";
+    display: inline-block;
+    width: 0.45em;
+    height: 0.45em;
+    margin-right: 0.3em;
+    border-radius: 50%;
+    background: #a06f3b;
+}
+
+.pretty-controls-status.status-ready::before {
+    background: #55a868;
+}
+
+.pretty-controls-status.status-loading::before {
+    background: #d9a441;
+}
+
+.pretty-controls-status.status-failed::before,
+.pretty-controls-status.status-unavailable::before {
+    background: #c44e52;
+}
+
+.pretty-controls-columns,
+.pretty-controls-primary,
+.pretty-controls-timing,
+.pretty-controls-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.pretty-controls-columns input {
+    width: 4.5rem;
+}
+
+.pretty-controls-primary select,
+.pretty-controls-timing select {
+    min-width: 8rem;
+}
+
+.pretty-controls input,
+.pretty-controls select {
+    accent-color: #6d9eeb;
+    color: inherit;
+    background: #25282d;
+    border: 1px solid rgba(180, 180, 180, 0.35);
+    border-radius: 0.2rem;
+}
+
+.pretty-controls-note {
+    margin: 0;
+    color: #aaa;
+    font-size: 0.78em;
 }
 
 /* Focus/hover highlights are drawn as one contiguous SVG path per element
@@ -182,6 +304,130 @@
     white-space: pre;
     word-wrap: normal;
     overflow-wrap: normal;
+}
+
+.info-panel .pretty-compare {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 0.6em;
+    align-items: stretch;
+    min-height: 100%;
+    min-width: 0;
+}
+
+.info-panel .pretty-compare-pane {
+    min-width: 0;
+    overflow: auto;
+    border-left: 2px solid rgba(128, 128, 128, 0.35);
+    padding-left: 0.5em;
+}
+
+.info-panel .pretty-compare-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5em;
+    margin-bottom: 0.25em;
+    font-family: sans-serif;
+    font-size: 0.78em;
+    line-height: 1.2;
+    color: rgba(150, 150, 150, 0.95);
+}
+
+.info-panel .pretty-compare-time {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    cursor: help;
+    text-decoration: underline dotted rgba(150, 150, 150, 0.55);
+    text-underline-offset: 0.18em;
+}
+
+.info-panel .pretty-compare-time.pretty-timing-tracks {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: 0.12em;
+    text-decoration: none;
+}
+
+.info-panel .pretty-compare-header.pretty-timing-header-tracks {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25em;
+}
+
+.info-panel .pretty-timing-tracks-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5em;
+    padding-bottom: 0.15em;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+    color: rgba(190, 190, 190, 0.95);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.info-panel .pretty-timing-track {
+    display: grid;
+    grid-template-columns: 1em minmax(1.8em, 1fr) 2.7em;
+    align-items: center;
+    gap: 0.3em;
+    min-width: 0;
+}
+
+.info-panel .pretty-timing-track-label {
+    color: rgba(180, 180, 180, 0.9);
+    font-size: 0.82em;
+    font-weight: 700;
+    text-align: center;
+}
+
+.info-panel .pretty-timing-track-rail {
+    display: block;
+    height: 0.45em;
+    overflow: hidden;
+    background: rgba(128, 128, 128, 0.22);
+    border-radius: 0.2em;
+}
+
+.info-panel .pretty-timing-track-fill {
+    display: block;
+    height: 100%;
+    min-width: 1px;
+    background: #d9a441;
+    border-radius: inherit;
+}
+
+.info-panel [data-timing-phase="executeMs"] .pretty-timing-track-fill {
+    background: #55a868;
+}
+
+.info-panel [data-timing-phase="decodeMs"] .pretty-timing-track-fill {
+    background: #4c8eda;
+}
+
+.info-panel [data-timing-phase="renderMs"] .pretty-timing-track-fill {
+    background: #9b72cf;
+}
+
+.info-panel .pretty-timing-track-value {
+    overflow: hidden;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+.info-panel .pretty-compare-body {
+    min-width: 0;
+}
+
+.info-panel .pretty-compare-unavailable {
+    color: rgba(180, 130, 70, 0.95);
+    font-style: italic;
 }
 
 /* Goal layout in panel (structure uses Verso's table layout for hypotheses) */
