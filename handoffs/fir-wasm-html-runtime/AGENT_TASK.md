@@ -94,6 +94,9 @@ prettyM.wasm.json
 
 Important requirements:
 
+- BUILD metadata envelope: `fir-prettyM-package-metadata-v2`; this is
+  independent of the browser endpoint API and must not be bumped merely
+  because the entrypoint or output schema differs;
 - browser API: `fir.prettyM.html.browser/v1`;
 - five `tobject` Wasm parameters and one object result;
 - zero function imports and zero memory imports;

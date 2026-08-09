@@ -8,7 +8,7 @@
         "descriptor": "prettyM.wasm.json"
     },
     "build": {
-        "formats": ["fir-prettyM-package-metadata-v3"],
+        "formats": ["fir-prettyM-package-metadata-v2"],
         "params": ["tobject", "tobject", "tobject", "tobject", "tobject"],
         "result": "object",
         "functionImports": 0,

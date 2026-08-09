@@ -178,3 +178,9 @@ The optional native-HTML directory must satisfy
 Assembly registers it as `native-html` and activates the FIR × HTML matrix cell;
 without it, that cell remains gray. The producer handoff is
 [`handoffs/fir-wasm-html-runtime/AGENT_TASK.md`](../../handoffs/fir-wasm-html-runtime/AGENT_TASK.md).
+
+Both optional FIR packages retain the existing
+`fir-prettyM-package-metadata-v2` BUILD envelope. Their distinct
+`fir.prettyM.flat.browser/v1` and `fir.prettyM.html.browser/v1` identifiers
+version different browser result surfaces; they are not revisions of the
+package metadata schema.

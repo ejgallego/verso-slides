@@ -100,7 +100,7 @@ def make_html_package(package: Path) -> None:
         "export async function fetchPrettyMAdapter() {}\n"
     )
     build = {
-        "format": "fir-prettyM-package-metadata-v3",
+        "format": "fir-prettyM-package-metadata-v2",
         "sourceCommit": "fixture",
         "sourceDirty": False,
         "artifact": {
