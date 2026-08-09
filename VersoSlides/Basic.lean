@@ -196,6 +196,15 @@ public structure Config where
   extraCss : Array CssFile := #[]
   /-- Extra elements to add to the page's {lit}`head` tag. -/
   extraHead : Array Html := #[]
+  /--
+  JavaScript plugin URLs loaded after the built-in pretty-printer establishes
+  its formatter registry and before the interactive panel initializes.
+
+  Scripts execute synchronously in array order. This lets an extension
+  register or select alternate formatters without replacing Verso Slides'
+  built-in web assets.
+  -/
+  panelPlugins : Array String := #[]
   extraJs : Array String := #[]
   /--
   Additional embedded files to write under

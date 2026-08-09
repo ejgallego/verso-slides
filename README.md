@@ -729,6 +729,9 @@ becomes `data-transition="zoom"`.
   the presentation.
 - `extraAssetDirs : Array AssetDirectory` — generated directory trees
   copied from the filesystem into owned top-level output directories.
+- `panelPlugins : Array String` — ordered formatter extension scripts
+  loaded after the built-in formatter registry and before the
+  interactive panel initializes.
 - `outputDir : System.FilePath` — where to write `index.html` and the
   vendored assets. Defaults to `_slides`.
 
@@ -739,6 +742,40 @@ top-level destination under `outputDir`. Sources are validated before
 rendering, symbolic links are rejected, and the destination is
 replaced as a unit so removed producer files cannot survive as stale
 presentation output.
+
+### Panel Formatter Plugins
+
+`panelPlugins` is a narrow extension point for alternate formatters.
+Each classic script runs synchronously, in array order, after
+`pretty.js` defines `registerPrettyBackend` and before `panel.js`
+reads the registry. A plugin can register immediately while exposing a
+`ready` promise for an asynchronously initialized runtime:
+
+```javascript
+registerPrettyBackend({
+    id: "candidate",
+    label: "Candidate",
+    status: () => (runtimeReady ? "ready" : "loading"),
+    ready: runtimeReadyPromise,
+    renderSegments: (format, annotations, pixelWidth, measurer) =>
+        segments,
+});
+```
+
+`renderSegments` returns ordered `{ text, tags }` segments, where
+`tags` are indices into the annotations supplied by Verso. Returning
+`null`, an unknown backend ID, or a status other than `"ready"` is
+displayed as unavailable; the panel does not silently fall back to the
+built-in renderer. Select a registered backend before panel
+initialization with:
+
+```javascript
+window.__versoPrettyConfig = { backend: "candidate" };
+```
+
+The built-in backend has ID `vir-prettym`. Registering an existing ID replaces
+its definition, while `getPrettyBackends()` returns a copy of the
+ordered registry.
 
 ### Auto-Advance
 

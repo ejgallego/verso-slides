@@ -441,6 +441,8 @@ def renderFullHtml (config : Config) (title : String) (slidesBody : Html) (custo
     {{ <link rel="stylesheet" href={{css.filename}} /> }}
   let extraJsScripts := config.extraJs.map fun url =>
     {{ <script src={{url}}></script> }}
+  let panelPluginScripts := config.panelPlugins.map fun url =>
+    {{ <script src={{url}}></script> }}
   let mathPreludeScripts : Array Html :=
     if config.mathPrelude.isEmpty then #[]
     else
@@ -517,6 +519,7 @@ def renderFullHtml (config : Config) (title : String) (slidesBody : Html) (custo
       <script src={{s!"{libPrefix}/highlighting.js"}}></script>
       <script src={{s!"{libPrefix}/code-block-bg.js"}}></script>
       <script src={{s!"{libPrefix}/pretty.js"}}></script>
+      {{panelPluginScripts}}
       <script src={{s!"{libPrefix}/panel.js"}}></script>
       <script src={{s!"{libPrefix}/lightbox.js"}}></script>
       <script src={{s!"{libPrefix}/illuminate-reveal.js"}}></script>

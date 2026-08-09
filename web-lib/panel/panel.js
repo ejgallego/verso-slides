@@ -25,6 +25,7 @@
             });
 
         document.querySelectorAll(".code-with-panel").forEach(setupBlock);
+        refreshPanelsWhenPrettyBackendsReady();
 
         Reveal.on("fragmentshown", onFragmentShown);
         Reveal.on("fragmenthidden", onFragmentHidden);
@@ -38,6 +39,24 @@
         window.addEventListener("verso-panel-renderer-ready", function () {
             document.querySelectorAll(".info-panel").forEach(function (panel) {
                 reflowPanel(/** @type {InfoPanel} */ (panel));
+            });
+        });
+    }
+
+    /** @return {string} */
+    function selectedPrettyBackend() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig;
+        return config && typeof config.backend === "string" ? config.backend : "vir-prettym";
+    }
+
+    function refreshPanelsWhenPrettyBackendsReady() {
+        getPrettyBackends().forEach(function (backend) {
+            if (!backend.ready || typeof backend.ready.then !== "function") return;
+            backend.ready.then(function () {
+                document.querySelectorAll(".info-panel").forEach(function (panel) {
+                    reflowPanel(/** @type {InfoPanel} */ (panel));
+                });
             });
         });
     }
@@ -470,7 +489,12 @@
                             panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
                             // Pass 2: measure actual .type cell widths and format expressions
                             var measurer = getPanelMeasurer(panel);
-                            fillReflowedSpans(panel, result.formats, measurer);
+                            fillReflowedSpans(
+                                panel,
+                                result.formats,
+                                measurer,
+                                selectedPrettyBackend(),
+                            );
                             html = null; // already set innerHTML
                         } catch (e) {
                             html = '<span class="hl lean">' + ts.innerHTML + "</span>";
@@ -508,13 +532,19 @@
                             panel.clientWidth -
                             parseFloat(getComputedStyle(panel).paddingLeft || "0") -
                             parseFloat(getComputedStyle(panel).paddingRight || "0");
-                        var rendered = formatToHtml(
+                        var rendered = formatToHtmlWithBackend(
                             fmtData.fmt,
                             fmtData.annotations,
                             width,
                             measurer,
+                            selectedPrettyBackend(),
                         );
-                        sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
+                        sigCode.innerHTML =
+                            '<span class="reflowed">' +
+                            (rendered === null
+                                ? '<span class="pretty-unavailable">unavailable</span>'
+                                : rendered) +
+                            "</span>";
                     } catch (e) {
                         panel._richFormatSource = null;
                     }
@@ -561,16 +591,25 @@
                 var result = goalsToHtml(parsed);
                 panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
                 var measurer = getPanelMeasurer(panel);
-                fillReflowedSpans(panel, result.formats, measurer);
+                fillReflowedSpans(panel, result.formats, measurer, selectedPrettyBackend());
             } else if (parsed.fmt && typeof formatToHtml === "function") {
                 var measurer = getPanelMeasurer(panel);
                 var width =
                     panel.clientWidth -
                     parseFloat(getComputedStyle(panel).paddingLeft || "0") -
                     parseFloat(getComputedStyle(panel).paddingRight || "0");
+                var rendered = formatToHtmlWithBackend(
+                    parsed.fmt,
+                    parsed.annotations,
+                    width,
+                    measurer,
+                    selectedPrettyBackend(),
+                );
                 source.innerHTML =
                     '<span class="reflowed">' +
-                    formatToHtml(parsed.fmt, parsed.annotations, width, measurer) +
+                    (rendered === null
+                        ? '<span class="pretty-unavailable">unavailable</span>'
+                        : rendered) +
                     "</span>";
             }
         } catch (e) {
