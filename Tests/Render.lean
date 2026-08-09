@@ -226,3 +226,16 @@ where
     testHtmlHas "extraHead renders module script"
       fullHtml.asString
       s!"<script type=\"module\" src=\"{blueprintRuntime}\"></script>"
+
+    -- ---- Full page: panel plugins are ordered between registry and consumer ----
+    let firstPlugin := "plugins/formatter-a.js"
+    let secondPlugin := "plugins/formatter-b.js"
+    let pluginHtml := renderFullHtml
+      { panelPlugins := #[firstPlugin, secondPlugin] }
+      "Deck" (.seq #[])
+    testHtmlHas "panel plugins preserve order after pretty and before panel"
+      pluginHtml.asString
+      s!"<script src=\"lib/pretty.js\"></script>\n    \
+        <script src=\"{firstPlugin}\"></script>\n    \
+        <script src=\"{secondPlugin}\"></script>\n    \
+        <script src=\"lib/panel.js\"></script>"

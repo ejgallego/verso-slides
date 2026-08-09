@@ -20,6 +20,40 @@ declare var tippy: ((targets: unknown, props?: unknown) => unknown) & Record<str
 /** marked.js Markdown parser (global, may not be loaded). */
 declare var marked: { parse(text: string): string } | undefined;
 
+interface VersoPrettyConfig {
+    /** ID of the formatter used by the interactive panel. */
+    backend?: string;
+}
+
+interface Window {
+    __versoPrettyConfig?: VersoPrettyConfig;
+}
+
+interface PrettyBackendDefinition {
+    id: string;
+    label: string;
+    status?: () => string;
+    ready?: Promise<unknown>;
+    renderSegments(
+        fmtJson: any,
+        annotations: Record<string, any>,
+        pixelWidth: number,
+        measurer: DOMMeasurer,
+    ): Array<{ text: string; tags: number[] }> | null;
+}
+
+declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;
+declare function getPrettyBackends(): PrettyBackendDefinition[];
+declare function getPrettyBackend(id: string): PrettyBackendDefinition | null;
+
+declare function formatToHtmlWithBackend(
+    fmtJson: any,
+    annotations: Record<string, any>,
+    pixelWidth: number,
+    measurer: DOMMeasurer,
+    backendId: string,
+): string | null;
+
 /** pretty.js — render a format tree to HTML at a given pixel width (global). */
 declare function formatToHtml(
     fmtJson: any,

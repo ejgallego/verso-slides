@@ -48,7 +48,68 @@
  * @typedef {{ name?: string, hypotheses: Hypothesis[], goalPrefix: string, ppConclusion?: string | FormatData }} GoalData
  *
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
+ *
+ * @typedef {{
+ *   id: string,
+ *   label: string,
+ *   status?: () => string,
+ *   ready?: Promise<*>,
+ *   renderSegments: (
+ *     fmtJson: *,
+ *     annotations: Record<string, TokenAnnotation>,
+ *     pixelWidth: number,
+ *     measurer: DOMMeasurer
+ *   ) => Segment[] | null
+ * }} PrettyBackend
  */
+
+/** @type {PrettyBackend[]} */
+var prettyBackends = [];
+
+/**
+ * Register a pretty-printing backend, replacing an earlier registration with
+ * the same ID. Plugins should register synchronously; their optional `ready`
+ * promise may resolve after the panel has initialized.
+ * @param {PrettyBackend} backend
+ */
+function registerPrettyBackend(backend) {
+    if (
+        !backend ||
+        typeof backend.id !== "string" ||
+        backend.id.length === 0 ||
+        typeof backend.label !== "string" ||
+        backend.label.length === 0 ||
+        typeof backend.renderSegments !== "function"
+    ) {
+        throw new TypeError("invalid pretty backend registration");
+    }
+
+    var index = prettyBackends.findIndex(function (candidate) {
+        return candidate.id === backend.id;
+    });
+    if (index === -1) {
+        prettyBackends.push(backend);
+    } else {
+        prettyBackends[index] = backend;
+    }
+}
+
+/** @return {PrettyBackend[]} */
+function getPrettyBackends() {
+    return prettyBackends.slice();
+}
+
+/**
+ * @param {string} id
+ * @return {PrettyBackend | null}
+ */
+function getPrettyBackend(id) {
+    return (
+        prettyBackends.find(function (candidate) {
+            return candidate.id === id;
+        }) || null
+    );
+}
 
 /**
  * Deserialize a compact JSON format node into a tree.
@@ -507,7 +568,51 @@ function makeRenderContext(annotations, measurer) {
 }
 
 /**
- * Render a format tree to HTML at a given pixel width.
+ * Run the built-in JavaScript formatter.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {Segment[]}
+ */
+function formatSegmentsWithJs(fmtJson, annotations, pixelWidth, measurer) {
+    var fmt = deserializeFormat(fmtJson);
+    var ctx = makeRenderContext(annotations, measurer);
+    prettyM(fmt, pixelWidth, 0, ctx, measurer);
+    return ctx.segments;
+}
+
+registerPrettyBackend({
+    id: "js",
+    label: "JavaScript",
+    status: function () {
+        return "ready";
+    },
+    renderSegments: formatSegmentsWithJs,
+});
+
+/**
+ * Render a format tree through one explicitly selected backend. Missing or
+ * unavailable backends return `null`; callers decide how to present that
+ * state instead of silently falling back to another implementation.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @param {string} backendId
+ * @return {string | null}
+ */
+function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backendId) {
+    var backend = getPrettyBackend(backendId);
+    if (!backend) return null;
+    if (backend.status && backend.status() !== "ready") return null;
+    var segments = backend.renderSegments(fmtJson, annotations, pixelWidth, measurer);
+    return segments === null ? null : segmentsToHtml(segments, annotations);
+}
+
+/**
+ * Render a format tree with Verso Slides' built-in JavaScript formatter.
+ * This preserves the original API for existing consumers.
  * @param {*} fmtJson  - compact array format from Highlighted.lean
  * @param {Record<string, TokenAnnotation>} annotations - tag index → { cssClass, binding }
  * @param {number} pixelWidth - target width in pixels
@@ -515,10 +620,7 @@ function makeRenderContext(annotations, measurer) {
  * @return {string} HTML string
  */
 function formatToHtml(fmtJson, annotations, pixelWidth, measurer) {
-    var fmt = deserializeFormat(fmtJson);
-    var ctx = makeRenderContext(annotations, measurer);
-    prettyM(fmt, pixelWidth, 0, ctx, measurer);
-    return segmentsToHtml(ctx.segments, annotations);
+    return formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, "js") || "";
 }
 
 /**
@@ -646,8 +748,9 @@ function goalsToHtml(goalsJson) {
  * @param {Element} container
  * @param {FormatData[]} formats
  * @param {DOMMeasurer} measurer
+ * @param {string} [backendId]
  */
-function fillReflowedSpans(container, formats, measurer) {
+function fillReflowedSpans(container, formats, measurer, backendId) {
     var spans = container.querySelectorAll(".reflowed[data-fmt-idx]");
     for (var i = 0; i < spans.length; i++) {
         var span = spans[i];
@@ -657,6 +760,14 @@ function fillReflowedSpans(container, formats, measurer) {
         var cell = span.closest(".type");
         if (!cell) continue;
         var width = measurer.measureElWidth(cell);
-        span.innerHTML = formatToHtml(entry.fmt, entry.annotations, width, measurer);
+        var rendered = formatToHtmlWithBackend(
+            entry.fmt,
+            entry.annotations,
+            width,
+            measurer,
+            backendId || "js",
+        );
+        span.innerHTML =
+            rendered === null ? '<span class="pretty-unavailable">unavailable</span>' : rendered;
     }
 }
