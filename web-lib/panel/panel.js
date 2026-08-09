@@ -10,7 +10,8 @@
      *   id: VersoPrettyTimingDisplay,
      *   label: string,
      *   shortLabel: string,
-     *   key: string | null
+     *   key: string | null,
+     *   scope: string
      * }} PrettyTimingDisplay
      * @typedef {{
      *   id: string,
@@ -30,13 +31,55 @@
     var prettyControls = null;
     /** @type {PrettyTimingDisplay[]} */
     var PRETTY_TIMING_DISPLAYS = [
-        { id: "total", label: "Formatter total", shortLabel: "Total", key: "totalMs" },
-        { id: "execute", label: "Execute", shortLabel: "Execute", key: "executeMs" },
-        { id: "marshal", label: "Marshal", shortLabel: "Marshal", key: "marshalMs" },
-        { id: "decode", label: "Decode", shortLabel: "Decode", key: "decodeMs" },
-        { id: "render", label: "HTML", shortLabel: "HTML", key: "renderMs" },
-        { id: "wall", label: "Panel wall", shortLabel: "Wall", key: "wallMs" },
-        { id: "tracks", label: "Phase tracks", shortLabel: "Phases", key: null },
+        {
+            id: "total",
+            label: "Pipeline total (pre-DOM)",
+            shortLabel: "Total",
+            key: "totalMs",
+            scope: "Compact input → final annotated HTML string. Includes adapters, backend execution, output normalization, and shared HTML generation; excludes DOM insertion.",
+        },
+        {
+            id: "execute",
+            label: "Backend execute",
+            shortLabel: "Execute",
+            key: "executeMs",
+            scope: "Backend-owned layout and output construction only. For JS this is prettyM plus tagged-segment collection; annotation lookup and HTML generation are excluded.",
+        },
+        {
+            id: "marshal",
+            label: "Input preparation",
+            shortLabel: "Marshal",
+            key: "marshalMs",
+            scope: "Public input → backend-ready input. For JS this is compact-tree deserialization and render-context setup.",
+        },
+        {
+            id: "decode",
+            label: "Output normalization",
+            shortLabel: "Decode",
+            key: "decodeMs",
+            scope: "Backend result → shared tagged segments. JS reports zero because its execute phase already constructs those segments.",
+        },
+        {
+            id: "render",
+            label: "Shared HTML generation",
+            shortLabel: "HTML",
+            key: "renderMs",
+            scope: "Shared tagged segments → escaped, annotated HTML string. This includes annotation lookup and span construction, but not DOM insertion.",
+        },
+        {
+            id: "wall",
+            label: "Panel wall",
+            shortLabel: "Wall",
+            key: "wallMs",
+            scope: "Outer panel work around the formatter. It is useful diagnostically but is not a controlled backend phase.",
+        },
+        {
+            id: "tracks",
+            label: "Phase tracks",
+            shortLabel: "Phases",
+            key: null,
+            scope: "Marshal + Execute + Decode + HTML. Backend-owned output construction stays in Execute; shared annotation and HTML work stays in HTML.",
+        },
     ];
     var PRETTY_TIMING_PHASES = [
         { key: "marshalMs", label: "Marshal", shortLabel: "M" },
@@ -692,12 +735,19 @@
             timing.appendChild(option);
         });
         timing.addEventListener("change", function () {
-            config.timing = prettyTimingDisplayById(timing.value).id;
+            var display = prettyTimingDisplayById(timing.value);
+            config.timing = display.id;
+            timingScope.textContent = display.scope;
             persistPrettyConfig();
             refreshTimingDisplays(document);
         });
         timingLabel.appendChild(timing);
         menu.appendChild(timingLabel);
+
+        var timingScope = document.createElement("p");
+        timingScope.className = "pretty-controls-timing-scope";
+        timingScope.textContent = selectedTiming.scope;
+        menu.appendChild(timingScope);
 
         var workloadLabel = document.createElement("label");
         workloadLabel.className = "pretty-controls-workload";
@@ -1360,7 +1410,9 @@
      * @param {number} wallMs
      */
     function setTimingDetails(timeEl, timings, wallMs) {
-        var details = ["Formatter total: " + formatTiming(timings.totalMs)];
+        var details = [
+            "Pipeline total (input → HTML string, pre-DOM): " + formatTiming(timings.totalMs),
+        ];
         if (
             typeof timings.batchIterations === "number" &&
             typeof timings.batchCodePoints === "number"
@@ -1392,11 +1444,11 @@
                 details.push(detail[1] + ": " + formatTiming(value));
             }
         });
-        details.push("Execute: " + formatTiming(timings.executeMs));
+        details.push("Backend execute (layout + owned output): " + formatTiming(timings.executeMs));
         if (typeof timings.hostMs === "number" && Number.isFinite(timings.hostMs)) {
             details.push("  JS host imports (included): " + formatTiming(timings.hostMs));
         }
-        details.push("Decode: " + formatTiming(timings.decodeMs));
+        details.push("Output normalization: " + formatTiming(timings.decodeMs));
         if (
             typeof timings.runtimeDecodeMs === "number" &&
             Number.isFinite(timings.runtimeDecodeMs)
@@ -1409,7 +1461,7 @@
         ) {
             details.push("  Verso output: " + formatTiming(timings.adapterOutputMs));
         }
-        details.push("HTML: " + formatTiming(timings.renderMs));
+        details.push("Shared HTML generation: " + formatTiming(timings.renderMs));
         if (
             typeof timings.inputBytes === "number" &&
             typeof timings.rawObjects === "number" &&

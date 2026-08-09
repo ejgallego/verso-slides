@@ -241,10 +241,17 @@
 }
 
 .pretty-controls-note,
-.pretty-controls-question {
+.pretty-controls-question,
+.pretty-controls-timing-scope {
     margin: 0;
     color: #aaa;
     font-size: 0.78em;
+}
+
+.pretty-controls-timing-scope {
+    padding-left: 0.45rem;
+    border-left: 0.15rem solid rgba(109, 158, 235, 0.55);
+    color: #b8c7da;
 }
 
 .pretty-controls-question {

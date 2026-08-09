@@ -16,9 +16,14 @@ open Std
 Prototype helpers for rendering the compact `Std.Format` JSON used by the
 browser through Lean's own pretty-printer.
 
-The browser still owns HTML construction and DOM measurement. This module keeps
-the output shape close to `pretty.js`: a stream of text segments annotated with
-the currently active `Std.Format.tag` stack.
+The browser still owns HTML construction and DOM measurement. In timing terms,
+the definitions here cover backend execution: `Std.Format.prettyM` plus the
+backend-owned output collector. Annotation lookup, escaping, and HTML-string
+construction are a later shared browser phase.
+
+The exported `ForRuntime` entrypoints are deliberately compiler-neutral. VIR,
+FIR, or another bounded Lean runtime can compile the same surface. Historical
+`ForVir` names remain as compatibility aliases.
 
 The newer `Rendered` surface keeps the same semantics in a flatter ABI: text is
 returned once and tag/newline changes are recorded at UTF-8 byte offsets. This
@@ -140,10 +145,15 @@ public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0) :
   let act : PrettyM Unit := Std.Format.prettyM f width indent
   (act.run {}).2.segments
 
-/-- VIR entrypoint wrapper with no optional parameters. -/
-public def formatSegmentsForVir (f : Std.Format) (width indent : Nat) :
+/-- Runtime-neutral segment entrypoint with no optional parameters. -/
+public def formatSegmentsForRuntime (f : Std.Format) (width indent : Nat) :
     Array Segment :=
   formatSegments f width indent
+
+/-- Compatibility alias for existing VIR packages. -/
+public def formatSegmentsForVir (f : Std.Format) (width indent : Nat) :
+    Array Segment :=
+  formatSegmentsForRuntime f width indent
 
 /--
 Render a `Std.Format` once into text plus a flat styling event stream.
@@ -156,9 +166,19 @@ public def formatRendered (f : Std.Format) (width : Nat) (indent : Nat := 0) : R
   let st := (act.run {}).2
   { text := String.join st.chunks.toList, events := st.events }
 
-/-- VIR entrypoint for the flat output ABI, with no optional parameters. -/
-public def formatRenderedForVir (f : Std.Format) (width indent : Nat) : Rendered :=
+/--
+Runtime-neutral flat-output entrypoint with no optional parameters.
+
+Its execution envelope includes `prettyM`, text collection, UTF-8 byte-offset
+tracking, styling-event construction, and the final text join. It intentionally
+does not include browser annotation lookup or HTML generation.
+-/
+public def formatRenderedForRuntime (f : Std.Format) (width indent : Nat) : Rendered :=
   formatRendered f width indent
+
+/-- Compatibility alias for existing VIR packages. -/
+public def formatRenderedForVir (f : Std.Format) (width indent : Nat) : Rendered :=
+  formatRenderedForRuntime f width indent
 
 /--
 Render one format from a package-resident table. A deck-specific generated

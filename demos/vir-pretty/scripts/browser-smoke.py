@@ -109,7 +109,10 @@ async def main() -> None:
         timing_titles = await panes.locator(".pretty-compare-time").evaluate_all(
             "els => els.map(el => el.title)"
         )
-        assert all("Marshal:" in title and "Execute:" in title for title in timing_titles)
+        assert all(
+            "Marshal:" in title and "Backend execute (layout + owned output):" in title
+            for title in timing_titles
+        )
 
         workload = controls.locator(".pretty-controls-workload select")
         assert await workload.input_value() == "0"
@@ -121,8 +124,11 @@ async def main() -> None:
         assert "prettyWorkload=256" in page.url
 
         timing_display = controls.locator(".pretty-controls-timing select")
+        timing_scope = controls.locator(".pretty-controls-timing-scope")
         assert await timing_display.input_value() == "total"
+        assert "final annotated HTML string" in await timing_scope.inner_text()
         await timing_display.select_option("execute")
+        assert "prettyM plus tagged-segment collection" in await timing_scope.inner_text()
         timing_texts = await panes.locator(".pretty-compare-time").all_inner_texts()
         assert all(text.startswith("Execute · ") for text in timing_texts)
         await timing_display.select_option("tracks")

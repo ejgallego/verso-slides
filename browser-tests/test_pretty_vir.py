@@ -837,9 +837,9 @@ class TestPrettyVirComparisonPanel:
             "elements => elements.map(element => element.title)"
         )
         assert all("Marshal:" in title for title in timing_titles)
-        assert all("Execute:" in title for title in timing_titles)
-        assert all("Decode:" in title for title in timing_titles)
-        assert all("HTML:" in title for title in timing_titles)
+        assert all("Backend execute (layout + owned output):" in title for title in timing_titles)
+        assert all("Output normalization:" in title for title in timing_titles)
+        assert all("Shared HTML generation:" in title for title in timing_titles)
         native_timing = panel.locator(
             '[data-pretty-backend="native"] .pretty-compare-time'
         ).get_attribute("title")
@@ -900,8 +900,13 @@ class TestPrettyVirComparisonPanel:
         assert panel.locator(".pretty-compare-pane").count() == 2
 
         timing = controls.locator(".pretty-controls-timing select")
+        timing_scope = controls.locator(".pretty-controls-timing-scope")
         expect(timing).to_have_value("total")
+        expect(timing_scope).to_contain_text("final annotated HTML string")
+        expect(timing_scope).to_contain_text("excludes DOM insertion")
         timing.select_option("execute")
+        expect(timing_scope).to_contain_text("JS this is prettyM plus tagged-segment collection")
+        expect(timing_scope).to_contain_text("HTML generation are excluded")
         assert all(
             text.startswith("Execute · ")
             for text in panel.locator(".pretty-compare-time").all_inner_texts()
@@ -909,6 +914,7 @@ class TestPrettyVirComparisonPanel:
         assert "prettyTiming=execute" in page.url
 
         timing.select_option("tracks")
+        expect(timing_scope).to_contain_text("shared annotation and HTML work stays in HTML")
         assert panel.locator(".pretty-timing-tracks").count() == 2
         assert panel.locator(".pretty-timing-tracks-total").count() == 2
         assert all(

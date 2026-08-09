@@ -105,7 +105,8 @@ The restored deck has the same functionality as the in-tree prototype:
   identically for every backend;
 - selectable total/execute/marshal/decode/HTML/wall timing, plus
   compact four-lane phase tracks with the total above and complete
-  hover detail;
+  hover detail; the controls state the selected timing envelope and
+  distinguish backend-owned output construction from shared HTML work;
 - no benchmark sampler or dashboard code in the slide runtime.
 
 The full benchmark interface is developed independently under

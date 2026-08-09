@@ -820,6 +820,13 @@ change the input shape. The default remains one pass, keeping ordinary
 slide interaction cheap. The menu updates the query string so a test
 configuration can be copied or reloaded.
 
+The default timing display is **Pipeline total (pre-DOM)**: public
+compact input through the final annotated HTML string. **Backend
+execute** stops at backend-owned output construction; for JS that
+means `prettyM` plus tagged-segment collection, excluding annotation
+lookup and HTML generation. The controls show the active timing
+envelope next to the selector.
+
 Applications may also provide named experiment presets through
 `window.__versoPrettyConfig.experiments`. Each preset has an ID,
 label, question, and backend ID list. It may also describe its design

@@ -18,6 +18,33 @@ Manually changing backend checkboxes creates a **Custom selection**.
 The URL records both the resolved backend list and the matching preset
 ID, so a view can be shared and reproduced.
 
+## Timing envelope
+
+The main number is configurable, so a result must name its selected
+scope. In particular, “JS time” is not one indivisible quantity:
+
+| Phase                | JS includes                                                       | Cross-runtime meaning                                                |
+| -------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Input preparation    | Compact-tree deserialization and render-context setup             | Public input converted into the backend-owned representation         |
+| Backend execute      | `prettyM`, width measurement, tagged-segment and tag-stack output | Backend-owned layout plus construction of its declared output        |
+| Output normalization | Zero: JS already produced the shared segment form                 | Backend output converted into shared tagged segments                 |
+| Shared HTML          | Annotation lookup, escaping, binding attributes, and span strings | Shared tagged segments converted into the final HTML string          |
+| Pipeline total       | All four phases above                                             | Public compact input through final HTML string, before DOM insertion |
+
+Thus the default **Pipeline total (pre-DOM)** includes the extended
+annotation/HTML processing for JS and every other backend. **Backend
+execute** does not: JS execute ends at tagged segments. DOM
+assignment, layout, paint, control rendering, and startup are outside
+pipeline total.
+
+The runtime-neutral Lean entrypoint
+`VersoSlides.Pretty.formatRenderedForRuntime` has an intentionally
+narrow execute envelope: `prettyM`, text collection, UTF-8 offset
+tracking, style-event construction, and the final text join. Both FIR
+and VIR can compile that same definition. Its output normalization and
+shared HTML phases remain in JavaScript, so execute and total retain
+the same interpretation across those runtimes.
+
 ## Measurement levels
 
 1. **Slides:** interactive, synchronous observations on visible
@@ -42,7 +69,10 @@ and checked by `scripts/validate-native-flat-package.py`. Its browser
 API is `fir.prettyM.flat.browser/v1`, its public input and ownership
 protocols remain the same as the native control, and its Wasm result
 is `text-events-utf8/v1` directly. The artifact is staged separately
-as `lean-native-flat/`; it never replaces `lean-native/`.
+as `lean-native-flat/`; it never replaces `lean-native/`. The
+preferred Lean target is the compiler-neutral
+`VersoSlides.Pretty.formatRenderedForRuntime`; the historical
+`formatRenderedForVir` name is only a compatibility alias.
 
 Once such a package is present, assembly registers `native-flat` and
 adds a **FIR output boundary** preset containing exactly the two FIR
