@@ -44,14 +44,24 @@ interface VersoPrettyVirBridge {
     runtime?: VersoPrettyVirRuntime;
     jsonExportName?: string;
     formatExportName?: string;
+    renderedExportName?: string;
+    residentExportName?: string;
     formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string;
     formatSegments?: (fmt: unknown, width: number, indent: number) => unknown;
+    formatRendered?: (fmt: unknown, width: number, indent: number) => unknown;
+    formatRenderedById?: (formatId: number, width: number, indent: number) => unknown;
     formatJsonSegmentsJsonTimed?: (
         fmtJson: string,
         width: number,
         indent: number,
     ) => VersoPrettyVirTimedCall;
     formatSegmentsTimed?: (fmt: unknown, width: number, indent: number) => VersoPrettyVirTimedCall;
+    formatRenderedTimed?: (fmt: unknown, width: number, indent: number) => VersoPrettyVirTimedCall;
+    formatRenderedByIdTimed?: (
+        formatId: number,
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
     ready?: Promise<unknown>;
     status?: string;
     error?: unknown;
@@ -68,6 +78,8 @@ interface VersoPrettyVirConfig {
     irPackageUrl?: string;
     jsonExportName?: string;
     formatExportName?: string;
+    renderedExportName?: string;
+    residentExportName?: string;
 }
 
 interface VersoPrettyNativeBridge {
@@ -153,6 +165,7 @@ interface VersoPrettyConfig {
     backend?: string;
     backends?: string[];
     columns?: number;
+    workload?: number;
     controls?: boolean;
     timing?: VersoPrettyTimingDisplay;
 }
@@ -181,6 +194,7 @@ declare function formatToHtmlWithBackend(
     pixelWidth: number,
     measurer: DOMMeasurer,
     backend: string,
+    formatId?: number,
 ): string | null;
 
 declare function formatToHtmlTimed(
@@ -189,6 +203,7 @@ declare function formatToHtmlTimed(
     pixelWidth: number,
     measurer: DOMMeasurer,
     backend: string,
+    formatId?: number,
 ): { html: string | null; durationMs: number; timings: PrettyTimings };
 
 interface PrettyBackendDefinition {
@@ -197,7 +212,7 @@ interface PrettyBackendDefinition {
     ready?: Promise<unknown>;
     status?: () => string;
     capabilities?: {
-        output: "segments" | "text";
+        output: "segments" | "text-events" | "text";
         width: "pixels" | "columns";
     };
     renderSegments?(
@@ -205,12 +220,14 @@ interface PrettyBackendDefinition {
         annotations: Record<string, any>,
         pixelWidth: number,
         measurer: DOMMeasurer,
+        formatId?: number,
     ): Array<{ text: string; tags: number[] }> | null;
     renderTimed?(
         fmtJson: any,
         annotations: Record<string, any>,
         pixelWidth: number,
         measurer: DOMMeasurer,
+        formatId?: number,
     ): PrettySegmentResult;
 }
 
@@ -218,6 +235,9 @@ declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;
 declare function getPrettyBackends(): PrettyBackendDefinition[];
 declare function getPrettyBackend(id: string): PrettyBackendDefinition | null;
 declare function createColumnMeasurer(columns: number): DOMMeasurer;
+declare function compactFormatSourceLength(fmtJson: any): number;
+declare function emptyPrettyTimings(): PrettyTimings;
+declare function addPrettyTimings(target: PrettyTimings, source: PrettyTimings): PrettyTimings;
 
 /** pretty.js — create a DOM-based measurer for pixel-accurate text width measurement (global). */
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;

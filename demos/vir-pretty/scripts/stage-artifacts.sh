@@ -18,7 +18,6 @@ esac
 required=(
   lean-vir/js/vir-runtime.js
   lean-vir/wasm/vir-upstream.wasm
-  verso-pretty.irpkg
   lean-native/BUILD.json
   lean-native/SHA256SUMS
   lean-native/prettyM-browser-adapter.mjs
@@ -46,4 +45,4 @@ for path in "${required[@]}"; do
   install -D -m 0644 "$seed_dir/$path" "$artifact_dir/$path"
 done
 
-echo "Staged five-backend artifacts from $seed_dir"
+echo "Staged VIR runtime plus native and LLVM artifacts from $seed_dir"

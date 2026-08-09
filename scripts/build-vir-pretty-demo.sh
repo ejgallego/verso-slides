@@ -290,6 +290,13 @@ fi
 lib_dir="$out_dir/lib"
 
 mkdir -p "$lib_dir/lean-vir/wasm" "$(dirname "$report_path")"
+registry_dir="$repo_root/.lake/verso-pretty-registry"
+registry_source="$registry_dir/PrettyRegistry.lean"
+python3 "$repo_root/demos/vir-pretty/scripts/generate-pretty-registry.py" \
+  "$out_dir" \
+  "$registry_source" \
+  "$lib_dir/verso-pretty-registry.json" \
+  --pretty-source "$repo_root/VersoSlides/Pretty.lean"
 rm -rf "$lib_dir/lean-vir/js"
 mkdir -p "$lib_dir/lean-vir/js"
 rm -rf "$lib_dir/lean-native"
@@ -319,9 +326,12 @@ fi
 (cd "$lean_vir_dir" && lake exe vir_irpkg \
   "$lib_dir/verso-pretty.irpkg" \
   "$report_path" \
-  --target "$repo_root/VersoSlides/Pretty.lean" \
+  --target "$registry_source" \
   VersoSlides.Pretty.formatJsonSegmentsJsonForVir \
-  VersoSlides.Pretty.formatSegmentsForVir)
+  VersoSlides.Pretty.formatSegmentsForVir \
+  VersoSlides.Pretty.formatRenderedForVir \
+  VersoSlides.PrettyRegistry.formatCountForVir \
+  VersoSlides.PrettyRegistry.formatRenderedByIdForVir)
 
 cp "$release_wasm" "$lib_dir/lean-vir/wasm/vir-upstream.wasm"
 

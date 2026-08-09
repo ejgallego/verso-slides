@@ -19,12 +19,45 @@ browser through Lean's own pretty-printer.
 The browser still owns HTML construction and DOM measurement. This module keeps
 the output shape close to `pretty.js`: a stream of text segments annotated with
 the currently active `Std.Format.tag` stack.
+
+The newer `Rendered` surface keeps the same semantics in a flatter ABI: text is
+returned once and tag/newline changes are recorded at UTF-8 byte offsets. This
+avoids copying the active tag stack into every output segment while leaving DOM
+construction and annotation lookup in the browser.
 -/
 
 /-- A rendered piece of text and the active `Std.Format.tag` IDs for it. -/
 public structure Segment where
   text : String
   tags : Array Nat
+deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/--
+A change in the styling stream returned by `formatRendered`.
+
+`kind` is deliberately numeric so VIR can lower this as a flat structure:
+* `0` starts the tag in `value`;
+* `1` ends `value` tags;
+* `2` emits an unstyled newline followed by `value` spaces.
+
+`offset` is a UTF-8 byte offset into `Rendered.text`.
+-/
+public structure StyleEvent where
+  offset : Nat
+  kind : Nat
+  value : Nat
+deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/-- Flat, DOM-independent result of running Lean's `Std.Format.prettyM`. -/
+public structure Rendered where
+  text : String
+  events : Array StyleEvent
+deriving Repr, BEq, Inhabited, ToJson, FromJson
+
+/-- Result envelope for a resident-format lookup across the VIR boundary. -/
+public structure ResidentRendered where
+  found : Bool
+  rendered : Rendered
 deriving Repr, BEq, Inhabited, ToJson, FromJson
 
 private structure PrettyState where
@@ -34,6 +67,15 @@ private structure PrettyState where
 deriving Inhabited
 
 private abbrev PrettyM := StateM PrettyState
+
+private structure RenderedState where
+  chunks : Array String := #[]
+  byteOffset : Nat := 0
+  column : Nat := 0
+  events : Array StyleEvent := #[]
+deriving Inhabited
+
+private abbrev RenderedM := StateM RenderedState
 
 private def popTags (tags : Array Nat) : Nat → Array Nat
   | 0 => tags
@@ -62,6 +104,36 @@ private instance : Std.Format.MonadPrettyFormat PrettyM where
   endTags count :=
     modify fun st => { st with tagStack := popTags st.tagStack count }
 
+private instance : Std.Format.MonadPrettyFormat RenderedM where
+  pushOutput s :=
+    if s.isEmpty then
+      pure ()
+    else
+      modify fun st =>
+        { st with
+          chunks := st.chunks.push s
+          byteOffset := st.byteOffset + s.utf8ByteSize
+          column := st.column + String.Internal.length s }
+  pushNewline indent :=
+    modify fun st =>
+      { st with
+        chunks := st.chunks.push (String.Internal.pushn "\n" ' ' indent)
+        byteOffset := st.byteOffset + indent + 1
+        column := indent
+        events := st.events.push { offset := st.byteOffset, kind := 2, value := indent } }
+  currColumn := return (← get).column
+  startTag tag :=
+    modify fun st =>
+      { st with
+        events := st.events.push { offset := st.byteOffset, kind := 0, value := tag } }
+  endTags count :=
+    if count == 0 then
+      pure ()
+    else
+      modify fun st =>
+        { st with
+          events := st.events.push { offset := st.byteOffset, kind := 1, value := count } }
+
 /-- Render a `Std.Format` into text segments, preserving active tag IDs. -/
 public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0) :
     Array Segment :=
@@ -72,6 +144,32 @@ public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0) :
 public def formatSegmentsForVir (f : Std.Format) (width indent : Nat) :
     Array Segment :=
   formatSegments f width indent
+
+/--
+Render a `Std.Format` once into text plus a flat styling event stream.
+
+Unlike `formatSegments`, this representation does not duplicate text and does
+not copy the active tag stack for each emitted chunk.
+-/
+public def formatRendered (f : Std.Format) (width : Nat) (indent : Nat := 0) : Rendered :=
+  let act : RenderedM Unit := Std.Format.prettyM f width indent
+  let st := (act.run {}).2
+  { text := String.join st.chunks.toList, events := st.events }
+
+/-- VIR entrypoint for the flat output ABI, with no optional parameters. -/
+public def formatRenderedForVir (f : Std.Format) (width indent : Nat) : Rendered :=
+  formatRendered f width indent
+
+/--
+Render one format from a package-resident table. A deck-specific generated
+module closes this helper over its static table, so browser calls transfer only
+the format ID and layout parameters.
+-/
+public def formatRenderedAt (formats : Array Std.Format) (id width indent : Nat) :
+    ResidentRendered :=
+  match formats[id]? with
+  | some f => { found := true, rendered := formatRendered f width indent }
+  | none => { found := false, rendered := default }
 
 /-- Render a `Std.Format` to plain text. Useful for tests and comparison. -/
 public def formatPlain (f : Std.Format) (width : Nat) (indent : Nat := 0) : String :=

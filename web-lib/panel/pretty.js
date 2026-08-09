@@ -28,6 +28,10 @@
  *
  * @typedef {{ text: string, tags: number[] }} Segment
  *
+ * @typedef {{ offset: number, kind: number, value: number }} StyleEvent
+ *
+ * @typedef {{ text: string, events: StyleEvent[] }} VirRendered
+ *
  * @typedef {{ cssClass: string, binding?: string }} TokenAnnotation
  *
  * @typedef {{
@@ -54,7 +58,8 @@
  *   heapBytesBefore?: number,
  *   heapBytesAfter?: number,
  *   batchIterations?: number,
- *   batchWallMs?: number
+ *   batchWallMs?: number,
+ *   batchCodePoints?: number
  * }} PrettyTimings
  *
  * @typedef {{ kind: number, text: string, value: bigint }} PrettyTraceEvent
@@ -74,7 +79,7 @@
  * @typedef {{ value: *, timings: VirCallTimings }} VirTimedCallResult
  *
  * @typedef {{
- *   output: "segments" | "text",
+ *   output: "segments" | "text-events" | "text",
  *   width: "pixels" | "columns"
  * }} PrettyBackendCapabilities
  *
@@ -88,13 +93,15 @@
  *     fmtJson: *,
  *     annotations: Record<string, TokenAnnotation>,
  *     pixelWidth: number,
- *     measurer: DOMMeasurer
+ *     measurer: DOMMeasurer,
+ *     formatId?: number
  *   ) => Segment[] | null,
  *   renderTimed?: (
  *     fmtJson: *,
  *     annotations: Record<string, TokenAnnotation>,
  *     pixelWidth: number,
- *     measurer: DOMMeasurer
+ *     measurer: DOMMeasurer,
+ *     formatId?: number
  *   ) => PrettySegmentResult
  * }} PrettyBackend
  *
@@ -106,10 +113,16 @@
  *   },
  *   jsonExportName?: string,
  *   formatExportName?: string,
+ *   renderedExportName?: string,
+ *   residentExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
  *   formatSegments?: (fmt: *, width: number, indent: number) => *,
+ *   formatRendered?: (fmt: *, width: number, indent: number) => *,
+ *   formatRenderedById?: (formatId: number, width: number, indent: number) => *,
  *   formatJsonSegmentsJsonTimed?: (fmtJson: string, width: number, indent: number) => VirTimedCallResult,
  *   formatSegmentsTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
+ *   formatRenderedTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
+ *   formatRenderedByIdTimed?: (formatId: number, width: number, indent: number) => VirTimedCallResult,
  *   ready?: Promise<*>,
  *   status?: string,
  *   assets?: string[],
@@ -128,7 +141,7 @@
  *   endTags: (count: number) => void
  * }} RenderContext
  *
- * @typedef {{ fmt: *, annotations: Record<string, TokenAnnotation> }} FormatData
+ * @typedef {{ fmt: *, annotations: Record<string, TokenAnnotation>, formatId?: number }} FormatData
  *
  * @typedef {{ names: string[], ppType?: string | FormatData }} Hypothesis
  *
@@ -340,6 +353,31 @@ function deserializeFormat(json) {
             return { type: "tag", n: json[1], f: deserializeFormat(json[2]) };
         default:
             return { type: "nil" };
+    }
+}
+
+/**
+ * Count source text code points represented by a compact `Std.Format` tree.
+ * Potential line breaks count as one code point. This deliberately measures
+ * the same input independently of the selected rendering width.
+ * @param {*} json
+ * @return {number}
+ */
+function compactFormatSourceLength(json) {
+    if (typeof json === "string") return Array.from(json).length;
+    if (json === 1) return 1;
+    if (!Array.isArray(json) || json.length === 0) return 0;
+    switch (json[0]) {
+        case 3:
+        case 5:
+        case 6:
+            return compactFormatSourceLength(json[json[0] === 3 ? 2 : 1]);
+        case 4:
+            return compactFormatSourceLength(json[1]) + compactFormatSourceLength(json[2]);
+        case 7:
+            return compactFormatSourceLength(json[2]);
+        default:
+            return 0;
     }
 }
 
@@ -887,50 +925,6 @@ function addPrettyTimings(target, source) {
 }
 
 /**
- * Convert summed timings from one adaptive batch into per-invocation values.
- * Heap bounds describe the whole batch and therefore remain unscaled.
- * @param {PrettyTimings} timings
- * @param {number} iterations
- * @param {number} wallMs
- * @return {PrettyTimings}
- */
-function averagePrettyTimings(timings, iterations, wallMs) {
-    var averaged = Object.assign({}, timings);
-    /** @type {(keyof PrettyTimings)[]} */
-    var averageKeys = [
-        "marshalMs",
-        "executeMs",
-        "decodeMs",
-        "renderMs",
-        "totalMs",
-        "adapterInputMs",
-        "adapterOutputMs",
-        "normalizeMs",
-        "allocateMs",
-        "encodeMs",
-        "runtimeMarshalMs",
-        "runtimeDecodeMs",
-        "runtimeTotalMs",
-        "hostMs",
-        "inputBytes",
-        "rawObjects",
-        "allocationCalls",
-        "requestBytes",
-        "responseBytes",
-        "formatNodes",
-    ];
-    averageKeys.forEach(function (key) {
-        var value = averaged[key];
-        if (typeof value === "number" && Number.isFinite(value)) {
-            averaged[key] = value / iterations;
-        }
-    });
-    averaged.batchIterations = iterations;
-    averaged.batchWallMs = wallMs / iterations;
-    return averaged;
-}
-
-/**
  * A deterministic character-column measurer for differential comparison.
  * Every backend receives the same budget instead of deriving it independently
  * from its pane's DOM width.
@@ -1048,6 +1042,116 @@ function normalizeVirSegments(value) {
 }
 
 /**
+ * Convert a UTF-8 byte offset into the corresponding JavaScript UTF-16 string
+ * offset. Lean reports UTF-8 offsets so the ABI is also usable by native Wasm;
+ * JavaScript strings need this one linear boundary map for non-ASCII text.
+ * @param {string} value
+ * @return {Map<number, number>}
+ */
+function utf8ToUtf16Boundaries(value) {
+    var boundaries = new Map();
+    var utf8 = 0;
+    var utf16 = 0;
+    boundaries.set(0, 0);
+    for (var scalar of value) {
+        var codePoint = scalar.codePointAt(0) || 0;
+        utf8 += codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+        utf16 += scalar.length;
+        boundaries.set(utf8, utf16);
+    }
+    return boundaries;
+}
+
+/**
+ * Validate the flat Lean rendering and project it to the browser's existing
+ * segment surface. Event kinds are 0=startTag, 1=endTags, 2=unstyled newline.
+ * @param {*} value
+ * @return {Segment[] | null}
+ */
+function normalizeVirRendered(value) {
+    if (!value || typeof value.text !== "string" || !Array.isArray(value.events)) return null;
+
+    var boundaries = utf8ToUtf16Boundaries(value.text);
+    var totalBytes = 0;
+    for (var boundary of boundaries.keys()) totalBytes = boundary;
+
+    /** @type {StyleEvent[]} */
+    var events = [];
+    var previousOffset = 0;
+    for (var i = 0; i < value.events.length; i++) {
+        var raw = value.events[i];
+        if (!raw) return null;
+        var event = {
+            offset: Number(raw.offset),
+            kind: Number(raw.kind),
+            value: Number(raw.value),
+        };
+        if (
+            !Number.isSafeInteger(event.offset) ||
+            !Number.isSafeInteger(event.kind) ||
+            !Number.isSafeInteger(event.value) ||
+            event.offset < previousOffset ||
+            event.offset > totalBytes ||
+            event.value < 0 ||
+            !boundaries.has(event.offset) ||
+            (event.kind !== 0 && event.kind !== 1 && event.kind !== 2)
+        ) {
+            return null;
+        }
+        events.push(event);
+        previousOffset = event.offset;
+    }
+
+    /** @type {number[]} */
+    var tagStack = [];
+    /** @type {Segment[]} */
+    var segments = [];
+    var cursorBytes = 0;
+
+    /** @param {number} endBytes @param {number[]} tags */
+    function pushThrough(endBytes, tags) {
+        var start = boundaries.get(cursorBytes);
+        var end = boundaries.get(endBytes);
+        if (start === undefined || end === undefined || endBytes < cursorBytes) return false;
+        var text = value.text.slice(start, end);
+        if (text.length > 0) segments.push({ text: text, tags: tags.slice() });
+        cursorBytes = endBytes;
+        return true;
+    }
+
+    for (var ei = 0; ei < events.length; ei++) {
+        var event = events[ei];
+        if (!pushThrough(event.offset, tagStack)) return null;
+        switch (event.kind) {
+            case 0:
+                tagStack.push(event.value);
+                break;
+            case 1:
+                if (event.value > tagStack.length) return null;
+                tagStack.length -= event.value;
+                break;
+            case 2: {
+                var newlineEnd = event.offset + event.value + 1;
+                if (newlineEnd > totalBytes || !boundaries.has(newlineEnd)) return null;
+                var start = boundaries.get(event.offset);
+                var end = boundaries.get(newlineEnd);
+                if (
+                    start === undefined ||
+                    end === undefined ||
+                    value.text.slice(start, end) !== "\n" + " ".repeat(event.value)
+                ) {
+                    return null;
+                }
+                if (!pushThrough(newlineEnd, [])) return null;
+                break;
+            }
+        }
+    }
+    if (tagStack.length !== 0 || !pushThrough(totalBytes, tagStack)) return null;
+    return segments;
+}
+
+/**
  * @param {PrettyVirBridge} bridge
  * @param {string} backend
  * @param {*} error
@@ -1078,7 +1182,6 @@ function tryFormatSegmentsWithVirTimed(fmtJson, pixelWidth, measurer) {
     if (bridge.status && bridge.status !== "ready") {
         return { segments: null, timings: emptyPrettyTimings() };
     }
-
     var fmtString = JSON.stringify(fmtJson);
     var width = pixelWidthToFormatColumns(pixelWidth, measurer);
     var indent = 0;
@@ -1195,7 +1298,6 @@ function tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
     if (bridge.status && bridge.status !== "ready") {
         return { segments: null, timings: emptyPrettyTimings() };
     }
-
     /** @type {VirCallTimings | null} */
     var runtimeTimings = null;
     try {
@@ -1271,6 +1373,217 @@ function tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
 }
 
 /**
+ * Run the same direct `Std.Format` input through Lean's flat text/event output
+ * ABI. Keeping this as a separate backend makes the output-boundary gain
+ * measurable against `vir-format` without changing its control path.
+ * @param {*} fmtJson
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {PrettySegmentResult}
+ */
+function tryFormatRenderedWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
+    var started = performance.now();
+    var marshaled = started;
+    var executed = started;
+    var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
+        .__versoPrettyVir;
+    if (!bridge || bridge.enabled === false) {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    if (bridge.status && bridge.status !== "ready") {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+
+    /** @type {VirCallTimings | null} */
+    var runtimeTimings = null;
+    try {
+        var width = pixelWidthToFormatColumns(pixelWidth, measurer);
+        var indent = 0;
+        var fmt = compactFormatToStdFormat(fmtJson);
+        marshaled = performance.now();
+        var rendered;
+        if (typeof bridge.formatRenderedTimed === "function") {
+            var timed = bridge.formatRenderedTimed(fmt, width, indent);
+            rendered = timed.value;
+            runtimeTimings = requireVirCallTimings(timed.timings);
+        } else if (bridge.runtime && typeof bridge.runtime.callTimed === "function") {
+            var runtimeTimed = bridge.runtime.callTimed(
+                bridge.renderedExportName || "VersoSlides.Pretty.formatRenderedForVir",
+                fmt,
+                width,
+                indent,
+            );
+            rendered = runtimeTimed.value;
+            runtimeTimings = requireVirCallTimings(runtimeTimed.timings);
+        } else if (typeof bridge.formatRendered === "function") {
+            rendered = bridge.formatRendered(fmt, width, indent);
+        } else if (bridge.runtime && typeof bridge.runtime.call === "function") {
+            rendered = bridge.runtime.call(
+                bridge.renderedExportName || "VersoSlides.Pretty.formatRenderedForVir",
+                fmt,
+                width,
+                indent,
+            );
+        } else {
+            return {
+                segments: null,
+                timings: prettyPhaseTimings(started, marshaled, marshaled, marshaled),
+            };
+        }
+        executed = performance.now();
+
+        var segments = normalizeVirRendered(rendered);
+        if (segments === null) {
+            warnPrettyVirFailure(bridge, "vir-flat", "invalid flat rendered payload");
+            var invalidAt = performance.now();
+            return {
+                segments: null,
+                timings: composeVirPrettyTimings(
+                    started,
+                    marshaled,
+                    executed,
+                    invalidAt,
+                    runtimeTimings,
+                ),
+            };
+        }
+        var decoded = performance.now();
+        return {
+            segments: segments,
+            timings: composeVirPrettyTimings(started, marshaled, executed, decoded, runtimeTimings),
+        };
+    } catch (error) {
+        warnPrettyVirFailure(bridge, "vir-flat", error);
+        var failed = performance.now();
+        return {
+            segments: null,
+            timings: composeVirPrettyTimings(
+                started,
+                marshaled,
+                executed === started ? failed : executed,
+                failed,
+                runtimeTimings || null,
+            ),
+        };
+    }
+}
+
+/**
+ * Render a deck-resident Lean `Std.Format`. The compact format is retained by
+ * the caller only as the cross-backend control; this path sends its generated
+ * numeric ID, width, and indent to VIR.
+ * @param {number | undefined} formatId
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {PrettySegmentResult}
+ */
+function tryFormatRenderedWithVirResidentTimed(formatId, pixelWidth, measurer) {
+    var started = performance.now();
+    var marshaled = started;
+    var executed = started;
+    var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
+        .__versoPrettyVir;
+    if (
+        !bridge ||
+        bridge.enabled === false ||
+        !Number.isSafeInteger(formatId) ||
+        /** @type {number} */ (formatId) < 0
+    ) {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    if (bridge.status && bridge.status !== "ready") {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    var residentId = /** @type {number} */ (formatId);
+
+    /** @type {VirCallTimings | null} */
+    var runtimeTimings = null;
+    try {
+        var width = pixelWidthToFormatColumns(pixelWidth, measurer);
+        var indent = 0;
+        marshaled = performance.now();
+        var result;
+        if (typeof bridge.formatRenderedByIdTimed === "function") {
+            var timed = bridge.formatRenderedByIdTimed(residentId, width, indent);
+            result = timed.value;
+            runtimeTimings = requireVirCallTimings(timed.timings);
+        } else if (bridge.runtime && typeof bridge.runtime.callTimed === "function") {
+            var runtimeTimed = bridge.runtime.callTimed(
+                bridge.residentExportName || "VersoSlides.PrettyRegistry.formatRenderedByIdForVir",
+                residentId,
+                width,
+                indent,
+            );
+            result = runtimeTimed.value;
+            runtimeTimings = requireVirCallTimings(runtimeTimed.timings);
+        } else if (typeof bridge.formatRenderedById === "function") {
+            result = bridge.formatRenderedById(residentId, width, indent);
+        } else if (bridge.runtime && typeof bridge.runtime.call === "function") {
+            result = bridge.runtime.call(
+                bridge.residentExportName || "VersoSlides.PrettyRegistry.formatRenderedByIdForVir",
+                residentId,
+                width,
+                indent,
+            );
+        } else {
+            return {
+                segments: null,
+                timings: prettyPhaseTimings(started, marshaled, marshaled, marshaled),
+            };
+        }
+        executed = performance.now();
+
+        if (!result || result.found !== true) {
+            warnPrettyVirFailure(bridge, "vir-resident", "resident format ID was not found");
+            var missingAt = performance.now();
+            return {
+                segments: null,
+                timings: composeVirPrettyTimings(
+                    started,
+                    marshaled,
+                    executed,
+                    missingAt,
+                    runtimeTimings,
+                ),
+            };
+        }
+        var segments = normalizeVirRendered(result.rendered);
+        if (segments === null) {
+            warnPrettyVirFailure(bridge, "vir-resident", "invalid resident rendered payload");
+            var invalidAt = performance.now();
+            return {
+                segments: null,
+                timings: composeVirPrettyTimings(
+                    started,
+                    marshaled,
+                    executed,
+                    invalidAt,
+                    runtimeTimings,
+                ),
+            };
+        }
+        var decoded = performance.now();
+        return {
+            segments: segments,
+            timings: composeVirPrettyTimings(started, marshaled, executed, decoded, runtimeTimings),
+        };
+    } catch (error) {
+        warnPrettyVirFailure(bridge, "vir-resident", error);
+        var failed = performance.now();
+        return {
+            segments: null,
+            timings: composeVirPrettyTimings(
+                started,
+                marshaled,
+                executed === started ? failed : executed,
+                failed,
+                runtimeTimings || null,
+            ),
+        };
+    }
+}
+
+/**
  * @param {*} fmtJson
  * @param {Record<string, TokenAnnotation>} annotations
  * @param {number} pixelWidth
@@ -1323,6 +1636,30 @@ registerPrettyBackend({
         return tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer);
     },
 });
+registerPrettyBackend({
+    id: "vir-flat",
+    label: "VIR Flat",
+    capabilities: { output: "text-events", width: "columns" },
+    status: function () {
+        var bridge = /** @type {Window} */ (window).__versoPrettyVir;
+        return bridge && bridge.status ? bridge.status : "unavailable";
+    },
+    renderTimed: function (fmtJson, _annotations, pixelWidth, measurer) {
+        return tryFormatRenderedWithVirFormatTimed(fmtJson, pixelWidth, measurer);
+    },
+});
+registerPrettyBackend({
+    id: "vir-resident",
+    label: "VIR Resident",
+    capabilities: { output: "text-events", width: "columns" },
+    status: function () {
+        var bridge = /** @type {Window} */ (window).__versoPrettyVir;
+        return bridge && bridge.status ? bridge.status : "unavailable";
+    },
+    renderTimed: function (_fmtJson, _annotations, pixelWidth, measurer, formatId) {
+        return tryFormatRenderedWithVirResidentTimed(formatId, pixelWidth, measurer);
+    },
+});
 
 /**
  * Execute one backend and normalize its phase timings.
@@ -1331,17 +1668,18 @@ registerPrettyBackend({
  * @param {number} pixelWidth - target width in pixels
  * @param {DOMMeasurer} measurer
  * @param {PrettyBackend} backend
+ * @param {number} [formatId]
  * @return {PrettySegmentResult}
  */
-function renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, backend) {
+function renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId) {
     if (typeof backend.renderTimed === "function") {
-        return backend.renderTimed(fmtJson, annotations, pixelWidth, measurer);
+        return backend.renderTimed(fmtJson, annotations, pixelWidth, measurer, formatId);
     }
     if (typeof backend.renderSegments !== "function") {
         return { segments: null, timings: emptyPrettyTimings() };
     }
     var started = performance.now();
-    var segments = backend.renderSegments(fmtJson, annotations, pixelWidth, measurer);
+    var segments = backend.renderSegments(fmtJson, annotations, pixelWidth, measurer, formatId);
     var finished = performance.now();
     var timings = emptyPrettyTimings();
     timings.executeMs = Math.max(0, finished - started);
@@ -1358,10 +1696,11 @@ function renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, b
  * @param {number} pixelWidth - target width in pixels
  * @param {DOMMeasurer} measurer
  * @param {string} backend
+ * @param {number} [formatId]
  * @return {string | null} HTML string, or null when the backend is unavailable
  */
-function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backend) {
-    return formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend).html;
+function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backend, formatId) {
+    return formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId).html;
 }
 
 /**
@@ -1383,15 +1722,23 @@ function formatToHtml(fmtJson, annotations, pixelWidth, measurer) {
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
  * @param {string} backend
+ * @param {number} [formatId]
  * @return {TimedPrettyResult}
  */
-function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend) {
+function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backend, formatId) {
     var start = performance.now();
     var candidate = getPrettyBackend(backend);
     if (!candidate) {
         return { html: null, durationMs: 0, timings: emptyPrettyTimings() };
     }
-    var rendered = renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, candidate);
+    var rendered = renderPrettySegmentsTimed(
+        fmtJson,
+        annotations,
+        pixelWidth,
+        measurer,
+        candidate,
+        formatId,
+    );
     var renderStart = performance.now();
     var html = rendered.segments ? segmentsToHtml(rendered.segments, annotations) : null;
     var finished = performance.now();
@@ -1481,7 +1828,11 @@ function goalsToHtml(goalsJson) {
                     var fmtData =
                         typeof hyp.ppType === "string" ? JSON.parse(hyp.ppType) : hyp.ppType;
                     var idx = formats.length;
-                    formats.push({ fmt: fmtData.fmt, annotations: fmtData.annotations || {} });
+                    formats.push({
+                        fmt: fmtData.fmt,
+                        annotations: fmtData.annotations || {},
+                        formatId: fmtData.formatId,
+                    });
                     typeHtml = '<span class="reflowed" data-fmt-idx="' + idx + '"></span>';
                 } else {
                     typeHtml = '<span class="no-format">(no format data)</span>';
@@ -1506,7 +1857,11 @@ function goalsToHtml(goalsJson) {
                     ? JSON.parse(goal.ppConclusion)
                     : goal.ppConclusion;
             var idx = formats.length;
-            formats.push({ fmt: conclData.fmt, annotations: conclData.annotations || {} });
+            formats.push({
+                fmt: conclData.fmt,
+                annotations: conclData.annotations || {},
+                formatId: conclData.formatId,
+            });
             conclHtml = '<span class="reflowed" data-fmt-idx="' + idx + '"></span>';
         } else {
             conclHtml = '<span class="no-format">(no format data)</span>';
@@ -1550,6 +1905,7 @@ function fillReflowedSpans(container, formats, measurer, backend, fixedWidth) {
             width,
             measurer,
             backend || "js",
+            entry.formatId,
         );
         addPrettyTimings(totals, timed.timings);
         span.innerHTML =

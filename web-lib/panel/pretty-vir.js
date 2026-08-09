@@ -13,7 +13,9 @@
      *   fetchCache?: RequestCache,
      *   irPackageUrl?: string,
      *   jsonExportName?: string,
-     *   formatExportName?: string
+     *   formatExportName?: string,
+     *   renderedExportName?: string,
+     *   residentExportName?: string
      * }} PrettyVirConfig
      *
      * @typedef {{
@@ -24,10 +26,16 @@
      *   },
      *   jsonExportName?: string,
      *   formatExportName?: string,
+     *   renderedExportName?: string,
+     *   residentExportName?: string,
      *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
      *   formatSegments?: (fmt: *, width: number, indent: number) => *,
+     *   formatRendered?: (fmt: *, width: number, indent: number) => *,
+     *   formatRenderedById?: (formatId: number, width: number, indent: number) => *,
      *   formatJsonSegmentsJsonTimed?: (fmtJson: string, width: number, indent: number) => VirTimedCallResult,
      *   formatSegmentsTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
+     *   formatRenderedTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
+     *   formatRenderedByIdTimed?: (formatId: number, width: number, indent: number) => VirTimedCallResult,
      *   ready?: Promise<*>,
      *   status?: string,
      *   error?: *,
@@ -83,6 +91,14 @@
         config.formatExportName ||
         bridge.formatExportName ||
         "VersoSlides.Pretty.formatSegmentsForVir";
+    bridge.renderedExportName =
+        config.renderedExportName ||
+        bridge.renderedExportName ||
+        "VersoSlides.Pretty.formatRenderedForVir";
+    bridge.residentExportName =
+        config.residentExportName ||
+        bridge.residentExportName ||
+        "VersoSlides.PrettyRegistry.formatRenderedByIdForVir";
     bridge.assets = [scriptUrl, runtimeUrl, wasmUrl, irPackageUrl];
     root.__versoPrettyVir = bridge;
 
@@ -139,6 +155,16 @@
                     throw new Error("missing VIR Std.Format pretty export name");
                 return runtime.call(bridge.formatExportName, fmt, width, indent);
             };
+            bridge.formatRendered = function (fmt, width, indent) {
+                if (!bridge.renderedExportName)
+                    throw new Error("missing VIR flat pretty export name");
+                return runtime.call(bridge.renderedExportName, fmt, width, indent);
+            };
+            bridge.formatRenderedById = function (formatId, width, indent) {
+                if (!bridge.residentExportName)
+                    throw new Error("missing VIR resident pretty export name");
+                return runtime.call(bridge.residentExportName, formatId, width, indent);
+            };
             if (typeof runtime.callTimed === "function") {
                 bridge.formatJsonSegmentsJsonTimed = function (fmtJson, width, indent) {
                     if (!bridge.jsonExportName)
@@ -150,6 +176,16 @@
                         throw new Error("missing VIR Std.Format pretty export name");
                     return runtime.callTimed(bridge.formatExportName, fmt, width, indent);
                 };
+                bridge.formatRenderedTimed = function (fmt, width, indent) {
+                    if (!bridge.renderedExportName)
+                        throw new Error("missing VIR flat pretty export name");
+                    return runtime.callTimed(bridge.renderedExportName, fmt, width, indent);
+                };
+                bridge.formatRenderedByIdTimed = function (formatId, width, indent) {
+                    if (!bridge.residentExportName)
+                        throw new Error("missing VIR resident pretty export name");
+                    return runtime.callTimed(bridge.residentExportName, formatId, width, indent);
+                };
             }
             return runtime;
         })
@@ -159,7 +195,7 @@
             console.warn("VIR pretty-printer bootstrap failed.", error);
             return null;
         });
-    ["vir", "vir-format"].forEach(function (id) {
+    ["vir", "vir-format", "vir-flat", "vir-resident"].forEach(function (id) {
         var backend = getPrettyBackend(id);
         if (backend) backend.ready = bridge.ready;
     });

@@ -12,8 +12,9 @@ The [demo slides](./Demo.lean) can be seen at
 
 The VIR-backed pretty-printer prototype demo is published at
 <https://x80.org/vir-verso-slides-demo/>. Keep this URL stable for
-comparing the JavaScript, VIR JSON, VIR `Std.Format`, FIR-native Wasm,
-and LLVM/Emscripten LCNF-to-Wasm rendering modes.
+comparing the JavaScript, four VIR boundaries (JSON, direct
+`Std.Format`, flat output, and resident input), FIR-native Wasm, and
+LLVM/Emscripten LCNF-to-Wasm rendering modes.
 
 ## Requirements
 
@@ -767,7 +768,8 @@ path is only used when a page provides a ready
 
 The renderer writes `lib/pretty-vir.js` next to `lib/pretty.js`, but
 it does not load it by default. To opt in manually, provide a lean-vir
-browser runtime and package built for the same Lean toolchain:
+browser runtime and a self-contained package built with a declared
+Lean toolchain:
 
 - `lib/lean-vir/js/vir-runtime.js`
 - any nested JavaScript modules imported by that runtime, unless
@@ -775,7 +777,8 @@ browser runtime and package built for the same Lean toolchain:
 - `lib/lean-vir/wasm/vir-upstream.wasm`
 - `lib/verso-pretty.irpkg`, exporting
   `VersoSlides.Pretty.formatJsonSegmentsJsonForVir` and
-  `VersoSlides.Pretty.formatSegmentsForVir`
+  `VersoSlides.Pretty.formatSegmentsForVir`, plus the optional flat
+  and resident entry points
 
 Then opt in with:
 
@@ -788,28 +791,32 @@ slidesMain
 `pretty-vir.js` loads the runtime asynchronously. The ordinary
 `formatToHtml` entry point always uses the existing synchronous
 JavaScript formatter; VIR candidates are selected explicitly or shown
-in comparison mode. The adapter accepts both the older single-package runtime
-API and the current VIR package-set API, treating this focused package as a
-one-member set.
+in comparison mode. The adapter accepts both the older single-package
+runtime API and the current VIR package-set API, treating this focused
+package as a one-member set.
 
 When comparison mode is disabled, the panel can select a specific
 renderer with `window.__versoPrettyConfig.backend`. Supported values
-are `"js"`, `"vir"` for the JSON boundary, and `"vir-format"` for the
-direct `Std.Format` boundary. Loading `lib/pretty-native.js` also
-registers `"native"`, a `Std.Format.prettyM` Wasm module produced from
-Lean LCNF by FIR. Loading `lib/pretty-llvm.js` registers `"llvm"`, the
-conventional Lean LCNF → C → LLVM/Emscripten Wasm route. With no
-selection, the panel uses `"js"`. An unavailable or unknown explicit
-selection is shown as unavailable instead of falling back to another
-candidate.
+are `"js"`, `"vir"` for the JSON boundary, `"vir-format"` for direct
+`Std.Format`/segment output, `"vir-flat"` for direct input/flat
+output, and `"vir-resident"` for package-resident input/flat output.
+Loading `lib/pretty-native.js` also registers `"native"`, a
+`Std.Format.prettyM` Wasm module produced from Lean LCNF by FIR.
+Loading `lib/pretty-llvm.js` registers `"llvm"`, the conventional Lean
+LCNF → C → LLVM/Emscripten Wasm route. With no selection, the panel
+uses `"js"`. An unavailable or unknown explicit selection is shown as
+unavailable instead of falling back to another candidate.
 
 Set `window.__versoPrettyConfig.compare` to `true` to render every
 selected candidate side by side. Set `controls` to `true` to add an
 interactive formatter menu. It can enable or disable individual
-comparison processors, switch comparison mode, choose the renderer
-used outside comparison mode, and change the shared comparison width.
-The menu updates the query string so a test configuration can be
-copied or reloaded:
+comparison processors, switch comparison mode, choose the renderer and
+shared width, and select a timed source-code volume. Workload volumes
+repeat the complete visible format set for every backend; they do not
+change the input shape. The default remains one pass, keeping ordinary
+slide interaction cheap. used outside comparison mode, and change the
+shared comparison width. The menu updates the query string so a test
+configuration can be copied or reloaded:
 
 - `pretty=js,vir,vir-format,native,llvm` selects comparison
   processors.
@@ -818,9 +825,9 @@ copied or reloaded:
   renderer outside comparison mode.
 - `prettyColumns=40` sets the common comparison width.
 - `prettyControls=1` displays the menu.
-- `prettyTiming=execute` selects the primary timing shown in every pane;
-  supported values are `total`, `execute`, `marshal`, `decode`, `render`,
-  `wall`, and `tracks`.
+- `prettyTiming=execute` selects the primary timing shown in every
+  pane; supported values are `total`, `execute`, `marshal`, `decode`,
+  `render`, `wall`, and `tracks`.
 
 Comparison mode deliberately gives every processor the same
 deterministic character-column budget. This avoids deriving separate
@@ -828,13 +835,14 @@ widths from panes whose sizes and output styling differ. Outside
 comparison mode, the JavaScript renderer retains its DOM-measured
 pixel width.
 
-Each comparison header can display formatter total, execution, marshal,
-decode, HTML-construction, or panel wall time. The `tracks` display places the
-formatter total above a compact four-lane view of marshal, execute, decode, and
-HTML time on one absolute scale across the visible backends. Hovering either
-display shows the complete timing breakdown. These are synchronous per-render
-measurements taken after artifact instantiation: download and instantiation are
-excluded, while an early observation may still include engine warm-up. Goal
+Each comparison header can display formatter total, execution,
+marshal, decode, HTML-construction, or panel wall time. The `tracks`
+display places the formatter total above a compact four-lane view of
+marshal, execute, decode, and HTML time on one absolute scale across
+the visible backends. Hovering either display shows the complete
+timing breakdown. These are synchronous per-render measurements taken
+after artifact instantiation: download and instantiation are excluded,
+while an early observation may still include engine warm-up. Goal
 panes sum the phase times of all formatted hypotheses and conclusions.
 The native adapter additionally breaks preparation into Verso-input
 conversion, normalization, one bulk resident allocation, and raw
@@ -976,23 +984,27 @@ The script expects a lean-vir checkout staged at
 `_test/vir-code`, generates `lib/verso-pretty.irpkg`, copies
 `vir-upstream.wasm`, bundles the lean-vir browser runtime into a
 single minified `lib/lean-vir/js/vir-runtime.js`, and enables the
-JavaScript, VIR JSON, and VIR `Std.Format` comparison panes.
+JavaScript plus four VIR comparison panes. The build deduplicates rich
+formats, assigns numeric IDs in slide and hover-document payloads, and
+generates a package-initialized Lean format table. `VIR Flat` keeps
+direct typed input but returns one text plus UTF-8 style events;
+`VIR Resident` transfers only ID, width, and indent.
 
-To add the fourth native pane, pass a prepared FIR `prettyM` package.
-The script verifies its `SHA256SUMS` and styled-trace capability
-metadata, including its zero-import boundary. An atomic
-`prettyM-current` symlink is pinned to one immutable release before
-validation, so a concurrent refresh cannot mix package generations.
-The script then copies `BUILD.json`, the Wasm module, descriptor, and
-versioned production browser adapter and loads `lib/pretty-native.js`:
+To add the FIR-native pane, pass a prepared FIR `prettyM` package. The
+script verifies its `SHA256SUMS` and styled-trace capability metadata,
+including its zero-import boundary. An atomic `prettyM-current`
+symlink is pinned to one immutable release before validation, so a
+concurrent refresh cannot mix package generations. The script then
+copies `BUILD.json`, the Wasm module, descriptor, and versioned
+production browser adapter and loads `lib/pretty-native.js`:
 
 ```
 NATIVE_PRETTY_DIR=_artifacts/pretty-native-current \
   scripts/build-vir-pretty-demo.sh
 ```
 
-To add the fifth LLVM pane, also pass the checksummed Emscripten
-package. The build validates its manifest, toolchain/runtime contract,
+To add the LLVM pane, also pass the checksummed Emscripten package.
+The build validates its manifest, toolchain/runtime contract,
 optimized flags, bridge exports, and artifact digests, copies the
 complete package without renaming files, and emits the isolation
 headers required by Emscripten threads. For static servers that ignore
@@ -1012,18 +1024,19 @@ scripts/build-vir-pretty-demo.sh --publish
 ```
 
 Serve a local build with the required isolation headers, then run the
-presentation's five-backend interaction smoke test:
+presentation's seven-backend interaction smoke test:
 
 ```
 scripts/serve-vir-pretty-demo.py
 python3 demos/vir-pretty/scripts/browser-smoke.py http://127.0.0.1:18321
 ```
 
-Benchmark collection is intentionally absent from Verso Slides. The standalone
-application under `benchmarks/prettyM-web/` in the VIR repository now owns the
-corpus, scaling, interaction, retained and isolated memory, repeated-call,
-cold-start, fresh-process campaign, dashboard, and observation-card workflows.
-From that directory, the corresponding entry points are:
+Benchmark collection is intentionally absent from Verso Slides. The
+standalone application under `benchmarks/prettyM-web/` in the VIR
+repository now owns the corpus, scaling, interaction, retained and
+isolated memory, repeated-call, cold-start, fresh-process campaign,
+dashboard, and observation-card workflows. From that directory, the
+corresponding entry points are:
 
 ```
 npm run report
@@ -1032,15 +1045,19 @@ npm run cards
 npm run refresh
 ```
 
-The independent JSON parse/serialize control is retired. The two VIR candidates
-remain in the suite, so the deliberately simple string ABI and lower-level
-direct `Std.Format` ABI can still be compared without maintaining a separate
-experiment. Historical VIR-001 cards record why the direct ABI is the compiler
-performance baseline.
+The independent JSON benchmark campaign is retired. Four VIR
+candidates remain in the presentation: the deliberately simple string
+ABI, lower-level direct `Std.Format` ABI, flat-output ABI, and
+package-resident-input ABI. Together they isolate input and output
+conversion costs without restoring benchmark machinery to the slide
+runtime. Historical VIR-001 cards record why direct typed input is the
+compiler performance baseline.
 
-A small [lean-vir handoff bundle](handoffs/lean-vir-benchmark-sampler/README.md)
-still documents the schema-neutral sampler extraction. The webapp remains
-`prettyM`-specific until a second real function supplies concrete requirements.
+A small
+[lean-vir handoff bundle](handoffs/lean-vir-benchmark-sampler/README.md)
+still documents the schema-neutral sampler extraction. The webapp
+remains `prettyM`-specific until a second real function supplies
+concrete requirements.
 
 By default, `--publish` syncs to
 `x80.org:/srv/www/vir-verso-slides-demo/`, which is served at

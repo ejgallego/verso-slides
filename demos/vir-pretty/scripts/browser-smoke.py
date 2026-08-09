@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Browser smoke test for the full standalone five-backend panel demo."""
+"""Browser smoke test for the full standalone pretty-printer panel demo."""
 
 import argparse
 import asyncio
@@ -7,7 +7,7 @@ import asyncio
 from playwright.async_api import async_playwright
 
 
-BACKEND_IDS = ["js", "vir", "vir-format", "native", "llvm"]
+BACKEND_IDS = ["js", "vir", "vir-format", "vir-flat", "vir-resident", "native", "llvm"]
 
 
 async def main() -> None:
@@ -32,10 +32,10 @@ async def main() -> None:
 
         controls = page.locator(".pretty-controls")
         await controls.wait_for(state="visible")
-        assert await controls.locator("summary").inner_text() == "Formatters 5/5"
+        assert await controls.locator("summary").inner_text() == f"Formatters {len(BACKEND_IDS)}/{len(BACKEND_IDS)}"
         await controls.locator("summary").click()
-        assert await controls.locator(".pretty-controls-backend").count() == 5
-        assert await controls.locator(".pretty-controls-status.status-ready").count() == 5
+        assert await controls.locator(".pretty-controls-backend").count() == len(BACKEND_IDS)
+        assert await controls.locator(".pretty-controls-status.status-ready").count() == len(BACKEND_IDS)
         assert await controls.locator("button").count() == 0
 
         proof_index = await page.evaluate(
@@ -49,11 +49,11 @@ async def main() -> None:
         await block.locator(".tactic .keyword").first.click()
         panes = block.locator(".pretty-compare-pane")
         await page.wait_for_function(
-            "el => el.querySelectorAll('.pretty-compare-pane').length === 5",
+            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(BACKEND_IDS)}",
             arg=await block.element_handle(),
             timeout=30_000,
         )
-        assert await panes.count() == 5
+        assert await panes.count() == len(BACKEND_IDS)
         assert await panes.evaluate_all(
             "els => els.map(el => el.dataset.prettyBackend)"
         ) == BACKEND_IDS
@@ -62,6 +62,15 @@ async def main() -> None:
         )
         assert all("Marshal:" in title and "Execute:" in title for title in timing_titles)
 
+        workload = controls.locator(".pretty-controls-workload select")
+        assert await workload.input_value() == "0"
+        await workload.select_option("256")
+        timing_titles = await panes.locator(".pretty-compare-time").evaluate_all(
+            "els => els.map(el => el.title)"
+        )
+        assert all("Workload:" in title and "code points across" in title for title in timing_titles)
+        assert "prettyWorkload=256" in page.url
+
         timing_display = controls.locator(".pretty-controls-timing select")
         assert await timing_display.input_value() == "total"
         await timing_display.select_option("execute")
@@ -69,15 +78,15 @@ async def main() -> None:
         assert all(text.startswith("Execute · ") for text in timing_texts)
         await timing_display.select_option("tracks")
         total_texts = await panes.locator(".pretty-timing-tracks-total").all_inner_texts()
-        assert len(total_texts) == 5
+        assert len(total_texts) == len(BACKEND_IDS)
         assert all("Total" in text and "ms" in text for text in total_texts)
-        assert await panes.locator(".pretty-timing-track").count() == 20
+        assert await panes.locator(".pretty-timing-track").count() == 4 * len(BACKEND_IDS)
         assert "prettyTiming=tracks" in page.url
 
         llvm_toggle = controls.locator('input[value="llvm"]')
         await llvm_toggle.uncheck()
         await page.wait_for_function(
-            "el => el.querySelectorAll('.pretty-compare-pane').length === 4",
+            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(BACKEND_IDS) - 1}",
             arg=await block.element_handle(),
         )
         await llvm_toggle.check()
@@ -90,7 +99,7 @@ async def main() -> None:
         assert not page_errors, page_errors
         await browser.close()
 
-    print("PASS full vanilla Verso five-backend panel smoke")
+    print("PASS full vanilla Verso seven-backend panel smoke")
 
 
 if __name__ == "__main__":

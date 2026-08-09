@@ -34,6 +34,12 @@
         { key: "decodeMs", label: "Decode", shortLabel: "D" },
         { key: "renderMs", label: "HTML", shortLabel: "H" },
     ];
+    var PRETTY_WORKLOADS = [
+        { codePoints: 0, label: "Visible code once" },
+        { codePoints: 256, label: "At least 256 code points" },
+        { codePoints: 2048, label: "At least 2K code points" },
+        { codePoints: 8192, label: "At least 8K code points" },
+    ];
 
     function init() {
         initializePrettyConfig();
@@ -107,7 +113,18 @@
         if (params.has("prettyTiming")) {
             config.timing = prettyTimingDisplayById(params.get("prettyTiming")).id;
         }
+        if (params.has("prettyWorkload")) {
+            var workload = Number(params.get("prettyWorkload"));
+            if (
+                PRETTY_WORKLOADS.some(function (choice) {
+                    return choice.codePoints === workload;
+                })
+            ) {
+                config.workload = workload;
+            }
+        }
         if (!Number.isInteger(config.columns)) config.columns = 40;
+        if (!Number.isInteger(config.workload)) config.workload = 0;
         config.timing = selectedPrettyTimingDisplay().id;
     }
 
@@ -128,6 +145,17 @@
         var root = /** @type {Window} */ (window);
         var columns = root.__versoPrettyConfig && root.__versoPrettyConfig.columns;
         return Number.isInteger(columns) ? Math.max(1, Math.min(240, Number(columns))) : 40;
+    }
+
+    /** @return {number} */
+    function prettyWorkloadCodePoints() {
+        var root = /** @type {Window} */ (window);
+        var selected = root.__versoPrettyConfig && root.__versoPrettyConfig.workload;
+        return PRETTY_WORKLOADS.some(function (choice) {
+            return choice.codePoints === selected;
+        })
+            ? Number(selected)
+            : 0;
     }
 
     /**
@@ -173,6 +201,7 @@
         url.searchParams.set("prettyColumns", String(prettyComparisonColumns()));
         url.searchParams.set("prettyControls", config.controls === true ? "1" : "0");
         url.searchParams.set("prettyTiming", selectedPrettyTimingDisplay().id);
+        url.searchParams.set("prettyWorkload", String(prettyWorkloadCodePoints()));
         window.history.replaceState(null, "", url);
     }
 
@@ -338,9 +367,29 @@
         timingLabel.appendChild(timing);
         menu.appendChild(timingLabel);
 
+        var workloadLabel = document.createElement("label");
+        workloadLabel.className = "pretty-controls-workload";
+        workloadLabel.appendChild(document.createTextNode("Timed workload "));
+        var workload = document.createElement("select");
+        PRETTY_WORKLOADS.forEach(function (choice) {
+            var option = document.createElement("option");
+            option.value = String(choice.codePoints);
+            option.textContent = choice.label;
+            option.selected = choice.codePoints === prettyWorkloadCodePoints();
+            workload.appendChild(option);
+        });
+        workload.addEventListener("change", function () {
+            config.workload = Number(workload.value);
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        workloadLabel.appendChild(workload);
+        menu.appendChild(workloadLabel);
+
         var note = document.createElement("p");
         note.className = "pretty-controls-note";
-        note.textContent = "Comparison uses one deterministic column budget for every processor.";
+        note.textContent =
+            "Comparison uses one deterministic column budget and repeats the complete visible format set to reach the selected code volume.";
         menu.appendChild(note);
 
         prettyControls.replaceChildren(summary, menu);
@@ -826,6 +875,28 @@
     }
 
     /**
+     * @param {FormatData[]} formats
+     * @return {number}
+     */
+    function prettyFormatSetCodePoints(formats) {
+        return formats.reduce(function (total, entry) {
+            return total + compactFormatSourceLength(entry.fmt);
+        }, 0);
+    }
+
+    /**
+     * Repeat the complete visible format set, rather than changing its shape,
+     * so every backend receives exactly the same sequence of calls.
+     * @param {number} codePointsPerPass
+     * @return {number}
+     */
+    function prettyWorkloadIterations(codePointsPerPass) {
+        var target = prettyWorkloadCodePoints();
+        if (target === 0) return 1;
+        return Math.min(2048, Math.max(1, Math.ceil(target / Math.max(1, codePointsPerPass))));
+    }
+
+    /**
      * @param {HTMLElement} el
      * @return {number}
      */
@@ -958,6 +1029,19 @@
      */
     function setTimingDetails(timeEl, timings, wallMs) {
         var details = ["Formatter total: " + formatTiming(timings.totalMs)];
+        if (
+            typeof timings.batchIterations === "number" &&
+            typeof timings.batchCodePoints === "number"
+        ) {
+            details.push(
+                "Workload: " +
+                    Math.round(timings.batchCodePoints) +
+                    " code points across " +
+                    Math.round(timings.batchIterations) +
+                    " pass" +
+                    (timings.batchIterations === 1 ? "" : "es"),
+            );
+        }
         if (typeof timings.runtimeTotalMs === "number" && Number.isFinite(timings.runtimeTotalMs)) {
             details.push("  VIR call total: " + formatTiming(timings.runtimeTotalMs));
         }
@@ -1105,8 +1189,20 @@
         body.innerHTML = '<span class="hl lean">' + result.html + "</span>";
         var columns = prettyComparisonColumns();
         var measurer = createColumnMeasurer(columns);
-        var timings = fillReflowedSpans(body, result.formats, measurer, backend, columns);
-        setTimingDetails(timeEl, timings, performance.now() - start);
+        var codePoints = prettyFormatSetCodePoints(result.formats);
+        var iterations = prettyWorkloadIterations(codePoints);
+        var timings = emptyPrettyTimings();
+        for (var iteration = 0; iteration < iterations; iteration++) {
+            addPrettyTimings(
+                timings,
+                fillReflowedSpans(body, result.formats, measurer, backend, columns),
+            );
+        }
+        var wallMs = performance.now() - start;
+        timings.batchIterations = iterations;
+        timings.batchCodePoints = codePoints * iterations;
+        timings.batchWallMs = wallMs;
+        setTimingDetails(timeEl, timings, wallMs);
     }
 
     /**
@@ -1142,14 +1238,31 @@
         var start = performance.now();
         var columns = prettyComparisonColumns();
         var measurer = createColumnMeasurer(columns);
-        var timed = formatToHtmlTimed(fmtData.fmt, fmtData.annotations, columns, measurer, backend);
+        var codePoints = compactFormatSourceLength(fmtData.fmt);
+        var iterations = prettyWorkloadIterations(codePoints);
+        var timings = emptyPrettyTimings();
+        var html = null;
+        for (var iteration = 0; iteration < iterations; iteration++) {
+            var timed = formatToHtmlTimed(
+                fmtData.fmt,
+                fmtData.annotations,
+                columns,
+                measurer,
+                backend,
+                fmtData.formatId,
+            );
+            html = timed.html;
+            addPrettyTimings(timings, timed.timings);
+        }
+        var wallMs = performance.now() - start;
+        timings.batchIterations = iterations;
+        timings.batchCodePoints = codePoints * iterations;
+        timings.batchWallMs = wallMs;
         body.innerHTML =
             '<span class="reflowed">' +
-            (timed.html === null
-                ? '<span class="pretty-compare-unavailable">unavailable</span>'
-                : timed.html) +
+            (html === null ? '<span class="pretty-compare-unavailable">unavailable</span>' : html) +
             "</span>";
-        setTimingDetails(timeEl, timed.timings, performance.now() - start);
+        setTimingDetails(timeEl, timings, wallMs);
     }
 
     /**
@@ -1175,6 +1288,7 @@
             contentWidth(panel),
             measurer,
             selectedPrettyBackend(),
+            fmtData.formatId,
         );
         sigCode.innerHTML =
             '<span class="reflowed">' +

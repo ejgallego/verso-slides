@@ -38,6 +38,9 @@ private def paragraphDoc : Format :=
 private def taggedDoc : Format :=
   Format.tag 7 "hello"
 
+private def taggedUnicodeLineDoc : Format :=
+  Format.tag 7 ("α" ++ Format.line ++ "β")
+
 private def groupedLineJson : String :=
   "[5,[4,\"hello\",[4,1,\"world\"]]]"
 
@@ -126,6 +129,34 @@ where
     testEq "direct format VIR wrapper"
       (formatSegmentsForVir taggedDoc 80 0)
       #[{ text := "hello", tags := #[7] }]
+    testEq "flat rendered output"
+      (formatRendered taggedDoc 80)
+      { text := "hello"
+        events := #[
+          { offset := 0, kind := 0, value := 7 },
+          { offset := 5, kind := 1, value := 1 }
+        ] }
+    testEq "flat rendered UTF-8 offsets and unstyled newline"
+      (formatRenderedForVir taggedUnicodeLineDoc 80 0)
+      { text := "α\nβ"
+        events := #[
+          { offset := 0, kind := 0, value := 7 },
+          { offset := 2, kind := 2, value := 0 },
+          { offset := 5, kind := 1, value := 1 }
+        ] }
+    testEq "resident format lookup"
+      (formatRenderedAt #[groupedLineDoc, taggedDoc] 1 80 0)
+      { found := true
+        rendered := {
+          text := "hello"
+          events := #[
+            { offset := 0, kind := 0, value := 7 },
+            { offset := 5, kind := 1, value := 1 }
+          ]
+        } }
+    testEq "resident format lookup rejects invalid ID"
+      (formatRenderedAt #[groupedLineDoc] 4 80 0).found
+      false
     testExceptEq "json wide group"
       (formatJsonPlain groupedLineJson 80)
       "hello world"

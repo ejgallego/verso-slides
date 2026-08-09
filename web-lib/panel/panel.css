@@ -162,6 +162,7 @@
 .pretty-controls-columns,
 .pretty-controls-primary,
 .pretty-controls-timing,
+.pretty-controls-workload,
 .pretty-controls-toggle {
     display: flex;
     align-items: center;
@@ -174,7 +175,8 @@
 }
 
 .pretty-controls-primary select,
-.pretty-controls-timing select {
+.pretty-controls-timing select,
+.pretty-controls-workload select {
     min-width: 8rem;
 }
 
@@ -192,7 +194,6 @@
     color: #aaa;
     font-size: 0.78em;
 }
-
 
 /* Focus/hover highlights are drawn as one contiguous SVG path per element
    (see drawElementOutline in panel.js). A plain CSS outline is unusable here:
