@@ -14,9 +14,7 @@ lake exe test-fixtures-build
 "$here/check-jsconfig-coverage.sh"
 
 # Type-check the JS bundles that have a full set of declarations available.
-# (animate/ references types from the illuminate package's anim_core.d.ts,
-# which isn't wired up here — its jsconfig.json exists only to register the
-# file for the coverage check above.)
+npx --no-install tsc --noEmit -p web-lib/animate/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/panel/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/service-worker/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/widget/jsconfig.json

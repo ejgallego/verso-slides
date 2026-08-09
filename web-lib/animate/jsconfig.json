@@ -2,8 +2,9 @@
     "compilerOptions": {
         "lib": ["ES2024", "DOM", "DOM.Iterable"],
         "target": "ES2024",
+        "module": "ESNext",
         "noEmit": true,
         "strict": true
     },
-    "include": ["illuminate-reveal-init.js"]
+    "include": ["illuminate-reveal-init.js", "illuminate-reveal-policy-vir.js", "types.d.ts"]
 }

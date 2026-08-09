@@ -6,6 +6,7 @@ Author: David Thrane Christiansen
 
 import VersoSlides.Basic
 import VersoSlides.Diagram
+import VersoSlides.Animate.RevealPolicy
 import Verso.Doc.ArgParse
 import Verso.Doc.Elab.Monad
 import VersoManual.InlineLean

@@ -393,7 +393,9 @@ private def illuminateAnimCss : String := include_str "../web-lib/animate/illumi
 /-- JS for Illuminate {lit}`reveal.js` animation integration.
     Combines the shared {lit}`anim_core.js` helpers with the multi-animation init script. -/
 private def illuminateRevealJs : String :=
-  Illuminate.animCoreJs ++ "\n" ++ include_str "../web-lib/animate/illuminate-reveal-init.js"
+  Illuminate.animCoreJs ++ "\n" ++
+    (include_str "../web-lib/animate/illuminate-reveal-policy-vir.js") ++ "\n" ++
+    (include_str "../web-lib/animate/illuminate-reveal-init.js")
 
 /-- CSS for the {lit}`:::table` directive. -/
 private def tableCss : String := include_str "../web-lib/table/table.css"

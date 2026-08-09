@@ -757,6 +757,38 @@ The generated HTML loads the Notes, Highlight, and KaTeX Math plugins
 automatically. All plugin assets are vendored and written to the
 output directory, so no internet connection is required.
 
+### Optional VIR Reveal Policy Prototype
+
+The Illuminate animation bridge has an opt-in experiment that moves
+Reveal lifecycle and fragment policy into compiler-neutral Lean. The
+Lean function accepts a compact timeline plus a normalized Reveal
+event and returns player commands such as `seek`, `playTo`, and
+`loopAt`. JavaScript still owns DOM lookup, SVG rendering,
+`requestAnimationFrame`, and command execution.
+
+The ordinary JavaScript planner remains the default and compatibility
+oracle. To build and test the Lean policy through VIR, stage its
+self-contained package and the lean-vir browser runtime, then open the
+generated deck with `?revealPolicy=vir`:
+
+```
+npm run test:reveal-policy:vir
+npm run stage:reveal-policy:vir
+npm run test:reveal-policy:browser
+```
+
+These commands use `_artifacts/lean-vir` by default. Set
+`LEAN_VIR_DIR` to select another checkout, `DECK_DIR` to select a
+generated deck for staging, or `OUT_DIR`/`POLICY_DIR` to select the
+intermediate package directory. If the optional backend cannot load,
+the bridge reports the failure and continues with the JavaScript
+planner for that event.
+
+This boundary is intentionally narrower than a complete Lean animation
+player. A later experiment can combine it with Illuminate's retained
+selection player while keeping the browser-specific scheduler and
+renderer outside the package.
+
 ### Optional Pretty-Printer Prototypes
 
 VersoSlides currently ships an opt-in prototype for rendering
