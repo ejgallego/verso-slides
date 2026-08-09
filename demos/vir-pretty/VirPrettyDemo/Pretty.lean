@@ -16,11 +16,11 @@ open Std
 Prototype helpers for rendering the compact `Std.Format` JSON used by the
 browser through Lean's own pretty-printer.
 
-The browser still owns HTML construction and DOM measurement. In timing terms,
-the definitions here cover backend execution: `Std.Format.prettyM` plus the
-backend-owned output collector. The segment and flat-event surfaces leave
-annotation lookup to the browser; the render-plan surface resolves annotations
-in Lean and leaves only HTML-string or direct-DOM materialization to the browser.
+The browser always owns DOM measurement and commit. The exported surfaces vary
+how much of the rendering pipeline the bounded runtime owns: segment and
+flat-event surfaces stop after layout, the render-plan surface also resolves
+annotations, and the HTML surface additionally performs escaping and span
+construction. This makes the compiled boundary an explicit experiment axis.
 
 The exported `ForRuntime` entrypoints are deliberately compiler-neutral. VIR,
 FIR, or another bounded Lean runtime can compile the same surface. Historical
@@ -98,6 +98,12 @@ public structure ResidentRenderPlan where
   renderPlan : RenderPlan
 deriving Repr, BEq, Inhabited, ToJson, FromJson
 
+/-- Result envelope for a resident complete-HTML lookup. -/
+public structure ResidentHtml where
+  found : Bool
+  html : String
+deriving Repr, BEq, Inhabited, ToJson, FromJson
+
 /-- Result envelope for a resident-format lookup across the VIR boundary. -/
 public structure ResidentRendered where
   found : Bool
@@ -129,6 +135,15 @@ private structure RenderPlanState where
 deriving Inhabited
 
 private abbrev RenderPlanM := StateM RenderPlanState
+
+private structure HtmlState where
+  chunks : Array String := #[]
+  column : Nat := 0
+  tagStack : Array Nat := #[]
+  annotations : Array TaggedAnnotation := #[]
+deriving Inhabited
+
+private abbrev HtmlM := StateM HtmlState
 
 private def popTags (tags : Array Nat) : Nat → Array Nat
   | 0 => tags
@@ -205,6 +220,25 @@ private def innermostAnnotationSlot
       if slot == 0 then visit index else slot
   visit tags.size
 
+private def escapeHtml (s : String) : String :=
+  s.replace "&" "&amp;" |>.replace "<" "&lt;" |>.replace ">" "&gt;" |>.replace "\"" "&quot;"
+
+private def annotatedTextToHtml (rawText : String)
+    (annotation : Option TokenAnnotation) : String :=
+  let text := escapeHtml rawText
+  match annotation with
+  | none => text
+  | some annotation =>
+    let binding := annotation.binding.map fun value =>
+      " data-binding=\"" ++ escapeHtml value ++ "\""
+    "<span class=\"" ++ escapeHtml (annotation.cssClass ++ " token") ++ "\"" ++
+      binding.getD "" ++ ">" ++ text ++ "</span>"
+
+private def innermostAnnotation (annotations : Array TaggedAnnotation)
+    (tags : Array Nat) : Option TokenAnnotation :=
+  let slot := innermostAnnotationSlot annotations tags
+  if slot == 0 then none else annotations[slot - 1]?.map (·.annotation)
+
 private instance : Std.Format.MonadPrettyFormat RenderPlanM where
   pushOutput s :=
     if s.isEmpty then
@@ -224,6 +258,27 @@ private instance : Std.Format.MonadPrettyFormat RenderPlanM where
           text := String.Internal.pushn "\n" ' ' indent
           annotationSlot := 0
         }
+        column := indent }
+  currColumn := return (← get).column
+  startTag tag :=
+    modify fun st => { st with tagStack := st.tagStack.push tag }
+  endTags count :=
+    modify fun st => { st with tagStack := popTags st.tagStack count }
+
+private instance : Std.Format.MonadPrettyFormat HtmlM where
+  pushOutput s :=
+    if s.isEmpty then
+      pure ()
+    else
+      modify fun st =>
+        { st with
+          chunks := st.chunks.push <| annotatedTextToHtml s <|
+            innermostAnnotation st.annotations st.tagStack
+          column := st.column + String.Internal.length s }
+  pushNewline indent :=
+    modify fun st =>
+      { st with
+        chunks := st.chunks.push (String.Internal.pushn "\n" ' ' indent)
         column := indent }
   currColumn := return (← get).column
   startTag tag :=
@@ -298,6 +353,27 @@ public def formatRenderPlanForVir (f : Std.Format)
     (annotations : Array TaggedAnnotation) (width indent : Nat) : RenderPlan :=
   formatRenderPlanForRuntime f annotations width indent 0
 
+/--
+Run `Std.Format.prettyM`, resolve annotations, and construct the final escaped
+HTML string inside the bounded runtime. DOM parsing/insertion, layout, and paint
+remain browser-owned and outside this surface.
+-/
+public def formatHtml (f : Std.Format) (annotations : Array TaggedAnnotation)
+    (width : Nat) (indent : Nat := 0) (column : Nat := 0) : String :=
+  let act : HtmlM Unit := Std.Format.prettyM f width indent
+  let st := (act.run { column, annotations }).2
+  String.join st.chunks.toList
+
+/-- Runtime-neutral complete-HTML entrypoint with no optional parameters. -/
+public def formatHtmlForRuntime (f : Std.Format)
+    (annotations : Array TaggedAnnotation) (width indent column : Nat) : String :=
+  formatHtml f annotations width indent column
+
+/-- Compatibility entrypoint for the VIR demo package. -/
+public def formatHtmlForVir (f : Std.Format)
+    (annotations : Array TaggedAnnotation) (width indent : Nat) : String :=
+  formatHtmlForRuntime f annotations width indent 0
+
 /-- Render one format and its annotations from aligned package-resident tables. -/
 public def formatRenderPlanAt (formats : Array Std.Format)
     (annotations : Array (Array TaggedAnnotation)) (id width indent : Nat) :
@@ -308,6 +384,13 @@ public def formatRenderPlanAt (formats : Array Std.Format)
       renderPlan := formatRenderPlan f table width indent
     }
   | _, _ => { found := false, renderPlan := default }
+
+/-- Render resident format and annotation tables to final escaped HTML. -/
+public def formatHtmlAt (formats : Array Std.Format)
+    (annotations : Array (Array TaggedAnnotation)) (id width indent : Nat) : ResidentHtml :=
+  match formats[id]?, annotations[id]? with
+  | some f, some table => { found := true, html := formatHtml f table width indent }
+  | _, _ => { found := false, html := "" }
 
 /--
 Render one format from a package-resident table. A deck-specific generated

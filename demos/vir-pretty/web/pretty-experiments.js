@@ -18,39 +18,17 @@
      *   primaryTiming?: VersoPrettyTimingDisplay,
      *   phaseKeys?: string[]
      * }} DemoExperiment
-     * @typedef {{ experiment?: string, experiments?: DemoExperiment[] }} DemoPrettyConfig
+     * @typedef {{
+     *   experiment?: string,
+     *   experiments?: DemoExperiment[],
+     *   mode?: "matrix" | "custom",
+     *   families?: string[],
+     *   breadth?: "layout" | "semantic" | "html"
+     * }} DemoPrettyConfig
      */
     var root = /** @type {Window & { __versoPrettyConfig?: DemoPrettyConfig }} */ (window);
     var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
     config.experiments = [
-        {
-            id: "implementations",
-            label: "End-to-end implementations",
-            question:
-                "How do the complete JS, VIR, FIR Wasm, and LLVM paths compare from the shared compact Format input to panel HTML?",
-            backends: ["js", "vir-render", "native", "llvm"],
-            design: "end-to-end",
-            variable: "Implementation, compiler/runtime, and browser adapter path",
-            controls: [
-                "compact Format source",
-                "annotations",
-                "column budget",
-                "final HTML semantics",
-            ],
-            measures:
-                "Product-level latency and memory. Phase timings locate costs; they do not isolate one ABI.",
-        },
-        {
-            id: "vir-transport",
-            label: "VIR input transport",
-            question:
-                "What changes when VIR receives JSON text versus the typed Lean Format object ABI, with segment output held fixed?",
-            backends: ["vir", "vir-format"],
-            design: "controlled",
-            variable: "Input transport: JSON text ↔ typed Lean Format",
-            controls: ["VIR runtime", "prettyM logic", "segment output", "column budget"],
-            measures: "Incremental cost of serializing, parsing, and reconstructing the input.",
-        },
         {
             id: "vir-output",
             label: "VIR output boundary",
@@ -127,8 +105,11 @@
                 "Exploratory overview only: multiple implementation and ABI variables change at the same time.",
             backends: [
                 "js",
-                "vir",
+                "js-render",
+                "js-html",
                 "vir-format",
+                "vir-semantic",
+                "vir-html",
                 "vir-flat",
                 "vir-resident",
                 "vir-render",
@@ -148,5 +129,9 @@
                 "Overview and correctness only. Do not attribute a timing delta to one cause.",
         },
     ];
-    if (typeof config.experiment !== "string") config.experiment = "implementations";
+    if (config.mode !== "custom") config.mode = "matrix";
+    if (!Array.isArray(config.families)) config.families = ["js", "vir", "fir", "llvm"];
+    if (config.breadth !== "layout" && config.breadth !== "semantic" && config.breadth !== "html") {
+        config.breadth = "html";
+    }
 })();

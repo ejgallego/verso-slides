@@ -3,14 +3,19 @@
 
 import argparse
 import asyncio
+import shutil
 
 from playwright.async_api import async_playwright
 
 
 BASE_BACKEND_IDS = [
     "js",
+    "js-render",
+    "js-html",
     "vir",
     "vir-format",
+    "vir-semantic",
+    "vir-html",
     "vir-flat",
     "vir-resident",
     "vir-render",
@@ -18,7 +23,9 @@ BASE_BACKEND_IDS = [
     "native",
     "llvm",
 ]
-IMPLEMENTATION_IDS = ["js", "vir-render", "native", "llvm"]
+HTML_IDS = ["js-html", "vir-html"]
+SEMANTIC_IDS = ["js-render", "vir-semantic"]
+LAYOUT_IDS = ["js", "vir-format", "native", "llvm"]
 
 
 async def main() -> None:
@@ -29,7 +36,10 @@ async def main() -> None:
     console_warnings: list[str] = []
 
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(headless=True)
+        chrome = shutil.which("google-chrome")
+        browser = await playwright.chromium.launch(
+            headless=True, executable_path=chrome if chrome else None
+        )
         page = await browser.new_page(viewport={"width": 1440, "height": 1000})
         page.on("pageerror", lambda error: page_errors.append(str(error)))
         page.on(
@@ -54,22 +64,35 @@ async def main() -> None:
         controls = page.locator(".pretty-controls")
         await controls.wait_for(state="visible")
         assert await controls.locator(":scope > summary").inner_text() == (
-            "Experiment · End-to-end implementations"
+            "Pipeline · HTML rendering · 2/4 backends"
         )
         await controls.locator(":scope > summary").click()
+        matrix = controls.locator(".pretty-matrix")
+        assert await matrix.locator(".pretty-matrix-cell").count() == 12
+        assert await matrix.locator(".pretty-matrix-cell.is-unsupported").count() == 4
+        assert await matrix.locator(".pretty-matrix-cell.is-current").count() == 4
+        assert await matrix.locator(".pretty-matrix-cell.is-included").count() == 2
+        assert await matrix.locator(
+            '.pretty-matrix-cell.is-current.is-unsupported'
+        ).count() == 2
+        included = await matrix.locator(".pretty-matrix-cell.is-included").evaluate_all(
+            "els => els.map(el => el.dataset.prettyBackend)"
+        )
+        assert included == ["js", "vir"]
+        boundary = controls.locator(".pretty-matrix-boundary")
+        assert "escaping" in await boundary.locator(".pretty-controls-question").inner_text()
+
         lab = controls.locator(".pretty-controls-lab")
         assert await lab.get_attribute("open") is None
         await lab.locator(":scope > summary").click()
         assert await controls.locator(".pretty-controls-backend").count() == len(backend_ids)
-        assert await controls.locator(".pretty-controls-status.status-ready").count() == len(backend_ids)
-        assert await controls.locator("button").count() == 0
+        assert await controls.locator(".pretty-controls-status.status-ready").count() >= len(
+            backend_ids
+        )
 
         experiment = controls.locator(".pretty-controls-experiment select")
-        assert await experiment.input_value() == "implementations"
-        checked = await controls.locator(".pretty-controls-backend input:checked").evaluate_all(
-            "els => els.map(el => el.value)"
-        )
-        assert checked == IMPLEMENTATION_IDS
+        options = await experiment.locator("option").evaluate_all("els => els.map(el => el.value)")
+        assert "vir-transport" not in options
         await experiment.select_option("vir-output")
         checked = await controls.locator(".pretty-controls-backend input:checked").evaluate_all(
             "els => els.map(el => el.value)"
@@ -89,33 +112,10 @@ async def main() -> None:
         assert await selected_rows.locator(
             '.pretty-controls-dimension.is-variable .pretty-controls-dimension-name'
         ).all_inner_texts() == ["OUTPUT", "OUTPUT"]
-        await experiment.select_option("vir-rendering")
-        checked = await controls.locator(
-            ".pretty-controls-backend input:checked"
-        ).evaluate_all("els => els.map(el => el.value)")
-        assert checked == ["vir-resident", "vir-render"]
-        assert "same resident ID" in await controls.locator(
-            ".pretty-controls-question"
-        ).inner_text()
-        await experiment.select_option("vir-materializer")
-        checked = await controls.locator(
-            ".pretty-controls-backend input:checked"
-        ).evaluate_all("els => els.map(el => el.value)")
-        assert checked == ["vir-render", "vir-dom"]
-        assert "reaches populated DOM" in await controls.locator(
-            ".pretty-controls-question"
-        ).inner_text()
-        if "native-flat" in backend_ids:
-            await experiment.select_option("fir-output")
-            checked = await controls.locator(
-                ".pretty-controls-backend input:checked"
-            ).evaluate_all("els => els.map(el => el.value)")
-            assert checked == ["native", "native-flat"]
-        await experiment.select_option("all")
-        assert await controls.locator(":scope > summary").inner_text() == (
-            "Experiment · All backends"
-        )
-        assert await boundary.get_attribute("data-design") == "exploratory"
+
+        await matrix.locator('[data-pretty-breadth="html"]').first.click()
+        assert "prettyMode=matrix" in page.url
+        assert "prettyBreadth=html" in page.url
 
         proof_index = await page.evaluate(
             """() => [...document.querySelectorAll('.slides > section')]
@@ -128,57 +128,73 @@ async def main() -> None:
         await block.locator(".tactic .keyword").first.click()
         panes = block.locator(".pretty-compare-pane")
         await page.wait_for_function(
-            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(backend_ids)}",
+            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(HTML_IDS)}",
             arg=await block.element_handle(),
             timeout=30_000,
         )
-        assert await panes.count() == len(backend_ids)
-        assert await panes.evaluate_all(
-            "els => els.map(el => el.dataset.prettyBackend)"
-        ) == backend_ids
-        assert await block.locator('[data-pretty-backend="vir-flat"]').get_attribute(
+        assert await panes.evaluate_all("els => els.map(el => el.dataset.prettyBackend)") == HTML_IDS
+        assert await block.locator('[data-pretty-backend="vir-html"]').get_attribute(
+            "data-pretty-output"
+        ) == "html"
+        assert await block.locator('[data-pretty-backend="vir-html"]').get_attribute(
             "data-pretty-input"
         ) == "lean-format"
-        assert await block.locator('[data-pretty-backend="vir-render"]').get_attribute(
-            "data-pretty-output"
-        ) == "render-plan"
-        assert await block.locator('[data-pretty-backend="vir-render"]').get_attribute(
-            "data-pretty-input"
-        ) == "resident-id"
-        assert await block.locator('[data-pretty-backend="vir-render"]').get_attribute(
+        assert await block.locator('[data-pretty-backend="vir-html"]').get_attribute(
             "data-pretty-materializer"
         ) == "html-string"
-        assert await block.locator('[data-pretty-backend="vir-dom"]').get_attribute(
-            "data-pretty-materializer"
-        ) == "dom-fragment"
-        assert await block.locator('[data-pretty-backend="vir-resident"]').get_attribute(
-            "data-pretty-input"
-        ) == "resident-id"
         js_html = await block.locator(
-            '[data-pretty-backend="js"] .pretty-compare-body'
+            '[data-pretty-backend="js-html"] .pretty-compare-body'
         ).inner_html()
-        vir_render_html = await block.locator(
-            '[data-pretty-backend="vir-render"] .pretty-compare-body'
+        vir_html = await block.locator(
+            '[data-pretty-backend="vir-html"] .pretty-compare-body'
         ).inner_html()
-        vir_dom_html = await block.locator(
-            '[data-pretty-backend="vir-dom"] .pretty-compare-body'
-        ).inner_html()
-        assert vir_render_html == js_html, (
-            "VIR Render HTML differs from JavaScript\n"
+        assert vir_html == js_html, (
+            "VIR complete HTML differs from JavaScript complete HTML\n"
             f"JavaScript: {js_html!r}\n"
-            f"VIR Render: {vir_render_html!r}\n"
+            f"VIR: {vir_html!r}\n"
             f"Console: {console_warnings!r}"
         )
-        assert vir_dom_html == js_html, (
-            "VIR Direct DOM differs from JavaScript\n"
-            f"JavaScript: {js_html!r}\n"
-            f"VIR Direct DOM: {vir_dom_html!r}\n"
-            f"Console: {console_warnings!r}"
+
+        await matrix.locator(
+            '.pretty-matrix-breadth[data-pretty-breadth="semantic"]'
+        ).click()
+        await page.wait_for_function(
+            "el => [...el.querySelectorAll('.pretty-compare-pane')].map(x => x.dataset.prettyBackend).join(',') === 'js-render,vir-semantic'",
+            arg=await block.element_handle(),
+        )
+        assert await panes.evaluate_all(
+            "els => els.map(el => el.dataset.prettyBackend)"
+        ) == SEMANTIC_IDS
+        semantic_html = await panes.locator(".pretty-compare-body").evaluate_all(
+            "els => els.map(el => el.innerHTML)"
+        )
+        assert semantic_html[0] == semantic_html[1]
+
+        await matrix.locator(
+            '.pretty-matrix-breadth[data-pretty-breadth="layout"]'
+        ).click()
+        await page.wait_for_function(
+            "el => [...el.querySelectorAll('.pretty-compare-pane')].map(x => x.dataset.prettyBackend).join(',') === 'js,vir-format,native,llvm'",
+            arg=await block.element_handle(),
+        )
+        assert await panes.evaluate_all(
+            "els => els.map(el => el.dataset.prettyBackend)"
+        ) == LAYOUT_IDS
+        assert await matrix.locator(
+            ".pretty-matrix-cell.is-current.is-unsupported"
+        ).count() == 0
+
+        await matrix.locator(
+            '.pretty-matrix-breadth[data-pretty-breadth="html"]'
+        ).click()
+        await page.wait_for_function(
+            "el => [...el.querySelectorAll('.pretty-compare-pane')].map(x => x.dataset.prettyBackend).join(',') === 'js-html,vir-html'",
+            arg=await block.element_handle(),
         )
         parity = await panes.locator(".pretty-compare-parity").evaluate_all(
             "els => els.map(el => el.dataset.outputParity)"
         )
-        assert parity == ["equivalent"] * len(backend_ids)
+        assert parity == ["equivalent"] * len(HTML_IDS)
         timing_titles = await panes.locator(".pretty-compare-time").evaluate_all(
             "els => els.map(el => el.title)"
         )
@@ -202,23 +218,23 @@ async def main() -> None:
         await timing_display.select_option("total")
         assert "equivalent populated DOM" in await timing_scope.inner_text()
         await timing_display.select_option("execute")
-        assert "VIR Render also resolves annotations" in await timing_scope.inner_text()
+        assert "declared endpoint" in await timing_scope.inner_text()
         timing_texts = await panes.locator(".pretty-compare-time").all_inner_texts()
         assert all(text.startswith("Execute · ") for text in timing_texts)
         await timing_display.select_option("tracks")
         total_texts = await panes.locator(".pretty-timing-tracks-total").all_inner_texts()
-        assert len(total_texts) == len(backend_ids)
+        assert len(total_texts) == len(HTML_IDS)
         assert all("Total" in text and "ms" in text for text in total_texts)
-        assert await panes.locator(".pretty-timing-track").count() == 5 * len(backend_ids)
+        assert await panes.locator(".pretty-timing-track").count() == 5 * len(HTML_IDS)
         assert "prettyTiming=tracks" in page.url
 
-        llvm_toggle = controls.locator('input[value="llvm"]')
-        await llvm_toggle.uncheck()
+        vir_toggle = matrix.locator('.pretty-matrix-backend input[value="vir"]')
+        await vir_toggle.uncheck()
         await page.wait_for_function(
-            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(backend_ids) - 1}",
+            "el => el.querySelectorAll('.pretty-compare-pane').length === 1",
             arg=await block.element_handle(),
         )
-        await llvm_toggle.check()
+        await matrix.locator('.pretty-matrix-backend input[value="vir"]').check()
         shared_columns = controls.locator(".pretty-controls-columns input")
         await shared_columns.fill("32")
         await shared_columns.press("Tab")
@@ -228,7 +244,7 @@ async def main() -> None:
         assert not page_errors, page_errors
         await browser.close()
 
-    print("PASS full vanilla Verso nine-backend panel smoke")
+    print("PASS backend × compiled-breadth panel smoke")
 
 
 if __name__ == "__main__":

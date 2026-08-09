@@ -13,6 +13,7 @@ ROOT = Path(__file__).parents[1]
 DEMO = ROOT / "demos" / "vir-pretty"
 COPY_SUBSET = DEMO / "scripts" / "copy-checksummed-subset.py"
 VALIDATE_FLAT = DEMO / "scripts" / "validate-native-flat-package.py"
+VALIDATE_HTML = DEMO / "scripts" / "validate-native-html-package.py"
 
 
 def sha256(path: Path) -> str:
@@ -82,6 +83,61 @@ def make_flat_package(package: Path) -> None:
     )
 
 
+def make_html_package(package: Path) -> None:
+    package.mkdir()
+    wasm = package / "prettyM.wasm"
+    wasm.write_bytes(b"complete-html-wasm-fixture")
+    descriptor = {
+        "entry": "VersoSlides.Pretty.formatHtmlForRuntime",
+        "imports": [],
+        "params": ["tobject", "tobject", "tobject", "tobject", "tobject"],
+        "result": "object",
+    }
+    (package / "prettyM.wasm.json").write_text(json.dumps(descriptor))
+    (package / "prettyM-browser-adapter.mjs").write_text(
+        "export const PRETTY_M_BROWSER_API_VERSION = 'fir.prettyM.html.browser/v1';\n"
+        "export const PrettyFormat = {};\n"
+        "export async function fetchPrettyMAdapter() {}\n"
+    )
+    build = {
+        "format": "fir-prettyM-package-metadata-v3",
+        "sourceCommit": "fixture",
+        "sourceDirty": False,
+        "artifact": {
+            "file": "prettyM.wasm",
+            "bytes": wasm.stat().st_size,
+            "sha256": sha256(wasm),
+        },
+        "entry": descriptor["entry"],
+        "params": descriptor["params"],
+        "result": "object",
+        "functionImports": 0,
+        "memoryImports": 0,
+        "memoryExports": 1,
+        "capabilities": {
+            "representation": "wasm32-lean64",
+            "memoryOwner": "module",
+            "browserAdapter": {
+                "module": "prettyM-browser-adapter.mjs",
+                "apiVersion": "fir.prettyM.html.browser/v1",
+            },
+            "inputLayout": {"version": "lean-4.32-Std.Format.compact/v1"},
+            "ownership": {"version": "fir.prettyM.module-owned-transfer/v1"},
+            "output": {
+                "semantic": "EscapedHtmlString",
+                "schema": "verso-token-html/v1",
+                "physical": "object",
+                "escaping": "html-text-and-double-quoted-attribute/v1",
+            },
+        },
+    }
+    (package / "BUILD.json").write_text(json.dumps(build))
+    write_manifest(
+        package,
+        ["BUILD.json", "prettyM-browser-adapter.mjs", "prettyM.wasm", "prettyM.wasm.json"],
+    )
+
+
 def test_checksummed_subset_has_a_self_contained_manifest(tmp_path: Path):
     source = tmp_path / "source"
     destination = tmp_path / "browser"
@@ -134,3 +190,35 @@ def test_native_flat_contract_rejects_trace_output(tmp_path: Path):
     )
     assert result.returncode == 1
     assert "flat output capability mismatch" in result.stderr
+
+
+def test_native_html_contract_accepts_the_declared_boundary(tmp_path: Path):
+    package = tmp_path / "html"
+    make_html_package(package)
+    result = subprocess.run(
+        [sys.executable, VALIDATE_HTML, package, "--json"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert json.loads(result.stdout)["contract"] == "verso.pretty.fir-native-html-package/v1"
+
+
+def test_native_html_contract_rejects_render_plan_output(tmp_path: Path):
+    package = tmp_path / "html"
+    make_html_package(package)
+    build_path = package / "BUILD.json"
+    build = json.loads(build_path.read_text())
+    build["capabilities"]["output"]["semantic"] = "RenderPlan"
+    build_path.write_text(json.dumps(build))
+    write_manifest(
+        package,
+        ["BUILD.json", "prettyM-browser-adapter.mjs", "prettyM.wasm", "prettyM.wasm.json"],
+    )
+    result = subprocess.run(
+        [sys.executable, VALIDATE_HTML, package],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "HTML output capability mismatch" in result.stderr

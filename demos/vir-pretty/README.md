@@ -1,16 +1,16 @@
 # VIR pretty-printer demo as a Verso Slides panel extension
 
-This is a standalone nine-backend `Std.Format.prettyM` correctness
-and timing demo. During development it uses the containing Verso
+This is a standalone `Std.Format.prettyM` correctness and timing demo organized
+as a **backend × compiled-pipeline-breadth** capability matrix. During
+development it uses the containing Verso
 Slides checkout through a path dependency. Once `Config.panelPlugins`
 is released, `lakefile.lean` can switch directly to that release tag
 without changing the demo.
 
-The named comparisons and their controlled variables are listed in
-[EXPERIMENTS.md](EXPERIMENTS.md). Prefer a named experiment over an
-arbitrary collection of panes when drawing a performance conclusion.
-The initial view is **End-to-end implementations**; **All backends**
-remains available for exploration.
+The initial view selects **HTML rendering**. JavaScript and VIR are runnable;
+FIR and LLVM remain visibly disabled at that breadth until matching artifacts
+exist. ABI/transport diagnostics and their controlled variables are listed in
+[EXPERIMENTS.md](EXPERIMENTS.md) and remain in **Custom Lab**.
 
 ## Build and serve
 
@@ -69,22 +69,23 @@ registration is valid and panel initialization has not yet begun. It
 avoids a generic lifecycle framework while supporting this and other
 formatter/panel integrations.
 
-## Measurements in this first extraction
+## Main capability matrix
 
-The interactive comparison supplies the same format semantics and
-deterministic character-column budget to all nine candidates:
+The first UI axis selects JavaScript, VIR, FIR Wasm, and LLVM. The second fixes
+how much code the backend owns:
 
-1. JavaScript reference
-2. VIR through the JSON/string boundary
-3. VIR through the typed `Std.Format` boundary
-4. VIR typed input with flat text/style-event output
-5. VIR package-resident `Std.Format` selected by numeric ID, with flat
-   output
-6. VIR package-resident Format plus annotations, selected by numeric
-   ID, with Lean-resolved semantic-node output and HTML-string materialization
-7. The same VIR semantic plan with direct `DocumentFragment` materialization
-8. FIR-generated Wasm
-9. LLVM/Emscripten Wasm
+| Breadth | Backend-owned endpoint | Common host work |
+| --- | --- | --- |
+| Layout | `prettyM` plus low-level styled output | Annotation lookup, HTML construction, DOM commit |
+| Semantic rendering | Layout plus innermost annotation resolution into sibling nodes | HTML construction and DOM commit |
+| HTML rendering | Layout, annotation resolution, escaping, and span construction | DOM commit only |
+
+Every cell resolves to one explicit registered candidate. Unsupported cells are
+gray and never fall back to a narrower candidate. The historical VIR JSON path
+is no longer a named experiment or canonical cell; it remains temporarily in
+Custom Lab as a compatibility diagnostic. Flat events, resident IDs, and direct
+DOM materialization likewise remain diagnostics because they vary an ABI or host
+endpoint rather than compiled breadth.
 
 The specialized VIR candidates isolate separate boundary experiments. `VIR Flat`
 removes per-segment tag-stack copies while preserving the direct typed
@@ -113,11 +114,11 @@ element/props model rather than introduce an unrelated tree vocabulary here.
 The restored deck has the same functionality as the in-tree prototype:
 
 - live Lean code panels and draggable panel sizing;
-- a guided experiment surface plus an expandable Custom Lab for arbitrary
-  processor selection, raw timing displays, and single/compare modes;
-- named end-to-end, VIR transport, VIR output, VIR rendering, VIR materializer, and VIR residency
-  experiments, with explicit changed/held-fixed/measures/excludes descriptions
-  and a visible boundary matrix for every candidate;
+- a two-dimensional backend × compiled-breadth selector plus an expandable
+  Custom Lab for ABI diagnostics, arbitrary processor selection, raw timing
+  displays, and single/compare modes;
+- named VIR output, rendering, materializer, and residency diagnostics with
+  explicit changed/held-fixed/measures/excludes descriptions;
 - shared column budgets and a visible exact-output equivalence verdict;
 - selectable timed workload volume (one pass or at least 256/2K/8K
   source code points), repeating the complete visible format set
@@ -143,6 +144,8 @@ lean-native/{BUILD.json,SHA256SUMS,prettyM-browser-adapter.mjs,
              prettyM.wasm,prettyM.wasm.json}
 lean-native-flat/{BUILD.json,SHA256SUMS,prettyM-browser-adapter.mjs,
                   prettyM.wasm,prettyM.wasm.json}  # optional
+lean-native-html/{BUILD.json,SHA256SUMS,prettyM-browser-adapter.mjs,
+                  prettyM.wasm,prettyM.wasm.json}  # optional
 lean-llvm/{README.md,SHA256SUMS,emscripten-loader.mjs,
            prettyM-emscripten-adapter.mjs,prettyM.manifest.json,
            prettyM.mjs,prettyM.wasm}
@@ -165,3 +168,9 @@ directory must satisfy
 [`contracts/fir-native-flat-v1.json`](contracts/fir-native-flat-v1.json).
 Without it, neither the backend nor the FIR output experiment appears
 in the deck.
+
+The optional native-HTML directory must satisfy
+[`contracts/fir-native-html-v1.json`](contracts/fir-native-html-v1.json).
+Assembly registers it as `native-html` and activates the FIR × HTML matrix cell;
+without it, that cell remains gray. The producer handoff is
+[`handoffs/fir-wasm-html-runtime/AGENT_TASK.md`](../../handoffs/fir-wasm-html-runtime/AGENT_TASK.md).

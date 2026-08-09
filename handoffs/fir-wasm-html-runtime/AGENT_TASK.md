@@ -1,0 +1,182 @@
+# Task for the FIR wasm-generation agent
+
+Build and atomically publish a separate **FIR Wasm HTML** browser artifact for
+the Verso `Std.Format.prettyM` comparison. This is an additional pipeline
+breadth: do not replace the existing **FIR Wasm** (`PrettyTrace`) or **FIR Wasm
+Flat** packages.
+
+Read the FIR repository's `AGENTS.md` and local integration instructions first.
+The Verso integration checkout at handoff time is:
+
+```text
+/home/egallego/lean/verso-slides/.worktrees/vir-pretty-prototype
+```
+
+Resolve branches and artifact publish locations from current repository state;
+do not treat local absolute paths as a public ABI.
+
+## Lean surface
+
+Compile the compiler-neutral implementation in:
+
+```text
+VersoSlides/Pretty.lean
+```
+
+At handoff time its SHA-256 is:
+
+```text
+8df980adb7a7b2249deebbad9b8f551053dcc742b53f66d884b5bad752f5997b
+```
+
+Entrypoint:
+
+```lean
+VersoSlides.Pretty.formatHtmlForRuntime
+```
+
+Signature:
+
+```lean
+(f : Std.Format)
+  (annotations : Array VersoSlides.Pretty.TaggedAnnotation)
+  (width indent column : Nat) → String
+```
+
+This exact source also builds as the demo's self-contained Lean 4.32 module.
+If FIR vendors it, retain source provenance and digest. Keep the concrete Lean
+version inside the self-contained artifact metadata; the browser boundary is
+version-independent and no Lean heap is shared with the host deck.
+
+## Compiled breadth
+
+The Wasm call itself must own the complete pre-DOM pipeline:
+
+1. `Std.Format.prettyM` layout;
+2. active tag-stack maintenance;
+3. innermost annotation lookup;
+4. HTML escaping for text, class names, and binding attributes; and
+5. construction of sibling text and `<span class="… token" …>` HTML.
+
+The browser owns only adapter input construction, decoding the returned Lean
+`String`, and the common `innerHTML` commit. It must not reconstruct HTML from
+`PrettyTrace`, flat events, segments, or a render plan in JavaScript.
+
+The expected output semantics are byte-for-byte equivalent to the shared JS
+renderer:
+
+```html
+<span class="{escaped cssClass} token" data-binding="{escaped binding}">
+  {escaped text}
+</span>
+```
+
+The `data-binding` attribute is omitted for `none`. Newline/indent output is
+unstyled. Nested tags select the innermost active tag that has an annotation.
+
+## Package contract
+
+The package must satisfy:
+
+```text
+demos/vir-pretty/contracts/fir-native-html-v1.json
+```
+
+Required files:
+
+```text
+BUILD.json
+SHA256SUMS
+prettyM-browser-adapter.mjs
+prettyM.wasm
+prettyM.wasm.json
+```
+
+Important requirements:
+
+- browser API: `fir.prettyM.html.browser/v1`;
+- five `tobject` Wasm parameters and one object result;
+- zero function imports and zero memory imports;
+- one module-owned memory export;
+- the existing `PrettyFormat` browser input factory and module-owned transfer
+  ownership protocol;
+- output schema: `verso-token-html/v1`; and
+- complete clean source/toolchain/digest provenance in `BUILD.json`.
+
+The adapter module must export:
+
+```js
+PRETTY_M_BROWSER_API_VERSION = "fir.prettyM.html.browser/v1";
+PrettyFormat;
+fetchPrettyMAdapter;
+```
+
+The loaded adapter must accept:
+
+```js
+adapter.render({
+  format,
+  annotations: Array<{
+    tag: number,
+    annotation: { cssClass: string, binding: string | null }
+  }>,
+  width,
+  indent,
+  column
+});
+```
+
+and return at least:
+
+```js
+{
+  html: string,
+  timings: {
+    normalizeMs, allocateMs, encodeMs, prepareMs,
+    executeMs, decodeMs, totalMs
+  },
+  memory: {
+    inputBytes, rawObjects, residentAllocationCalls
+  }
+}
+```
+
+`executeMs` must time only the Wasm call and therefore includes layout,
+annotation resolution, escaping, and HTML construction. Annotation and format
+heap construction belong in `prepareMs`; returned-string decoding belongs in
+`decodeMs`.
+
+## Acceptance tests
+
+- Compare exact HTML against native Lean running the same entrypoint and against
+  the Verso JS HTML candidate.
+- Cover `&`, `<`, `>`, and `"` in text, CSS classes, and binding values.
+- Cover no annotation, sparse tag IDs, nested tags, multiple `endTags`, and
+  unstyled newline indentation.
+- Cover non-ASCII text, nonzero initial column, a 1 MiB UTF-8 workload, memory
+  growth, and at least 32 repeated calls on one adapter instance.
+- Authenticate every published file and publish atomically.
+
+## Verso integration
+
+Validate the package with:
+
+```console
+python3 demos/vir-pretty/scripts/validate-native-html-package.py \
+  /absolute/path/to/the/published/package
+```
+
+Then stage it as:
+
+```text
+demos/vir-pretty/_artifacts/lean-native-html/
+```
+
+The assembly script already detects, validates, configures, and copies that
+directory. Until it exists, the matrix truthfully shows the **FIR Wasm × HTML**
+cell as unsupported; once present it registers `native-html` and the cell
+becomes selectable automatically.
+
+When handing the artifact back, provide the immutable package path, source and
+toolchain commits, Wasm digest and size, smoke-test output, and any intentional
+contract deviation.

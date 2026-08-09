@@ -64,4 +64,14 @@ if [[ -d "$seed_dir/lean-native-flat" ]]; then
     BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
 fi
 
+rm -rf "$artifact_dir/lean-native-html"
+if [[ -d "$seed_dir/lean-native-html" ]]; then
+  python3 "$demo_root/scripts/validate-native-html-package.py" \
+    "$seed_dir/lean-native-html"
+  python3 "$demo_root/scripts/copy-checksummed-subset.py" \
+    "$seed_dir/lean-native-html" \
+    "$artifact_dir/lean-native-html" \
+    BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
+fi
+
 echo "Staged VIR runtime plus available native and LLVM artifacts from $seed_dir"

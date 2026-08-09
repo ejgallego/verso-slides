@@ -46,6 +46,7 @@ interface VersoPrettyVirBridge {
     formatExportName?: string;
     renderedExportName?: string;
     renderPlanExportName?: string;
+    htmlExportName?: string;
     residentExportName?: string;
     residentRenderPlanExportName?: string;
     formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string;
@@ -57,6 +58,7 @@ interface VersoPrettyVirBridge {
         width: number,
         indent: number,
     ) => unknown;
+    formatHtml?: (fmt: unknown, annotations: unknown[], width: number, indent: number) => string;
     formatRenderedById?: (formatId: number, width: number, indent: number) => unknown;
     formatRenderPlanById?: (formatId: number, width: number, indent: number) => unknown;
     formatJsonSegmentsJsonTimed?: (
@@ -67,6 +69,12 @@ interface VersoPrettyVirBridge {
     formatSegmentsTimed?: (fmt: unknown, width: number, indent: number) => VersoPrettyVirTimedCall;
     formatRenderedTimed?: (fmt: unknown, width: number, indent: number) => VersoPrettyVirTimedCall;
     formatRenderPlanTimed?: (
+        fmt: unknown,
+        annotations: unknown[],
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
+    formatHtmlTimed?: (
         fmt: unknown,
         annotations: unknown[],
         width: number,
@@ -100,6 +108,7 @@ interface VersoPrettyVirConfig {
     formatExportName?: string;
     renderedExportName?: string;
     renderPlanExportName?: string;
+    htmlExportName?: string;
     residentExportName?: string;
     residentRenderPlanExportName?: string;
 }
@@ -195,6 +204,9 @@ interface VersoPrettyConfig {
     workload?: number;
     controls?: boolean;
     timing?: VersoPrettyTimingDisplay;
+    mode?: "matrix" | "custom";
+    families?: Array<"js" | "vir" | "fir" | "llvm">;
+    breadth?: "layout" | "semantic" | "html";
 }
 
 interface Window {
@@ -248,7 +260,10 @@ declare function formatPrettyOutputTimed(
 ): TimedPrettyResult;
 
 declare function insertPrettyOutput(target: Element, output: TimedPrettyResult | null): boolean;
-declare function insertPrettyOutputTimed(target: Element, output: TimedPrettyResult | null): boolean;
+declare function insertPrettyOutputTimed(
+    target: Element,
+    output: TimedPrettyResult | null,
+): boolean;
 
 interface PrettyBackendDefinition {
     id: string;
@@ -258,9 +273,13 @@ interface PrettyBackendDefinition {
     capabilities?: {
         runtime?: "javascript" | "vir" | "fir-native" | "llvm-emscripten";
         input?: "compact-tree" | "json-string" | "lean-format" | "resident-id" | "browser-format";
-        output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text";
+        output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text" | "html";
         width: "pixels" | "columns";
         materializer?: "html-string" | "dom-fragment";
+        matrix?: {
+            backend: "js" | "vir" | "fir" | "llvm";
+            breadth: "layout" | "semantic" | "html";
+        };
     };
     renderSegments?(
         fmtJson: any,

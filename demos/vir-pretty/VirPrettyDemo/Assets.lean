@@ -39,6 +39,7 @@ def config : Config := {
     "vir-pretty/pretty-vir.js",
     "vir-pretty/pretty-native.js",
     "vir-pretty/pretty-native-flat.js",
+    "vir-pretty/pretty-native-html.js",
     "vir-pretty/pretty-llvm.js"
   ]
 }

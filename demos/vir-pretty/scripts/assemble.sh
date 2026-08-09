@@ -8,6 +8,8 @@ workspace_root="$(cd "$demo_root/../.." && pwd)"
 lean_vir_dir="${LEAN_VIR_DIR:-$workspace_root/_artifacts/lean-vir}"
 native_flat_dir="$artifact_dir/lean-native-flat"
 native_flat_enabled=0
+native_html_dir="$artifact_dir/lean-native-html"
+native_html_enabled=0
 
 required=(
   lean-vir/js/vir-runtime.js
@@ -39,6 +41,11 @@ if [[ -d "$native_flat_dir" ]]; then
   native_flat_enabled=1
 fi
 
+if [[ -d "$native_html_dir" ]]; then
+  python3 "$demo_root/scripts/validate-native-html-package.py" "$native_html_dir"
+  native_html_enabled=1
+fi
+
 (cd "$demo_root" &&
   lake build vir-pretty-demo VirPrettyDemo.Pretty &&
   lake exe vir-pretty-demo)
@@ -66,6 +73,30 @@ path.write_text(body.replace(needle, config + needle, 1))
 PY
 fi
 
+
+if [[ "$native_html_enabled" -eq 1 ]]; then
+  python3 - "$out_dir/index.html" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+body = path.read_text()
+needle = '    <script src="vir-pretty/pretty-native-html.js"></script>'
+config = '''    <script>
+      window.__versoPrettyNativeHtmlConfig = {
+        adapterUrl: new URL("vir-pretty/lean-native-html/prettyM-browser-adapter.mjs", window.location.href).href,
+        wasmUrl: new URL("vir-pretty/lean-native-html/prettyM.wasm", window.location.href).href,
+        descriptorUrl: new URL("vir-pretty/lean-native-html/prettyM.wasm.json", window.location.href).href,
+        buildUrl: new URL("vir-pretty/lean-native-html/BUILD.json", window.location.href).href
+      };
+    </script>
+'''
+if needle not in body:
+    raise SystemExit("could not find native-html panel plugin in generated deck")
+path.write_text(body.replace(needle, config + needle, 1))
+PY
+fi
+
 if [[ ! -x "$lean_vir_dir/.lake/build/bin/vir_irpkg" ]]; then
   echo "lean-vir package generator not found: $lean_vir_dir/.lake/build/bin/vir_irpkg" >&2
   echo "set LEAN_VIR_DIR to a built lean-vir checkout" >&2
@@ -88,11 +119,12 @@ python3 "$demo_root/scripts/generate-pretty-registry.py" \
   VersoSlides.Pretty.formatSegmentsForVir \
   VersoSlides.Pretty.formatRenderedForVir \
   VersoSlides.Pretty.formatRenderPlanForVir \
+  VersoSlides.Pretty.formatHtmlForVir \
   VersoSlides.PrettyRegistry.formatCountForVir \
   VersoSlides.PrettyRegistry.formatRenderedByIdForVir \
   VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir)
 
-for asset in pretty-experiments.js pretty-vir.js pretty-native.js pretty-native-flat.js pretty-llvm.js coi-register.js; do
+for asset in pretty-experiments.js pretty-vir.js pretty-native.js pretty-native-flat.js pretty-native-html.js pretty-llvm.js coi-register.js; do
   install -D -m 0644 "$demo_root/web/$asset" "$out_dir/vir-pretty/$asset"
 done
 install -D -m 0644 "$demo_root/web/coi-serviceworker.js" "$out_dir/coi-serviceworker.js"
@@ -113,6 +145,13 @@ if [[ "$native_flat_enabled" -eq 1 ]]; then
   python3 "$demo_root/scripts/copy-checksummed-subset.py" \
     "$native_flat_dir" \
     "$out_dir/vir-pretty/lean-native-flat" \
+    BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
+fi
+rm -rf "$out_dir/vir-pretty/lean-native-html"
+if [[ "$native_html_enabled" -eq 1 ]]; then
+  python3 "$demo_root/scripts/copy-checksummed-subset.py" \
+    "$native_html_dir" \
+    "$out_dir/vir-pretty/lean-native-html" \
     BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
 fi
 

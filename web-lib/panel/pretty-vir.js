@@ -16,6 +16,7 @@
      *   formatExportName?: string,
      *   renderedExportName?: string,
      *   renderPlanExportName?: string,
+     *   htmlExportName?: string,
      *   residentExportName?: string,
      *   residentRenderPlanExportName?: string
      * }} PrettyVirConfig
@@ -30,18 +31,21 @@
      *   formatExportName?: string,
      *   renderedExportName?: string,
      *   renderPlanExportName?: string,
+     *   htmlExportName?: string,
      *   residentExportName?: string,
      *   residentRenderPlanExportName?: string,
      *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
      *   formatSegments?: (fmt: *, width: number, indent: number) => *,
      *   formatRendered?: (fmt: *, width: number, indent: number) => *,
      *   formatRenderPlan?: (fmt: *, annotations: Array<*>, width: number, indent: number) => *,
+     *   formatHtml?: (fmt: *, annotations: Array<*>, width: number, indent: number) => string,
      *   formatRenderedById?: (formatId: number, width: number, indent: number) => *,
      *   formatRenderPlanById?: (formatId: number, width: number, indent: number) => *,
      *   formatJsonSegmentsJsonTimed?: (fmtJson: string, width: number, indent: number) => VirTimedCallResult,
      *   formatSegmentsTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
      *   formatRenderedTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
      *   formatRenderPlanTimed?: (fmt: *, annotations: Array<*>, width: number, indent: number) => VirTimedCallResult,
+     *   formatHtmlTimed?: (fmt: *, annotations: Array<*>, width: number, indent: number) => VirTimedCallResult,
      *   formatRenderedByIdTimed?: (formatId: number, width: number, indent: number) => VirTimedCallResult,
      *   formatRenderPlanByIdTimed?: (formatId: number, width: number, indent: number) => VirTimedCallResult,
      *   ready?: Promise<*>,
@@ -107,6 +111,8 @@
         config.renderPlanExportName ||
         bridge.renderPlanExportName ||
         "VersoSlides.Pretty.formatRenderPlanForVir";
+    bridge.htmlExportName =
+        config.htmlExportName || bridge.htmlExportName || "VersoSlides.Pretty.formatHtmlForVir";
     bridge.residentExportName =
         config.residentExportName ||
         bridge.residentExportName ||
@@ -181,6 +187,11 @@
                     throw new Error("missing VIR semantic render-plan export name");
                 return runtime.call(bridge.renderPlanExportName, fmt, annotations, width, indent);
             };
+            bridge.formatHtml = function (fmt, annotations, width, indent) {
+                if (!bridge.htmlExportName)
+                    throw new Error("missing VIR complete HTML export name");
+                return runtime.call(bridge.htmlExportName, fmt, annotations, width, indent);
+            };
             bridge.formatRenderedById = function (formatId, width, indent) {
                 if (!bridge.residentExportName)
                     throw new Error("missing VIR resident pretty export name");
@@ -218,6 +229,17 @@
                         indent,
                     );
                 };
+                bridge.formatHtmlTimed = function (fmt, annotations, width, indent) {
+                    if (!bridge.htmlExportName)
+                        throw new Error("missing VIR complete HTML export name");
+                    return runtime.callTimed(
+                        bridge.htmlExportName,
+                        fmt,
+                        annotations,
+                        width,
+                        indent,
+                    );
+                };
                 bridge.formatRenderedByIdTimed = function (formatId, width, indent) {
                     if (!bridge.residentExportName)
                         throw new Error("missing VIR resident pretty export name");
@@ -242,10 +264,17 @@
             console.warn("VIR pretty-printer bootstrap failed.", error);
             return null;
         });
-    ["vir", "vir-format", "vir-flat", "vir-resident", "vir-render", "vir-dom"].forEach(
-        function (id) {
-            var backend = getPrettyBackend(id);
-            if (backend) backend.ready = bridge.ready;
-        },
-    );
+    [
+        "vir",
+        "vir-format",
+        "vir-semantic",
+        "vir-html",
+        "vir-flat",
+        "vir-resident",
+        "vir-render",
+        "vir-dom",
+    ].forEach(function (id) {
+        var backend = getPrettyBackend(id);
+        if (backend) backend.ready = bridge.ready;
+    });
 })();

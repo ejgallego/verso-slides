@@ -75,7 +75,7 @@
  *
  * @typedef {{ text: string, events: PrettyTraceEvent[] }} PrettyTrace
  *
- * @typedef {{ segments: Segment[] | null, renderPlan?: RenderPlan | null, timings: PrettyTimings, memory?: Record<string, number>, error?: string }} PrettyRenderResult
+ * @typedef {{ segments: Segment[] | null, renderPlan?: RenderPlan | null, html?: string | null, timings: PrettyTimings, memory?: Record<string, number>, error?: string }} PrettyRenderResult
  *
  * @typedef {{
  *   marshalMs: number,
@@ -87,12 +87,16 @@
  *
  * @typedef {{ value: *, timings: VirCallTimings }} VirTimedCallResult
  *
+ * @typedef {"js" | "vir" | "fir" | "llvm"} PrettyBackendFamily
+ * @typedef {"layout" | "semantic" | "html"} PrettyPipelineBreadth
+ *
  * @typedef {{
  *   runtime?: "javascript" | "vir" | "fir-native" | "llvm-emscripten",
  *   input?: "compact-tree" | "json-string" | "lean-format" | "resident-id" | "browser-format",
- *   output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text",
+ *   output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text" | "html",
  *   width: "pixels" | "columns",
- *   materializer?: "html-string" | "dom-fragment"
+ *   materializer?: "html-string" | "dom-fragment",
+ *   matrix?: { backend: PrettyBackendFamily, breadth: PrettyPipelineBreadth }
  * }} PrettyBackendCapabilities
  *
  * @typedef {{
@@ -127,18 +131,21 @@
  *   formatExportName?: string,
  *   renderedExportName?: string,
  *   renderPlanExportName?: string,
+ *   htmlExportName?: string,
  *   residentExportName?: string,
  *   residentRenderPlanExportName?: string,
  *   formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string,
  *   formatSegments?: (fmt: *, width: number, indent: number) => *,
  *   formatRendered?: (fmt: *, width: number, indent: number) => *,
  *   formatRenderPlan?: (fmt: *, annotations: TaggedAnnotation[], width: number, indent: number) => *,
+ *   formatHtml?: (fmt: *, annotations: TaggedAnnotation[], width: number, indent: number) => string,
  *   formatRenderedById?: (formatId: number, width: number, indent: number) => *,
  *   formatRenderPlanById?: (formatId: number, width: number, indent: number) => *,
  *   formatJsonSegmentsJsonTimed?: (fmtJson: string, width: number, indent: number) => VirTimedCallResult,
  *   formatSegmentsTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
  *   formatRenderedTimed?: (fmt: *, width: number, indent: number) => VirTimedCallResult,
  *   formatRenderPlanTimed?: (fmt: *, annotations: TaggedAnnotation[], width: number, indent: number) => VirTimedCallResult,
+ *   formatHtmlTimed?: (fmt: *, annotations: TaggedAnnotation[], width: number, indent: number) => VirTimedCallResult,
  *   formatRenderedByIdTimed?: (formatId: number, width: number, indent: number) => VirTimedCallResult,
  *   formatRenderPlanByIdTimed?: (formatId: number, width: number, indent: number) => VirTimedCallResult,
  *   ready?: Promise<*>,
@@ -913,9 +920,7 @@ function addPrettyTimings(target, source) {
     target.totalMs += source.totalMs;
     target.committedTotalMs =
         (target.committedTotalMs || 0) +
-        (Number.isFinite(source.committedTotalMs)
-            ? source.committedTotalMs || 0
-            : source.totalMs);
+        (Number.isFinite(source.committedTotalMs) ? source.committedTotalMs || 0 : source.totalMs);
     /** @type {(keyof PrettyTimings)[]} */
     var detailKeys = [
         "adapterInputMs",
@@ -1223,6 +1228,71 @@ function normalizeVirRenderPlan(value) {
         node.annotationSlot = annotationSlot;
     }
     return /** @type {RenderPlan} */ (value);
+}
+
+/**
+ * Normalize the sparse browser annotation record into the deterministic typed
+ * array shared by bounded Lean runtimes. Adapters may lower the natural tag
+ * value to their own heap representation.
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @return {TaggedAnnotation[]}
+ */
+function taggedAnnotationsForRuntime(annotations) {
+    return Object.keys(annotations)
+        .map(function (key) {
+            return Number(key);
+        })
+        .filter(function (tag) {
+            return Number.isSafeInteger(tag) && tag >= 0;
+        })
+        .sort(function (left, right) {
+            return left - right;
+        })
+        .map(function (tag) {
+            var annotation = annotations[String(tag)];
+            return {
+                tag: tag,
+                annotation: {
+                    cssClass: annotation.cssClass,
+                    binding:
+                        annotation.binding === undefined || annotation.binding === null
+                            ? /** @type {*} */ (null)
+                            : annotation.binding,
+                },
+            };
+        });
+}
+
+/**
+ * Resolve the innermost annotation for JavaScript-produced tagged segments,
+ * yielding the same semantic sibling-node contract as the Lean surface.
+ * @param {Segment[]} segments
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @return {RenderPlan}
+ */
+function segmentsToRenderPlan(segments, annotations) {
+    var tagged = taggedAnnotationsForRuntime(annotations);
+    /** @type {Map<number, number>} */
+    var slots = new Map();
+    tagged.forEach(function (entry, index) {
+        slots.set(Number(entry.tag), index + 1);
+    });
+    return {
+        annotations: tagged.map(function (entry) {
+            return entry.annotation;
+        }),
+        nodes: segments.map(function (segment) {
+            var annotationSlot = 0;
+            for (var i = segment.tags.length - 1; i >= 0; i--) {
+                var slot = slots.get(segment.tags[i]);
+                if (slot !== undefined) {
+                    annotationSlot = slot;
+                    break;
+                }
+            }
+            return { text: segment.text, annotationSlot: annotationSlot };
+        }),
+    };
 }
 
 /**
@@ -1543,6 +1613,139 @@ function tryFormatRenderedWithVirFormatTimed(fmtJson, pixelWidth, measurer) {
 }
 
 /**
+ * Run layout and annotation resolution in VIR from the same transferred typed
+ * input used by the canonical layout cell.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {PrettyRenderResult}
+ */
+function tryFormatRenderPlanWithVirFormatTimed(fmtJson, annotations, pixelWidth, measurer) {
+    var started = performance.now();
+    var marshaled = started;
+    var executed = started;
+    var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
+        .__versoPrettyVir;
+    if (!bridge || bridge.enabled === false || (bridge.status && bridge.status !== "ready")) {
+        return { segments: null, renderPlan: null, timings: emptyPrettyTimings() };
+    }
+
+    /** @type {VirCallTimings | null} */
+    var runtimeTimings = null;
+    try {
+        var width = pixelWidthToFormatColumns(pixelWidth, measurer);
+        var indent = 0;
+        var fmt = compactFormatToStdFormat(fmtJson);
+        var tagged = taggedAnnotationsForRuntime(annotations);
+        marshaled = performance.now();
+        var result;
+        if (typeof bridge.formatRenderPlanTimed === "function") {
+            var timed = bridge.formatRenderPlanTimed(fmt, tagged, width, indent);
+            result = timed.value;
+            runtimeTimings = requireVirCallTimings(timed.timings);
+        } else if (typeof bridge.formatRenderPlan === "function") {
+            result = bridge.formatRenderPlan(fmt, tagged, width, indent);
+        } else {
+            return {
+                segments: null,
+                renderPlan: null,
+                timings: prettyPhaseTimings(started, marshaled, marshaled, marshaled),
+            };
+        }
+        executed = performance.now();
+        var renderPlan = normalizeVirRenderPlan(result);
+        if (renderPlan === null) throw new Error("invalid semantic render plan");
+        var decoded = performance.now();
+        return {
+            segments: null,
+            renderPlan: renderPlan,
+            timings: composeVirPrettyTimings(started, marshaled, executed, decoded, runtimeTimings),
+        };
+    } catch (error) {
+        warnPrettyVirFailure(bridge, "vir-semantic", error);
+        var failed = performance.now();
+        return {
+            segments: null,
+            renderPlan: null,
+            timings: composeVirPrettyTimings(
+                started,
+                marshaled,
+                executed === started ? failed : executed,
+                failed,
+                runtimeTimings,
+            ),
+        };
+    }
+}
+
+/**
+ * Run the complete layout → annotation resolution → escaped HTML surface in
+ * VIR. The returned HTML needs only the common browser commit.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {PrettyRenderResult}
+ */
+function tryFormatHtmlWithVirFormatTimed(fmtJson, annotations, pixelWidth, measurer) {
+    var started = performance.now();
+    var marshaled = started;
+    var executed = started;
+    var bridge = /** @type {Window & { __versoPrettyVir?: PrettyVirBridge }} */ (window)
+        .__versoPrettyVir;
+    if (!bridge || bridge.enabled === false || (bridge.status && bridge.status !== "ready")) {
+        return { segments: null, html: null, timings: emptyPrettyTimings() };
+    }
+
+    /** @type {VirCallTimings | null} */
+    var runtimeTimings = null;
+    try {
+        var width = pixelWidthToFormatColumns(pixelWidth, measurer);
+        var indent = 0;
+        var fmt = compactFormatToStdFormat(fmtJson);
+        var tagged = taggedAnnotationsForRuntime(annotations);
+        marshaled = performance.now();
+        var html;
+        if (typeof bridge.formatHtmlTimed === "function") {
+            var timed = bridge.formatHtmlTimed(fmt, tagged, width, indent);
+            html = timed.value;
+            runtimeTimings = requireVirCallTimings(timed.timings);
+        } else if (typeof bridge.formatHtml === "function") {
+            html = bridge.formatHtml(fmt, tagged, width, indent);
+        } else {
+            return {
+                segments: null,
+                html: null,
+                timings: prettyPhaseTimings(started, marshaled, marshaled, marshaled),
+            };
+        }
+        executed = performance.now();
+        if (typeof html !== "string") throw new Error("invalid complete HTML payload");
+        var decoded = performance.now();
+        return {
+            segments: null,
+            html: html,
+            timings: composeVirPrettyTimings(started, marshaled, executed, decoded, runtimeTimings),
+        };
+    } catch (error) {
+        warnPrettyVirFailure(bridge, "vir-html", error);
+        var failed = performance.now();
+        return {
+            segments: null,
+            html: null,
+            timings: composeVirPrettyTimings(
+                started,
+                marshaled,
+                executed === started ? failed : executed,
+                failed,
+                runtimeTimings,
+            ),
+        };
+    }
+}
+
+/**
  * Render a package-resident Format with its package-resident annotations,
  * returning semantic sibling nodes that need only browser escaping and HTML
  * materialization. The shared numeric ID addresses the aligned tables.
@@ -1800,6 +2003,50 @@ function formatSegmentsWithJsTimed(fmtJson, annotations, pixelWidth, measurer) {
     };
 }
 
+/**
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {PrettyRenderResult}
+ */
+function formatRenderPlanWithJsTimed(fmtJson, annotations, pixelWidth, measurer) {
+    var started = performance.now();
+    var fmt = deserializeFormat(fmtJson);
+    var ctx = makeRenderContext(annotations, measurer);
+    var marshaled = performance.now();
+    prettyM(fmt, pixelWidth, 0, ctx, measurer);
+    var renderPlan = segmentsToRenderPlan(ctx.segments, annotations);
+    var executed = performance.now();
+    return {
+        segments: null,
+        renderPlan: renderPlan,
+        timings: prettyPhaseTimings(started, marshaled, executed, executed),
+    };
+}
+
+/**
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {PrettyRenderResult}
+ */
+function formatHtmlWithJsTimed(fmtJson, annotations, pixelWidth, measurer) {
+    var started = performance.now();
+    var fmt = deserializeFormat(fmtJson);
+    var ctx = makeRenderContext(annotations, measurer);
+    var marshaled = performance.now();
+    prettyM(fmt, pixelWidth, 0, ctx, measurer);
+    var html = segmentsToHtml(ctx.segments, annotations);
+    var executed = performance.now();
+    return {
+        segments: null,
+        html: html,
+        timings: prettyPhaseTimings(started, marshaled, executed, executed),
+    };
+}
+
 registerPrettyBackend({
     id: "js",
     label: "JS",
@@ -1808,11 +2055,44 @@ registerPrettyBackend({
         input: "compact-tree",
         output: "segments",
         width: "pixels",
+        matrix: { backend: "js", breadth: "layout" },
     },
     status: function () {
         return "ready";
     },
     renderTimed: formatSegmentsWithJsTimed,
+});
+registerPrettyBackend({
+    id: "js-render",
+    label: "JS Semantic",
+    capabilities: {
+        runtime: "javascript",
+        input: "compact-tree",
+        output: "render-plan",
+        width: "pixels",
+        materializer: "html-string",
+        matrix: { backend: "js", breadth: "semantic" },
+    },
+    status: function () {
+        return "ready";
+    },
+    renderTimed: formatRenderPlanWithJsTimed,
+});
+registerPrettyBackend({
+    id: "js-html",
+    label: "JS HTML",
+    capabilities: {
+        runtime: "javascript",
+        input: "compact-tree",
+        output: "html",
+        width: "pixels",
+        materializer: "html-string",
+        matrix: { backend: "js", breadth: "html" },
+    },
+    status: function () {
+        return "ready";
+    },
+    renderTimed: formatHtmlWithJsTimed,
 });
 registerPrettyBackend({
     id: "vir",
@@ -1839,6 +2119,7 @@ registerPrettyBackend({
         input: "lean-format",
         output: "segments",
         width: "columns",
+        matrix: { backend: "vir", breadth: "layout" },
     },
     status: function () {
         var bridge = /** @type {Window} */ (window).__versoPrettyVir;
@@ -1846,6 +2127,44 @@ registerPrettyBackend({
     },
     renderTimed: function (fmtJson, _annotations, pixelWidth, measurer) {
         return tryFormatSegmentsWithVirFormatTimed(fmtJson, pixelWidth, measurer);
+    },
+});
+registerPrettyBackend({
+    id: "vir-semantic",
+    label: "VIR Semantic",
+    capabilities: {
+        runtime: "vir",
+        input: "lean-format",
+        output: "render-plan",
+        width: "columns",
+        materializer: "html-string",
+        matrix: { backend: "vir", breadth: "semantic" },
+    },
+    status: function () {
+        var bridge = /** @type {Window} */ (window).__versoPrettyVir;
+        return bridge && bridge.status ? bridge.status : "unavailable";
+    },
+    renderTimed: function (fmtJson, annotations, pixelWidth, measurer) {
+        return tryFormatRenderPlanWithVirFormatTimed(fmtJson, annotations, pixelWidth, measurer);
+    },
+});
+registerPrettyBackend({
+    id: "vir-html",
+    label: "VIR HTML",
+    capabilities: {
+        runtime: "vir",
+        input: "lean-format",
+        output: "html",
+        width: "columns",
+        materializer: "html-string",
+        matrix: { backend: "vir", breadth: "html" },
+    },
+    status: function () {
+        var bridge = /** @type {Window} */ (window).__versoPrettyVir;
+        return bridge && bridge.status ? bridge.status : "unavailable";
+    },
+    renderTimed: function (fmtJson, annotations, pixelWidth, measurer) {
+        return tryFormatHtmlWithVirFormatTimed(fmtJson, annotations, pixelWidth, measurer);
     },
 });
 registerPrettyBackend({
@@ -2013,7 +2332,11 @@ function formatPrettyOutputTimed(fmtJson, annotations, pixelWidth, measurer, bac
     var renderStart = performance.now();
     var html = null;
     var fragment = null;
-    if (rendered.renderPlan) {
+    var backendOwnsHtml = false;
+    if (typeof rendered.html === "string") {
+        backendOwnsHtml = true;
+        html = rendered.html;
+    } else if (rendered.renderPlan) {
         if (candidate.capabilities && candidate.capabilities.materializer === "dom-fragment") {
             fragment = renderPlanToFragment(rendered.renderPlan);
         } else {
@@ -2024,7 +2347,9 @@ function formatPrettyOutputTimed(fmtJson, annotations, pixelWidth, measurer, bac
     }
     var finished = performance.now();
     if (!Number.isFinite(rendered.timings.commitMs)) rendered.timings.commitMs = 0;
-    rendered.timings.renderMs += Math.max(0, finished - renderStart);
+    if (!backendOwnsHtml) {
+        rendered.timings.renderMs += Math.max(0, finished - renderStart);
+    }
     rendered.timings.hostTotalMs = rendered.timings.renderMs;
     rendered.timings.totalMs = Math.max(0, finished - start);
     rendered.timings.committedTotalMs = rendered.timings.totalMs;

@@ -1,27 +1,37 @@
-# Pretty-printer experiment matrix
+# Pretty-printer experiment organization
 
-The demo organizes backends by the question a comparison answers. A
-preset is an experimental view, not a claim that every internal ABI is
-identical. Every view starts from the same compact `Std.Format`,
-annotations, column budget, and visible-format call sequence at the
-Verso panel boundary.
+The main view is a two-dimensional capability matrix. Rows are backend/compiler
+families; columns fix the compiled pipeline breadth:
+
+| Breadth | Endpoint |
+| --- | --- |
+| Layout | Low-level styled layout output |
+| Semantic | Annotation-resolved sibling nodes |
+| HTML | Complete escaped token HTML, before DOM commit |
+
+Each supported cell maps to one canonical candidate. Gray cells are genuinely
+unsupported and do not fall back. Pipeline total is the primary cross-backend
+metric because runtimes and adapters still differ; phase tracks explain those
+differences.
+
+Custom Lab retains focused ABI and host diagnostics. A preset is an
+experimental view, not a claim that every internal ABI is identical. Every
+view starts from the same compact `Std.Format`, annotations, column budget, and
+visible-format call sequence at the Verso panel boundary.
 
 | Preset                     | Backends                       | Variable                                            | Held fixed                                   | Interpretation                                                    |
 | -------------------------- | ------------------------------ | --------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
-| End-to-end implementations | JS, VIR Render, FIR Wasm, LLVM | Complete implementation and adapter path            | Source format, annotations, columns, final HTML semantics | Product-level comparison; phase breakdown explains boundary costs |
-| VIR input transport        | VIR JSON, VIR Format           | JSON/string versus typed Lean object ABI            | VIR runtime, `prettyM`, segment output       | Cost of VIR input representation                                  |
 | VIR output boundary        | VIR Format, VIR Flat           | Copied tagged segments versus text plus flat events | Typed input, VIR runtime, `prettyM`          | Cost of VIR output representation                                 |
 | VIR rendering boundary     | VIR Resident, VIR Render       | JS tag resolution versus Lean-resolved semantic nodes | Resident ID, package tables, VIR runtime, `prettyM`, annotations, HTML semantics | Cost and ownership shift at the rendering endpoint                |
 | VIR host materializer      | VIR Render, VIR Direct DOM     | HTML-string construction + parse versus DOM construction + fragment commit | Resident ID, package tables, VIR call, semantic render plan, columns, final populated DOM | Cost of the browser endpoint after the VIR boundary               |
 | VIR input residency        | VIR Flat, VIR Resident         | Imported tree versus package-resident ID            | Flat output, VIR runtime, `prettyM`          | Cost of transferring/reconstructing a static format               |
 | All backends               | All available                  | Several variables at once                           | Source format and columns only               | Exploratory overview; do not attribute a delta to one cause       |
 
-Named presets use the **Guided experiment** surface: the selected question,
-boundary, shared settings, output-equivalence verdict, primary metric, and
-relevant phase lanes stay visible. Arbitrary backend checkboxes and raw timing
-views live in the expandable **Custom Lab**. Manually changing a backend there
-creates a **Custom selection**. The URL records both the resolved backend list
-and matching preset ID, so a view can be shared and reproduced.
+Named diagnostics live in **Custom Lab**. Selecting one leaves the main matrix
+and activates its exact concrete candidate set. The URL records matrix mode,
+families, breadth, and resolved candidates—or the matching diagnostic ID—so a
+view can be shared and reproduced. The historical VIR JSON transport diagnostic
+has been phased out; the compatibility candidate is not part of the main matrix.
 
 ## Timing envelope
 
@@ -31,16 +41,18 @@ scope. In particular, “JS time” is not one indivisible quantity:
 | Phase                | JS includes                                                       | Cross-runtime meaning                                                |
 | -------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
 | Input preparation    | Compact-tree deserialization and render-context setup             | Public input converted into the backend-owned representation         |
-| Backend execute      | `prettyM`, width measurement, tagged-segment and tag-stack output | Backend-owned layout plus construction of its declared output; VIR Render also resolves annotations |
+| Backend execute      | `prettyM` plus construction through the selected JS breadth | Backend-owned computation through its declared layout, semantic, or HTML endpoint |
 | Output normalization | Zero: JS already produced the shared segment form                 | Backend output validated or converted into browser-ready segments or semantic nodes                  |
-| Host construction    | Annotation lookup, escaping, binding attributes, and span/string construction | Browser-ready output converted into an HTML string or detached DOM fragment; this intermediate boundary is not directly comparable |
+| Host construction    | Layout: annotation/HTML work; semantic: HTML only; HTML: zero | Browser-ready output converted into an HTML string or detached DOM fragment when the selected breadth has not already done so |
 | DOM commit           | `innerHTML` parse/replacement                                     | Detached output committed into a populated host element; fragment candidates transfer their constructed nodes |
 | Host total           | Host construction + DOM commit                                    | Browser-ready semantic output through equivalent populated DOM; primary materializer metric |
 | Pipeline total       | All five phases above                                             | Public compact input through equivalent populated DOM; layout and paint excluded |
 
 Thus the default **Pipeline total (committed DOM)** includes the extended
 annotation processing, host construction, and DOM commit for every backend.
-**Backend execute** does not: JS execute ends at tagged segments. The old
+**Backend execute** does not: it ends at the selected cell's declared endpoint.
+For JS HTML it therefore includes annotation lookup, escaping, and span
+construction; for JS Layout it ends at tagged segments. The old
 pre-insertion envelope remains available as **Pipeline prepare**, but it stops at
 unequal HTML-string/fragment states and is diagnostic only. Layout, paint, control
 rendering, and startup are outside pipeline total.
@@ -106,6 +118,21 @@ tests.
    performance claims and graphs.
 3. **Observation cards:** a small, forwardable conclusion with
    protocol, provenance, caveats, and owner-facing follow-up.
+
+## Pending FIR HTML breadth
+
+JavaScript and VIR now both provide canonical HTML cells. Their backend execute
+phase includes layout, annotation resolution, escaping, and token-span
+construction; only the common DOM commit remains in the host. Exact rendered
+HTML is checked before timing interpretation.
+
+The FIR cell is activated by a separately published package satisfying
+[`contracts/fir-native-html-v1.json`](contracts/fir-native-html-v1.json). It
+compiles `VersoSlides.Pretty.formatHtmlForRuntime`, is staged as
+`lean-native-html/`, and registers as `native-html`. The host adapter and assembly
+path are already present, so the cell stays gray until the artifact is staged
+and becomes selectable without a UI change afterward. See
+[`handoffs/fir-wasm-html-runtime/AGENT_TASK.md`](../../handoffs/fir-wasm-html-runtime/AGENT_TASK.md).
 
 ## Pending FIR output experiment
 

@@ -55,7 +55,7 @@
             label: "Backend execute",
             shortLabel: "Execute",
             key: "executeMs",
-            scope: "Backend-owned layout and output construction only. JS ends at tagged segments; VIR Render also resolves annotations into semantic nodes. Host materialization is excluded.",
+            scope: "Backend-owned computation through the candidate's declared endpoint. Depending on selected breadth, this ends at low-level styled output, semantic nodes, or escaped HTML.",
         },
         {
             id: "marshal",
@@ -120,6 +120,35 @@
         { codePoints: 2048, label: "At least 2K code points" },
         { codePoints: 8192, label: "At least 8K code points" },
     ];
+    var PRETTY_MATRIX_BACKENDS = [
+        { id: "js", label: "JavaScript" },
+        { id: "vir", label: "VIR" },
+        { id: "fir", label: "FIR Wasm" },
+        { id: "llvm", label: "LLVM" },
+    ];
+    var PRETTY_MATRIX_BREADTHS = [
+        {
+            id: "layout",
+            label: "Layout",
+            shortLabel: "Layout",
+            description:
+                "The backend runs prettyM and returns low-level styled output; annotation lookup and HTML stay in the host.",
+        },
+        {
+            id: "semantic",
+            label: "Semantic rendering",
+            shortLabel: "Semantic",
+            description:
+                "The backend also resolves the innermost token annotation into semantic sibling nodes; HTML stays in the host.",
+        },
+        {
+            id: "html",
+            label: "HTML rendering",
+            shortLabel: "HTML",
+            description:
+                "The backend owns layout, annotation resolution, escaping, and span construction; only DOM commit stays in the host.",
+        },
+    ];
 
     function init() {
         initializePrettyConfig();
@@ -164,6 +193,35 @@
         var root = /** @type {Window} */ (window);
         var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
         var params = new URLSearchParams(window.location.search);
+        var matrixRequested =
+            params.get("prettyMode") === "matrix" ||
+            params.has("prettyFamilies") ||
+            params.has("prettyBreadth");
+        if (params.has("prettyFamilies")) {
+            config.families = /** @type {*} */ (
+                (params.get("prettyFamilies") || "")
+                    .split(",")
+                    .map(function (family) {
+                        return family.trim();
+                    })
+                    .filter(function (family) {
+                        return PRETTY_MATRIX_BACKENDS.some(function (backend) {
+                            return backend.id === family;
+                        });
+                    })
+            );
+        }
+        if (params.has("prettyBreadth")) {
+            var queryBreadth = params.get("prettyBreadth");
+            if (
+                PRETTY_MATRIX_BREADTHS.some(function (breadth) {
+                    return breadth.id === queryBreadth;
+                })
+            ) {
+                config.breadth = /** @type {*} */ (queryBreadth);
+            }
+        }
+        if (matrixRequested) config.mode = "matrix";
         if (params.has("pretty")) {
             var queryBackends = (params.get("pretty") || "")
                 .split(",")
@@ -174,11 +232,17 @@
                     return id.length > 0;
                 });
             config.backends = queryBackends.length > 0 ? queryBackends : undefined;
+            if (!matrixRequested) config.mode = "custom";
         }
-        if (!params.has("pretty") && params.has("prettyExperiment")) {
+        if (!matrixRequested && !params.has("pretty") && params.has("prettyExperiment")) {
             var requestedExperiment = prettyExperimentById(params.get("prettyExperiment"));
             if (requestedExperiment) applyPrettyExperiment(requestedExperiment);
-        } else if (!params.has("pretty") && !Array.isArray(config.backends)) {
+        } else if (
+            !matrixRequested &&
+            config.mode !== "matrix" &&
+            !params.has("pretty") &&
+            !Array.isArray(config.backends)
+        ) {
             var configuredExperiment = prettyExperimentById(config.experiment);
             if (configuredExperiment) applyPrettyExperiment(configuredExperiment);
         }
@@ -213,7 +277,11 @@
         if (!Number.isInteger(config.columns)) config.columns = 40;
         if (!Number.isInteger(config.workload)) config.workload = 0;
         config.timing = selectedPrettyTimingDisplay().id;
-        if (prettyExperiments().length > 0) {
+        if (config.mode === "matrix") {
+            config.breadth = selectedPrettyBreadth();
+            config.families = /** @type {*} */ (Array.from(selectedPrettyFamilies()));
+            activatePrettyMatrix();
+        } else if (prettyExperiments().length > 0) {
             var matchedExperiment = matchingPrettyExperiment();
             config.experiment = matchedExperiment ? matchedExperiment.id : "custom";
         }
@@ -280,6 +348,7 @@
     /** @return {PrettyExperiment | null} */
     function matchingPrettyExperiment() {
         var root = /** @type {Window} */ (window);
+        if (root.__versoPrettyConfig && root.__versoPrettyConfig.mode === "matrix") return null;
         var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.backends;
         var selected = new Set(
             Array.isArray(configured)
@@ -307,13 +376,88 @@
         var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
         config.backends = availableExperimentBackendIds(experiment);
         config.experiment = experiment.id;
+        config.mode = "custom";
         config.compare = true;
         config.timing = prettyTimingDisplayById(experiment.timing || "tracks").id;
+    }
+
+    /** @return {"layout" | "semantic" | "html"} */
+    function selectedPrettyBreadth() {
+        var root = /** @type {Window} */ (window);
+        var selected = root.__versoPrettyConfig && root.__versoPrettyConfig.breadth;
+        return PRETTY_MATRIX_BREADTHS.some(function (breadth) {
+            return breadth.id === selected;
+        })
+            ? /** @type {"layout" | "semantic" | "html"} */ (selected)
+            : "html";
+    }
+
+    /** @return {Set<string>} */
+    function selectedPrettyFamilies() {
+        var root = /** @type {Window} */ (window);
+        var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.families;
+        var known = new Set(
+            PRETTY_MATRIX_BACKENDS.map(function (backend) {
+                return backend.id;
+            }),
+        );
+        var selected = new Set(
+            Array.isArray(configured)
+                ? configured.filter(function (family) {
+                      return known.has(family);
+                  })
+                : PRETTY_MATRIX_BACKENDS.map(function (backend) {
+                      return backend.id;
+                  }),
+        );
+        return selected;
+    }
+
+    /**
+     * @param {string} family
+     * @param {string} breadth
+     * @return {PrettyBackendDefinition | null}
+     */
+    function prettyMatrixCandidate(family, breadth) {
+        return (
+            getPrettyBackends().find(function (backend) {
+                var matrix = backend.capabilities && backend.capabilities.matrix;
+                return matrix && matrix.backend === family && matrix.breadth === breadth;
+            }) || null
+        );
+    }
+
+    /** @return {PrettyBackendDefinition[]} */
+    function resolvedPrettyMatrixBackends() {
+        var families = selectedPrettyFamilies();
+        var breadth = selectedPrettyBreadth();
+        return PRETTY_MATRIX_BACKENDS.map(function (family) {
+            return families.has(family.id) ? prettyMatrixCandidate(family.id, breadth) : null;
+        }).filter(function (backend) {
+            return backend !== null;
+        });
+    }
+
+    /** @return {boolean} */
+    function usingPrettyMatrix() {
+        var root = /** @type {Window} */ (window);
+        return !!(root.__versoPrettyConfig && root.__versoPrettyConfig.mode === "matrix");
+    }
+
+    function activatePrettyMatrix() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        config.mode = "matrix";
+        config.compare = true;
+        config.backends = resolvedPrettyMatrixBackends().map(function (backend) {
+            return backend.id;
+        });
     }
 
     /** @return {PrettyBackendDefinition[]} */
     function selectedPrettyBackends() {
         var root = /** @type {Window} */ (window);
+        if (usingPrettyMatrix()) return resolvedPrettyMatrixBackends();
         var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.backends;
         if (!Array.isArray(configured)) return getPrettyBackends();
         var selected = new Set(configured);
@@ -398,6 +542,11 @@
         var root = /** @type {Window} */ (window);
         var config = root.__versoPrettyConfig || {};
         var url = new URL(window.location.href);
+        if (usingPrettyMatrix()) {
+            config.backends = resolvedPrettyMatrixBackends().map(function (backend) {
+                return backend.id;
+            });
+        }
         url.searchParams.set(
             "pretty",
             (
@@ -413,7 +562,17 @@
         url.searchParams.set("prettyControls", config.controls === true ? "1" : "0");
         url.searchParams.set("prettyTiming", selectedPrettyTimingDisplay().id);
         url.searchParams.set("prettyWorkload", String(prettyWorkloadCodePoints()));
-        if (prettyExperiments().length > 0) {
+        if (usingPrettyMatrix()) {
+            url.searchParams.set("prettyMode", "matrix");
+            url.searchParams.set("prettyBreadth", selectedPrettyBreadth());
+            url.searchParams.set("prettyFamilies", Array.from(selectedPrettyFamilies()).join(","));
+            url.searchParams.delete("prettyExperiment");
+        } else {
+            url.searchParams.set("prettyMode", "custom");
+            url.searchParams.delete("prettyBreadth");
+            url.searchParams.delete("prettyFamilies");
+        }
+        if (!usingPrettyMatrix() && prettyExperiments().length > 0) {
             var experiment = matchingPrettyExperiment();
             config.experiment = experiment ? experiment.id : "custom";
             url.searchParams.set("prettyExperiment", config.experiment);
@@ -595,6 +754,171 @@
         return card;
     }
 
+    /** @return {HTMLElement} */
+    function prettyMatrixBoundaryCard() {
+        var breadthId = selectedPrettyBreadth();
+        var breadth = PRETTY_MATRIX_BREADTHS.find(function (candidate) {
+            return candidate.id === breadthId;
+        });
+        var card = document.createElement("section");
+        card.className = "pretty-controls-boundary pretty-matrix-boundary";
+        card.dataset.design = "end-to-end";
+
+        var designLabel = document.createElement("span");
+        designLabel.className = "pretty-controls-design";
+        designLabel.textContent = "Compiled breadth · " + (breadth ? breadth.label : breadthId);
+        var question = document.createElement("p");
+        question.className = "pretty-controls-question";
+        question.textContent = breadth ? breadth.description : "Unknown pipeline breadth.";
+        var facts = document.createElement("dl");
+        appendPrettyBoundaryFact(
+            facts,
+            "Changes",
+            "Backend/compiler and its adapter; the selected pipeline endpoint is fixed.",
+        );
+        appendPrettyBoundaryFact(
+            facts,
+            "Endpoint",
+            breadthId === "html"
+                ? "Escaped HTML string, before common DOM commit."
+                : breadthId === "semantic"
+                  ? "Semantic sibling-node plan, before common host HTML construction."
+                  : "Low-level styled layout output, before common annotation lookup and HTML construction.",
+        );
+        appendPrettyBoundaryFact(
+            facts,
+            "Measures",
+            "Pipeline total is the fair cross-backend number; phase tracks explain where each implementation spends it.",
+        );
+        card.append(designLabel, question, facts);
+        return card;
+    }
+
+    /**
+     * @param {VersoPrettyConfig} config
+     * @return {HTMLElement}
+     */
+    function prettyMatrixSelector(config) {
+        var active = usingPrettyMatrix();
+        var selectedBreadth = selectedPrettyBreadth();
+        var selectedFamilies = selectedPrettyFamilies();
+        var matrix = document.createElement("div");
+        matrix.className = "pretty-matrix" + (active ? " is-active" : "");
+        matrix.setAttribute("role", "table");
+        matrix.setAttribute("aria-label", "Backend by compiled pipeline breadth");
+
+        var corner = document.createElement("div");
+        corner.className = "pretty-matrix-corner";
+        corner.textContent = "Backend";
+        matrix.appendChild(corner);
+
+        PRETTY_MATRIX_BREADTHS.forEach(function (breadth) {
+            var header = document.createElement("button");
+            header.type = "button";
+            header.className =
+                "pretty-matrix-breadth" +
+                (active && selectedBreadth === breadth.id ? " is-selected" : "");
+            header.dataset.prettyBreadth = breadth.id;
+            header.textContent = breadth.shortLabel;
+            header.title = breadth.description;
+            header.addEventListener("click", function () {
+                config.breadth = /** @type {*} */ (breadth.id);
+                activatePrettyMatrix();
+                persistPrettyConfig();
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+            matrix.appendChild(header);
+        });
+
+        PRETTY_MATRIX_BACKENDS.forEach(function (family) {
+            var currentCandidate = prettyMatrixCandidate(family.id, selectedBreadth);
+            var rowLabel = document.createElement("label");
+            rowLabel.className =
+                "pretty-matrix-backend" + (currentCandidate ? "" : " is-unsupported");
+            var toggle = document.createElement("input");
+            toggle.type = "checkbox";
+            toggle.value = family.id;
+            toggle.checked = active && !!currentCandidate && selectedFamilies.has(family.id);
+            toggle.disabled = !currentCandidate;
+            var labelText = document.createElement("span");
+            labelText.textContent = family.label;
+            rowLabel.append(toggle, labelText);
+            if (!currentCandidate) {
+                rowLabel.title = family.label + " does not provide the selected breadth yet.";
+            }
+            toggle.addEventListener("change", function () {
+                var next = selectedPrettyFamilies();
+                if (toggle.checked) next.add(family.id);
+                else next.delete(family.id);
+                var hasAvailable = PRETTY_MATRIX_BACKENDS.some(function (backend) {
+                    return (
+                        next.has(backend.id) &&
+                        prettyMatrixCandidate(backend.id, selectedPrettyBreadth()) !== null
+                    );
+                });
+                if (!hasAvailable) {
+                    toggle.checked = true;
+                    return;
+                }
+                config.families = /** @type {*} */ (Array.from(next));
+                activatePrettyMatrix();
+                persistPrettyConfig();
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+            matrix.appendChild(rowLabel);
+
+            PRETTY_MATRIX_BREADTHS.forEach(function (breadth) {
+                var candidate = prettyMatrixCandidate(family.id, breadth.id);
+                if (!candidate) {
+                    var unavailable = document.createElement("span");
+                    unavailable.className =
+                        "pretty-matrix-cell is-unsupported" +
+                        (active && selectedBreadth === breadth.id ? " is-current" : "");
+                    unavailable.textContent = "—";
+                    unavailable.title =
+                        family.label + " does not currently provide " + breadth.label + ".";
+                    matrix.appendChild(unavailable);
+                    return;
+                }
+                var cell = document.createElement("button");
+                cell.type = "button";
+                var isCurrent = active && selectedBreadth === breadth.id;
+                var isIncluded = isCurrent && selectedFamilies.has(family.id);
+                cell.className =
+                    "pretty-matrix-cell" +
+                    (isCurrent ? " is-current" : "") +
+                    (isIncluded ? " is-included" : "");
+                cell.dataset.prettyBackend = family.id;
+                cell.dataset.prettyBreadth = breadth.id;
+                var state = typeof candidate.status === "function" ? candidate.status() : "ready";
+                var candidateName = document.createElement("span");
+                candidateName.className = "pretty-matrix-candidate";
+                candidateName.textContent = candidate.label;
+                var candidateState = document.createElement("span");
+                candidateState.className =
+                    "pretty-controls-status status-" +
+                    state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+                candidateState.textContent = state;
+                cell.append(candidateName, candidateState);
+                cell.title = prettyBackendBoundaryDetails(candidate);
+                cell.addEventListener("click", function () {
+                    var next = selectedPrettyFamilies();
+                    next.add(family.id);
+                    config.families = /** @type {*} */ (Array.from(next));
+                    config.breadth = /** @type {*} */ (breadth.id);
+                    activatePrettyMatrix();
+                    persistPrettyConfig();
+                    reflowPrettyPanels();
+                    renderPrettyControls();
+                });
+                matrix.appendChild(cell);
+            });
+        });
+        return matrix;
+    }
+
     /**
      * @param {PrettyBackendDefinition} backend
      * @return {string}
@@ -621,11 +945,9 @@
         var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
         var backends = getPrettyBackends();
         var selected = new Set(
-            Array.isArray(config.backends)
-                ? config.backends
-                : backends.map(function (backend) {
-                      return backend.id;
-                  }),
+            selectedPrettyBackends().map(function (backend) {
+                return backend.id;
+            }),
         );
         var selectedCount = backends.filter(function (backend) {
             return selected.has(backend.id);
@@ -633,9 +955,21 @@
 
         var experiment = matchingPrettyExperiment();
         var summary = document.createElement("summary");
-        summary.textContent = experiment
-            ? "Experiment · " + experiment.label
-            : "Custom Lab · " + selectedCount + "/" + backends.length + " candidates";
+        summary.textContent = usingPrettyMatrix()
+            ? "Pipeline · " +
+              (
+                  PRETTY_MATRIX_BREADTHS.find(function (breadth) {
+                      return breadth.id === selectedPrettyBreadth();
+                  }) || PRETTY_MATRIX_BREADTHS[0]
+              ).label +
+              " · " +
+              selectedCount +
+              "/" +
+              PRETTY_MATRIX_BACKENDS.length +
+              " backends"
+            : experiment
+              ? "Diagnostic · " + experiment.label
+              : "Custom Lab · " + selectedCount + "/" + backends.length + " candidates";
         var menu = document.createElement("div");
         menu.className = "pretty-controls-menu";
 
@@ -644,17 +978,19 @@
         var guidedHeading = document.createElement("div");
         guidedHeading.className = "pretty-controls-section-heading";
         var guidedTitle = document.createElement("span");
-        guidedTitle.textContent = "Guided experiment";
+        guidedTitle.textContent = "Backend × compiled breadth";
         var guidedCount = document.createElement("span");
         guidedCount.className = "pretty-controls-section-count";
-        guidedCount.textContent = selectedCount + " candidate" + (selectedCount === 1 ? "" : "s");
+        guidedCount.textContent = selectedCount + " runnable";
         guidedHeading.append(guidedTitle, guidedCount);
         guided.appendChild(guidedHeading);
+        guided.appendChild(prettyMatrixSelector(config));
+        if (usingPrettyMatrix()) guided.appendChild(prettyMatrixBoundaryCard());
         menu.appendChild(guided);
 
         var lab = document.createElement("details");
         lab.className = "pretty-controls-lab";
-        lab.open = prettyCustomLabOpen || !experiment;
+        lab.open = prettyCustomLabOpen || (!usingPrettyMatrix() && !experiment);
         lab.addEventListener("toggle", function () {
             prettyCustomLabOpen = lab.open;
         });
@@ -680,7 +1016,7 @@
         if (experiments.length > 0) {
             var experimentLabel = document.createElement("label");
             experimentLabel.className = "pretty-controls-experiment";
-            experimentLabel.appendChild(document.createTextNode("Test boundary "));
+            experimentLabel.appendChild(document.createTextNode("Named diagnostic "));
             var experimentSelect = document.createElement("select");
             experiments.forEach(function (candidate) {
                 var option = document.createElement("option");
@@ -708,8 +1044,8 @@
                 renderPrettyControls();
             });
             experimentLabel.appendChild(experimentSelect);
-            guided.appendChild(experimentLabel);
-            guided.appendChild(prettyBoundaryCard(experiment));
+            labBody.appendChild(experimentLabel);
+            if (experiment) labBody.appendChild(prettyBoundaryCard(experiment));
         }
 
         var settings = document.createElement("div");
@@ -766,6 +1102,7 @@
                     .filter(function (id) {
                         return next.has(id);
                     });
+                config.mode = "custom";
                 var matched = matchingPrettyExperiment();
                 config.experiment = matched ? matched.id : "custom";
                 persistPrettyConfig();
@@ -866,7 +1203,7 @@
         var note = document.createElement("p");
         note.className = "pretty-controls-note";
         note.textContent =
-            "Results use one column budget, repeat the same visible formats, and show the experiment's primary metric above the phase tracks.";
+            "Gray cells are genuinely unavailable combinations. Results use one column budget and repeat the same visible formats; Custom Lab retains ABI and transport diagnostics.";
         guided.appendChild(note);
 
         lab.append(labSummary, labBody);

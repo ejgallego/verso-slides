@@ -78,6 +78,7 @@
             input: "browser-format",
             output: "pretty-trace",
             width: "columns",
+            matrix: { backend: "llvm", breadth: "layout" },
         },
         status: function () {
             return bridge.status || "unavailable";
