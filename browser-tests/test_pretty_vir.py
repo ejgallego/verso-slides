@@ -234,7 +234,10 @@ class TestPrettyVirBridge:
             "executeMs",
             "decodeMs",
             "renderMs",
+            "commitMs",
+            "hostTotalMs",
             "totalMs",
+            "committedTotalMs",
             "adapterInputMs",
             "adapterOutputMs",
             "runtimeMarshalMs",
@@ -456,7 +459,7 @@ class TestPrettyVirBridge:
                 const dom = formatPrettyOutputTimed(...args, "vir-dom", 23);
                 const fragmentChildren = dom.fragment.childNodes.length;
                 const target = document.createElement("div");
-                const inserted = insertPrettyOutput(target, dom);
+                const inserted = insertPrettyOutputTimed(target, dom);
                 return {
                     html: html.html,
                     domHtml: target.innerHTML,
@@ -466,7 +469,11 @@ class TestPrettyVirBridge:
                     fragmentChildrenAfterInsert: dom.fragment.childNodes.length,
                     inserted,
                     capabilities: getPrettyBackend("vir-dom").capabilities,
-                    renderMs: dom.timings.renderMs
+                    renderMs: dom.timings.renderMs,
+                    commitMs: dom.timings.commitMs,
+                    hostTotalMs: dom.timings.hostTotalMs,
+                    committedTotalMs: dom.timings.committedTotalMs,
+                    prepareMs: dom.timings.totalMs
                 };
             }"""
         )
@@ -477,6 +484,9 @@ class TestPrettyVirBridge:
         assert result["fragmentChildrenAfterInsert"] == 0
         assert result["inserted"] is True
         assert result["renderMs"] >= 0
+        assert result["commitMs"] >= 0
+        assert result["hostTotalMs"] == result["renderMs"] + result["commitMs"]
+        assert result["committedTotalMs"] == result["prepareMs"] + result["commitMs"]
         assert result["capabilities"] == {
             "runtime": "vir",
             "input": "resident-id",
@@ -822,8 +832,9 @@ class TestPrettyVirComparisonPanel:
             ["render-plan", "dom-fragment"],
         ]
         expect(controls.locator(".pretty-controls-question")).to_contain_text(
-            "detached DOM fragment"
+            "reaches populated DOM"
         )
+        expect(controls.locator(".pretty-controls-timing select")).to_have_value("host")
         assert selected_rows.locator(
             ".pretty-controls-dimension.is-variable .pretty-controls-dimension-name"
         ).all_inner_texts() == ["MATERIALIZER", "MATERIALIZER"]
@@ -1038,7 +1049,9 @@ class TestPrettyVirComparisonPanel:
         assert all("Marshal:" in title for title in timing_titles)
         assert all("Backend execute (layout + owned output):" in title for title in timing_titles)
         assert all("Output normalization:" in title for title in timing_titles)
-        assert all("Host materialization:" in title for title in timing_titles)
+        assert all("Host construction:" in title for title in timing_titles)
+        assert all("DOM commit:" in title for title in timing_titles)
+        assert all("Host total (construct + commit):" in title for title in timing_titles)
         native_timing = panel.locator(
             '[data-pretty-backend="native"] .pretty-compare-time'
         ).get_attribute("title")
@@ -1101,8 +1114,8 @@ class TestPrettyVirComparisonPanel:
         timing = controls.locator(".pretty-controls-timing select")
         timing_scope = controls.locator(".pretty-controls-timing-scope")
         expect(timing).to_have_value("total")
-        expect(timing_scope).to_contain_text("detached browser output")
-        expect(timing_scope).to_contain_text("excludes insertion into the live DOM")
+        expect(timing_scope).to_contain_text("equivalent populated DOM")
+        expect(timing_scope).to_contain_text("excludes layout and paint")
         timing.select_option("execute")
         expect(timing_scope).to_contain_text("JS ends at tagged segments")
         expect(timing_scope).to_contain_text("VIR Render also resolves annotations")
@@ -1114,15 +1127,16 @@ class TestPrettyVirComparisonPanel:
         assert "prettyTiming=execute" in page.url
 
         timing.select_option("tracks")
-        expect(timing_scope).to_contain_text("detached browser-output construction stays in Host")
+        expect(timing_scope).to_contain_text("end at equivalent populated DOM")
         assert panel.locator(".pretty-timing-tracks").count() == 2
         assert panel.locator(".pretty-timing-tracks-total").count() == 2
         assert all(
             "Total" in text and "ms" in text
             for text in panel.locator(".pretty-timing-tracks-total").all_inner_texts()
         )
-        assert panel.locator(".pretty-timing-track").count() == 8
+        assert panel.locator(".pretty-timing-track").count() == 10
         assert panel.locator('[data-timing-phase="executeMs"]').count() == 2
+        assert panel.locator('[data-timing-phase="commitMs"]').count() == 2
         assert "prettyTiming=tracks" in page.url
 
         workload = controls.locator(".pretty-controls-workload select")

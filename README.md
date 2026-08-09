@@ -820,8 +820,10 @@ change the input shape. The default remains one pass, keeping ordinary
 slide interaction cheap. The menu updates the query string so a test
 configuration can be copied or reloaded.
 
-The default timing display is **Pipeline total (pre-insertion)**: public
-compact input through detached browser output. **Backend
+The default timing display is **Pipeline total (committed DOM)**: public
+compact input through equivalent populated DOM, including host construction
+and the HTML-parse/fragment commit. The former detached-output envelope remains
+available as **Pipeline prepare**, but is diagnostic because its endpoints differ. **Backend
 execute** stops at backend-owned output construction; for JS that
 means `prettyM` plus tagged-segment collection, excluding annotation
 lookup and host materialization. The controls show the active timing
@@ -848,8 +850,8 @@ Relevant query parameters are:
 - `prettyControls=1` displays the menu.
 - `prettyExperiment=vir-output` selects a configured named experiment.
 - `prettyTiming=execute` selects the primary timing shown in every
-  pane; supported values are `total`, `execute`, `marshal`, `decode`,
-  `render`, `wall`, and `tracks`.
+  pane; supported values are `total`, `prepare`, `execute`, `marshal`,
+  `decode`, `render`, `commit`, `host`, `wall`, and `tracks`.
 - `prettyWorkload=2048` repeats the complete visible format set until
   at least that many source code points have been processed.
 
@@ -859,10 +861,11 @@ widths from panes whose sizes and output styling differ. Outside
 comparison mode, the JavaScript renderer retains its DOM-measured
 pixel width.
 
-Each comparison header can display formatter total, execution,
-marshal, decode, HTML-construction, or panel wall time. The `tracks`
-display places the formatter total above a compact four-lane view of
-marshal, execute, decode, and HTML time on one absolute scale across
+Each comparison header can display committed total, detached preparation,
+execution, marshal, decode, host construction, DOM commit, combined host,
+or panel wall time. The `tracks` display places the committed total above a
+compact five-lane view of marshal, execute, decode, host construction, and
+DOM commit on one absolute scale across
 the visible backends. Hovering either display shows the complete
 timing breakdown. These are synchronous per-render measurements taken
 after artifact instantiation: download and instantiation are excluded,

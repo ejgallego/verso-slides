@@ -99,7 +99,7 @@ async def main() -> None:
             ".pretty-controls-backend input:checked"
         ).evaluate_all("els => els.map(el => el.value)")
         assert checked == ["vir-render", "vir-dom"]
-        assert "detached DOM fragment" in await controls.locator(
+        assert "reaches populated DOM" in await controls.locator(
             ".pretty-controls-question"
         ).inner_text()
         if "native-flat" in backend_ids:
@@ -192,7 +192,7 @@ async def main() -> None:
         timing_display = controls.locator(".pretty-controls-timing select")
         timing_scope = controls.locator(".pretty-controls-timing-scope")
         assert await timing_display.input_value() == "total"
-        assert "detached browser output" in await timing_scope.inner_text()
+        assert "equivalent populated DOM" in await timing_scope.inner_text()
         await timing_display.select_option("execute")
         assert "VIR Render also resolves annotations" in await timing_scope.inner_text()
         timing_texts = await panes.locator(".pretty-compare-time").all_inner_texts()
@@ -201,7 +201,7 @@ async def main() -> None:
         total_texts = await panes.locator(".pretty-timing-tracks-total").all_inner_texts()
         assert len(total_texts) == len(backend_ids)
         assert all("Total" in text and "ms" in text for text in total_texts)
-        assert await panes.locator(".pretty-timing-track").count() == 4 * len(backend_ids)
+        assert await panes.locator(".pretty-timing-track").count() == 5 * len(backend_ids)
         assert "prettyTiming=tracks" in page.url
 
         llvm_toggle = controls.locator('input[value="llvm"]')

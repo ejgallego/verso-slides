@@ -84,7 +84,7 @@
             id: "vir-materializer",
             label: "VIR host materializer",
             question:
-                "What changes when the same VIR semantic render plan becomes an HTML string versus a detached DOM fragment?",
+                "What changes when the same VIR semantic render plan reaches populated DOM through an HTML string + parser versus a direct DOM fragment?",
             backends: ["vir-render", "vir-dom"],
             design: "controlled",
             variable: "Host materializer: escaped HTML string ↔ direct DOM fragment",
@@ -98,7 +98,8 @@
                 "final DOM semantics",
             ],
             measures:
-                "Materialization time compares string construction with detached DOM construction; panel wall also observes HTML parsing and insertion.",
+                "Host total compares construction plus commit into equivalent populated DOM. Build and commit remain visible separately for diagnosis; layout and paint are excluded.",
+            timing: "host",
         },
         {
             id: "vir-residency",

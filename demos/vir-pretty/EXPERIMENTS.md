@@ -12,7 +12,7 @@ Verso panel boundary.
 | VIR input transport        | VIR JSON, VIR Format           | JSON/string versus typed Lean object ABI            | VIR runtime, `prettyM`, segment output       | Cost of VIR input representation                                  |
 | VIR output boundary        | VIR Format, VIR Flat           | Copied tagged segments versus text plus flat events | Typed input, VIR runtime, `prettyM`          | Cost of VIR output representation                                 |
 | VIR rendering boundary     | VIR Resident, VIR Render       | JS tag resolution versus Lean-resolved semantic nodes | Resident ID, package tables, VIR runtime, `prettyM`, annotations, HTML semantics | Cost and ownership shift at the rendering endpoint                |
-| VIR host materializer      | VIR Render, VIR Direct DOM     | Escaped HTML-string construction versus detached DOM construction | Resident ID, package tables, VIR call, semantic render plan, columns, final DOM semantics | Cost of the browser endpoint after the VIR boundary               |
+| VIR host materializer      | VIR Render, VIR Direct DOM     | HTML-string construction + parse versus DOM construction + fragment commit | Resident ID, package tables, VIR call, semantic render plan, columns, final populated DOM | Cost of the browser endpoint after the VIR boundary               |
 | VIR input residency        | VIR Flat, VIR Resident         | Imported tree versus package-resident ID            | Flat output, VIR runtime, `prettyM`          | Cost of transferring/reconstructing a static format               |
 | All backends               | All available                  | Several variables at once                           | Source format and columns only               | Exploratory overview; do not attribute a delta to one cause       |
 
@@ -30,14 +30,17 @@ scope. In particular, “JS time” is not one indivisible quantity:
 | Input preparation    | Compact-tree deserialization and render-context setup             | Public input converted into the backend-owned representation         |
 | Backend execute      | `prettyM`, width measurement, tagged-segment and tag-stack output | Backend-owned layout plus construction of its declared output; VIR Render also resolves annotations |
 | Output normalization | Zero: JS already produced the shared segment form                 | Backend output validated or converted into browser-ready segments or semantic nodes                  |
-| Host materialization | Annotation lookup, escaping, binding attributes, and span strings | Browser-ready output converted into an HTML string or detached DOM fragment; VIR render-plan backends already resolved annotations |
-| Pipeline total       | All four phases above                                             | Public compact input through detached browser output, before live DOM insertion |
+| Host construction    | Annotation lookup, escaping, binding attributes, and span/string construction | Browser-ready output converted into an HTML string or detached DOM fragment; this intermediate boundary is not directly comparable |
+| DOM commit           | `innerHTML` parse/replacement                                     | Detached output committed into a populated host element; fragment candidates transfer their constructed nodes |
+| Host total           | Host construction + DOM commit                                    | Browser-ready semantic output through equivalent populated DOM; primary materializer metric |
+| Pipeline total       | All five phases above                                             | Public compact input through equivalent populated DOM; layout and paint excluded |
 
-Thus the default **Pipeline total (pre-insertion)** includes the extended
-annotation/host-materialization processing for JS and every other backend. **Backend
-execute** does not: JS execute ends at tagged segments. Live DOM
-assignment, layout, paint, control rendering, and startup are outside
-pipeline total.
+Thus the default **Pipeline total (committed DOM)** includes the extended
+annotation processing, host construction, and DOM commit for every backend.
+**Backend execute** does not: JS execute ends at tagged segments. The old
+pre-insertion envelope remains available as **Pipeline prepare**, but it stops at
+unequal HTML-string/fragment states and is diagnostic only. Layout, paint, control
+rendering, and startup are outside pipeline total.
 
 The runtime-neutral Lean entrypoint
 `VersoSlides.Pretty.formatRenderedForRuntime` has an intentionally
@@ -63,11 +66,13 @@ only of sibling text and `<span>` nodes, so a general recursive node
 language would add machinery without representing any real output.
 JavaScript validates the lifted nodes without copying them and resolves
 the small plan-local slot. `VIR Render` escapes text and attributes and
-materializes an HTML string. `VIR Direct DOM` instead uses DOM properties
-to create a detached `DocumentFragment`, avoiding both manual escaping
-and HTML parsing. Neither path reconstructs style events or looks
-annotations up again. DOM insertion remains outside the four formatter
-phases; panel wall time observes the surrounding insertion work.
+materializes an HTML string; its commit phase parses that string with
+`innerHTML`. `VIR Direct DOM` instead uses DOM properties to create a
+detached `DocumentFragment`, then commits its children with
+`replaceChildren`. Neither path reconstructs style events or looks annotations
+up again. Both timed paths end with equivalent populated DOM. Host total is
+the controlled verdict; construction and commit stay separate to explain the
+tradeoff. Layout and paint remain outside the timing envelope.
 
 The semantic plan is also intentionally compatible with a future React
 endpoint: its annotation entries are props-like records and its ordered

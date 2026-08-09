@@ -101,10 +101,12 @@ tables, Lean resolves the innermost active annotation during
 `prettyM`, interns annotation metadata once, and returns a flat
 semantic render plan whose nodes carry resolved slots. JavaScript only validates and
 materializes those sibling text/span nodes. `VIR Render` constructs an escaped HTML
-string; `VIR Direct DOM` constructs a detached `DocumentFragment` through DOM
-properties, avoiding an HTML parse. This is intentionally not a general recursive VDOM,
-because the panel output has no nested element structure today; DOM insertion remains
-browser-owned and outside the four formatter phases. The plan remains directly mappable
+string and commits it through `innerHTML`; `VIR Direct DOM` constructs a detached
+`DocumentFragment` through DOM properties and commits it through `replaceChildren`.
+Both candidates therefore end with equivalent populated DOM. Host construction and
+commit remain separate timing lanes, and their sum is the primary materializer metric.
+This is intentionally not a general recursive VDOM, because the panel output has no
+nested element structure today. Layout and paint remain excluded. The plan remains directly mappable
 to React string children and `span` elements, so a future Lean VDOM should target React's
 element/props model rather than introduce an unrelated tree vocabulary here.
 
@@ -119,8 +121,8 @@ The restored deck has the same functionality as the in-tree prototype:
 - selectable timed workload volume (one pass or at least 256/2K/8K
   source code points), repeating the complete visible format set
   identically for every backend;
-- selectable total/execute/marshal/decode/host/wall timing, plus
-  compact four-lane phase tracks with the total above and complete
+- selectable committed-total/prepare/execute/marshal/decode/build/commit/host/wall timing, plus
+  compact five-lane phase tracks with the total above and complete
   hover detail; the controls state the selected timing envelope and
   distinguish backend-owned output construction from host materialization;
 - no benchmark sampler or dashboard code in the slide runtime.

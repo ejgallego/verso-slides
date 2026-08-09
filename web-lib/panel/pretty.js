@@ -45,7 +45,10 @@
  *   executeMs: number,
  *   decodeMs: number,
  *   renderMs: number,
+ *   commitMs?: number,
+ *   hostTotalMs?: number,
  *   totalMs: number,
+ *   committedTotalMs?: number,
  *   adapterInputMs?: number,
  *   adapterOutputMs?: number,
  *   normalizeMs?: number,
@@ -885,7 +888,10 @@ function emptyPrettyTimings() {
         executeMs: 0,
         decodeMs: 0,
         renderMs: 0,
+        commitMs: 0,
+        hostTotalMs: 0,
         totalMs: 0,
+        committedTotalMs: 0,
     };
 }
 
@@ -899,7 +905,17 @@ function addPrettyTimings(target, source) {
     target.executeMs += source.executeMs;
     target.decodeMs += source.decodeMs;
     target.renderMs += source.renderMs;
+    target.commitMs =
+        (target.commitMs || 0) + (Number.isFinite(source.commitMs) ? source.commitMs || 0 : 0);
+    target.hostTotalMs =
+        (target.hostTotalMs || 0) +
+        (Number.isFinite(source.hostTotalMs) ? source.hostTotalMs || 0 : source.renderMs);
     target.totalMs += source.totalMs;
+    target.committedTotalMs =
+        (target.committedTotalMs || 0) +
+        (Number.isFinite(source.committedTotalMs)
+            ? source.committedTotalMs || 0
+            : source.totalMs);
     /** @type {(keyof PrettyTimings)[]} */
     var detailKeys = [
         "adapterInputMs",
@@ -973,7 +989,10 @@ function prettyPhaseTimings(started, marshaled, executed, decoded) {
         executeMs: Math.max(0, executed - marshaled),
         decodeMs: Math.max(0, decoded - executed),
         renderMs: 0,
+        commitMs: 0,
+        hostTotalMs: 0,
         totalMs: Math.max(0, decoded - started),
+        committedTotalMs: Math.max(0, decoded - started),
     };
 }
 
@@ -1019,7 +1038,10 @@ function composeVirPrettyTimings(started, marshaled, executed, decoded, runtime)
         executeMs: runtime.executeMs,
         decodeMs: runtime.decodeMs + adapterOutputMs,
         renderMs: 0,
+        commitMs: 0,
+        hostTotalMs: 0,
         totalMs: Math.max(0, decoded - started),
+        committedTotalMs: Math.max(0, decoded - started),
         adapterInputMs: adapterInputMs,
         adapterOutputMs: adapterOutputMs,
         runtimeMarshalMs: runtime.marshalMs,
@@ -2001,8 +2023,11 @@ function formatPrettyOutputTimed(fmtJson, annotations, pixelWidth, measurer, bac
         html = segmentsToHtml(rendered.segments, annotations);
     }
     var finished = performance.now();
+    if (!Number.isFinite(rendered.timings.commitMs)) rendered.timings.commitMs = 0;
     rendered.timings.renderMs += Math.max(0, finished - renderStart);
+    rendered.timings.hostTotalMs = rendered.timings.renderMs;
     rendered.timings.totalMs = Math.max(0, finished - start);
+    rendered.timings.committedTotalMs = rendered.timings.totalMs;
     return {
         html: html,
         fragment: fragment,
@@ -2045,6 +2070,31 @@ function insertPrettyOutput(target, output) {
     }
     target.innerHTML = '<span class="pretty-compare-unavailable">unavailable</span>';
     return false;
+}
+
+/**
+ * Commit a formatter result into a common host element and record the browser
+ * work needed to reach equivalent populated DOM. HTML candidates pay parsing
+ * here; fragment candidates pay the child transfer/replacement here.
+ *
+ * The detached preparation total remains in `totalMs`. The comparable product
+ * endpoint is `committedTotalMs`, and the controlled materializer metric is
+ * `hostTotalMs` (construction plus commit).
+ * @param {Element} target
+ * @param {TimedPrettyResult | null} output
+ * @return {boolean}
+ */
+function insertPrettyOutputTimed(target, output) {
+    var started = performance.now();
+    var inserted = insertPrettyOutput(target, output);
+    var commitMs = Math.max(0, performance.now() - started);
+    if (output && inserted) {
+        output.timings.commitMs = commitMs;
+        output.timings.hostTotalMs = output.timings.renderMs + commitMs;
+        output.timings.committedTotalMs = output.timings.totalMs + commitMs;
+        output.durationMs = output.timings.committedTotalMs;
+    }
+    return inserted;
 }
 
 /**
@@ -2255,8 +2305,8 @@ function fillReflowedSpans(container, formats, measurer, backend, fixedWidth) {
             backend || "js",
             entry.formatId,
         );
+        insertPrettyOutputTimed(span, timed);
         addPrettyTimings(totals, timed.timings);
-        insertPrettyOutput(span, timed);
     }
     return totals;
 }

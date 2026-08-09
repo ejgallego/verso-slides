@@ -543,6 +543,10 @@
     background: #9b72cf;
 }
 
+.info-panel [data-timing-phase="commitMs"] .pretty-timing-track-fill {
+    background: #d46f7e;
+}
+
 .info-panel .pretty-timing-track-value {
     overflow: hidden;
     font-variant-numeric: tabular-nums;

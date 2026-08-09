@@ -175,10 +175,13 @@ interface VersoPrettyLlvmConfig {
 
 type VersoPrettyTimingDisplay =
     | "total"
+    | "prepare"
     | "execute"
     | "marshal"
     | "decode"
     | "render"
+    | "commit"
+    | "host"
     | "wall"
     | "tracks";
 
@@ -245,6 +248,7 @@ declare function formatPrettyOutputTimed(
 ): TimedPrettyResult;
 
 declare function insertPrettyOutput(target: Element, output: TimedPrettyResult | null): boolean;
+declare function insertPrettyOutputTimed(target: Element, output: TimedPrettyResult | null): boolean;
 
 interface PrettyBackendDefinition {
     id: string;
@@ -283,6 +287,7 @@ interface PrettyExperimentDefinition {
     variable?: string;
     controls?: string[];
     measures?: string;
+    timing?: VersoPrettyTimingDisplay;
 }
 
 declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;

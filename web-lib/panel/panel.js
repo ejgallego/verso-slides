@@ -21,7 +21,8 @@
      *   design?: "controlled" | "end-to-end" | "exploratory",
      *   variable?: string,
      *   controls?: string[],
-     *   measures?: string
+     *   measures?: string,
+     *   timing?: VersoPrettyTimingDisplay
      * }} PrettyExperiment
      */
 
@@ -33,10 +34,17 @@
     var PRETTY_TIMING_DISPLAYS = [
         {
             id: "total",
-            label: "Pipeline total (pre-insertion)",
+            label: "Pipeline total (committed DOM)",
             shortLabel: "Total",
+            key: "committedTotalMs",
+            scope: "Compact input → equivalent populated DOM. Includes adapters, backend execution, output normalization, host construction, and the HTML-parse/fragment commit; excludes layout and paint.",
+        },
+        {
+            id: "prepare",
+            label: "Pipeline prepare (detached output)",
+            shortLabel: "Prepare",
             key: "totalMs",
-            scope: "Compact input → detached browser output. Includes adapters, backend execution, output normalization, and host materialization; excludes insertion into the live DOM.",
+            scope: "Compact input → detached HTML string or DOM fragment. This diagnostic stops before the candidates reach the same output state.",
         },
         {
             id: "execute",
@@ -61,10 +69,24 @@
         },
         {
             id: "render",
-            label: "Host materialization",
-            shortLabel: "Host",
+            label: "Host construction",
+            shortLabel: "Build",
             key: "renderMs",
-            scope: "Browser-ready output → escaped HTML string or detached DOM fragment. Segment backends include annotation lookup; VIR render-plan backends already resolved annotations. Live DOM insertion is excluded.",
+            scope: "Browser-ready output → escaped HTML string or detached DOM fragment. This stops at unequal intermediate states and is diagnostic only.",
+        },
+        {
+            id: "commit",
+            label: "DOM commit",
+            shortLabel: "Commit",
+            key: "commitMs",
+            scope: "Detached output → populated host element. HTML strings pay parsing; DOM fragments pay child transfer and replacement.",
+        },
+        {
+            id: "host",
+            label: "Host total (construct + commit)",
+            shortLabel: "Host",
+            key: "hostTotalMs",
+            scope: "Browser-ready semantic output → equivalent populated DOM. This is the primary controlled metric for host materializers.",
         },
         {
             id: "wall",
@@ -78,14 +100,15 @@
             label: "Phase tracks",
             shortLabel: "Phases",
             key: null,
-            scope: "Marshal + Execute + Decode + Host. Each backend's declared output stays in Execute; detached browser-output construction stays in Host.",
+            scope: "Marshal + Execute + Decode + Build + Commit. Tracks end at equivalent populated DOM; layout and paint remain excluded.",
         },
     ];
     var PRETTY_TIMING_PHASES = [
         { key: "marshalMs", label: "Marshal", shortLabel: "M" },
         { key: "executeMs", label: "Execute", shortLabel: "E" },
         { key: "decodeMs", label: "Decode", shortLabel: "D" },
-        { key: "renderMs", label: "Host", shortLabel: "H" },
+        { key: "renderMs", label: "Host construction", shortLabel: "B" },
+        { key: "commitMs", label: "DOM commit", shortLabel: "C" },
     ];
     var PRETTY_WORKLOADS = [
         { codePoints: 0, label: "Visible code once" },
@@ -280,6 +303,7 @@
         var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
         config.backends = availableExperimentBackendIds(experiment);
         config.experiment = experiment.id;
+        config.timing = prettyTimingDisplayById(experiment.timing || "total").id;
     }
 
     /** @return {PrettyBackendDefinition[]} */
@@ -1340,11 +1364,11 @@
      */
     function timingTrackScale(timeEl) {
         var comparison = timeEl.closest(".pretty-compare");
-        if (!comparison) return Math.max(0.001, timingValue(timeEl, "totalMs"));
+        if (!comparison) return Math.max(0.001, timingValue(timeEl, "committedTotalMs"));
         var scale = 0;
         comparison.querySelectorAll(".pretty-compare-time").forEach(function (candidate) {
             var candidateEl = /** @type {HTMLElement} */ (candidate);
-            scale = Math.max(scale, timingValue(candidateEl, "totalMs"));
+            scale = Math.max(scale, timingValue(candidateEl, "committedTotalMs"));
         });
         return Math.max(0.001, scale);
     }
@@ -1370,7 +1394,7 @@
         var totalLabel = document.createElement("span");
         totalLabel.textContent = "Total";
         var totalValue = document.createElement("span");
-        totalValue.textContent = formatTiming(timingValue(timeEl, "totalMs"));
+        totalValue.textContent = formatTiming(timingValue(timeEl, "committedTotalMs"));
         total.append(totalLabel, totalValue);
         tracks.appendChild(total);
         PRETTY_TIMING_PHASES.forEach(function (phase) {
@@ -1417,8 +1441,9 @@
      */
     function setTimingDetails(timeEl, timings, wallMs) {
         var details = [
-            "Pipeline total (input → detached output, pre-insertion): " +
-                formatTiming(timings.totalMs),
+            "Pipeline total (input → committed DOM): " +
+                formatTiming(timings.committedTotalMs || timings.totalMs),
+            "Pipeline prepare (input → detached output): " + formatTiming(timings.totalMs),
         ];
         if (
             typeof timings.batchIterations === "number" &&
@@ -1468,7 +1493,12 @@
         ) {
             details.push("  Verso output: " + formatTiming(timings.adapterOutputMs));
         }
-        details.push("Host materialization: " + formatTiming(timings.renderMs));
+        details.push("Host construction: " + formatTiming(timings.renderMs));
+        details.push("DOM commit: " + formatTiming(timings.commitMs || 0));
+        details.push(
+            "Host total (construct + commit): " +
+                formatTiming(timings.hostTotalMs || timings.renderMs),
+        );
         if (
             typeof timings.inputBytes === "number" &&
             typeof timings.rawObjects === "number" &&
@@ -1519,7 +1549,10 @@
         timeEl.dataset.executeMs = String(timings.executeMs);
         timeEl.dataset.decodeMs = String(timings.decodeMs);
         timeEl.dataset.renderMs = String(timings.renderMs);
+        timeEl.dataset.commitMs = String(timings.commitMs || 0);
+        timeEl.dataset.hostTotalMs = String(timings.hostTotalMs || timings.renderMs);
         timeEl.dataset.totalMs = String(timings.totalMs);
+        timeEl.dataset.committedTotalMs = String(timings.committedTotalMs || timings.totalMs);
         timeEl.dataset.wallMs = String(wallMs);
         var comparison = timeEl.closest(".pretty-compare");
         if (comparison) refreshTimingDisplays(comparison);
@@ -1632,8 +1665,8 @@
         var codePoints = compactFormatSourceLength(fmtData.fmt);
         var iterations = prettyWorkloadIterations(codePoints);
         var timings = emptyPrettyTimings();
-        /** @type {TimedPrettyResult | null} */
-        var lastOutput = null;
+        var reflowed = document.createElement("span");
+        reflowed.className = "reflowed";
         for (var iteration = 0; iteration < iterations; iteration++) {
             var timed = formatPrettyOutputTimed(
                 fmtData.fmt,
@@ -1643,12 +1676,9 @@
                 backend,
                 fmtData.formatId,
             );
-            lastOutput = timed;
+            insertPrettyOutputTimed(reflowed, timed);
             addPrettyTimings(timings, timed.timings);
         }
-        var reflowed = document.createElement("span");
-        reflowed.className = "reflowed";
-        insertPrettyOutput(reflowed, lastOutput);
         body.replaceChildren(reflowed);
         var wallMs = performance.now() - start;
         timings.batchIterations = iterations;
