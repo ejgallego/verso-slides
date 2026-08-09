@@ -6,12 +6,38 @@
     /**
      * @typedef {HTMLElement & { _activeSource: Element | null }} PanelBlock
      * @typedef {HTMLElement & { _richFormatSource: Element | null }} InfoPanel
+     * @typedef {{
+     *   id: VersoPrettyTimingDisplay,
+     *   label: string,
+     *   shortLabel: string,
+     *   key: string | null
+     * }} PrettyTimingDisplay
      */
 
     /** @type {Record<string, *> | null} */
     var docsJson = null; // fetched once on init
+    /** @type {HTMLDetailsElement | null} */
+    var prettyControls = null;
+    /** @type {PrettyTimingDisplay[]} */
+    var PRETTY_TIMING_DISPLAYS = [
+        { id: "total", label: "Formatter total", shortLabel: "Total", key: "totalMs" },
+        { id: "execute", label: "Execute", shortLabel: "Execute", key: "executeMs" },
+        { id: "marshal", label: "Marshal", shortLabel: "Marshal", key: "marshalMs" },
+        { id: "decode", label: "Decode", shortLabel: "Decode", key: "decodeMs" },
+        { id: "render", label: "HTML", shortLabel: "HTML", key: "renderMs" },
+        { id: "wall", label: "Panel wall", shortLabel: "Wall", key: "wallMs" },
+        { id: "tracks", label: "Phase tracks", shortLabel: "Phases", key: null },
+    ];
+    var PRETTY_TIMING_PHASES = [
+        { key: "marshalMs", label: "Marshal", shortLabel: "M" },
+        { key: "executeMs", label: "Execute", shortLabel: "E" },
+        { key: "decodeMs", label: "Decode", shortLabel: "D" },
+        { key: "renderMs", label: "HTML", shortLabel: "H" },
+    ];
 
     function init() {
+        initializePrettyConfig();
+
         // Fetch the hover-docs JSON
         fetch("-verso-docs.json")
             .then(function (r) {
@@ -25,6 +51,7 @@
             });
 
         document.querySelectorAll(".code-with-panel").forEach(setupBlock);
+        initPrettyControls();
         refreshPanelsWhenPrettyBackendsReady();
 
         Reveal.on("fragmentshown", onFragmentShown);
@@ -54,11 +81,283 @@
         getPrettyBackends().forEach(function (backend) {
             if (!backend.ready || typeof backend.ready.then !== "function") return;
             backend.ready.then(function () {
-                document.querySelectorAll(".info-panel").forEach(function (panel) {
-                    reflowPanel(/** @type {InfoPanel} */ (panel));
-                });
+                reflowPrettyPanels();
+                renderPrettyControls();
             });
         });
+    }
+
+    function initializePrettyConfig() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        var params = new URLSearchParams(window.location.search);
+        if (params.has("pretty")) {
+            var queryBackends = (params.get("pretty") || "")
+                .split(",")
+                .map(function (id) {
+                    return id.trim();
+                })
+                .filter(function (id) {
+                    return id.length > 0;
+                });
+            config.backends = queryBackends.length > 0 ? queryBackends : undefined;
+        }
+        if (params.has("prettyCompare")) {
+            config.compare = params.get("prettyCompare") !== "0";
+        }
+        if (params.has("prettyControls")) {
+            config.controls = params.get("prettyControls") !== "0";
+        }
+        if (params.has("prettyBackend")) {
+            config.backend = params.get("prettyBackend") || "vir-prettym";
+        }
+        if (params.has("prettyColumns")) {
+            var columns = Number(params.get("prettyColumns"));
+            if (Number.isInteger(columns) && columns >= 1 && columns <= 240) {
+                config.columns = columns;
+            }
+        }
+        if (params.has("prettyTiming")) {
+            config.timing = prettyTimingDisplayById(params.get("prettyTiming")).id;
+        }
+        if (!Number.isInteger(config.columns)) config.columns = 40;
+        config.timing = selectedPrettyTimingDisplay().id;
+    }
+
+    /** @return {PrettyBackendDefinition[]} */
+    function selectedPrettyBackends() {
+        var root = /** @type {Window} */ (window);
+        var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.backends;
+        if (!Array.isArray(configured)) return getPrettyBackends();
+        var selected = new Set(configured);
+        var backends = getPrettyBackends().filter(function (backend) {
+            return selected.has(backend.id);
+        });
+        return backends.length > 0 ? backends : getPrettyBackends().slice(0, 1);
+    }
+
+    /** @return {number} */
+    function prettyComparisonColumns() {
+        var root = /** @type {Window} */ (window);
+        var columns = root.__versoPrettyConfig && root.__versoPrettyConfig.columns;
+        return Number.isInteger(columns) ? Math.max(1, Math.min(240, Number(columns))) : 40;
+    }
+
+    /**
+     * @param {string | null | undefined} selected
+     * @return {PrettyTimingDisplay}
+     */
+    function prettyTimingDisplayById(selected) {
+        return (
+            PRETTY_TIMING_DISPLAYS.find(function (display) {
+                return display.id === selected;
+            }) || PRETTY_TIMING_DISPLAYS[0]
+        );
+    }
+
+    /** @return {PrettyTimingDisplay} */
+    function selectedPrettyTimingDisplay() {
+        var root = /** @type {Window} */ (window);
+        var selected = root.__versoPrettyConfig && root.__versoPrettyConfig.timing;
+        return prettyTimingDisplayById(selected);
+    }
+
+    function reflowPrettyPanels() {
+        document.querySelectorAll(".info-panel").forEach(function (panel) {
+            reflowPanel(/** @type {InfoPanel} */ (panel));
+        });
+    }
+
+    function persistPrettyConfig() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || {};
+        var url = new URL(window.location.href);
+        url.searchParams.set(
+            "pretty",
+            (
+                config.backends ||
+                getPrettyBackends().map(function (backend) {
+                    return backend.id;
+                })
+            ).join(","),
+        );
+        url.searchParams.set("prettyCompare", config.compare === true ? "1" : "0");
+        url.searchParams.set("prettyBackend", config.backend || "vir-prettym");
+        url.searchParams.set("prettyColumns", String(prettyComparisonColumns()));
+        url.searchParams.set("prettyControls", config.controls === true ? "1" : "0");
+        url.searchParams.set("prettyTiming", selectedPrettyTimingDisplay().id);
+        window.history.replaceState(null, "", url);
+    }
+
+    function initPrettyControls() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig;
+        if (!config || config.controls !== true) return;
+        prettyControls = document.createElement("details");
+        prettyControls.className = "pretty-controls";
+        document.body.appendChild(prettyControls);
+        renderPrettyControls();
+    }
+
+    function renderPrettyControls() {
+        if (!prettyControls) return;
+        var wasOpen = prettyControls.open;
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        var backends = getPrettyBackends();
+        var selected = new Set(
+            Array.isArray(config.backends)
+                ? config.backends
+                : backends.map(function (backend) {
+                      return backend.id;
+                  }),
+        );
+        var selectedCount = backends.filter(function (backend) {
+            return selected.has(backend.id);
+        }).length;
+
+        var summary = document.createElement("summary");
+        summary.textContent = "Formatters " + selectedCount + "/" + backends.length;
+        var menu = document.createElement("div");
+        menu.className = "pretty-controls-menu";
+
+        var compareLabel = document.createElement("label");
+        compareLabel.className = "pretty-controls-toggle";
+        var compareInput = document.createElement("input");
+        compareInput.type = "checkbox";
+        compareInput.checked = config.compare === true;
+        compareLabel.append(compareInput, document.createTextNode(" Compare panes"));
+        compareInput.addEventListener("change", function () {
+            config.compare = compareInput.checked;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        menu.appendChild(compareLabel);
+
+        var processors = document.createElement("fieldset");
+        var legend = document.createElement("legend");
+        legend.textContent = "Processors";
+        processors.appendChild(legend);
+        backends.forEach(function (backend) {
+            var label = document.createElement("label");
+            label.className = "pretty-controls-backend";
+            var input = document.createElement("input");
+            input.type = "checkbox";
+            input.value = backend.id;
+            input.checked = selected.has(backend.id);
+            var name = document.createElement("span");
+            name.className = "pretty-controls-name";
+            name.textContent = backend.label;
+            var state = typeof backend.status === "function" ? backend.status() : "ready";
+            var status = document.createElement("span");
+            status.className =
+                "pretty-controls-status status-" +
+                state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+            status.textContent = state;
+            var capabilities = backend.capabilities;
+            var capability = document.createElement("span");
+            capability.className = "pretty-controls-capability";
+            capability.textContent = capabilities
+                ? capabilities.output + " · " + capabilities.width
+                : "custom";
+            label.append(input, name, capability, status);
+            input.addEventListener("change", function () {
+                var next = new Set(
+                    Array.isArray(config.backends)
+                        ? config.backends
+                        : backends.map(function (candidate) {
+                              return candidate.id;
+                          }),
+                );
+                if (input.checked) next.add(backend.id);
+                else next.delete(backend.id);
+                if (next.size === 0) {
+                    input.checked = true;
+                    return;
+                }
+                config.backends = backends
+                    .map(function (candidate) {
+                        return candidate.id;
+                    })
+                    .filter(function (id) {
+                        return next.has(id);
+                    });
+                persistPrettyConfig();
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+            processors.appendChild(label);
+        });
+        menu.appendChild(processors);
+
+        var columnsLabel = document.createElement("label");
+        columnsLabel.className = "pretty-controls-columns";
+        columnsLabel.appendChild(document.createTextNode("Shared columns "));
+        var columnsInput = document.createElement("input");
+        columnsInput.type = "number";
+        columnsInput.min = "1";
+        columnsInput.max = "240";
+        columnsInput.step = "1";
+        columnsInput.value = String(prettyComparisonColumns());
+        columnsInput.addEventListener("change", function () {
+            var columns = Number(columnsInput.value);
+            if (!Number.isInteger(columns) || columns < 1 || columns > 240) {
+                columnsInput.value = String(prettyComparisonColumns());
+                return;
+            }
+            config.columns = columns;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        columnsLabel.appendChild(columnsInput);
+        menu.appendChild(columnsLabel);
+
+        var primaryLabel = document.createElement("label");
+        primaryLabel.className = "pretty-controls-primary";
+        primaryLabel.appendChild(document.createTextNode("Single backend "));
+        var primary = document.createElement("select");
+        backends.forEach(function (backend) {
+            var option = document.createElement("option");
+            option.value = backend.id;
+            option.textContent = backend.label;
+            option.selected = backend.id === (config.backend || "vir-prettym");
+            primary.appendChild(option);
+        });
+        primary.addEventListener("change", function () {
+            config.backend = primary.value;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        primaryLabel.appendChild(primary);
+        menu.appendChild(primaryLabel);
+
+        var timingLabel = document.createElement("label");
+        timingLabel.className = "pretty-controls-timing";
+        timingLabel.appendChild(document.createTextNode("Timing display "));
+        var timing = document.createElement("select");
+        var selectedTiming = selectedPrettyTimingDisplay();
+        PRETTY_TIMING_DISPLAYS.forEach(function (display) {
+            var option = document.createElement("option");
+            option.value = display.id;
+            option.textContent = display.label;
+            option.selected = display.id === selectedTiming.id;
+            timing.appendChild(option);
+        });
+        timing.addEventListener("change", function () {
+            config.timing = prettyTimingDisplayById(timing.value).id;
+            persistPrettyConfig();
+            refreshTimingDisplays(document);
+        });
+        timingLabel.appendChild(timing);
+        menu.appendChild(timingLabel);
+
+        var note = document.createElement("p");
+        note.className = "pretty-controls-note";
+        note.textContent = "Comparison uses one deterministic column budget for every processor.";
+        menu.appendChild(note);
+
+        prettyControls.replaceChildren(summary, menu);
+        prettyControls.open = wasOpen;
     }
 
     // ---- Per-block setup ----
@@ -465,6 +764,7 @@
         // Store the source element for reflow on resize
         releasePanelRenderer(panel);
         panel._richFormatSource = null;
+        setPrettyComparisonActive(panel, false);
 
         /** @type {string | null} */
         var html = "";
@@ -479,22 +779,12 @@
                 var richFmt = ts.getAttribute("data-rich-format");
                 if (richFmt) {
                     panel._richFormatSource = ts;
-                    if (tryPanelRenderer(panel, ts, panel)) {
+                    if (!prettyComparisonEnabled() && tryPanelRenderer(panel, ts, panel)) {
                         html = null; // already set innerHTML
                     } else if (typeof goalsToHtml === "function") {
                         try {
                             var goalsData = JSON.parse(richFmt);
-                            var result = goalsToHtml(goalsData);
-                            // Pass 1: insert structural HTML so table layout computes cell widths
-                            panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                            // Pass 2: measure actual .type cell widths and format expressions
-                            var measurer = getPanelMeasurer(panel);
-                            fillReflowedSpans(
-                                panel,
-                                result.formats,
-                                measurer,
-                                selectedPrettyBackend(),
-                            );
+                            renderGoalsFormat(panel, goalsData);
                             html = null; // already set innerHTML
                         } catch (e) {
                             html = '<span class="hl lean">' + ts.innerHTML + "</span>";
@@ -520,31 +810,18 @@
         if (html !== null) panel.innerHTML = html;
 
         // Check for reflowable signature format data in hover content
-        var sigCode = panel.querySelector("code[data-rich-format]");
+        var sigCode = /** @type {HTMLElement | null} */ (
+            panel.querySelector("code[data-rich-format]")
+        );
         if (sigCode) {
             panel._richFormatSource = sigCode;
-            if (!tryPanelRenderer(panel, sigCode, sigCode)) {
+            if (!prettyComparisonEnabled() && tryPanelRenderer(panel, sigCode, sigCode)) {
+                // The resident renderer owns the normal production path.
+            } else {
                 if (typeof formatToHtml === "function") {
                     try {
                         var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
-                        var measurer = getPanelMeasurer(panel);
-                        var width =
-                            panel.clientWidth -
-                            parseFloat(getComputedStyle(panel).paddingLeft || "0") -
-                            parseFloat(getComputedStyle(panel).paddingRight || "0");
-                        var rendered = formatToHtmlWithBackend(
-                            fmtData.fmt,
-                            fmtData.annotations,
-                            width,
-                            measurer,
-                            selectedPrettyBackend(),
-                        );
-                        sigCode.innerHTML =
-                            '<span class="reflowed">' +
-                            (rendered === null
-                                ? '<span class="pretty-unavailable">unavailable</span>'
-                                : rendered) +
-                            "</span>";
+                        renderSignatureFormat(panel, sigCode, fmtData);
                     } catch (e) {
                         panel._richFormatSource = null;
                     }
@@ -573,6 +850,343 @@
     }
 
     /**
+     * @param {HTMLElement} panel
+     * @param {boolean} active
+     */
+    function setPrettyComparisonActive(panel, active) {
+        var block = panel.closest(".code-with-panel");
+        if (block) block.classList.toggle("pretty-compare-active", active);
+    }
+
+    /**
+     * @return {boolean}
+     */
+    function prettyComparisonEnabled() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig;
+        return !!(config && config.compare === true);
+    }
+
+    /**
+     * @return {string}
+     */
+    function selectedPrettyBackend() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig;
+        var backend = config && config.backend;
+        return typeof backend === "string" && backend.length > 0 ? backend : "js";
+    }
+
+    /**
+     * @param {HTMLElement} el
+     * @return {number}
+     */
+    function contentWidth(el) {
+        var style = getComputedStyle(el);
+        return (
+            el.clientWidth -
+            parseFloat(style.paddingLeft || "0") -
+            parseFloat(style.paddingRight || "0")
+        );
+    }
+
+    /**
+     * @param {number} ms
+     * @return {string}
+     */
+    function formatTiming(ms) {
+        if (!Number.isFinite(ms)) return "";
+        if (ms < 0.1) return "<0.1 ms";
+        return ms.toFixed(ms < 10 ? 1 : 0) + " ms";
+    }
+
+    /**
+     * Track lanes are intentionally compact; the control and hover detail
+     * establish that these unitless labels are milliseconds.
+     *
+     * @param {number} ms
+     * @return {string}
+     */
+    function formatTimingTrackValue(ms) {
+        if (!Number.isFinite(ms)) return "";
+        if (ms < 0.1) return "<.1";
+        return ms.toFixed(ms < 10 ? 1 : 0);
+    }
+
+    /**
+     * @param {HTMLElement} timeEl
+     * @param {string} key
+     * @return {number}
+     */
+    function timingValue(timeEl, key) {
+        var value = Number(timeEl.dataset[key]);
+        return Number.isFinite(value) ? Math.max(0, value) : 0;
+    }
+
+    /**
+     * Use one absolute scale across every phase and backend in a comparison.
+     * This makes the tracks directly comparable instead of normalizing each
+     * backend independently.
+     *
+     * @param {HTMLElement} timeEl
+     * @return {number}
+     */
+    function timingTrackScale(timeEl) {
+        var comparison = timeEl.closest(".pretty-compare");
+        if (!comparison) return Math.max(0.001, timingValue(timeEl, "totalMs"));
+        var scale = 0;
+        comparison.querySelectorAll(".pretty-compare-time").forEach(function (candidate) {
+            var candidateEl = /** @type {HTMLElement} */ (candidate);
+            scale = Math.max(scale, timingValue(candidateEl, "totalMs"));
+        });
+        return Math.max(0.001, scale);
+    }
+
+    /**
+     * @param {HTMLElement} timeEl
+     */
+    function renderTimingDisplay(timeEl) {
+        var display = selectedPrettyTimingDisplay();
+        timeEl.dataset.timingDisplay = display.id;
+        timeEl.classList.toggle("pretty-timing-tracks", display.id === "tracks");
+        var header = timeEl.closest(".pretty-compare-header");
+        if (header) header.classList.toggle("pretty-timing-header-tracks", display.id === "tracks");
+        if (display.id !== "tracks" && display.key !== null) {
+            timeEl.textContent =
+                display.shortLabel + " · " + formatTiming(timingValue(timeEl, display.key));
+            return;
+        }
+
+        var scale = timingTrackScale(timeEl);
+        var tracks = document.createDocumentFragment();
+        var total = document.createElement("span");
+        total.className = "pretty-timing-tracks-total";
+        var totalLabel = document.createElement("span");
+        totalLabel.textContent = "Total";
+        var totalValue = document.createElement("span");
+        totalValue.textContent = formatTiming(timingValue(timeEl, "totalMs"));
+        total.append(totalLabel, totalValue);
+        tracks.appendChild(total);
+        PRETTY_TIMING_PHASES.forEach(function (phase) {
+            var value = timingValue(timeEl, phase.key);
+            var row = document.createElement("span");
+            row.className = "pretty-timing-track";
+            row.dataset.timingPhase = phase.key;
+            row.title = phase.label + ": " + formatTiming(value);
+
+            var label = document.createElement("span");
+            label.className = "pretty-timing-track-label";
+            label.textContent = phase.shortLabel;
+            label.setAttribute("aria-hidden", "true");
+
+            var rail = document.createElement("span");
+            rail.className = "pretty-timing-track-rail";
+            var fill = document.createElement("span");
+            fill.className = "pretty-timing-track-fill";
+            fill.style.width = Math.min(100, (value / scale) * 100) + "%";
+            rail.appendChild(fill);
+
+            var number = document.createElement("span");
+            number.className = "pretty-timing-track-value";
+            number.textContent = formatTimingTrackValue(value);
+            row.append(label, rail, number);
+            tracks.appendChild(row);
+        });
+        timeEl.replaceChildren(tracks);
+    }
+
+    /**
+     * @param {ParentNode} root
+     */
+    function refreshTimingDisplays(root) {
+        root.querySelectorAll(".pretty-compare-time[data-total-ms]").forEach(function (time) {
+            renderTimingDisplay(/** @type {HTMLElement} */ (time));
+        });
+    }
+
+    /**
+     * @param {HTMLElement} timeEl
+     * @param {PrettyTimings} timings
+     * @param {number} wallMs
+     */
+    function setTimingDetails(timeEl, timings, wallMs) {
+        var details = ["Formatter total: " + formatTiming(timings.totalMs)];
+        /** @param {PrettyTimingPhase} phase */
+        function appendPhaseDetails(phase) {
+            (timings.details || [])
+                .filter(function (detail) {
+                    return detail.phase === phase;
+                })
+                .forEach(function (detail) {
+                    details.push("  " + detail.label + ": " + formatTiming(detail.valueMs));
+                });
+        }
+        appendPhaseDetails("total");
+        [
+            ["marshal", "Marshal", timings.marshalMs],
+            ["execute", "Execute", timings.executeMs],
+            ["decode", "Decode", timings.decodeMs],
+            ["render", "HTML", timings.renderMs],
+        ].forEach(function (entry) {
+            details.push(entry[1] + ": " + formatTiming(/** @type {number} */ (entry[2])));
+            appendPhaseDetails(/** @type {PrettyTimingPhase} */ (entry[0]));
+        });
+        (timings.details || [])
+            .filter(function (detail) {
+                return detail.phase === undefined;
+            })
+            .forEach(function (detail) {
+                details.push(detail.label + ": " + formatTiming(detail.valueMs));
+            });
+        details.push("Panel wall time: " + formatTiming(wallMs));
+        timeEl.title = details.join("\n");
+        timeEl.setAttribute("aria-label", timeEl.title);
+        timeEl.dataset.marshalMs = String(timings.marshalMs);
+        timeEl.dataset.executeMs = String(timings.executeMs);
+        timeEl.dataset.decodeMs = String(timings.decodeMs);
+        timeEl.dataset.renderMs = String(timings.renderMs);
+        timeEl.dataset.totalMs = String(timings.totalMs);
+        timeEl.dataset.wallMs = String(wallMs);
+        var comparison = timeEl.closest(".pretty-compare");
+        if (comparison) refreshTimingDisplays(comparison);
+        else renderTimingDisplay(timeEl);
+    }
+
+    /**
+     * @param {HTMLElement} container
+     * @return {Array<{
+     *   backend: PrettyBackendDefinition,
+     *   body: HTMLElement,
+     *   time: HTMLElement
+     * }>}
+     */
+    function setupPrettyComparison(container) {
+        var comparison = document.createElement("div");
+        comparison.className = "pretty-compare";
+        var panes = selectedPrettyBackends().map(function (backend) {
+            var pane = document.createElement("div");
+            pane.className = "pretty-compare-pane";
+            pane.dataset.prettyBackend = backend.id;
+
+            var header = document.createElement("div");
+            header.className = "pretty-compare-header";
+            var label = document.createElement("span");
+            label.className = "pretty-compare-label";
+            label.textContent = backend.label;
+            if (backend.capabilities) {
+                label.title =
+                    "Output: " +
+                    backend.capabilities.output +
+                    "\nBackend width model: " +
+                    backend.capabilities.width +
+                    "\nComparison width model: shared columns";
+            }
+            var time = document.createElement("span");
+            time.className = "pretty-compare-time";
+            header.append(label, time);
+
+            var body = document.createElement("div");
+            body.className = "pretty-compare-body";
+            pane.append(header, body);
+            comparison.append(pane);
+            return { backend: backend, body: body, time: time };
+        });
+        container.replaceChildren(comparison);
+        return panes;
+    }
+
+    /**
+     * @param {HTMLElement} body
+     * @param {*} goalsData
+     * @param {string} backend
+     * @param {HTMLElement} timeEl
+     */
+    function renderGoalsPane(body, goalsData, backend, timeEl) {
+        var start = performance.now();
+        var result = goalsToHtml(goalsData);
+        body.innerHTML = '<span class="hl lean">' + result.html + "</span>";
+        var columns = prettyComparisonColumns();
+        var measurer = createColumnMeasurer(columns);
+        var timings = fillReflowedSpans(body, result.formats, measurer, backend, columns);
+        setTimingDetails(timeEl, timings, performance.now() - start);
+    }
+
+    /**
+     * @param {HTMLElement} panel
+     * @param {*} goalsData
+     */
+    function renderGoalsFormat(panel, goalsData) {
+        var comparing = prettyComparisonEnabled() && typeof formatToHtmlTimed === "function";
+        setPrettyComparisonActive(panel, comparing);
+        if (comparing) {
+            var panes = setupPrettyComparison(panel);
+            panes.forEach(function (pane) {
+                renderGoalsPane(pane.body, goalsData, pane.backend.id, pane.time);
+            });
+            return;
+        }
+
+        var result = goalsToHtml(goalsData);
+        // Pass 1: insert structural HTML so table layout computes cell widths.
+        panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
+        // Pass 2: measure actual .type cell widths and format expressions.
+        var measurer = getPanelMeasurer(panel);
+        fillReflowedSpans(panel, result.formats, measurer, selectedPrettyBackend());
+    }
+
+    /**
+     * @param {HTMLElement} body
+     * @param {*} fmtData
+     * @param {string} backend
+     * @param {HTMLElement} timeEl
+     */
+    function renderSignaturePane(body, fmtData, backend, timeEl) {
+        var start = performance.now();
+        var columns = prettyComparisonColumns();
+        var measurer = createColumnMeasurer(columns);
+        var timed = formatToHtmlTimed(fmtData.fmt, fmtData.annotations, columns, measurer, backend);
+        body.innerHTML =
+            '<span class="reflowed">' +
+            (timed.html === null
+                ? '<span class="pretty-compare-unavailable">unavailable</span>'
+                : timed.html) +
+            "</span>";
+        setTimingDetails(timeEl, timed.timings, performance.now() - start);
+    }
+
+    /**
+     * @param {HTMLElement} panel
+     * @param {HTMLElement} sigCode
+     * @param {*} fmtData
+     */
+    function renderSignatureFormat(panel, sigCode, fmtData) {
+        var comparing = prettyComparisonEnabled() && typeof formatToHtmlTimed === "function";
+        setPrettyComparisonActive(panel, comparing);
+        if (comparing) {
+            var panes = setupPrettyComparison(sigCode);
+            panes.forEach(function (pane) {
+                renderSignaturePane(pane.body, fmtData, pane.backend.id, pane.time);
+            });
+            return;
+        }
+
+        var measurer = getPanelMeasurer(panel);
+        var rendered = formatToHtmlWithBackend(
+            fmtData.fmt,
+            fmtData.annotations,
+            contentWidth(panel),
+            measurer,
+            selectedPrettyBackend(),
+        );
+        sigCode.innerHTML =
+            '<span class="reflowed">' +
+            (rendered === null
+                ? '<span class="pretty-compare-unavailable">unavailable</span>'
+                : rendered) +
+            "</span>";
+    }
+
+    /**
      * Reflow the panel's rich format content at current width.
      * @param {InfoPanel} panel
      */
@@ -582,35 +1196,15 @@
         var richFmt = source.getAttribute("data-rich-format");
         if (!richFmt) return;
         var target = source.classList.contains("tactic-state") ? panel : source;
-        if (tryPanelRenderer(panel, source, target)) return;
+        if (!prettyComparisonEnabled() && tryPanelRenderer(panel, source, target)) return;
         releasePanelRenderer(panel);
         try {
             var parsed = JSON.parse(richFmt);
             // Detect whether this is goal data (array) or signature format data (has "fmt" key)
             if (Array.isArray(parsed) && typeof goalsToHtml === "function") {
-                var result = goalsToHtml(parsed);
-                panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                var measurer = getPanelMeasurer(panel);
-                fillReflowedSpans(panel, result.formats, measurer, selectedPrettyBackend());
+                renderGoalsFormat(panel, parsed);
             } else if (parsed.fmt && typeof formatToHtml === "function") {
-                var measurer = getPanelMeasurer(panel);
-                var width =
-                    panel.clientWidth -
-                    parseFloat(getComputedStyle(panel).paddingLeft || "0") -
-                    parseFloat(getComputedStyle(panel).paddingRight || "0");
-                var rendered = formatToHtmlWithBackend(
-                    parsed.fmt,
-                    parsed.annotations,
-                    width,
-                    measurer,
-                    selectedPrettyBackend(),
-                );
-                source.innerHTML =
-                    '<span class="reflowed">' +
-                    (rendered === null
-                        ? '<span class="pretty-unavailable">unavailable</span>'
-                        : rendered) +
-                    "</span>";
+                renderSignatureFormat(panel, /** @type {HTMLElement} */ (source), parsed);
             }
         } catch (e) {
             // Fall back to pre-rendered HTML on error
@@ -699,6 +1293,7 @@
         }
         block._activeSource = null;
         releasePanelRenderer(panel);
+        setPrettyComparisonActive(panel, false);
         panel.innerHTML = "";
     }
 

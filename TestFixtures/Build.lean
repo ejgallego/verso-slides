@@ -39,6 +39,8 @@ def hlCustomCss : HighlightTheme where
   filename := "hl/my-hl.css"
   contents := ⟨".hljs { background: #abcdef; }\n"⟩
 
+def prettyPluginJs : String := include_str "pretty-plugin.js"
+
 def main : IO UInt32 := do
   let staleAsset := "_test/markup/generated-assets/stale.txt"
   IO.FS.createDirAll "_test/markup/generated-assets"
@@ -58,9 +60,11 @@ def main : IO UInt32 := do
     IO.eprintln s!"Stale generated asset survived directory replacement: {staleAsset}"
     return 1
   let rc ← slidesMain
-    { theme := "black", outputDir := "_test/code" }
+    { theme := "black", outputDir := "_test/code",
+      panelPlugins := #["fixture-pretty-plugin.js"] }
     (%doc TestFixtures.Code)
   if rc != 0 then return rc
+  IO.FS.writeFile "_test/code/fixture-pretty-plugin.js" prettyPluginJs
   let rc ← slidesMain
     { theme := "black", outputDir := "_test/paneloption" }
     (%doc TestFixtures.PanelOption)

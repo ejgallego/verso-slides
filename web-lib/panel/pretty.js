@@ -7,6 +7,8 @@
 "use strict";
 
 /**
+ * @typedef {{ type: string, [key: string]: * }} FormatNode
+ *
  * @typedef {{
  *   measure: (s: string) => number,
  *   spaceWidth: number,
@@ -14,7 +16,15 @@
  *   cleanup: () => void
  * }} DOMMeasurer
  *
- * @typedef {{ text: string, tags: (number | string)[] }} Segment
+ * @typedef {{ text: string, tags: number[] }} Segment
+ *
+ * @typedef {{ foundLine: boolean, foundFlattenedHardLine: boolean, space: number }} SpaceResult
+ *
+ * @typedef {{ type: string, fits: boolean }} Fla
+ *
+ * @typedef {{ f: FormatNode, indent: number, activeTags: number }} WorkItem
+ *
+ * @typedef {{ fla: Fla, flb: "allOrNone" | "fill", items: WorkItem[] }} WorkGroup
  *
  * @typedef {{ cssClass: string, binding?: string }} TokenAnnotation
  *
@@ -27,16 +37,51 @@
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
  *
  * @typedef {{
+ *   column: number,
+ *   tagStack: number[],
+ *   segments: Segment[],
+ *   annotations: Record<string, TokenAnnotation>,
+ *   pushOutput: (s: string) => void,
+ *   pushNewline: (indent: number) => void,
+ *   startTag: (tag: number) => void,
+ *   endTags: (count: number) => void
+ * }} RenderContext
+ *
+ * @typedef {"marshal" | "execute" | "decode" | "render" | "total"} PrettyTimingPhase
+ *
+ * @typedef {{ label: string, valueMs: number, phase?: PrettyTimingPhase }} PrettyTimingDetail
+ *
+ * @typedef {{
+ *   marshalMs: number,
+ *   executeMs: number,
+ *   decodeMs: number,
+ *   renderMs: number,
+ *   totalMs: number,
+ *   details?: PrettyTimingDetail[]
+ * }} PrettyTimings
+ *
+ * @typedef {{ segments: Segment[] | null, timings: PrettyTimings }} PrettySegmentResult
+ *
+ * @typedef {{ html: string | null, durationMs: number, timings: PrettyTimings }} TimedPrettyResult
+ *
+ * @typedef {{
  *   id: string,
  *   label: string,
+ *   capabilities?: { output: string, width: string },
  *   status?: () => string,
  *   ready?: Promise<*>,
- *   renderSegments: (
+ *   renderSegments?: (
  *     fmtJson: *,
  *     annotations: Record<string, TokenAnnotation>,
  *     pixelWidth: number,
  *     measurer: DOMMeasurer
- *   ) => Segment[] | null
+ *   ) => Segment[] | null,
+ *   renderTimed?: (
+ *     fmtJson: *,
+ *     annotations: Record<string, TokenAnnotation>,
+ *     pixelWidth: number,
+ *     measurer: DOMMeasurer
+ *   ) => PrettySegmentResult
  * }} PrettyBackend
  */
 
@@ -56,7 +101,7 @@ function registerPrettyBackend(backend) {
         backend.id.length === 0 ||
         typeof backend.label !== "string" ||
         backend.label.length === 0 ||
-        typeof backend.renderSegments !== "function"
+        (typeof backend.renderSegments !== "function" && typeof backend.renderTimed !== "function")
     ) {
         throw new TypeError("invalid pretty backend registration");
     }
@@ -86,6 +131,113 @@ function getPrettyBackend(id) {
             return candidate.id === id;
         }) || null
     );
+}
+
+/** @param {*} json @return {FormatNode} */
+function deserializeFormat(json) {
+    if (json === null || json === undefined) return { type: "nil" };
+    if (json === 1) return { type: "line" };
+    if (typeof json === "string") return { type: "text", str: json };
+    if (!Array.isArray(json) || json.length === 0) return { type: "nil" };
+    switch (json[0]) {
+        case 2:
+            return { type: "align", force: !!json[1] };
+        case 3:
+            return { type: "nest", indent: json[1], f: deserializeFormat(json[2]) };
+        case 4:
+            return {
+                type: "append",
+                f1: deserializeFormat(json[1]),
+                f2: deserializeFormat(json[2]),
+            };
+        case 5:
+            return { type: "group", f: deserializeFormat(json[1]), behavior: "allOrNone" };
+        case 6:
+            return { type: "group", f: deserializeFormat(json[1]), behavior: "fill" };
+        case 7:
+            return { type: "tag", n: json[1], f: deserializeFormat(json[2]) };
+        default:
+            return { type: "nil" };
+    }
+}
+
+/**
+ * @param {boolean} [foundLine]
+ * @param {boolean} [foundFlattenedHardLine]
+ * @param {number} [space]
+ * @return {SpaceResult}
+ */
+function spaceResult(foundLine, foundFlattenedHardLine, space) {
+    return {
+        foundLine: foundLine || false,
+        foundFlattenedHardLine: foundFlattenedHardLine || false,
+        space: space || 0,
+    };
+}
+
+/**
+ * @param {number} width
+ * @param {SpaceResult} first
+ * @param {(remaining: number) => SpaceResult} second
+ * @return {SpaceResult}
+ */
+function merge(width, first, second) {
+    if (first.space > width || first.foundLine) return first;
+    var next = second(width - first.space);
+    return {
+        foundLine: next.foundLine,
+        foundFlattenedHardLine: next.foundFlattenedHardLine,
+        space: first.space + next.space,
+    };
+}
+
+/**
+ * @param {FormatNode} format
+ * @param {boolean} flatten
+ * @param {number} indent
+ * @param {number} width
+ * @param {DOMMeasurer} measurer
+ * @return {SpaceResult}
+ */
+function spaceUptoLine(format, flatten, indent, width, measurer) {
+    switch (format.type) {
+        case "nil":
+            return spaceResult();
+        case "line":
+            return flatten ? spaceResult(false, false, measurer.spaceWidth) : spaceResult(true);
+        case "align":
+            if (flatten && !format.force) return spaceResult();
+            if (width < indent) return spaceResult(false, false, Math.max(0, indent - width));
+            return spaceResult(true);
+        case "text": {
+            var newline = format.str.indexOf("\n");
+            return newline === -1
+                ? spaceResult(false, false, measurer.measure(format.str))
+                : spaceResult(true, flatten, measurer.measure(format.str.substring(0, newline)));
+        }
+        case "append":
+            return merge(
+                width,
+                spaceUptoLine(format.f1, flatten, indent, width, measurer),
+                function (remaining) {
+                    return spaceUptoLine(format.f2, flatten, indent, remaining, measurer);
+                },
+            );
+        case "nest":
+            return spaceUptoLine(
+                format.f,
+                flatten,
+                indent - format.indent * measurer.spaceWidth,
+                width,
+                measurer,
+            );
+        case "group":
+            return spaceUptoLine(format.f, true, indent, width, measurer);
+        case "tag":
+            return spaceUptoLine(format.f, flatten, indent, width, measurer);
+        default:
+            return spaceResult();
+    }
 }
 
 /**
@@ -185,39 +337,570 @@ function createDOMMeasurer(panel) {
 }
 
 /**
- * Render a compact format through Lean's `Std.Format.prettyM`, then feed the
- * result back into the existing JavaScript annotation/HTML stage.
+ * Validate and normalize the direct object-ABI result.
+ * @param {*} value
+ * @return {Segment[]}
+ */
+function normalizeVirSegments(value) {
+    if (!Array.isArray(value)) throw new Error("VIR prettyM returned a non-array result");
+    /** @type {Segment[]} */
+    var segments = [];
+    for (var i = 0; i < value.length; i++) {
+        var segment = value[i];
+        if (!segment || typeof segment.text !== "string" || !Array.isArray(segment.tags)) {
+            throw new Error("VIR prettyM returned an invalid segment at index " + i);
+        }
+        /** @type {number[]} */
+        var tags = [];
+        for (var j = 0; j < segment.tags.length; j++) {
+            var tag = Number(segment.tags[j]);
+            if (!Number.isSafeInteger(tag) || tag < 0) {
+                throw new Error("VIR prettyM returned an invalid tag at segment " + i);
+            }
+            tags.push(tag);
+        }
+        segments.push({ text: segment.text, tags: tags });
+    }
+    return segments;
+}
+
+/**
+ * @param {Fla} fla
+ * @return {boolean}
+ */
+function shouldFlatten(fla) {
+    return fla.type === "allow" && !!fla.fits;
+}
+
+/**
+ * Measures space for a list of work groups. Items within each group are stored
+ * in reverse order (last element = next to process), so we iterate backwards.
+ * @param {WorkGroup[]} groups - groups in reverse order (last = current)
+ * @param {number} col
+ * @param {number} w
+ * @param {DOMMeasurer} measurer
+ * @return {SpaceResult}
+ */
+function spaceUptoLineGroups(groups, col, w, measurer) {
+    var result = spaceResult();
+    var remainingW = w;
+
+    for (var gi = groups.length - 1; gi >= 0; gi--) {
+        var g = groups[gi];
+        var flatten = shouldFlatten(g.fla);
+        for (var ii = g.items.length - 1; ii >= 0; ii--) {
+            var item = g.items[ii];
+            var r = spaceUptoLine(
+                item.f,
+                flatten,
+                remainingW + col - item.indent,
+                remainingW,
+                measurer,
+            );
+            result = {
+                foundLine: r.foundLine,
+                foundFlattenedHardLine: result.foundFlattenedHardLine || r.foundFlattenedHardLine,
+                space: result.space + r.space,
+            };
+            if (r.space > remainingW || r.foundLine) return result;
+            remainingW -= r.space;
+        }
+    }
+    return result;
+}
+
+/**
+ * Creates a new work group with a flattening decision based on available space.
+ * Items and groups are in reverse order (last = next to process).
+ * @param {"allOrNone" | "fill"} flb
+ * @param {WorkItem[]} items - in reverse order
+ * @param {WorkGroup[]} gs - in reverse order
+ * @param {number} w
+ * @param {RenderContext} ctx
+ * @param {DOMMeasurer} measurer
+ * @return {WorkGroup[]}
+ */
+function pushGroup(flb, items, gs, w, ctx, measurer) {
+    var k = ctx.column;
+    var remaining = w - k;
+    var g = { fla: { type: "allow", fits: flb === "allOrNone" }, flb: flb, items: items };
+    var r = spaceUptoLineGroups([g], k, remaining, measurer);
+    var r2 = merge(remaining, r, function (w2) {
+        return spaceUptoLineGroups(gs, k, w2, measurer);
+    });
+    var fits = !r.foundFlattenedHardLine && r2.space <= remaining;
+    gs.push({ fla: { type: "allow", fits: fits }, flb: flb, items: items });
+    return gs;
+}
+
+/**
+ * Main layout engine (iterative port of Lean's `be`). Processes work groups,
+ * making flattening and line-break decisions, and emits output via the render context.
+ *
+ * Items within each group are stored in reverse order: the last element is
+ * processed next. This allows O(1) pop/push instead of O(n) slice/concat.
+ * Groups are also in reverse order (last = current group).
+ *
+ * @param {number} w
+ * @param {WorkGroup[]} groups - in reverse order (last = current)
+ * @param {RenderContext} ctx
+ * @param {DOMMeasurer} measurer
+ */
+function be(w, groups, ctx, measurer) {
+    while (groups.length > 0) {
+        var g = groups[groups.length - 1];
+        if (g.items.length === 0) {
+            groups.pop();
+            continue;
+        }
+        // Pop current item — O(1). g.items retains the rest.
+        // Length was checked above, so pop always returns a value.
+        var i = /** @type {WorkItem} */ (g.items.pop());
+
+        switch (i.f.type) {
+            case "nil":
+                ctx.endTags(i.activeTags);
+                break;
+
+            case "tag":
+                ctx.startTag(i.f.n);
+                // Push replacement (processed next) — O(1)
+                g.items.push({ f: i.f.f, indent: i.indent, activeTags: i.activeTags + 1 });
+                break;
+
+            case "append":
+                // Push f1 last so it is processed next (before f2) — O(1) each
+                g.items.push({ f: i.f.f2, indent: i.indent, activeTags: i.activeTags });
+                g.items.push({ f: i.f.f1, indent: i.indent, activeTags: 0 });
+                break;
+
+            case "nest":
+                g.items.push({
+                    f: i.f.f,
+                    indent: i.indent + i.f.indent * measurer.spaceWidth,
+                    activeTags: i.activeTags,
+                });
+                break;
+
+            case "text": {
+                var s = i.f.str;
+                var nlIdx = s.indexOf("\n");
+                if (nlIdx === -1) {
+                    ctx.pushOutput(s);
+                    ctx.endTags(i.activeTags);
+                } else {
+                    ctx.pushOutput(s.substring(0, nlIdx));
+                    ctx.pushNewline(Math.max(0, i.indent));
+                    /** @type {WorkItem} */
+                    var newTextItem = {
+                        f: { type: "text", str: s.substring(nlIdx + 1) },
+                        indent: i.indent,
+                        activeTags: i.activeTags,
+                    };
+                    // After hard line break, re-evaluate flattening
+                    if (g.fla.type === "disallow") {
+                        g.items.push(newTextItem);
+                    } else {
+                        // Remaining items stay in g.items; add newTextItem
+                        g.items.push(newTextItem);
+                        // Steal items from current group, pop it, create new group
+                        var remainingItems = g.items;
+                        groups.pop();
+                        groups = pushGroup(g.flb, remainingItems, groups, w, ctx, measurer);
+                    }
+                }
+                break;
+            }
+
+            case "line":
+                if (g.flb === "allOrNone") {
+                    if (shouldFlatten(g.fla)) {
+                        ctx.pushOutput(" ");
+                    } else {
+                        ctx.pushNewline(Math.max(0, i.indent));
+                    }
+                    ctx.endTags(i.activeTags);
+                } else {
+                    // fill behavior
+                    if (shouldFlatten(g.fla)) {
+                        // Try to fit next item too — need a copy since pushGroup mutates
+                        var savedItems = g.items.slice();
+                        var savedGroups = groups.slice(0, groups.length - 1);
+                        var tryGs = pushGroup(
+                            "fill",
+                            savedItems,
+                            savedGroups,
+                            w - measurer.spaceWidth,
+                            ctx,
+                            measurer,
+                        );
+                        var nextG = tryGs[tryGs.length - 1];
+                        if (shouldFlatten(nextG.fla)) {
+                            ctx.pushOutput(" ");
+                            ctx.endTags(i.activeTags);
+                            groups = tryGs;
+                        } else {
+                            // Break: use original items
+                            ctx.pushNewline(Math.max(0, i.indent));
+                            ctx.endTags(i.activeTags);
+                            var breakItems = g.items;
+                            groups.pop();
+                            groups = pushGroup("fill", breakItems, groups, w, ctx, measurer);
+                        }
+                    } else {
+                        ctx.pushNewline(Math.max(0, i.indent));
+                        ctx.endTags(i.activeTags);
+                        var breakItems2 = g.items;
+                        groups.pop();
+                        groups = pushGroup("fill", breakItems2, groups, w, ctx, measurer);
+                    }
+                }
+                break;
+
+            case "align":
+                if (shouldFlatten(g.fla) && !i.f.force) {
+                    ctx.endTags(i.activeTags);
+                } else {
+                    var k = ctx.column;
+                    if (k < i.indent) {
+                        var pad = Math.max(0, i.indent - k);
+                        ctx.pushOutput(" ".repeat(Math.round(pad / measurer.spaceWidth)));
+                    } else {
+                        ctx.pushNewline(Math.max(0, i.indent));
+                    }
+                    ctx.endTags(i.activeTags);
+                }
+                break;
+
+            case "group":
+                if (shouldFlatten(g.fla)) {
+                    // flatten(group f) = flatten f
+                    g.items.push({ f: i.f.f, indent: i.indent, activeTags: i.activeTags });
+                } else {
+                    var groupItem = { f: i.f.f, indent: i.indent, activeTags: i.activeTags };
+                    groups = pushGroup(i.f.behavior, [groupItem], groups, w, ctx, measurer);
+                }
+                break;
+
+            default:
+                // Unknown format node, skip
+                ctx.endTags(i.activeTags);
+                break;
+        }
+    }
+}
+
+/**
+ * Entry point: pretty-prints a format tree at a given pixel width.
+ * @param {FormatNode} f
+ * @param {number} w
+ * @param {number} indent
+ * @param {RenderContext} ctx
+ * @param {DOMMeasurer} measurer
+ */
+function prettyM(f, w, indent, ctx, measurer) {
+    indent = indent || 0;
+    be(
+        w,
+        [
+            {
+                flb: "allOrNone",
+                fla: { type: "disallow", fits: false },
+                items: [{ f: f, indent: indent, activeTags: 0 }],
+            },
+        ],
+        ctx,
+        measurer,
+    );
+}
+
+/**
+ * Creates a rendering context that collects tagged output segments.
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {DOMMeasurer} measurer
+ * @return {RenderContext}
+ */
+function makeRenderContext(annotations, measurer) {
+    return {
+        column: 0,
+        tagStack: [],
+        segments: [], // Array of { text, tags }
+        annotations: annotations || {},
+
+        pushOutput: function (s) {
+            if (s.length === 0) return;
+            this.segments.push({ text: s, tags: this.tagStack.slice() });
+            this.column += measurer.measure(s);
+        },
+
+        pushNewline: function (indent) {
+            this.segments.push({ text: "\n", tags: [] });
+            if (indent > 0) {
+                var spaces = Math.round(indent / measurer.spaceWidth);
+                if (spaces > 0) {
+                    this.segments.push({ text: " ".repeat(spaces), tags: [] });
+                }
+            }
+            this.column = indent;
+        },
+
+        startTag: function (t) {
+            this.tagStack.push(t);
+        },
+
+        endTags: function (count) {
+            for (var j = 0; j < count; j++) {
+                this.tagStack.pop();
+            }
+        },
+    };
+}
+
+/** @return {PrettyTimings} */
+function emptyPrettyTimings() {
+    return {
+        marshalMs: 0,
+        executeMs: 0,
+        decodeMs: 0,
+        renderMs: 0,
+        totalMs: 0,
+    };
+}
+
+/**
+ * @param {*} value
+ * @return {PrettyTimings}
+ */
+function requirePrettyTimings(value) {
+    if (!value || typeof value !== "object") {
+        throw new TypeError("pretty backend did not return phase timings");
+    }
+    var checked = emptyPrettyTimings();
+    /** @type {Array<"marshalMs" | "executeMs" | "decodeMs" | "renderMs" | "totalMs">} */
+    var timingKeys = ["marshalMs", "executeMs", "decodeMs", "renderMs", "totalMs"];
+    timingKeys.forEach(function (key) {
+        var timing = value[key];
+        if (typeof timing !== "number" || !Number.isFinite(timing) || timing < 0) {
+            throw new TypeError("invalid pretty backend timing: " + key);
+        }
+        checked[key] = timing;
+    });
+    if (value.details !== undefined) {
+        if (!Array.isArray(value.details)) {
+            throw new TypeError("pretty backend timing details must be an array");
+        }
+        var inputDetails = /** @type {*[]} */ (value.details);
+        checked.details = inputDetails.map(function (detail) {
+            if (
+                !detail ||
+                typeof detail.label !== "string" ||
+                detail.label.length === 0 ||
+                typeof detail.valueMs !== "number" ||
+                !Number.isFinite(detail.valueMs) ||
+                detail.valueMs < 0 ||
+                (detail.phase !== undefined &&
+                    !["marshal", "execute", "decode", "render", "total"].includes(detail.phase))
+            ) {
+                throw new TypeError("invalid pretty backend timing detail");
+            }
+            return {
+                label: detail.label,
+                valueMs: detail.valueMs,
+                phase: detail.phase,
+            };
+        });
+    }
+    return checked;
+}
+
+/**
+ * @param {PrettyTimings} target
+ * @param {PrettyTimings} source
+ * @return {PrettyTimings}
+ */
+function addPrettyTimings(target, source) {
+    target.marshalMs += source.marshalMs;
+    target.executeMs += source.executeMs;
+    target.decodeMs += source.decodeMs;
+    target.renderMs += source.renderMs;
+    target.totalMs += source.totalMs;
+    if (source.details) {
+        var details = target.details || (target.details = []);
+        source.details.forEach(function (sourceDetail) {
+            var existing = details.find(function (detail) {
+                return detail.label === sourceDetail.label && detail.phase === sourceDetail.phase;
+            });
+            if (existing) {
+                existing.valueMs += sourceDetail.valueMs;
+            } else {
+                details.push(Object.assign({}, sourceDetail));
+            }
+        });
+    }
+    return target;
+}
+
+/**
+ * A deterministic character-column measurer for formatter comparison. Every
+ * backend receives the same budget instead of deriving it independently from
+ * the width of its pane.
+ * @param {number} columns
+ * @return {DOMMeasurer}
+ */
+function createColumnMeasurer(columns) {
+    var width = Math.max(1, Math.floor(columns));
+    return {
+        measure: function (text) {
+            return Array.from(text).length;
+        },
+        spaceWidth: 1,
+        measureElWidth: function () {
+            return width;
+        },
+        cleanup: function () {},
+    };
+}
+
+/**
+ * Run and time the built-in JavaScript formatter.
  * @param {*} fmtJson
  * @param {Record<string, TokenAnnotation>} annotations
  * @param {number} pixelWidth
  * @param {DOMMeasurer} measurer
- * @return {Segment[] | null}
+ * @return {PrettySegmentResult}
  */
-function formatSegmentsWithVir(fmtJson, annotations, pixelWidth, measurer) {
-    if (!window.versoVir) return null;
+function formatSegmentsWithJsTimed(fmtJson, annotations, pixelWidth, measurer) {
+    var started = performance.now();
+    var fmt = deserializeFormat(fmtJson);
+    var ctx = makeRenderContext(annotations, measurer);
+    var marshaled = performance.now();
+    prettyM(fmt, pixelWidth, 0, ctx, measurer);
+    var executed = performance.now();
+    return {
+        segments: ctx.segments,
+        timings: {
+            marshalMs: Math.max(0, marshaled - started),
+            executeMs: Math.max(0, executed - marshaled),
+            decodeMs: 0,
+            renderMs: 0,
+            totalMs: Math.max(0, executed - started),
+        },
+    };
+}
+
+registerPrettyBackend({
+    id: "js",
+    label: "JavaScript",
+    capabilities: { output: "segments", width: "pixels" },
+    status: function () {
+        return "ready";
+    },
+    renderTimed: formatSegmentsWithJsTimed,
+});
+
+/**
+ * Run and time the typed VIR prettyM boundary.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @return {PrettySegmentResult}
+ */
+function formatSegmentsWithVirTimed(fmtJson, annotations, pixelWidth, measurer) {
+    if (!window.versoVir) {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    var started = performance.now();
     var spaceWidth = measurer.spaceWidth;
     if (!Number.isFinite(spaceWidth) || spaceWidth <= 0) spaceWidth = 1;
     var columns = Math.max(1, Math.floor(pixelWidth / spaceWidth));
     var format = compactFormatToStdFormat(fmtJson);
-    return /** @type {Segment[]} */ (
-        window.versoVir.call("VersoSlides.VirPrettyM.formatSegments", format, columns, 0)
-    );
+    var marshaled = performance.now();
+    var result = window.versoVir.call("VersoSlides.VirPrettyM.formatSegments", format, columns, 0);
+    var executed = performance.now();
+    var segments = normalizeVirSegments(result);
+    var decoded = performance.now();
+    return {
+        segments: segments,
+        timings: {
+            marshalMs: Math.max(0, marshaled - started),
+            executeMs: Math.max(0, executed - marshaled),
+            decodeMs: Math.max(0, decoded - executed),
+            renderMs: 0,
+            totalMs: Math.max(0, decoded - started),
+        },
+    };
 }
 
 registerPrettyBackend({
     id: "vir-prettym",
     label: "VIR prettyM",
+    capabilities: { output: "segments", width: "columns" },
     status: function () {
         return window.versoVir ? "ready" : window.versoVirReady ? "loading" : "unavailable";
     },
     ready: window.versoVirReady,
-    renderSegments: formatSegmentsWithVir,
+    renderTimed: formatSegmentsWithVirTimed,
 });
 
 /**
- * Render a format tree through one explicitly selected backend. Missing or
- * unavailable backends return `null`; callers decide how to present that
- * state instead of silently falling back to another implementation.
+ * Execute one backend and normalize its phase timings.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @param {PrettyBackend} backend
+ * @return {PrettySegmentResult}
+ */
+function renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, backend) {
+    if (backend.status && backend.status() !== "ready") {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    if (typeof backend.renderTimed === "function") {
+        var result = backend.renderTimed(fmtJson, annotations, pixelWidth, measurer);
+        if (!result || (result.segments !== null && !Array.isArray(result.segments))) {
+            throw new TypeError("invalid timed pretty backend result");
+        }
+        return { segments: result.segments, timings: requirePrettyTimings(result.timings) };
+    }
+    if (typeof backend.renderSegments !== "function") {
+        return { segments: null, timings: emptyPrettyTimings() };
+    }
+    var started = performance.now();
+    var segments = backend.renderSegments(fmtJson, annotations, pixelWidth, measurer);
+    var finished = performance.now();
+    var timings = emptyPrettyTimings();
+    timings.executeMs = Math.max(0, finished - started);
+    timings.totalMs = timings.executeMs;
+    return { segments: segments, timings: timings };
+}
+
+/**
+ * Render a format tree and retain normalized formatter and HTML timings.
+ * @param {*} fmtJson
+ * @param {Record<string, TokenAnnotation>} annotations
+ * @param {number} pixelWidth
+ * @param {DOMMeasurer} measurer
+ * @param {string} backendId
+ * @return {TimedPrettyResult}
+ */
+function formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backendId) {
+    var started = performance.now();
+    var backend = getPrettyBackend(backendId);
+    if (!backend) {
+        return { html: null, durationMs: 0, timings: emptyPrettyTimings() };
+    }
+    var result = renderPrettySegmentsTimed(fmtJson, annotations, pixelWidth, measurer, backend);
+    var renderStarted = performance.now();
+    var html = result.segments === null ? null : segmentsToHtml(result.segments, annotations);
+    var finished = performance.now();
+    result.timings.renderMs += Math.max(0, finished - renderStarted);
+    result.timings.totalMs = Math.max(0, finished - started);
+    return { html: html, durationMs: result.timings.totalMs, timings: result.timings };
+}
+
+/**
+ * Render a format tree through one explicitly selected backend.
  * @param {*} fmtJson
  * @param {Record<string, TokenAnnotation>} annotations
  * @param {number} pixelWidth
@@ -226,11 +909,7 @@ registerPrettyBackend({
  * @return {string | null}
  */
 function formatToHtmlWithBackend(fmtJson, annotations, pixelWidth, measurer, backendId) {
-    var backend = getPrettyBackend(backendId);
-    if (!backend) return null;
-    if (backend.status && backend.status() !== "ready") return null;
-    var segments = backend.renderSegments(fmtJson, annotations, pixelWidth, measurer);
-    return segments === null ? null : segmentsToHtml(segments, annotations);
+    return formatToHtmlTimed(fmtJson, annotations, pixelWidth, measurer, backendId).html;
 }
 
 /**
@@ -370,8 +1049,11 @@ function goalsToHtml(goalsJson) {
  * @param {FormatData[]} formats
  * @param {DOMMeasurer} measurer
  * @param {string} [backendId]
+ * @param {number} [fixedWidth]
+ * @return {PrettyTimings}
  */
-function fillReflowedSpans(container, formats, measurer, backendId) {
+function fillReflowedSpans(container, formats, measurer, backendId, fixedWidth) {
+    var totals = emptyPrettyTimings();
     var spans = container.querySelectorAll(".reflowed[data-fmt-idx]");
     for (var i = 0; i < spans.length; i++) {
         var span = spans[i];
@@ -380,15 +1062,19 @@ function fillReflowedSpans(container, formats, measurer, backendId) {
         if (!entry) continue;
         var cell = span.closest(".type");
         if (!cell) continue;
-        var width = measurer.measureElWidth(cell);
-        var rendered = formatToHtmlWithBackend(
+        var width = typeof fixedWidth === "number" ? fixedWidth : measurer.measureElWidth(cell);
+        var rendered = formatToHtmlTimed(
             entry.fmt,
             entry.annotations,
             width,
             measurer,
             backendId || "vir-prettym",
         );
+        addPrettyTimings(totals, rendered.timings);
         span.innerHTML =
-            rendered === null ? '<span class="pretty-unavailable">unavailable</span>' : rendered;
+            rendered.html === null
+                ? '<span class="pretty-compare-unavailable">unavailable</span>'
+                : rendered.html;
     }
+    return totals;
 }

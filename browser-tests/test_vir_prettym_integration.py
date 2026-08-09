@@ -4,10 +4,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_review_surface_replaces_only_prettym_layout():
+def test_observability_keeps_direct_vir_backend_with_explicit_js_baseline():
     pretty = (ROOT / "web-lib" / "panel" / "pretty.js").read_text()
-    assert "function prettyM(" not in pretty
-    assert "function be(" not in pretty
+    assert "function prettyM(" in pretty
+    assert "function be(" in pretty
     assert 'window.versoVir.call(' in pretty
     assert '"VersoSlides.VirPrettyM.formatSegments"' in pretty
     runtime = (ROOT / "web-lib" / "vir-prettym" / "runtime.js").read_text()
