@@ -80,7 +80,7 @@ deterministic character-column budget to all seven candidates:
 4. VIR typed input with flat text/style-event output
 5. VIR package-resident `Std.Format` selected by numeric ID, with flat
    output
-6. FIR native Wasm
+6. FIR-generated Wasm
 7. LLVM/Emscripten Wasm
 
 The two new VIR candidates isolate the boundary experiment. `VIR Flat`
@@ -137,7 +137,7 @@ deliberately retain the existing `VersoSlides.Pretty.*` ABI so current
 artifacts remain usable while the demo is moved out of the Verso
 implementation repository.
 
-The host deck, VIR package generator, FIR-native package, and LLVM
+The host deck, VIR package generator, FIR Wasm package, and LLVM
 package may use different Lean versions: each artifact is a
 self-contained bounded runtime and carries its own toolchain/ABI
 provenance. Refresh tooling validates each package against its

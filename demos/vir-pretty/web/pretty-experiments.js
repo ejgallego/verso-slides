@@ -23,7 +23,7 @@
             id: "implementations",
             label: "End-to-end implementations",
             question:
-                "How do the complete JS, VIR, FIR-native, and LLVM paths compare from the shared compact Format input to panel HTML?",
+                "How do the complete JS, VIR, FIR Wasm, and LLVM paths compare from the shared compact Format input to panel HTML?",
             backends: ["js", "vir-format", "native", "llvm"],
             design: "end-to-end",
             variable: "Implementation, compiler/runtime, and browser adapter path",

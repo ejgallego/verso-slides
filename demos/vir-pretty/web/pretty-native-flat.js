@@ -99,7 +99,7 @@
     /** @type {PrettyBackendDefinition} */
     var nativeFlatBackend = {
         id: "native-flat",
-        label: "Native Flat",
+        label: "FIR Wasm Flat",
         capabilities: {
             runtime: "fir-native",
             input: "browser-format",
@@ -136,7 +136,7 @@
                 timings.totalMs = finished - started;
                 return { segments: segments, timings: timings };
             } catch (error) {
-                warnOnce("render", "Native-flat pretty-printer backend failed.", error);
+                warnOnce("render", "FIR Wasm Flat pretty-printer backend failed.", error);
                 return { segments: null, timings: emptyPrettyTimings() };
             }
         },
@@ -278,7 +278,7 @@
         .catch(function (error) {
             bridge.status = "failed";
             bridge.error = error;
-            warnOnce("load", "Native-flat pretty-printer bootstrap failed.", error);
+            warnOnce("load", "FIR Wasm Flat pretty-printer bootstrap failed.", error);
             return null;
         });
     nativeFlatBackend.ready = bridge.ready;

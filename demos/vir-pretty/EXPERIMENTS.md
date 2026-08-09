@@ -6,13 +6,13 @@ identical. Every view starts from the same compact `Std.Format`,
 annotations, column budget, and visible-format call sequence at the
 Verso panel boundary.
 
-| Preset                     | Backends                     | Variable                                            | Held fixed                                   | Interpretation                                                    |
-| -------------------------- | ---------------------------- | --------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
-| End-to-end implementations | JS, VIR Format, Native, LLVM | Complete implementation and adapter path            | Source format, columns, final HTML semantics | Product-level comparison; phase breakdown explains boundary costs |
-| VIR input transport        | VIR JSON, VIR Format         | JSON/string versus typed Lean object ABI            | VIR runtime, `prettyM`, segment output       | Cost of VIR input representation                                  |
-| VIR output boundary        | VIR Format, VIR Flat         | Copied tagged segments versus text plus flat events | Typed input, VIR runtime, `prettyM`          | Cost of VIR output representation                                 |
-| VIR input residency        | VIR Flat, VIR Resident       | Imported tree versus package-resident ID            | Flat output, VIR runtime, `prettyM`          | Cost of transferring/reconstructing a static format               |
-| All backends               | All available                | Several variables at once                           | Source format and columns only               | Exploratory overview; do not attribute a delta to one cause       |
+| Preset                     | Backends                       | Variable                                            | Held fixed                                   | Interpretation                                                    |
+| -------------------------- | ------------------------------ | --------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| End-to-end implementations | JS, VIR Format, FIR Wasm, LLVM | Complete implementation and adapter path            | Source format, columns, final HTML semantics | Product-level comparison; phase breakdown explains boundary costs |
+| VIR input transport        | VIR JSON, VIR Format           | JSON/string versus typed Lean object ABI            | VIR runtime, `prettyM`, segment output       | Cost of VIR input representation                                  |
+| VIR output boundary        | VIR Format, VIR Flat           | Copied tagged segments versus text plus flat events | Typed input, VIR runtime, `prettyM`          | Cost of VIR output representation                                 |
+| VIR input residency        | VIR Flat, VIR Resident         | Imported tree versus package-resident ID            | Flat output, VIR runtime, `prettyM`          | Cost of transferring/reconstructing a static format               |
+| All backends               | All available                  | Several variables at once                           | Source format and columns only               | Exploratory overview; do not attribute a delta to one cause       |
 
 Manually changing backend checkboxes creates a **Custom selection**.
 The URL records both the resolved backend list and the matching preset
@@ -72,15 +72,17 @@ is `text-events-utf8/v1` directly. The artifact is staged separately
 as `lean-native-flat/`; it never replaces `lean-native/`. The
 preferred Lean target is the compiler-neutral
 `VersoSlides.Pretty.formatRenderedForRuntime`; the historical
-`formatRenderedForVir` name is only a compatibility alias.
+`formatRenderedForVir` name is only a compatibility alias. The
+complete producer handoff is
+[`handoffs/fir-wasm-flat-runtime/AGENT_TASK.md`](../../handoffs/fir-wasm-flat-runtime/AGENT_TASK.md).
 
 Once such a package is present, assembly registers `native-flat` and
 adds a **FIR output boundary** preset containing exactly the two FIR
 backends:
 
 ```text
-native       browser Format → PrettyTrace → panel segments
-native-flat  browser Format → text + UTF-8 style events → panel segments
+FIR Wasm       browser Format → PrettyTrace → panel segments
+FIR Wasm Flat  browser Format → text + UTF-8 style events → panel segments
 ```
 
 The input adapter, compiler/runtime, format corpus, width, and final
@@ -94,7 +96,7 @@ prevent attribution.
 - Verso owns the compact input, annotations, experiment UI,
   normalization, and final HTML rendering.
 - This demo owns preset definitions and artifact composition.
-- VIR, FIR-native, and LLVM packages own their raw runtime boundaries
+- VIR, FIR Wasm, and LLVM packages own their raw runtime boundaries
   and provenance.
 - Deck-specific resident tables are generated during assembly; they
   are not a generic FIR or VIR ABI requirement.

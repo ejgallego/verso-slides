@@ -383,7 +383,7 @@
         var labels = {
             javascript: "JavaScript",
             vir: "VIR",
-            "fir-native": "FIR native",
+            "fir-native": "FIR Wasm",
             "llvm-emscripten": "LLVM/Emscripten",
             "compact-tree": "compact tree",
             "json-string": "JSON string",

@@ -13,8 +13,8 @@ The [demo slides](./Demo.lean) can be seen at
 The VIR-backed pretty-printer prototype demo is published at
 <https://x80.org/vir-verso-slides-demo/>. Keep this URL stable for
 comparing the JavaScript, four VIR boundaries (JSON, direct
-`Std.Format`, flat output, and resident input), FIR-native Wasm, and
-LLVM/Emscripten LCNF-to-Wasm rendering modes.
+`Std.Format`, flat output, and resident input), FIR-generated Wasm,
+and LLVM/Emscripten LCNF-to-Wasm rendering modes.
 
 ## Requirements
 
@@ -916,7 +916,7 @@ per call where the adapter provides it, committed Wasm growth per
 call, and cumulative committed growth. The CLI additionally reruns
 every memory point in a fresh browser context with fresh Wasm
 instances, so isolated peak behavior is not confused with earlier
-points. Native provides resident-frontier details; LLVM and VIR
+points. FIR Wasm provides resident-frontier details; LLVM and VIR
 currently provide committed memory only.
 
 The interaction study evaluates four 3×3 grids: breaks × width, nodes
@@ -988,10 +988,11 @@ The LLVM package owns a different raw boundary: its adapter validates
 the shared format tree, encodes one private wire request, transfers it
 through Emscripten's `HEAPU8`, executes compiler-generated
 `Std.Format.prettyM`, and decodes one wire response. Its full pinned
-Lean runtime makes it larger than the FIR-native zero-import module,
-but the logical input and exact styled trace are directly comparable.
-The optimized threaded artifact requires a cross-origin-isolated page
-(COOP `same-origin` and COEP `require-corp`).
+Lean runtime makes it larger than the FIR-generated zero-import
+module, but the logical input and exact styled trace are directly
+comparable. The optimized threaded artifact requires a
+cross-origin-isolated page (COOP `same-origin` and COEP
+`require-corp`).
 
 For the static comparison demo, use:
 
@@ -1014,7 +1015,7 @@ generates a package-initialized Lean format table. `VIR Flat` keeps
 direct typed input but returns one text plus UTF-8 style events;
 `VIR Resident` transfers only ID, width, and indent.
 
-To add the FIR-native pane, pass a prepared FIR `prettyM` package. The
+To add the FIR Wasm pane, pass a prepared FIR `prettyM` package. The
 script verifies its `SHA256SUMS` and styled-trace capability metadata,
 including its zero-import boundary. An atomic `prettyM-current`
 symlink is pinned to one immutable release before validation, so a

@@ -74,7 +74,7 @@
     /** @type {PrettyBackendDefinition} */
     var nativeBackend = {
         id: "native",
-        label: "Native",
+        label: "FIR Wasm",
         capabilities: {
             runtime: "fir-native",
             input: "browser-format",
@@ -126,7 +126,7 @@
                     },
                 };
             } catch (error) {
-                warnOnce("render", "Native pretty-printer backend failed.", error);
+                warnOnce("render", "FIR Wasm pretty-printer backend failed.", error);
                 return {
                     segments: null,
                     error:
@@ -277,7 +277,7 @@
         .catch(function (error) {
             bridge.status = "failed";
             bridge.error = error;
-            warnOnce("load", "Native pretty-printer bootstrap failed.", error);
+            warnOnce("load", "FIR Wasm pretty-printer bootstrap failed.", error);
             return null;
         });
     nativeBackend.ready = bridge.ready;

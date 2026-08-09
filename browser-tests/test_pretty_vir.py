@@ -381,7 +381,7 @@ class TestPrettyNativeBridge:
                 status: window.__versoPrettyNative.status
             })"""
         )
-        assert result["backend"]["label"] == "Native"
+        assert result["backend"]["label"] == "FIR Wasm"
         assert result["backend"]["capabilities"] == {
             "runtime": "fir-native",
             "input": "browser-format",
@@ -721,7 +721,7 @@ class TestPrettyVirComparisonPanel:
                 };
                 registerPrettyBackend({
                     id: "native",
-                    label: "Native",
+                    label: "FIR Wasm",
                     renderTimed: () => ({
                         segments: [{ text: "from-native", tags: [] }],
                         timings: {
@@ -811,7 +811,7 @@ class TestPrettyVirComparisonPanel:
         expect(panel.locator('[data-pretty-backend="vir-format"] .pretty-compare-header')).to_contain_text("VIR Format")
         expect(panel.locator('[data-pretty-backend="vir-flat"] .pretty-compare-header')).to_contain_text("VIR Flat")
         expect(panel.locator('[data-pretty-backend="vir-resident"] .pretty-compare-header')).to_contain_text("VIR Resident")
-        expect(panel.locator('[data-pretty-backend="native"] .pretty-compare-header')).to_contain_text("Native")
+        expect(panel.locator('[data-pretty-backend="native"] .pretty-compare-header')).to_contain_text("FIR Wasm")
         expect(panel.locator('[data-pretty-backend="llvm"] .pretty-compare-header')).to_contain_text("LLVM")
         expect(panel.locator('[data-pretty-backend="vir"] .pretty-compare-body')).to_contain_text(
             "from-vir"

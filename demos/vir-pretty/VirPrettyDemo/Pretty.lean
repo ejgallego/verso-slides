@@ -140,20 +140,21 @@ private instance : Std.Format.MonadPrettyFormat RenderedM where
           events := st.events.push { offset := st.byteOffset, kind := 1, value := count } }
 
 /-- Render a `Std.Format` into text segments, preserving active tag IDs. -/
-public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0) :
+public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0)
+    (column : Nat := 0) :
     Array Segment :=
   let act : PrettyM Unit := Std.Format.prettyM f width indent
-  (act.run {}).2.segments
+  (act.run { column }).2.segments
 
 /-- Runtime-neutral segment entrypoint with no optional parameters. -/
-public def formatSegmentsForRuntime (f : Std.Format) (width indent : Nat) :
+public def formatSegmentsForRuntime (f : Std.Format) (width indent column : Nat) :
     Array Segment :=
-  formatSegments f width indent
+  formatSegments f width indent column
 
 /-- Compatibility alias for existing VIR packages. -/
 public def formatSegmentsForVir (f : Std.Format) (width indent : Nat) :
     Array Segment :=
-  formatSegmentsForRuntime f width indent
+  formatSegmentsForRuntime f width indent 0
 
 /--
 Render a `Std.Format` once into text plus a flat styling event stream.
@@ -161,9 +162,10 @@ Render a `Std.Format` once into text plus a flat styling event stream.
 Unlike `formatSegments`, this representation does not duplicate text and does
 not copy the active tag stack for each emitted chunk.
 -/
-public def formatRendered (f : Std.Format) (width : Nat) (indent : Nat := 0) : Rendered :=
+public def formatRendered (f : Std.Format) (width : Nat) (indent : Nat := 0)
+    (column : Nat := 0) : Rendered :=
   let act : RenderedM Unit := Std.Format.prettyM f width indent
-  let st := (act.run {}).2
+  let st := (act.run { column }).2
   { text := String.join st.chunks.toList, events := st.events }
 
 /--
@@ -173,12 +175,12 @@ Its execution envelope includes `prettyM`, text collection, UTF-8 byte-offset
 tracking, styling-event construction, and the final text join. It intentionally
 does not include browser annotation lookup or HTML generation.
 -/
-public def formatRenderedForRuntime (f : Std.Format) (width indent : Nat) : Rendered :=
-  formatRendered f width indent
+public def formatRenderedForRuntime (f : Std.Format) (width indent column : Nat) : Rendered :=
+  formatRendered f width indent column
 
 /-- Compatibility alias for existing VIR packages. -/
 public def formatRenderedForVir (f : Std.Format) (width indent : Nat) : Rendered :=
-  formatRenderedForRuntime f width indent
+  formatRenderedForRuntime f width indent 0
 
 /--
 Render one format from a package-resident table. A deck-specific generated
