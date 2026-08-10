@@ -204,3 +204,50 @@ backgroundColor := some "#f5f5f5"
 %%%
 
 {lean}`hello` on a light slide.
+
+# Conclusions
+
+## VIR's value is reuse
+
+- 292 lines of Lean replace 662 lines of semantic JavaScript
+- 55.9% less component code
+- Reuses `Std.Format` and Verso's canonical semantics
+- No second browser model to maintain
+
+# Runtime sharing works
+
+- Formatter, panel, and Reveal policy share one runtime
+- Second real component: +3.2 KB gzip of IR
+- No second runtime, Wasm module, or loader
+- Cold VIR still costs about 297 KB gzip
+
+*Sharing is a deployment requirement.*
+
+# Performance
+
+*Layout only — median input → committed DOM*
+
+- JavaScript: 0.135 ms
+- FIR Wasm: 0.880 ms
+- LLVM Wasm: 1.035 ms
+- VIR: 1.695 ms
+
+JavaScript wins this small surface. FIR is the fastest compiled candidate.
+
+# The useful boundary
+
+- Lean/VIR owns semantic data, policy, layout, and structure
+- JavaScript owns browser geometry and lifecycle
+- Cached VIR panel work is sub-millisecond
+- Browser frames dominate uncached mount and resize
+
+*Keep JavaScript as the experimental control.*
+
+# Recommendation
+
+- VIR: shared runtime plus Lean reuse
+- Measure the same corpus and phase boundaries
+- FIR next: flat/resident and HTML artifacts
+- Long-lived FIR needs bounded reclamation
+
+*VIR is already compelling for reuse and maintainability.*
