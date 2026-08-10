@@ -9,44 +9,54 @@ complete browser panel.
 
 The production and benchmark delivery paths are now distinct:
 
-| Path            |        Panel |    Formatter | Raw bytes | gzip bytes |
-| --------------- | -----------: | -----------: | --------: | ---------: |
-| ordinary slides |    658 lines |    662 lines |    48,673 |     12,084 |
-| formatter lab   |  2,507 lines |  2,551 lines |   191,847 |     36,801 |
-| lab overhead    | +1,849 lines | +1,889 lines |  +143,174 |    +24,717 |
+| Path                       |        Panel |    Formatter | Raw bytes | gzip bytes |
+| -------------------------- | -----------: | -----------: | --------: | ---------: |
+| pre-pilot ordinary slides  |    658 lines |    662 lines |    48,673 |     12,084 |
+| ordinary + renderer hook   |    711 lines |    662 lines |    50,901 |     12,451 |
+| formatter lab              |  2,507 lines |  2,551 lines |   191,847 |     36,801 |
+| lab over current ordinary  | +1,796 lines | +1,889 lines |  +140,946 |    +24,350 |
 
-The ordinary implementation is the last post-nested-tactic version
-before the VIR comparison work. The full matrix panel, matrix
-formatter, backend adapters, and cross-origin-isolation support now
-live under `demos/vir-pretty/web`; the demo build explicitly stages
-them. They are no longer vendored into every deck.
+The pinned baseline is the last post-nested-tactic version before the
+VIR comparison work. The current ordinary panel adds one optional
+53-line renderer boundary; without a registered renderer it follows
+the original JavaScript path. The full matrix panel, matrix formatter,
+backend adapters, and cross-origin-isolation support remain under
+`demos/vir-pretty/web`; they are not vendored into every deck.
 
 Run `node scripts/panel-component-metrics.mjs` to reproduce the source
 and delivery numbers. The script uses deterministic gzip settings.
 
 ## Management-facing source impact
 
-Assuming the VIR runtime and `VersoSlides.Pretty` are shared
-infrastructure, the current source comparison is:
+Assuming the VIR runtime, browser DOM measurer, and
+`VersoSlides.Pretty` are shared infrastructure, the current source
+comparison is:
 
-| Boundary                                                                              | JavaScript baseline | Lean/VIR pilot | Physical-line change |
-| ------------------------------------------------------------------------------------- | ------------------: | -------------: | -------------------: |
-| semantic formatter/component                                                          |                 662 |            292 |               -55.9% |
-| projected hybrid application code, before the host adapter                            |               1,320 |            950 |               -28.0% |
-| projected hybrid including the 105-line instrumented host adapter, before panel hooks |               1,320 |          1,055 |               -20.1% |
+| Boundary                                                        | JavaScript baseline | Lean/VIR candidate | Physical-line change |
+| --------------------------------------------------------------- | ------------------: | -----------------: | -------------------: |
+| semantic formatter/component                                    |                 662 |                292 |               -55.9% |
+| production panel + Lean component, before adapter               |               1,320 |              1,003 |               -24.0% |
+| hook-and-adapter production projection                          |               1,320 |              1,185 |               -10.2% |
 
-The projections retain all 658 lines of the ordinary browser panel and
-replace the 662-line JavaScript formatter with the 156-line
-compiler-neutral component, 136-line VIR/React view, and then the
-shared-runtime host adapter. The typed per-cell measurement protocol
-accounts for 37 of the additional Lean lines and 10 adapter lines
-relative to the scalar-width pilot. The opt-in lab currently adds a
-further 148 net lines to its panel for the toggle, fallback, two-pass
-measurement, and instrumentation. Charging all of that experimental UI
-as production code yields a conservative 8.9% reduction. A production
-integration should avoid carrying the lab controls and call log so
-that the combined adapter and hook stay close to the current 20%
-before-hook result.
+The projection retains the 711-line ordinary browser panel, including
+its new 53-line generic hook, and replaces the 662-line
+JavaScript formatter with the 156-line compiler-neutral component and
+136-line VIR/React view. It then fully charges the current 182-line
+host adapter. That adapter owns the two-pass browser measurement
+protocol and still contains the experiment's timed-call log, so 10.2%
+is deliberately conservative rather than a projection that excludes
+integration code. This is a source-boundary projection rather than a
+fully stripped production bundle: the demo assembly deliberately keeps
+the formatter lab to provide the shared VIR loader, processor registry,
+and JavaScript fallback. The adapter could be trimmed for shipping, but
+a second production-only protocol implementation would be a worse
+maintenance result than this pilot is meant to demonstrate.
+
+The typed per-cell measurement protocol accounts for 37 of the
+additional Lean lines relative to the scalar-width pilot. Its
+production integration is only the `render`/`release` slot: no lab
+toggle, matrix controls, or panel-specific lifecycle framework moved
+into Verso Slides.
 
 The shared Lean formatter is 526 lines and serves the formatter matrix
 as well as this component. Assembly embeds that canonical source in
@@ -83,10 +93,11 @@ The VIR-specific React view is 136 lines:
 For comparison, the remaining ordinary JavaScript responsibilities are
 visible at these boundaries:
 
-- nested DOM selection: `web-lib/panel/panel.js:386-400`;
+- nested DOM selection: `web-lib/panel/panel.js:384-399`;
+- optional production renderer boundary: `web-lib/panel/panel.js:403-425`;
 - DOM focus, content lookup, markdown, and commit:
-  `web-lib/panel/panel.js:403-489`;
-- resize/reflow: `web-lib/panel/panel.js:501-546`;
+  `web-lib/panel/panel.js:432-535`;
+- resize/reflow: `web-lib/panel/panel.js:550-580`;
 - JavaScript `prettyM`: `web-lib/panel/pretty.js:451-515`;
 - goal HTML composition and two-pass width measurement:
   `web-lib/panel/pretty.js:579-661`.
@@ -264,9 +275,11 @@ browser-to-component geometry seam without moving geometry into Lean.
    fragment automation, hover-doc lookup, markdown rendering, and
    resize observation are browser work and are intentionally not
    implemented by the Lean component.
-5. The opt-in lab hook is intentionally instrumented and adds 148 net
-   lines to `panel-lab.js`; it is evidence for the boundary, not yet
-   the minimal API we would ship in the ordinary panel.
+5. The ordinary production hook adds 53 lines, while the current host
+   adapter is 182 lines and still records the lab's per-call timings.
+   The resulting fully charged source projection is 10.2%, so adapter
+   simplification—not a larger Verso lifecycle API—is the remaining
+   human-factors opportunity.
 6. React is an additional policy/dependency for ordinary Verso Slides.
    The direct host time in repeated calls shows that changing the
    language of the view does not remove DOM/React cost.
@@ -287,21 +300,28 @@ typed content, Lean formatting, annotation resolution, and view
 composition. It is not a compelling replacement for browser
 orchestration or geometry.
 
-That hybrid now exists behind the **VIR panel component** control in
-the real demo. It keeps DOM discovery, focus/outline drawing, width
-measurement, dragging, and fallback in JavaScript while Lean/VIR owns
-the resident goal/signature React subtree.
+That hybrid now exists both behind the **VIR panel component** lab
+control and as a production-panel assembly mode. The production mode
+uses the ordinary panel, automatically selects the VIR renderer for
+resident content, remeasures it after divider changes, and falls back
+to the built-in JavaScript renderer if the optional renderer is absent
+or declines the content. DOM discovery, focus/outline drawing, width
+measurement, dragging, and fallback stay in JavaScript while Lean/VIR
+owns the resident goal/signature React subtree.
 
-The next decision point is maintainability rather than feasibility.
-Full fixed-budget parity, quantified real-layout behavior, and the
-live resize seam are established. Exact pixel parity would require
+The production prototype establishes feasibility without adding a
+generic lifecycle framework: the shipped surface is two operations and
+the original behavior remains the fallback. The source result is more
+modest than the earlier before-hook projection: 55.9% less semantic
+component code becomes 10.2% less application-specific source after
+charging the browser seam. That is useful management data by itself.
+
+The next decision point is whether the existing adapter can lose its
+lab instrumentation and become shared VIR integration code without
+duplicating the two-pass protocol. Exact pixel parity would require
 changing the JavaScript semantics, enriching `Std.Format` with
 fractional/font-aware layout, or moving more layout policy into the
-browser host; none is justified by three extremely narrow cases. The
-next useful experiment is to reduce the demo-specific generator and
-hook surface into a small production integration candidate. If that
-cannot preserve a meaningful source reduction, the formatter-only VIR
-boundary is the better maintenance trade.
+browser host; none is justified by three extremely narrow cases.
 
 ## Reproduction
 
@@ -312,5 +332,7 @@ scripts/build-vir-panel-experiment.sh
 demos/vir-pretty/scripts/assemble.sh
 python3 demos/vir-pretty/scripts/serve.py
 uv run --with playwright python demos/vir-pretty/scripts/browser-smoke.py http://127.0.0.1:18332
+VIR_PRETTY_PANEL_IMPL=production demos/vir-pretty/scripts/assemble.sh
+uv run --with playwright python demos/vir-pretty/scripts/browser-production-panel-smoke.py http://127.0.0.1:18332
 node scripts/panel-component-metrics.mjs
 ```

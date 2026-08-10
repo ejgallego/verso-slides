@@ -47,6 +47,22 @@ compares the JavaScript and VIR/React semantic DOM at eight
 expand/shrink widths. It also drags the real panel divider and
 verifies the `ResizeObserver`-driven VIR remount.
 
+To exercise the production integration rather than the comparison UI,
+assemble with the ordinary Verso Slides panel and run its focused smoke:
+
+```sh
+VIR_PRETTY_PANEL_IMPL=production scripts/assemble.sh
+python3 scripts/serve.py
+python3 scripts/browser-production-panel-smoke.py http://127.0.0.1:18332
+```
+
+This path has no panel lab controls. It verifies automatic VIR
+rendering with the JavaScript semantic formatter functions disabled,
+the real divider/reflow seam, resident signatures, and the built-in
+JavaScript fallback after those functions are restored and the
+optional renderer is removed.
+The default `VIR_PRETTY_PANEL_IMPL=lab` retains the full comparison UI.
+
 ## Panel extension boundary
 
 The demo uses two configuration surfaces:
@@ -70,14 +86,18 @@ standalone VIR benchmark webapp. After `slidesMain`,
 `scripts/assemble.sh` assigns resident format IDs in the generated
 deck and builds the matching VIR package. It then copies opaque
 runtime/native/LLVM artifacts and deliberately replaces the generated
-`lib/pretty.js` and `lib/panel.js` with `web/formatter-lab.js` and
-`web/panel-lab.js`. It does not replace `lib/panel.css`.
+`lib/pretty.js` with `web/formatter-lab.js`. In the default lab mode it
+also replaces `lib/panel.js` with `web/panel-lab.js`; production mode
+keeps the generated ordinary panel. It does not replace
+`lib/panel.css`.
 
 `panelPlugins` is intentionally a narrow API: its classic scripts
 execute synchronously in array order at the point where formatter
 registration is valid and panel initialization has not yet begun. It
 avoids a generic lifecycle framework while supporting this and other
-formatter/panel integrations.
+formatter/panel integrations. The VIR panel adapter is the last plugin
+and optionally installs `window.__versoPanelRenderer`, whose complete
+contract is `render(panel, source, target)` plus `release(panel)`.
 
 ## Main capability matrix
 

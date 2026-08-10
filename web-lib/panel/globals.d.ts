@@ -236,6 +236,14 @@ interface VersoVirPanelBridge {
     unmount?: (target: Element) => boolean;
 }
 
+/** Optional full-content renderer installed before panel.js initializes. */
+interface VersoPanelRenderer {
+    /** Return true after taking ownership of target's rendered content. */
+    render(panel: HTMLElement, source: Element, target: Element): boolean;
+    /** Cancel pending work and unmount content owned on behalf of panel. */
+    release(panel: HTMLElement): void;
+}
+
 interface Window {
     __versoPrettyConfig?: VersoPrettyConfig;
     __versoPrettyVir?: VersoPrettyVirBridge;
@@ -245,6 +253,7 @@ interface Window {
     __versoPrettyLlvm?: VersoPrettyLlvmBridge;
     __versoPrettyLlvmConfig?: VersoPrettyLlvmConfig;
     __versoVirPanel?: VersoVirPanelBridge;
+    __versoPanelRenderer?: VersoPanelRenderer;
     runVirPanelParityCorpus?: (options?: {
         widths?: number[];
         expectedContents?: number;

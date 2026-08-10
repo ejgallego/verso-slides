@@ -25,6 +25,11 @@
             });
 
         document.querySelectorAll(".code-with-panel").forEach(setupBlock);
+        window.addEventListener("verso-panel-renderer-ready", function () {
+            document.querySelectorAll(".info-panel").forEach(function (panel) {
+                reflowPanel(/** @type {InfoPanel} */ (panel));
+            });
+        });
 
         Reveal.on("fragmentshown", onFragmentShown);
         Reveal.on("fragmenthidden", onFragmentHidden);
@@ -395,6 +400,30 @@
 
     // ---- Panel update ----
 
+    /** @param {InfoPanel} panel */
+    function releasePanelRenderer(panel) {
+        var renderer = window.__versoPanelRenderer;
+        if (renderer && typeof renderer.release === "function") renderer.release(panel);
+    }
+
+    /**
+     * @param {InfoPanel} panel
+     * @param {Element} source
+     * @param {Element} target
+     * @return {boolean}
+     */
+    function tryPanelRenderer(panel, source, target) {
+        var renderer = window.__versoPanelRenderer;
+        if (!renderer || typeof renderer.render !== "function") return false;
+        try {
+            return renderer.render(panel, source, target) === true;
+        } catch (e) {
+            console.warn("Panel renderer failed; using the built-in renderer.", e);
+            releasePanelRenderer(panel);
+            return false;
+        }
+    }
+
     /**
      * @param {InfoPanel} panel
      * @param {Element} el
@@ -414,6 +443,7 @@
         if (codeEl) drawElementOutline(codeEl, el, "panel-outline-focus");
 
         // Store the source element for reflow on resize
+        releasePanelRenderer(panel);
         panel._richFormatSource = null;
 
         /** @type {string | null} */
@@ -427,18 +457,25 @@
             var ts = el.querySelector(":scope > .tactic-state");
             if (ts) {
                 var richFmt = ts.getAttribute("data-rich-format");
-                if (richFmt && typeof goalsToHtml === "function") {
+                if (richFmt) {
                     panel._richFormatSource = ts;
-                    try {
-                        var goalsData = JSON.parse(richFmt);
-                        var result = goalsToHtml(goalsData);
-                        // Pass 1: insert structural HTML so table layout computes cell widths
-                        panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                        // Pass 2: measure actual .type cell widths and format expressions
-                        var measurer = getPanelMeasurer(panel);
-                        fillReflowedSpans(panel, result.formats, measurer);
+                    if (tryPanelRenderer(panel, ts, panel)) {
                         html = null; // already set innerHTML
-                    } catch (e) {
+                    } else if (typeof goalsToHtml === "function") {
+                        try {
+                            var goalsData = JSON.parse(richFmt);
+                            var result = goalsToHtml(goalsData);
+                            // Pass 1: insert structural HTML so table layout computes cell widths
+                            panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
+                            // Pass 2: measure actual .type cell widths and format expressions
+                            var measurer = getPanelMeasurer(panel);
+                            fillReflowedSpans(panel, result.formats, measurer);
+                            html = null; // already set innerHTML
+                        } catch (e) {
+                            html = '<span class="hl lean">' + ts.innerHTML + "</span>";
+                            panel._richFormatSource = null;
+                        }
+                    } else {
                         html = '<span class="hl lean">' + ts.innerHTML + "</span>";
                         panel._richFormatSource = null;
                     }
@@ -459,20 +496,32 @@
 
         // Check for reflowable signature format data in hover content
         var sigCode = panel.querySelector("code[data-rich-format]");
-        if (sigCode && typeof formatToHtml === "function") {
-            try {
-                var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
-                panel._richFormatSource = sigCode;
-                var measurer = getPanelMeasurer(panel);
-                var width =
-                    panel.clientWidth -
-                    parseFloat(getComputedStyle(panel).paddingLeft || "0") -
-                    parseFloat(getComputedStyle(panel).paddingRight || "0");
-                var rendered = formatToHtml(fmtData.fmt, fmtData.annotations, width, measurer);
-                sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
-            } catch (e) {
-                // Fall back to plain text signature on error
-                panel._richFormatSource = null;
+        if (sigCode) {
+            panel._richFormatSource = sigCode;
+            if (!tryPanelRenderer(panel, sigCode, sigCode)) {
+                if (typeof formatToHtml === "function") {
+                    try {
+                        var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
+                        var measurer = getPanelMeasurer(panel);
+                        var width =
+                            panel.clientWidth -
+                            parseFloat(getComputedStyle(panel).paddingLeft || "0") -
+                            parseFloat(getComputedStyle(panel).paddingRight || "0");
+                        var rendered = formatToHtml(
+                            fmtData.fmt,
+                            fmtData.annotations,
+                            width,
+                            measurer,
+                        );
+                        sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
+                    } catch (e) {
+                        // Fall back to plain text signature on error
+                        panel._richFormatSource = null;
+                    }
+                } else {
+                    // The optional renderer may replace the formatter entirely.
+                    panel._richFormatSource = null;
+                }
             }
         }
 
@@ -503,6 +552,9 @@
         if (!source) return;
         var richFmt = source.getAttribute("data-rich-format");
         if (!richFmt) return;
+        var target = source.classList.contains("tactic-state") ? panel : source;
+        if (tryPanelRenderer(panel, source, target)) return;
+        releasePanelRenderer(panel);
         try {
             var parsed = JSON.parse(richFmt);
             // Detect whether this is goal data (array) or signature format data (has "fmt" key)
@@ -608,6 +660,7 @@
             drawElementOutline(codeEl, null, "panel-outline-focus");
         }
         block._activeSource = null;
+        releasePanelRenderer(panel);
         panel.innerHTML = "";
     }
 

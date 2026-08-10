@@ -13,6 +13,12 @@ native_flat_dir="$artifact_dir/lean-native-flat"
 native_flat_enabled=0
 native_html_dir="$artifact_dir/lean-native-html"
 native_html_enabled=0
+panel_impl="${VIR_PRETTY_PANEL_IMPL:-lab}"
+
+if [[ "$panel_impl" != "lab" && "$panel_impl" != "production" ]]; then
+  echo "VIR_PRETTY_PANEL_IMPL must be 'lab' or 'production'" >&2
+  exit 1
+fi
 
 required=(
   lean-vir/wasm/vir-upstream.wasm
@@ -52,11 +58,13 @@ fi
   lake build vir-pretty-demo &&
   lake exe vir-pretty-demo)
 
-# The ordinary Verso Slides package ships the compact production panel. This
-# standalone lab explicitly replaces those two generated assets with its matrix
-# formatter and control surface.
+# The ordinary Verso Slides package ships the compact production assets. The demo
+# always installs its formatter matrix; lab mode additionally installs the panel
+# comparison UI, while production mode exercises the ordinary panel hook.
 install -m 0644 "$demo_root/web/formatter-lab.js" "$out_dir/lib/pretty.js"
-install -m 0644 "$demo_root/web/panel-lab.js" "$out_dir/lib/panel.js"
+if [[ "$panel_impl" == "lab" ]]; then
+  install -m 0644 "$demo_root/web/panel-lab.js" "$out_dir/lib/panel.js"
+fi
 
 if [[ "$native_flat_enabled" -eq 1 ]]; then
   python3 - "$out_dir/index.html" <<'PY'
@@ -174,4 +182,4 @@ if [[ "$native_html_enabled" -eq 1 ]]; then
     BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
 fi
 
-echo "Assembled standalone demo at $out_dir"
+echo "Assembled standalone demo at $out_dir ($panel_impl panel)"

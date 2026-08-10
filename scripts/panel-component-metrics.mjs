@@ -34,6 +34,13 @@ for (const [name, path] of Object.entries(sources)) {
     };
 }
 
+// Pin the pre-pilot ordinary implementation. Deriving this from the mutable
+// candidate would make the production hook disappear from the comparison.
+const baseline = {
+    panelLines: 658,
+    formatterLines: 662,
+};
+const baselineApplicationLines = baseline.panelLines + baseline.formatterLines;
 const production = sum(sourceMetrics.productionPanel, sourceMetrics.productionFormatter);
 const lab = sum(sourceMetrics.labPanel, sourceMetrics.labFormatter);
 const leanSemanticLines = sourceMetrics.leanModel.lines + sourceMetrics.virReactView.lines;
@@ -50,24 +57,22 @@ const result = {
     humanFactors: {
         currentApplicationSpecificLines:
             sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines,
+        baselineApplicationSpecificLines: baselineApplicationLines,
+        productionPanelHookLines: sourceMetrics.productionPanel.lines - baseline.panelLines,
         leanSemanticLines,
-        projectedHybridLinesBeforeBridge: projectedHybridLines,
-        projectedHybridLineReductionPercent: roundPercent(
-            1 -
-                projectedHybridLines /
-                    (sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines),
+        productionProjectionLinesBeforeAdapter: projectedHybridLines,
+        productionProjectionBeforeAdapterReductionPercent: roundPercent(
+            1 - projectedHybridLines / baselineApplicationLines,
         ),
-        projectedHybridWithAdapterLinesBeforePanelHooks: projectedHybridWithAdapterLines,
-        projectedHybridWithAdapterLineReductionPercent: roundPercent(
-            1 -
-                projectedHybridWithAdapterLines /
-                    (sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines),
+        productionProjectionLines: projectedHybridWithAdapterLines,
+        productionProjectionLineReductionPercent: roundPercent(
+            1 - projectedHybridWithAdapterLines / baselineApplicationLines,
         ),
         semanticLineReductionPercent: roundPercent(
             1 - leanSemanticLines / sourceMetrics.productionFormatter.lines,
         ),
         sharedPrettyLines: sourceMetrics.sharedPretty.lines,
-        note: "The first projection excludes the host adapter. The second includes the adapter that borrows the formatter runtime but still excludes the opt-in control and panel hook lines.",
+        note: "The pinned baseline is the 658-line panel plus 662-line formatter before this pilot. The source projection fully charges the generic panel hook and current instrumented host adapter, while treating the VIR loader and DOM measurer as shared host infrastructure; the demo bundle retains the formatter lab.",
     },
 };
 

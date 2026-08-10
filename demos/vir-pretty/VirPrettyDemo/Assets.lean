@@ -38,8 +38,7 @@ def config : Config := {
   outputDir := "_site"
   extraHead := #[
     runtimeConfig,
-    {{ <script src={{"vir-pretty/coi-register.js"}}></script> }},
-    {{ <script type="module" src={{"vir-pretty/panel-component.js"}}></script> }}
+    {{ <script src={{"vir-pretty/coi-register.js"}}></script> }}
   ]
   panelPlugins := #[
     "vir-pretty/pretty-experiments.js",
@@ -47,7 +46,8 @@ def config : Config := {
     "vir-pretty/pretty-native.js",
     "vir-pretty/pretty-native-flat.js",
     "vir-pretty/pretty-native-html.js",
-    "vir-pretty/pretty-llvm.js"
+    "vir-pretty/pretty-llvm.js",
+    "vir-pretty/panel-component.js"
   ]
 }
 
