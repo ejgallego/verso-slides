@@ -42,6 +42,31 @@ async def main() -> None:
         )
         assert await page.evaluate("typeof window.__versoPanelRenderer?.render") == "function"
         assert await page.locator(".pretty-controls").count() == 0
+        shared_policy = await page.evaluate(
+            """async () => {
+              const planner = await window.__versoRevealPolicyBackend;
+              const step = {frame: 0, pause: false, loop: false};
+              const commands = planner.plan({
+                totalFrames: 12,
+                steps: [step],
+                pauseSteps: [],
+                autoplay: false
+              }, {kind: 'slideEntered', value: 0});
+              return {
+                name: planner.name,
+                sharedRuntime: planner.runtime === window.__versoVirPanel.runtime,
+                commands: commands.map(command => ({
+                  kind: command.kind,
+                  value: command.value === undefined ? null : Number(command.value)
+                }))
+              };
+            }"""
+        )
+        assert shared_policy == {
+            "name": "vir",
+            "sharedRuntime": True,
+            "commands": [{"kind": "seek", "value": 0}],
+        }
         has_js_fallback = await page.evaluate(
             """() => {
               window.__productionPanelFallback = {

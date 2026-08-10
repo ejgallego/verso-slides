@@ -77,6 +77,24 @@ python3 scripts/browser-profile-measure.py vir-fallback http://127.0.0.1:18332 _
 python3 scripts/browser-profile-measure.py vir-only http://127.0.0.1:18331 _profiles/vir-only
 ```
 
+Formatter backends, including FIR, can be measured without starting a server or
+driving the controls by hand:
+
+```sh
+python3 scripts/browser-backend-measure.py --build --backend js --backend fir
+python3 scripts/browser-backend-measure.py --backend js --backend vir --backend fir --backend llvm \
+  --code-points 256 --output _profiles/results/backend-current.json
+```
+
+`fir` selects the primary FIR layout implementation; `fir-all` selects every
+available FIR artifact variant. The harness discovers all generated formats,
+tests widths 20/40/80, interleaves backend order, checks every populated DOM
+against JavaScript, and reports marshal/execute/decode/materialization phases,
+startup metadata, browser heap, and FIR adapter memory. `--code-points` repeats
+each format to a common minimum source volume so sub-millisecond calls remain
+measurable. Each command starts a fresh browser and FIR adapter, which also
+bounds the current instance-lifetime bump arena.
+
 ## Panel extension boundary
 
 The demo uses two configuration surfaces:
@@ -94,8 +112,8 @@ artifacts, runtime configuration, processor controls, and presentation
 content. A shared `vir-loader.js` owns package-set/runtime bootstrap;
 the formatter lab and production component are independent clients of
 that bridge. The demo loads one React-capable runtime. Lab mode generates
-one package containing every formatter and panel-component export;
-production VIR profiles generate a two-export panel-only package.
+one package containing every formatter and component export; production VIR
+profiles generate a three-export package for the panel and Reveal policy.
 Benchmark execution and report
 visualization are intentionally absent: they now belong to the
 standalone VIR benchmark webapp. After `slidesMain`,
@@ -218,11 +236,12 @@ lean-llvm/{README.md,SHA256SUMS,emscripten-loader.mjs,
 the assembled deck. Lab mode closes the canonical `VersoSlides.Pretty`
 operations, deduplicated format/annotation table, and complete resident
 panel contents over one shared table. Production VIR profiles retain the
-same resident contents but expose only `mountContent` and `unmount`;
-the current result is 14 package members and two exports rather than the
-lab package's 21 members and nine exports. The React-capable runtime
-serves both formatter and component clients in lab mode, and the browser
-smoke asserts that both bridges hold the same runtime object. Set
+same resident contents and expose `mountContent`, `unmount`, and the Lean
+Reveal policy planner. The current result is 15 package members and three
+exports rather than the lab package's 22 members and ten exports. The
+React-capable runtime serves the formatter, panel, and Reveal-policy clients;
+the browser smokes assert that all three bridges hold the same runtime object
+and execute a policy case. Set
 `LEAN_VIR_DIR` to a built VIR checkout
 when it is not available at `../../_artifacts/lean-vir`.
 

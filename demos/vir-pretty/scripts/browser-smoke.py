@@ -328,10 +328,31 @@ async def main() -> None:
         assert resident_boundary["status"] == "ready"
         assert resident_boundary["contentId"] >= 0
         assert resident_boundary["columns"] >= 1
-        assert resident_boundary["packageCount"] == 21
-        assert resident_boundary["interfaceExports"] == 9
+        assert resident_boundary["packageCount"] == 22
+        assert resident_boundary["interfaceExports"] == 10
         assert resident_boundary["sharedRuntime"] is True
         assert resident_boundary["totalMs"] >= 0
+        shared_policy = await page.evaluate(
+            """async () => {
+              const planner = await window.__versoRevealPolicyBackend;
+              const commands = planner.plan({
+                totalFrames: 12,
+                steps: [{frame: 0, pause: false, loop: false}],
+                pauseSteps: [],
+                autoplay: false
+              }, {kind: 'slideEntered', value: 0});
+              return {
+                sharedRuntime: planner.runtime === window.__versoVirPanel.runtime,
+                command: commands[0].kind,
+                frame: Number(commands[0].value)
+              };
+            }"""
+        )
+        assert shared_policy == {
+            "sharedRuntime": True,
+            "command": "seek",
+            "frame": 0,
+        }
         first_boundary = await page.evaluate(
             """() => window.__versoVirPanel.calls
               .filter(call => call.kind === 'mount')

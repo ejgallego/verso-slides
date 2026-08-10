@@ -131,7 +131,11 @@ try {
         formatCount: registry.formatCount,
         contentCount: registry.panelContentCount,
         runtimeInstances: 1,
-        exports: ["VirPanelRegistry.mountContent", "VirPanelRegistry.unmount"],
+        exports: [
+            ...(registry.sharedComponentEntrypoints ?? []),
+            "VirPanelRegistry.mountContent",
+            "VirPanelRegistry.unmount",
+        ],
     };
 } catch (error) {
     result.productionVirArtifact = {

@@ -10,17 +10,17 @@ annotation resolution, component policy, and React VDOM construction.
 
 - The Lean semantic component is 292 physical lines versus 662 lines for the
   JavaScript formatter/goal renderer: **55.9% less component code**.
-- A deployable `vir-only` profile is 1,359 application-specific lines after
-  charging its panel hook, loader, geometry measurer, and adapter: **3.0% more**
-  than the pinned 1,320-line pre-pilot JavaScript implementation. If the
-  generic 109-line VIR loader is shared by another component, the incremental
-  result becomes **5.3% less**.
-- The warmed VIR call is fast—**0.21–0.26 ms execute** and **0.34–0.44 ms total**—
-  but the complete repeated selection/remount is about **80 ms**, versus
-  **24 ms** for JavaScript. The dominant gap is the asynchronous two-frame,
-  two-pass browser protocol, not Lean formatting.
-- Without an already resident VIR runtime, `vir-only` adds **293 KB gzip** to
-  resources actually loaded by the page (+34.3%). Runtime sharing is therefore
+- The now-instrumented `vir-only` profile is 1,431 application-specific lines
+  after charging its hook, loader, geometry measurer, cache, and adapter:
+  **8.4% more** than the pinned 1,320-line pre-pilot JavaScript implementation.
+  Since the Reveal policy now demonstrably shares the 109-line loader/runtime,
+  the incremental panel allocation is 1,322 lines: **0.2% more**.
+- Cached repeated selections spend **0.49–0.66 ms** in the complete VIR
+  interaction, including a **0.30–0.38 ms** execute phase. The observation
+  harness sees about **44 ms** after two settling frames, versus **30 ms** for
+  JavaScript. Uncached first/resize work is dominated by the frame wait.
+- Without an already resident VIR runtime, `vir-only` adds **297 KB gzip** to
+  resources actually loaded by the page (+34.7%). Runtime sharing is therefore
   a prerequisite for an attractive deployment story.
 - All 59 generated resident contents render through the production hook. The
   fuller differential corpus checks 472 semantic-DOM cases and 68 real-geometry
@@ -29,8 +29,9 @@ annotation resolution, component policy, and React VDOM construction.
 
 This is a positive component/API result and a mixed production result. VIR
 makes the semantic code smaller, typed, reusable, and directly based on Lean
-values. It does not make browser geometry disappear, and a one-component deck
-does not amortize the runtime.
+values. It does not make browser geometry disappear. A second real component
+now amortizes the runtime, but one additional 3.2-KB-gzip IR member does not by
+itself amortize the initial 244-KB-gzip runtime/Wasm base.
 
 ## Actual assembly profiles
 
@@ -40,9 +41,9 @@ production measurement.
 | Profile | Selected implementation | Application source | Change from 1,320-line baseline |
 | --- | --- | ---: | ---: |
 | `js` | ordinary panel + JavaScript formatter | 1,374 | +54 (+4.1%) |
-| `vir-fallback` | VIR component + complete JS fallback | 1,971 | +651 (+49.3%) |
-| `vir-only` | VIR component + geometry-only JS | 1,359 | +39 (+3.0%) |
-| `vir-only`, loader already shared | same, loader amortized | 1,250 | -70 (-5.3%) |
+| `vir-fallback` | VIR component + complete JS fallback | 2,043 | +723 (+54.8%) |
+| `vir-only` | VIR component + geometry-only JS | 1,431 | +111 (+8.4%) |
+| `vir-only`, loader shared with Reveal policy | incremental panel allocation | 1,322 | +2 (+0.2%) |
 
 The 54-line ordinary-panel delta consists of the 53-line generic renderer
 hook and a one-line readiness fix. The `vir-only` count fully charges:
@@ -50,12 +51,12 @@ hook and a one-line readiness fix. The `vir-only` count fully charges:
 - ordinary panel: 712 lines;
 - geometry-only measurer: 50 lines;
 - generic VIR loader: 109 lines;
-- production panel adapter: 196 lines;
+- production panel adapter with phase records and width cache: 268 lines;
 - compiler-neutral Lean model plus VIR/React view: 292 lines.
 
 It excludes the canonical 526-line `VersoSlides.Pretty` module because it is
 shared Lean infrastructure reused by multiple consumers. Charging it in full
-raises the candidate to 1,885 lines (+42.8%). Generated registry source and
+raises the candidate to 1,957 lines (+48.3%). Generated registry source and
 build tooling are also reported as generation cost, not handwritten component
 source. Run `node scripts/panel-component-metrics.mjs` to reproduce every
 source number.
@@ -97,51 +98,97 @@ measures each rich-text cell; the second mount supplies integer-column widths.
 
 ## Production artifact and delivery
 
-Production generation specializes the registry to the component surface. It
-has **14 IR members and 2 exports**, down from the lab package's 21 members and
-9 exports. It still contains 58 deduplicated formats and all 59 goal/signature
-contents because those are resident component data.
+Production generation specializes the registry to two component surfaces. It
+has **15 IR members and 3 exports**, down from the lab package's 22 members and
+10 exports. It contains 58 deduplicated formats and all 59 goal/signature
+contents, plus the existing Lean Reveal policy planner.
 
 | Production VIR artifact | Raw bytes | gzip bytes |
 | --- | ---: | ---: |
 | Wasm runtime | 636,389 | 146,610 |
 | React runtime JavaScript | 342,184 | 97,523 |
-| 14 IR package members | 1,232,330 | 54,423 |
+| 15 IR package members | 1,252,378 | 57,610 |
+
+The second component is actual rather than projected: the Reveal policy adapter
+receives the same runtime object as the panel and calls
+`VirPanelRegistry.planRevealPolicy`. Relative to the panel-only closure, this
+adds one member, one export, 20,048 raw IR bytes, and 3,187 gzip bytes—no second
+runtime, Wasm module, or loader.
 
 Measured browser delivery after forced reload:
 
 | Profile | Loaded resources gzip | Panel pipeline gzip | Published site gzip |
 | --- | ---: | ---: | ---: |
-| `js` | 855,547 | 21,099 | 1,826,331 |
-| `vir-fallback` | 1,153,930 | 319,172 | 2,125,459 |
-| `vir-only` | 1,148,728 | 313,970 | 2,120,257 |
+| `js` | 855,770 | 21,099 | 1,826,554 |
+| `vir-fallback` | 1,157,823 | 322,842 | 2,129,391 |
+| `vir-only` | 1,152,621 | 317,640 | 2,124,189 |
 
 `vir-only` saves only 5.2 KB gzip relative to retaining the fallback because
 the JavaScript formatter is small beside the runtime. Relative to `js`, it
-adds 293,181 loaded gzip bytes and 293,926 published-site gzip bytes. With a
+adds 296,851 loaded gzip bytes and 297,635 published-site gzip bytes. With a
 shared VIR runtime the incremental component is primarily its IR closure, but
 this run deliberately charges the whole cold dependency closure.
 
 ## Runtime and memory
 
-These are local headless-Chrome measurements, one cold context and nine
-repeated real selections per profile. Wall time includes the UI protocol;
-VIR phase time is taken from `callTimed` for the final measured mount.
+These are local headless-Chrome measurements. The table uses the median of
+three fresh campaigns for JavaScript and `vir-fallback`, with nine real
+selections per campaign. Wall time includes two observation frames after the
+content is ready; the interaction record stops when the final mount completes.
 
-| Profile | VIR startup | First wall | Repeated wall median | VIR execute | VIR call total | Resize wall | Used-heap delta |
+| Profile | VIR startup | First wall | Repeated wall | VIR execute | VIR call total | Resize wall | Used-heap delta |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `js` | — | 33.70 ms | 24.36 ms | — | — | 161.95 ms | +0.90 MB |
-| `vir-fallback` | 110.70 ms | 67.23 ms | 80.17 ms | 0.21 ms | 0.34 ms | 197.18 ms | +2.11 MB |
-| `vir-only` | 109.86 ms | 68.11 ms | 80.20 ms | 0.26 ms | 0.44 ms | 196.98 ms | +2.11 MB |
+| `js` | — | 22.75 ms | 29.59 ms | — | — | 162.06 ms | +0.88 MB |
+| `vir-fallback` | 341.60 ms | 77.30 ms | 44.26 ms | 0.35 ms | 0.50 ms | 195.26 ms | +1.99 MB |
+| `vir-only` (one campaign) | 287.46 ms | 77.53 ms | 44.20 ms | 0.30 ms | 0.42 ms | 192.54 ms | +1.99 MB |
 
-The production-only package reduced cold VIR startup from the earlier
-lab-shaped observation of roughly 392 ms to roughly 110 ms. The much larger
-repeated wall time is not evidence of a compiler hotspot: the adapter first
-commits a structural React tree, waits two animation frames, measures browser
-geometry, then commits final content. Optimizing Lean `prettyM` would have
-negligible effect on the current 56 ms wall-time gap. The next performance
-experiment should instrument frame wait, structure commit, measurement, and
-final commit separately, then test whether geometry can be cached safely.
+Cold startup varied from 273 to 445 ms across the three VIR campaigns, so it
+should not be summarized from one run. The phase instrumentation is much more
+diagnostic:
+
+| Interaction | Structure call | Frame wait | Measure | Final call | Complete interaction |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| first uncached | 8.43 ms | 25.52 ms | 1.12 ms | 1.08 ms | 36.22 ms |
+| repeated cached | 0 | 0 | 0 | 0.52 ms | 0.63 ms |
+| resize/re-measure | 0.42 ms | 29.69 ms | 0.91 ms | 0.49 ms | 31.61 ms |
+
+All 27 repeated selections across the three campaigns hit the width cache.
+The cache is keyed by the persistent source element, resident content ID, and
+panel width; an actual width change still runs the structural/measurement
+protocol. It cuts the earlier roughly 80-ms repeated wall observation to
+44 ms and makes the component's own work sub-millisecond. The remaining wall
+gap largely comes from the harness's settling frames and general click/panel
+orchestration rather than `prettyM`.
+
+## Generic backend and FIR measurement
+
+`browser-backend-measure.py` now serves the lab itself and exposes aliases for
+`vir`, `fir`, and `fir-all`. It discovers all 58 generated formats, interleaves
+backend order at widths 20/40/80, verifies populated-DOM parity, and records
+every phase. Three campaigns used seven repetitions and at least 256 source
+code points per timed batch: 1,218 measured batches per backend per campaign
+and no parity failures. The table takes the median campaign.
+
+| Backend | Execute median / p90 | Marshal median | Decode median | Committed median / p90 |
+| --- | ---: | ---: | ---: | ---: |
+| JavaScript | 0.035 / 0.070 ms | 0.005 ms | 0 | 0.135 / 0.320 ms |
+| VIR typed Format | 0.855 / 1.655 ms | 0.560 ms | 0.085 ms | 1.695 / 3.405 ms |
+| FIR Wasm PrettyTrace | 0.260 / 0.495 ms | 0.215 ms | 0.265 ms | 0.880 / 1.760 ms |
+| LLVM/Emscripten | 0.570 / 1.155 ms | 0.235 ms | 0.080 ms | 1.035 / 2.175 ms |
+
+These are batch totals, not per-format single-call medians. FIR is about 3.3×
+faster than VIR in execute and about 1.9× faster at the committed boundary in
+this controlled layout-only surface. Its input marshal and PrettyTrace decode
+together cost more than execute, reinforcing the case for the planned
+resident/flat or broader FIR artifacts.
+
+The campaign also exposes the current FIR ownership tradeoff: the documented
+instance-lifetime bump arena grew from byte 1,024 to 277,828,872 across 51,360
+render calls in each campaign. This is expected from the artifact capability
+metadata, not a newly inferred leak. The harness launches a fresh browser and
+adapter per command, reports first/last frontier and pages, and lets callers
+lower `--code-points` or repetitions when memory rather than timing resolution
+is the target.
 
 ## Correctness and interaction evidence
 
@@ -181,21 +228,24 @@ VIR improves the part of the panel that naturally belongs to Lean:
 3. The model is compiler-neutral; only the 136-line view imports VIR/React.
 4. The package manifest makes reached declarations, imports, exports, Lean
    version, and artifact membership inspectable.
-5. The same loader and runtime can serve future VIR components.
+5. The same loader/runtime now serves the formatter, panel, and Reveal policy;
+   the smokes verify runtime object identity and a real policy result.
 
 The costs are equally concrete:
 
 1. Browser geometry remains a host capability and requires a two-pass API.
-2. The current 196-line adapter is substantial and contains measurement and
-   timing policy that should be simplified before upstreaming.
+2. The current 268-line adapter is substantial because it includes the width
+   cache and experiment-phase records; production extraction should separate
+   diagnostics without duplicating lifecycle policy.
 3. Runtime delivery and retained heap dominate a one-component deployment.
 4. React becomes policy for this subtree.
 5. Package generation is useful but still demo-specific build machinery.
 
-The right next pilot is not “more Lean at any cost.” It is a second component
-using the same loader/runtime, together with phase instrumentation around the
-two-pass mount. That directly tests the two assumptions on which the favorable
-case rests: runtime reuse and a reusable host adapter.
+The second-component and host-phase pilots are now complete. The next decision
+is whether to extract the shared runtime-provider contract and width-cache
+policy as small Verso APIs, while leaving measurement scripts in the demo. For
+FIR, the new generic harness should be rerun when the flat/resident and HTML
+artifacts arrive; it already selects them through `--backend fir-all`.
 
 ## Reproduction
 
@@ -214,6 +264,8 @@ python3 scripts/serve.py --port 18331 --directory _profiles/vir-only
 python3 scripts/serve.py --port 18332 --directory _profiles/vir-fallback
 python3 scripts/browser-production-panel-smoke.py http://127.0.0.1:18332
 python3 scripts/browser-profile-measure.py vir-fallback http://127.0.0.1:18332 _profiles/vir-fallback
+python3 scripts/browser-backend-measure.py --backend js --backend vir --backend fir --backend llvm \
+  --code-points 256 --output _profiles/results/backend-current.json
 
 node ../../scripts/panel-component-metrics.mjs
 ```

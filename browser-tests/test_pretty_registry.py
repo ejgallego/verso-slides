@@ -119,6 +119,9 @@ def test_combined_registry_exports_formatter_and_panel_surfaces(tmp_path: Path):
     assert metadata["renderPlanEntrypoint"] == "VirPanelRegistry.formatRenderPlanById"
     assert metadata["panelContentCount"] == 1
     assert metadata["panelEntrypoint"] == "VirPanelRegistry.mountContent"
+    assert metadata["sharedComponentEntrypoints"] == [
+        "VirPanelRegistry.planRevealPolicy"
+    ]
 
 
 def test_panel_only_registry_omits_formatter_exports(tmp_path: Path):
@@ -145,6 +148,7 @@ def test_panel_only_registry_omits_formatter_exports(tmp_path: Path):
     source = lean_output.read_text()
     assert "def mountContent" in source
     assert "def unmount" in source
+    assert "def planRevealPolicy" in source
     assert "def formatSegments" not in source
     assert "def formatRenderedById" not in source
 
@@ -153,3 +157,6 @@ def test_panel_only_registry_omits_formatter_exports(tmp_path: Path):
     assert "renderPlanEntrypoint" not in metadata
     assert metadata["panelContentCount"] == 1
     assert metadata["panelEntrypoint"] == "VirPanelRegistry.mountContent"
+    assert metadata["sharedComponentEntrypoints"] == [
+        "VirPanelRegistry.planRevealPolicy"
+    ]

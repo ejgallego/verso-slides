@@ -6,9 +6,9 @@
 
 (function () {
     /**
-     * @typedef {{runtimeUrl: string, wasmUrl: string, irPackageUrl: string}} VirPolicyConfig
-     * @typedef {{call: (name: string, ...args: unknown[]) => unknown, dispose: () => void}} VirRuntime
-     * @typedef {Window & {__versoRevealVirPolicyConfig?: VirPolicyConfig, __versoRevealPolicyBackend?: Promise<{name: string, plan: (policy: unknown, event: unknown) => unknown[], dispose: () => void}>}} VirPolicyWindow
+     * @typedef {{runtimeUrl?: string, wasmUrl?: string, irPackageUrl?: string, runtimeProvider?: () => Promise<VirRuntime | null | undefined> | VirRuntime | null | undefined, exportName?: string}} VirPolicyConfig
+     * @typedef {{call: (name: string, ...args: unknown[]) => unknown, dispose?: () => void}} VirRuntime
+     * @typedef {Window & {__versoRevealVirPolicyConfig?: VirPolicyConfig, __versoRevealPolicyBackend?: Promise<{name: string, runtime: VirRuntime, plan: (policy: unknown, event: unknown) => unknown[], dispose: () => void}>}} VirPolicyWindow
      */
     var root = /** @type {VirPolicyWindow} */ (window);
     var requested = new URLSearchParams(window.location.search).get("revealPolicy") === "vir";
@@ -32,30 +32,51 @@
 
     var selectedConfig = config;
     root.__versoRevealPolicyBackend = (async function () {
-        var module = await import(selectedConfig.runtimeUrl);
-        if (typeof module.createVirRuntime !== "function") {
-            throw new Error("VIR runtime module does not export createVirRuntime");
+        /** @type {VirRuntime | null | undefined} */
+        var runtime;
+        var ownsRuntime = false;
+        if (selectedConfig.runtimeProvider) {
+            runtime = await selectedConfig.runtimeProvider();
+            if (!runtime || typeof runtime.call !== "function") {
+                throw new Error("shared VIR runtime provider returned no callable runtime");
+            }
+        } else {
+            if (
+                !selectedConfig.runtimeUrl ||
+                !selectedConfig.wasmUrl ||
+                !selectedConfig.irPackageUrl
+            ) {
+                throw new Error("standalone VIR Reveal policy requires runtime, Wasm, and IR URLs");
+            }
+            var module = await import(selectedConfig.runtimeUrl);
+            if (typeof module.createVirRuntime !== "function") {
+                throw new Error("VIR runtime module does not export createVirRuntime");
+            }
+            var assets = await Promise.all([
+                fetchBytes(selectedConfig.wasmUrl),
+                fetchBytes(selectedConfig.irPackageUrl),
+            ]);
+            runtime = /** @type {VirRuntime} */ (
+                await module.createVirRuntime({
+                    wasmBytes: assets[0],
+                    irPackageSetBytes: [assets[1]],
+                })
+            );
+            ownsRuntime = true;
         }
-        var assets = await Promise.all([
-            fetchBytes(selectedConfig.wasmUrl),
-            fetchBytes(selectedConfig.irPackageUrl),
-        ]);
-        var runtime = /** @type {VirRuntime} */ (
-            await module.createVirRuntime({
-                wasmBytes: assets[0],
-                irPackageSetBytes: [assets[1]],
-            })
-        );
+        var selectedRuntime = runtime;
+        var exportName = selectedConfig.exportName || "VersoSlides.RevealPolicy.Policy.plan";
         return {
             name: "vir",
+            runtime: selectedRuntime,
             plan: function (policy, event) {
-                var value = runtime.call("VersoSlides.RevealPolicy.Policy.plan", policy, event);
+                var value = selectedRuntime.call(exportName, policy, event);
                 if (!Array.isArray(value))
                     throw new Error("VIR Reveal policy returned a non-array");
                 return value;
             },
             dispose: function () {
-                runtime.dispose();
+                if (ownsRuntime) selectedRuntime.dispose?.();
             },
         };
     })();

@@ -20,6 +20,7 @@
         "panel-component.js",
         "panel-measurer.js",
         "../scripts/panel-parity-corpus.js",
+        "../scripts/backend-measure.js",
         "coi-register.js",
         "../../../web-lib/panel/globals.d.ts"
     ]

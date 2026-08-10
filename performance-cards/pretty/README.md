@@ -4,6 +4,7 @@ These self-contained Markdown cards turn benchmark observations into forwardable
 
 | Card | Intended owner | Observation |
 | --- | --- | --- |
+| [FIR-001](FIR-001-browser-layout-corpus.md) | FIR compiler / artifact / adapter | FIR layout is fast; ABI and arena ownership now have a reproducible browser control |
 | [VIR-001](VIR-001-json-boundary.md) | Runtime / browser ABI | JSON boundary dominates VIR time |
 | [VIR-002](VIR-002-direct-format-execution.md) | Compiler / runtime | Direct ABI is viable; structural execution needs profiling |
 | [VIR-003](VIR-003-shared-memory-growth.md) | Runtime / allocator / GC | Shared linear-memory high-water needs attribution |
@@ -21,7 +22,7 @@ python3 scripts/generate-pretty-observation-cards.py --check
 
 `--check` is suitable for review or CI: it fails if any card is missing or stale. Both report and output paths are restricted to this workspace.
 
-VIR-004 and VIR-005 record newer focused prototypes separately. Their cases
+FIR-001, VIR-004, and VIR-005 record newer focused prototypes separately. Their cases
 should move into the standalone VIR benchmark webapp before they join the
 generated campaign.
 

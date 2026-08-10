@@ -122,6 +122,8 @@ interface VersoPrettyNativeBridge {
     ready?: Promise<unknown>;
     error?: unknown;
     build?: unknown;
+    lastMemory?: Record<string, number>;
+    startupTimings?: Record<string, number>;
     formatSegments?: (fmtJson: unknown, width: number, indent: number, column: number) => Segment[];
     formatSegmentsTimed?: (
         fmtJson: unknown,
@@ -157,6 +159,8 @@ interface VersoPrettyLlvmBridge {
     ready?: Promise<unknown>;
     error?: unknown;
     manifest?: unknown;
+    lastMemory?: Record<string, number>;
+    startupTimings?: Record<string, number>;
     dispose?: () => void;
     formatSegments?: (fmtJson: unknown, width: number, indent: number, column: number) => Segment[];
     formatSegmentsTimed?: (
@@ -222,12 +226,27 @@ interface VersoVirPanelCall {
     timings: VersoPrettyVirCallTimings;
 }
 
+interface VersoVirPanelInteraction {
+    contentId: number;
+    cacheHit: boolean;
+    widths: number[];
+    structureCallMs: number;
+    frameWaitMs: number;
+    measureMs: number;
+    finalCallMs: number;
+    totalMs: number;
+    structureTimings?: VersoPrettyVirCallTimings;
+    finalTimings?: VersoPrettyVirCallTimings;
+}
+
 interface VersoVirPanelBridge {
     status: string;
     error?: unknown;
     runtime?: VersoPrettyVirRuntime;
     lastCall?: VersoPrettyVirTimedCall;
     calls: VersoVirPanelCall[];
+    lastInteraction?: VersoVirPanelInteraction;
+    interactions: VersoVirPanelInteraction[];
     ready?: Promise<unknown>;
     mount?: (
         target: Element,
@@ -252,6 +271,8 @@ interface Window {
     __versoPrettyVirConfig?: VersoPrettyVirConfig;
     __versoPrettyNative?: VersoPrettyNativeBridge;
     __versoPrettyNativeConfig?: VersoPrettyNativeConfig;
+    __versoPrettyNativeFlat?: VersoPrettyNativeBridge;
+    __versoPrettyNativeHtml?: VersoPrettyNativeBridge;
     __versoPrettyLlvm?: VersoPrettyLlvmBridge;
     __versoPrettyLlvmConfig?: VersoPrettyLlvmConfig;
     __versoVirPanel?: VersoVirPanelBridge;
@@ -263,6 +284,13 @@ interface Window {
     runVirPanelGeometryCorpus?: (options?: {
         panelWidths?: number[];
         expectedGoals?: number;
+    }) => Promise<unknown>;
+    runPrettyBackendMeasurement?: (options: {
+        backends: string[];
+        widths?: number[];
+        repetitions?: number;
+        warmups?: number;
+        minimumCodePoints?: number;
     }) => Promise<unknown>;
 }
 

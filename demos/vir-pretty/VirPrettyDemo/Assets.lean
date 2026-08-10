@@ -11,8 +11,16 @@ private def virRuntimeFields : List String := [
   "  irPackageSetUrl: new URL(\"vir-pretty/vir-ir/VirPanelRegistry.irpkg-set.json\", window.location.href).href,"
 ]
 
+private def sharedRevealPolicyConfig : List String := [
+  "window.__versoRevealVirPolicyConfig = {",
+  "  runtimeProvider: function () { return window.__versoPrettyVir && window.__versoPrettyVir.ready; },",
+  "  exportName: \"VirPanelRegistry.planRevealPolicy\"",
+  "};"
+]
+
 def productionRuntimeConfig : Html := Html.text false <| String.intercalate "\n" <|
-  ["<script>", "window.__versoPrettyVirConfig = {"] ++ virRuntimeFields ++ ["};", "</script>"]
+  ["<script>", "window.__versoPrettyVirConfig = {"] ++ virRuntimeFields ++ ["};"] ++
+    sharedRevealPolicyConfig ++ ["</script>"]
 
 def labRuntimeConfig : Html := Html.text false <| String.intercalate "\n" <| [
   "<script>",
@@ -35,9 +43,8 @@ def labRuntimeConfig : Html := Html.text false <| String.intercalate "\n" <| [
   "window.__versoPrettyLlvmConfig = {",
   "  adapterUrl: new URL(\"vir-pretty/lean-llvm/prettyM-emscripten-adapter.mjs\", window.location.href).href,",
   "  manifestUrl: new URL(\"vir-pretty/lean-llvm/prettyM.manifest.json\", window.location.href).href",
-  "};",
-  "</script>"
-]
+  "};"
+] ++ sharedRevealPolicyConfig ++ ["</script>"]
 
 private def baseConfig : Config := {
   theme := "black"

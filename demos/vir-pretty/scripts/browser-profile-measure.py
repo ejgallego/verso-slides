@@ -31,13 +31,15 @@ async def render_once(page: Page, block, panel, target, vir: bool) -> dict:
           panel.innerHTML = '';
           const calls = vir ? window.__versoVirPanel.calls : [];
           const before = vir ? calls.filter(call => call.kind === 'mount').length : 0;
+          const interactions = vir ? window.__versoVirPanel.interactions : [];
+          const interactionsBefore = interactions.length;
           const started = performance.now();
           target.click();
           const deadline = started + 30000;
           while (true) {
             const ready = vir
               ? panel.querySelector('.goal [data-binding]')
-                && calls.filter(call => call.kind === 'mount').length >= before + 2
+                && interactions.length > interactionsBefore
               : panel.querySelector('.goal .reflowed');
             if (ready) break;
             if (performance.now() > deadline) throw new Error('panel render timed out');
@@ -49,7 +51,11 @@ async def render_once(page: Page, block, panel, target, vir: bool) -> dict:
             ? calls.filter(call => call.kind === 'mount').slice(before)
                 .map(call => ({measureOnly: call.measureOnly, timings: call.timings}))
             : [];
-          return {wallMs: performance.now() - started, mounts};
+          return {
+            wallMs: performance.now() - started,
+            mounts,
+            interaction: vir ? interactions.at(-1) : null
+          };
         }""",
         {"block": block, "panel": panel, "target": target, "vir": vir},
     )
@@ -61,6 +67,8 @@ async def resize_once(page: Page, block, panel, vir: bool) -> dict:
           const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
           const calls = vir ? window.__versoVirPanel.calls : [];
           const before = vir ? calls.filter(call => call.kind === 'mount').length : 0;
+          const interactions = vir ? window.__versoVirPanel.interactions : [];
+          const interactionsBefore = interactions.length;
           const marker = panel.querySelector('.goal');
           if (marker) marker.setAttribute('data-profile-resize-marker', '1');
           const started = performance.now();
@@ -71,7 +79,7 @@ async def resize_once(page: Page, block, panel, vir: bool) -> dict:
             const markerGone = !panel.querySelector('[data-profile-resize-marker]');
             const ready = vir
               ? panel.querySelector('.goal [data-binding]')
-                && calls.filter(call => call.kind === 'mount').length >= before + 2
+                && interactions.length > interactionsBefore
               : markerGone && panel.querySelector('.goal .reflowed');
             if (ready) break;
             if (performance.now() > deadline) throw new Error('panel resize timed out');
@@ -83,7 +91,11 @@ async def resize_once(page: Page, block, panel, vir: bool) -> dict:
             ? calls.filter(call => call.kind === 'mount').slice(before)
                 .map(call => ({measureOnly: call.measureOnly, timings: call.timings}))
             : [];
-          return {wallMs: performance.now() - started, mounts};
+          return {
+            wallMs: performance.now() - started,
+            mounts,
+            interaction: vir ? interactions.at(-1) : null
+          };
         }""",
         {"block": block, "panel": panel, "vir": vir},
     )
@@ -116,6 +128,19 @@ def timing_summary(samples: list[dict]) -> dict:
             key: statistics.median([call[key] for call in measured_calls])
             for key in ["marshalMs", "executeMs", "decodeMs", "hostMs", "totalMs"]
         }
+    interactions = [sample["interaction"] for sample in samples if sample["interaction"]]
+    if interactions:
+        result["browserPhasesMs"] = {
+            key: statistics.median([interaction[key] for interaction in interactions])
+            for key in [
+                "structureCallMs",
+                "frameWaitMs",
+                "measureMs",
+                "finalCallMs",
+                "totalMs",
+            ]
+        }
+        result["cacheHits"] = sum(interaction["cacheHit"] for interaction in interactions)
     return result
 
 

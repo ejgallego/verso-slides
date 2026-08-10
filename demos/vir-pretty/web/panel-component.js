@@ -14,6 +14,7 @@
     const root = window;
     const selectors = new WeakMap();
     const panelStates = new WeakMap();
+    const widthCache = new WeakMap();
     let nextHostId = 1;
 
     /** @type {VersoVirPanelBridge} */
@@ -21,6 +22,7 @@
         status: "loading",
         error: null,
         calls: [],
+        interactions: [],
     };
     root.__versoVirPanel = bridge;
 
@@ -37,6 +39,13 @@
 
     function reportStatus() {
         window.dispatchEvent(new CustomEvent("verso-vir-panel-status", { detail: bridge.status }));
+    }
+
+    /** @param {VersoVirPanelInteraction} interaction */
+    function recordInteraction(interaction) {
+        bridge.lastInteraction = interaction;
+        bridge.interactions.push(interaction);
+        if (bridge.interactions.length > 100) bridge.interactions.shift();
     }
 
     /** @param {number} width @return {number} */
@@ -79,6 +88,7 @@
      */
     function renderPanel(panel, source, target) {
         if (bridge.status !== "ready" || !bridge.mount) return false;
+        const started = performance.now();
         const rawId = source.getAttribute("data-vir-panel-content");
         const contentId = rawId === null ? NaN : Number(rawId);
         if (!Number.isSafeInteger(contentId) || contentId < 0) return false;
@@ -96,13 +106,55 @@
         if (previous && previous.target !== target && bridge.unmount) {
             bridge.unmount(previous.target);
         }
-        if (!bridge.mount(target, contentId, [], true)) return false;
 
-        const state = { target, contentId, panelWidth, measuring: true };
+        const cached = widthCache.get(source);
+        if (
+            cached &&
+            cached.contentId === contentId &&
+            Math.abs(cached.panelWidth - panelWidth) < 0.5
+        ) {
+            const finalStarted = performance.now();
+            if (!bridge.mount(target, contentId, cached.widths, false)) return false;
+            const finished = performance.now();
+            panelStates.set(panel, {
+                target,
+                contentId,
+                panelWidth,
+                measuring: false,
+            });
+            recordInteraction({
+                contentId,
+                cacheHit: true,
+                widths: cached.widths.slice(),
+                structureCallMs: 0,
+                frameWaitMs: 0,
+                measureMs: 0,
+                finalCallMs: finished - finalStarted,
+                totalMs: finished - started,
+                finalTimings: bridge.lastCall?.timings,
+            });
+            return true;
+        }
+
+        const structureStarted = performance.now();
+        if (!bridge.mount(target, contentId, [], true)) return false;
+        const structureFinished = performance.now();
+
+        const state = {
+            target,
+            contentId,
+            panelWidth,
+            measuring: true,
+            started,
+            structureCallMs: structureFinished - structureStarted,
+            structureTimings: bridge.lastCall?.timings,
+            frameStarted: structureFinished,
+        };
         panelStates.set(panel, state);
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
                 if (panelStates.get(panel) !== state || !bridge.mount) return;
+                const measureStarted = performance.now();
                 const measured = createDOMMeasurer(panel);
                 /** @type {number[]} */
                 const widths = [];
@@ -122,11 +174,31 @@
                     widths.push(safeWidth(pixels / measured.spaceWidth));
                 }
                 measured.cleanup();
+                const measureFinished = performance.now();
+                const finalStarted = performance.now();
                 if (!bridge.mount(target, contentId, widths, false)) {
                     releasePanel(panel);
                 } else {
+                    const finished = performance.now();
                     state.measuring = false;
                     state.panelWidth = panel.clientWidth;
+                    widthCache.set(source, {
+                        contentId,
+                        panelWidth: state.panelWidth,
+                        widths: widths.slice(),
+                    });
+                    recordInteraction({
+                        contentId,
+                        cacheHit: false,
+                        widths: widths.slice(),
+                        structureCallMs: state.structureCallMs,
+                        frameWaitMs: measureStarted - state.frameStarted,
+                        measureMs: measureFinished - measureStarted,
+                        finalCallMs: finished - finalStarted,
+                        totalMs: finished - state.started,
+                        structureTimings: state.structureTimings,
+                        finalTimings: bridge.lastCall?.timings,
+                    });
                 }
             });
         });
