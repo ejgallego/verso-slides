@@ -4,6 +4,7 @@
 import argparse
 import asyncio
 import shutil
+from pathlib import Path
 
 from playwright.async_api import async_playwright
 
@@ -270,6 +271,16 @@ async def main() -> None:
             "() => window.__versoVirPanel?.status === 'ready'",
             timeout=60_000,
         )
+        await page.add_script_tag(
+            path=str(Path(__file__).with_name("panel-parity-corpus.js"))
+        )
+        corpus = await page.evaluate("runVirPanelParityCorpus()")
+        assert corpus["contents"] == 59
+        assert corpus["goalContents"] == 17, corpus
+        assert corpus["signatureContents"] == 42, corpus
+        assert corpus["widths"] == [12, 40, 80, 20, 120, 1, 240, 32], corpus
+        assert corpus["cases"] == 59 * len(corpus["widths"])
+        assert corpus["failures"] == [], corpus["failures"]
         component_toggle = controls.locator(
             ".pretty-controls-toggle", has_text="VIR panel component"
         ).locator("input")
@@ -316,6 +327,54 @@ async def main() -> None:
         assert len(first_boundary) == 2
         assert first_boundary[0]["width"] >= 1
         assert first_boundary[1]["width"] >= 1
+
+        # Exercise the production resize path rather than calling the bridge
+        # directly: divider drag -> CSS grid resize -> ResizeObserver -> remount.
+        await page.wait_for_timeout(250)
+        resize_before = await page.evaluate(
+            """() => ({
+              columns: Number(document.querySelector('.info-panel[data-vir-panel-columns]')
+                ?.dataset.virPanelColumns),
+              calls: window.__versoVirPanel.calls.filter(call => call.kind === 'mount').length
+            })"""
+        )
+        block_box = await block.bounding_box()
+        divider_box = await block.locator(".panel-divider").bounding_box()
+        assert block_box is not None
+        assert divider_box is not None
+        await page.mouse.move(
+            divider_box["x"] + divider_box["width"] / 2,
+            divider_box["y"] + divider_box["height"] / 2,
+        )
+        await page.mouse.down()
+        await page.mouse.move(
+            block_box["x"] + block_box["width"] * 0.75,
+            divider_box["y"] + divider_box["height"] / 2,
+        )
+        await page.mouse.up()
+        await page.wait_for_function(
+            """before => {
+              const panel = document.querySelector('.info-panel[data-vir-panel-columns]');
+              const calls = window.__versoVirPanel.calls
+                .filter(call => call.kind === 'mount').length;
+              return Number(panel?.dataset.virPanelColumns) !== before.columns
+                && calls > before.calls;
+            }""",
+            arg=resize_before,
+            timeout=5_000,
+        )
+        resize_after = await page.evaluate(
+            """() => ({
+              columns: Number(document.querySelector('.info-panel[data-vir-panel-columns]')
+                ?.dataset.virPanelColumns),
+              call: window.__versoVirPanel.calls.filter(call => call.kind === 'mount').at(-1)
+            })"""
+        )
+        assert resize_after["columns"] != resize_before["columns"]
+        assert resize_after["call"]["width"] == resize_after["columns"]
+        assert await panel.locator(".goal").count() >= 1
+        assert await panel.locator(".reflowed").count() >= 1
+
         repeated_boundary = await page.evaluate(
             """() => {
               const bridge = window.__versoVirPanel;

@@ -238,6 +238,10 @@ interface Window {
     __versoPrettyLlvm?: VersoPrettyLlvmBridge;
     __versoPrettyLlvmConfig?: VersoPrettyLlvmConfig;
     __versoVirPanel?: VersoVirPanelBridge;
+    runVirPanelParityCorpus?: (options?: {
+        widths?: number[];
+        expectedContents?: number;
+    }) => Promise<unknown>;
 }
 
 /** pretty.js — render a format tree to HTML at a given pixel width (global). */
@@ -346,6 +350,8 @@ declare function getPrettyMatrixBackend(
     breadth: "layout" | "semantic" | "html",
 ): PrettyBackendDefinition | null;
 declare function createColumnMeasurer(columns: number): DOMMeasurer;
+declare function goalsToHtml(goals: any[]): { html: string; formats: any[] };
+declare function fillReflowedSpans(container: Element, formats: any[], measurer: DOMMeasurer): void;
 declare function compactFormatSourceLength(fmtJson: any): number;
 declare function emptyPrettyTimings(): PrettyTimings;
 declare function addPrettyTimings(target: PrettyTimings, source: PrettyTimings): PrettyTimings;

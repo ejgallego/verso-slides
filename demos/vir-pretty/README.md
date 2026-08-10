@@ -41,6 +41,11 @@ deck:
 python3 scripts/browser-smoke.py http://127.0.0.1:18332
 ```
 
+The smoke discovers all generated resident goal/signature contents and compares
+the JavaScript and VIR/React semantic DOM at eight expand/shrink widths. It also
+drags the real panel divider and verifies the `ResizeObserver`-driven VIR
+remount.
+
 ## Panel extension boundary
 
 The demo uses two configuration surfaces:

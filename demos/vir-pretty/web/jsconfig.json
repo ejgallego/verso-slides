@@ -17,6 +17,7 @@
         "pretty-native-html.js",
         "pretty-llvm.js",
         "panel-component.js",
+        "../scripts/panel-parity-corpus.js",
         "coi-register.js",
         "../../../web-lib/panel/globals.d.ts"
     ]
