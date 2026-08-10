@@ -8,6 +8,7 @@ These self-contained Markdown cards turn benchmark observations into forwardable
 | [VIR-002](VIR-002-direct-format-execution.md) | Compiler / runtime | Direct ABI is viable; structural execution needs profiling |
 | [VIR-003](VIR-003-shared-memory-growth.md) | Runtime / allocator / GC | Shared linear-memory high-water needs attribution |
 | [VIR-004](VIR-004-resident-format-boundary.md) | Verso / runtime / artifact | Resident input and flat output remove boundary work |
+| [VIR-005](VIR-005-production-panel-component.md) | Verso / runtime / UI integration | Production panel separates fast VIR calls from host and runtime costs |
 
 VIR-001 through VIR-003 are generated from the archived benchmark report, not
 hand-maintained. After refreshing those artifacts and collecting a new report,
@@ -20,9 +21,9 @@ python3 scripts/generate-pretty-observation-cards.py --check
 
 `--check` is suitable for review or CI: it fails if any card is missing or stale. Both report and output paths are restricted to this workspace.
 
-VIR-004 records the newer resident/flat-boundary prototype separately. Its
-focused cases should move into the standalone VIR benchmark webapp before that
-card joins the generated campaign.
+VIR-004 and VIR-005 record newer focused prototypes separately. Their cases
+should move into the standalone VIR benchmark webapp before they join the
+generated campaign.
 
 ## Current source
 

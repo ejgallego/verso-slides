@@ -707,5 +707,6 @@
     }
 
     // ---- Entry point ----
-    Reveal.on("ready", init);
+    if (Reveal.isReady()) init();
+    else Reveal.on("ready", init);
 })();

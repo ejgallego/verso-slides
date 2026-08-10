@@ -13,28 +13,41 @@ native_flat_dir="$artifact_dir/lean-native-flat"
 native_flat_enabled=0
 native_html_dir="$artifact_dir/lean-native-html"
 native_html_enabled=0
-panel_impl="${VIR_PRETTY_PANEL_IMPL:-lab}"
-
-if [[ "$panel_impl" != "lab" && "$panel_impl" != "production" ]]; then
-  echo "VIR_PRETTY_PANEL_IMPL must be 'lab' or 'production'" >&2
-  exit 1
+profile="${VIR_PRETTY_PROFILE:-}"
+if [[ -z "$profile" ]]; then
+  case "${VIR_PRETTY_PANEL_IMPL:-lab}" in
+    lab) profile="lab" ;;
+    production) profile="vir-fallback" ;;
+    *) echo "VIR_PRETTY_PANEL_IMPL must be 'lab' or 'production'" >&2; exit 1 ;;
+  esac
 fi
+case "$profile" in
+  lab | js | vir-fallback | vir-only) ;;
+  *) echo "VIR_PRETTY_PROFILE must be lab, js, vir-fallback, or vir-only" >&2; exit 1 ;;
+esac
+export VIR_PRETTY_PROFILE="$profile"
+export VIR_PRETTY_OUTPUT_DIR="$out_dir"
 
-required=(
-  lean-vir/wasm/vir-upstream.wasm
-  lean-native/BUILD.json
-  lean-native/SHA256SUMS
-  lean-native/prettyM-browser-adapter.mjs
-  lean-native/prettyM.wasm
-  lean-native/prettyM.wasm.json
-  lean-llvm/README.md
-  lean-llvm/SHA256SUMS
-  lean-llvm/emscripten-loader.mjs
-  lean-llvm/prettyM-emscripten-adapter.mjs
-  lean-llvm/prettyM.manifest.json
-  lean-llvm/prettyM.mjs
-  lean-llvm/prettyM.wasm
-)
+required=()
+if [[ "$profile" != "js" ]]; then
+  required+=(lean-vir/wasm/vir-upstream.wasm)
+fi
+if [[ "$profile" == "lab" ]]; then
+  required+=(
+    lean-native/BUILD.json
+    lean-native/SHA256SUMS
+    lean-native/prettyM-browser-adapter.mjs
+    lean-native/prettyM.wasm
+    lean-native/prettyM.wasm.json
+    lean-llvm/README.md
+    lean-llvm/SHA256SUMS
+    lean-llvm/emscripten-loader.mjs
+    lean-llvm/prettyM-emscripten-adapter.mjs
+    lean-llvm/prettyM.manifest.json
+    lean-llvm/prettyM.mjs
+    lean-llvm/prettyM.wasm
+  )
+fi
 
 for path in "${required[@]}"; do
   if [[ ! -f "$artifact_dir/$path" ]]; then
@@ -44,12 +57,12 @@ for path in "${required[@]}"; do
   fi
 done
 
-if [[ -d "$native_flat_dir" ]]; then
+if [[ "$profile" == "lab" && -d "$native_flat_dir" ]]; then
   python3 "$demo_root/scripts/validate-native-flat-package.py" "$native_flat_dir"
   native_flat_enabled=1
 fi
 
-if [[ -d "$native_html_dir" ]]; then
+if [[ "$profile" == "lab" && -d "$native_html_dir" ]]; then
   python3 "$demo_root/scripts/validate-native-html-package.py" "$native_html_dir"
   native_html_enabled=1
 fi
@@ -58,15 +71,21 @@ fi
   lake build vir-pretty-demo &&
   lake exe vir-pretty-demo)
 
-# The ordinary Verso Slides package ships the compact production assets. The demo
-# always installs its formatter matrix; lab mode additionally installs the panel
-# comparison UI, while production mode exercises the ordinary panel hook.
-install -m 0644 "$demo_root/web/formatter-lab.js" "$out_dir/lib/pretty.js"
-if [[ "$panel_impl" == "lab" ]]; then
-  install -m 0644 "$demo_root/web/panel-lab.js" "$out_dir/lib/panel.js"
-fi
+# The generated assets are the ordinary JS baseline. Lab mode replaces both;
+# vir-only retains only the browser geometry needed by the VIR panel adapter.
+rm -rf "$out_dir/vir-pretty"
+rm -f "$out_dir/coi-serviceworker.js" "$out_dir/.htaccess"
+case "$profile" in
+  lab)
+    install -m 0644 "$demo_root/web/formatter-lab.js" "$out_dir/lib/pretty.js"
+    install -m 0644 "$demo_root/web/panel-lab.js" "$out_dir/lib/panel.js"
+    ;;
+  vir-only)
+    install -m 0644 "$demo_root/web/panel-measurer.js" "$out_dir/lib/pretty.js"
+    ;;
+esac
 
-if [[ "$native_flat_enabled" -eq 1 ]]; then
+if [[ "$profile" == "lab" && "$native_flat_enabled" -eq 1 ]]; then
   python3 - "$out_dir/index.html" <<'PY'
 from pathlib import Path
 import sys
@@ -90,7 +109,7 @@ PY
 fi
 
 
-if [[ "$native_html_enabled" -eq 1 ]]; then
+if [[ "$profile" == "lab" && "$native_html_enabled" -eq 1 ]]; then
   python3 - "$out_dir/index.html" <<'PY'
 from pathlib import Path
 import sys
@@ -113,73 +132,82 @@ path.write_text(body.replace(needle, config + needle, 1))
 PY
 fi
 
-if [[ ! -x "$esbuild" ]]; then
-  echo "esbuild not found: $esbuild" >&2
-  exit 1
+if [[ "$profile" != "js" ]]; then
+  if [[ ! -x "$esbuild" ]]; then
+    echo "esbuild not found: $esbuild" >&2
+    exit 1
+  fi
+
+  if [[ "$profile" == "lab" ]]; then
+    registry_mode="--combined-panel"
+  else
+    registry_mode="--panel-only"
+  fi
+  python3 "$demo_root/scripts/generate-pretty-registry.py" \
+    "$out_dir" \
+    "$panel_experiment_dir/VirPanelRegistry.lean" \
+    "$out_dir/vir-pretty/verso-pretty-registry.json" \
+    "$registry_mode"
+
+  (cd "$panel_experiment_dir" && lake build +VirPanelRegistry:vir)
+  vir_ir_dir="$out_dir/vir-pretty/vir-ir"
+  mkdir -p "$vir_ir_dir"
+  install -m 0644 \
+    "$panel_module_set_dir/VirPanelRegistry.irpkg-set.json" \
+    "$panel_module_set_dir/VirPanelRegistry.irpkg" \
+    "$vir_ir_dir/"
+  rsync -a \
+    "$panel_module_set_dir/VirPanelRegistry.parts/" \
+    "$vir_ir_dir/VirPanelRegistry.parts/"
+
+  "$esbuild" "$lean_vir_dir/web/src/browser-react-runtime.js" \
+    --bundle \
+    --format=esm \
+    --platform=browser \
+    --target=es2020 \
+    --minify \
+    --outfile="$out_dir/vir-pretty/vir-runtime.js"
+
+  if [[ "$profile" == "lab" ]]; then
+    assets=(pretty-experiments.js vir-loader.js pretty-vir.js pretty-native.js \
+      pretty-native-flat.js pretty-native-html.js pretty-llvm.js panel-component.js coi-register.js)
+  else
+    assets=(vir-loader.js panel-component.js coi-register.js)
+  fi
+  for asset in "${assets[@]}"; do
+    install -D -m 0644 "$demo_root/web/$asset" "$out_dir/vir-pretty/$asset"
+  done
+  install -D -m 0644 "$demo_root/web/coi-serviceworker.js" "$out_dir/coi-serviceworker.js"
+  install -D -m 0644 "$demo_root/web/htaccess" "$out_dir/.htaccess"
+
+  install -D -m 0644 \
+    "$artifact_dir/lean-vir/wasm/vir-upstream.wasm" \
+    "$out_dir/vir-pretty/lean-vir/wasm/vir-upstream.wasm"
+
+  if [[ "$profile" == "lab" ]]; then
+    for path in "${required[@]}"; do
+      case "$path" in
+        lean-vir/* | lean-native/*) continue ;;
+      esac
+      install -D -m 0644 "$artifact_dir/$path" "$out_dir/vir-pretty/$path"
+    done
+    python3 "$demo_root/scripts/copy-checksummed-subset.py" \
+      "$artifact_dir/lean-native" \
+      "$out_dir/vir-pretty/lean-native" \
+      BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
+  fi
+  if [[ "$profile" == "lab" && "$native_flat_enabled" -eq 1 ]]; then
+    python3 "$demo_root/scripts/copy-checksummed-subset.py" \
+      "$native_flat_dir" \
+      "$out_dir/vir-pretty/lean-native-flat" \
+      BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
+  fi
+  if [[ "$profile" == "lab" && "$native_html_enabled" -eq 1 ]]; then
+    python3 "$demo_root/scripts/copy-checksummed-subset.py" \
+      "$native_html_dir" \
+      "$out_dir/vir-pretty/lean-native-html" \
+      BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
+  fi
 fi
 
-python3 "$demo_root/scripts/generate-pretty-registry.py" \
-  "$out_dir" \
-  "$panel_experiment_dir/VirPanelRegistry.lean" \
-  "$out_dir/vir-pretty/verso-pretty-registry.json" \
-  --combined-panel
-
-(cd "$panel_experiment_dir" && lake build +VirPanelRegistry:vir)
-vir_ir_dir="$out_dir/vir-pretty/vir-ir"
-rm -rf "$vir_ir_dir"
-mkdir -p "$vir_ir_dir"
-install -m 0644 \
-  "$panel_module_set_dir/VirPanelRegistry.irpkg-set.json" \
-  "$panel_module_set_dir/VirPanelRegistry.irpkg" \
-  "$vir_ir_dir/"
-rsync -a \
-  "$panel_module_set_dir/VirPanelRegistry.parts/" \
-  "$vir_ir_dir/VirPanelRegistry.parts/"
-
-"$esbuild" "$lean_vir_dir/web/src/browser-react-runtime.js" \
-  --bundle \
-  --format=esm \
-  --platform=browser \
-  --target=es2020 \
-  --minify \
-  --outfile="$out_dir/vir-pretty/vir-runtime.js"
-
-# Remove artifacts produced by the former two-runtime assembly path so a
-# reused output directory cannot conceal regressions in the unified boundary.
-rm -f "$out_dir/vir-pretty/verso-pretty.irpkg"
-rm -f "$out_dir/vir-pretty/panel-react-runtime.js"
-rm -rf "$out_dir/vir-pretty/panel-ir"
-rm -rf "$out_dir/vir-pretty/lean-vir/js"
-
-for asset in pretty-experiments.js pretty-vir.js pretty-native.js pretty-native-flat.js pretty-native-html.js pretty-llvm.js panel-component.js coi-register.js; do
-  install -D -m 0644 "$demo_root/web/$asset" "$out_dir/vir-pretty/$asset"
-done
-install -D -m 0644 "$demo_root/web/coi-serviceworker.js" "$out_dir/coi-serviceworker.js"
-install -D -m 0644 "$demo_root/web/htaccess" "$out_dir/.htaccess"
-
-for path in "${required[@]}"; do
-  case "$path" in
-    lean-native/*) continue ;;
-  esac
-  install -D -m 0644 "$artifact_dir/$path" "$out_dir/vir-pretty/$path"
-done
-python3 "$demo_root/scripts/copy-checksummed-subset.py" \
-  "$artifact_dir/lean-native" \
-  "$out_dir/vir-pretty/lean-native" \
-  BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
-rm -rf "$out_dir/vir-pretty/lean-native-flat"
-if [[ "$native_flat_enabled" -eq 1 ]]; then
-  python3 "$demo_root/scripts/copy-checksummed-subset.py" \
-    "$native_flat_dir" \
-    "$out_dir/vir-pretty/lean-native-flat" \
-    BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
-fi
-rm -rf "$out_dir/vir-pretty/lean-native-html"
-if [[ "$native_html_enabled" -eq 1 ]]; then
-  python3 "$demo_root/scripts/copy-checksummed-subset.py" \
-    "$native_html_dir" \
-    "$out_dir/vir-pretty/lean-native-html" \
-    BUILD.json prettyM-browser-adapter.mjs prettyM.wasm prettyM.wasm.json
-fi
-
-echo "Assembled standalone demo at $out_dir ($panel_impl panel)"
+echo "Assembled standalone demo at $out_dir ($profile profile)"

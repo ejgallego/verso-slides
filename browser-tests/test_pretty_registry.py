@@ -119,3 +119,37 @@ def test_combined_registry_exports_formatter_and_panel_surfaces(tmp_path: Path):
     assert metadata["renderPlanEntrypoint"] == "VirPanelRegistry.formatRenderPlanById"
     assert metadata["panelContentCount"] == 1
     assert metadata["panelEntrypoint"] == "VirPanelRegistry.mountContent"
+
+
+def test_panel_only_registry_omits_formatter_exports(tmp_path: Path):
+    site = tmp_path / "site"
+    site.mkdir()
+    payload = {"fmt": [5, "Nat"], "annotations": {}}
+    (site / "index.html").write_text(f"<code {rich_attribute(payload)}></code>")
+    lean_output = tmp_path / "VirPanelRegistry.lean"
+    metadata_output = site / "verso-pretty-registry.json"
+
+    subprocess.run(
+        [
+            "python3",
+            str(ROOT / "demos" / "vir-pretty" / "scripts" / "generate-pretty-registry.py"),
+            str(site),
+            str(lean_output),
+            str(metadata_output),
+            "--panel-only",
+        ],
+        check=True,
+        cwd=ROOT,
+    )
+
+    source = lean_output.read_text()
+    assert "def mountContent" in source
+    assert "def unmount" in source
+    assert "def formatSegments" not in source
+    assert "def formatRenderedById" not in source
+
+    metadata = json.loads(metadata_output.read_text())
+    assert "entrypoint" not in metadata
+    assert "renderPlanEntrypoint" not in metadata
+    assert metadata["panelContentCount"] == 1
+    assert metadata["panelEntrypoint"] == "VirPanelRegistry.mountContent"

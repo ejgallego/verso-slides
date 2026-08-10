@@ -15,7 +15,7 @@ and remain in **Custom Lab**.
 
 ## Build and serve
 
-From this directory:
+From this directory, the comparison lab remains the default:
 
 ```sh
 lake update
@@ -47,21 +47,35 @@ compares the JavaScript and VIR/React semantic DOM at eight
 expand/shrink widths. It also drags the real panel divider and
 verifies the `ResizeObserver`-driven VIR remount.
 
-To exercise the production integration rather than the comparison UI,
-assemble with the ordinary Verso Slides panel and run its focused smoke:
+The assembly also exposes three production-shaped profiles. Keep their
+outputs separate so they can be compared without rebuilding:
 
 ```sh
-VIR_PRETTY_PANEL_IMPL=production scripts/assemble.sh
-python3 scripts/serve.py
+VIR_PRETTY_PROFILE=js OUT_DIR="$PWD/_profiles/js" scripts/assemble.sh
+VIR_PRETTY_PROFILE=vir-fallback OUT_DIR="$PWD/_profiles/vir-fallback" scripts/assemble.sh
+VIR_PRETTY_PROFILE=vir-only OUT_DIR="$PWD/_profiles/vir-only" scripts/assemble.sh
+python3 scripts/serve.py --directory _profiles/vir-fallback
 python3 scripts/browser-production-panel-smoke.py http://127.0.0.1:18332
 ```
 
-This path has no panel lab controls. It verifies automatic VIR
-rendering with the JavaScript semantic formatter functions disabled,
-the real divider/reflow seam, resident signatures, and the built-in
-JavaScript fallback after those functions are restored and the
-optional renderer is removed.
-The default `VIR_PRETTY_PANEL_IMPL=lab` retains the full comparison UI.
+`js` is the ordinary JavaScript panel, `vir-fallback` adds VIR while
+retaining the complete JavaScript renderer, and `vir-only` keeps only
+the small JavaScript geometry measurer needed by the Lean/VIR component.
+These paths have no lab controls. The focused smoke reloads the page,
+opens Lean goals and signatures, exercises the real divider/reflow seam,
+and checks the appropriate fallback behavior. The reload is intentional:
+it covers the case where Reveal becomes ready before the panel script is
+evaluated. The legacy `VIR_PRETTY_PANEL_IMPL=production` spelling maps to
+`vir-fallback`.
+
+To collect the same cold-start, render, memory, and delivered-resource
+measurements used by the evaluation note:
+
+```sh
+python3 scripts/browser-profile-measure.py js http://127.0.0.1:18330 _profiles/js
+python3 scripts/browser-profile-measure.py vir-fallback http://127.0.0.1:18332 _profiles/vir-fallback
+python3 scripts/browser-profile-measure.py vir-only http://127.0.0.1:18331 _profiles/vir-only
+```
 
 ## Panel extension boundary
 
@@ -77,19 +91,22 @@ Verso Slides owns the compact JavaScript reference renderer, ordinary
 panel, and the generic plugin hook. The demo owns the expanded
 formatter registry, comparison panel, candidate adapters, Wasm
 artifacts, runtime configuration, processor controls, and presentation
-content. Its VIR adapter accepts both the historical single-package
-API and the current package-set API. This demo uses the latter to load
-one React-capable runtime and one generated package containing every
-formatter and panel-component export. Benchmark execution and report
+content. A shared `vir-loader.js` owns package-set/runtime bootstrap;
+the formatter lab and production component are independent clients of
+that bridge. The demo loads one React-capable runtime. Lab mode generates
+one package containing every formatter and panel-component export;
+production VIR profiles generate a two-export panel-only package.
+Benchmark execution and report
 visualization are intentionally absent: they now belong to the
 standalone VIR benchmark webapp. After `slidesMain`,
 `scripts/assemble.sh` assigns resident format IDs in the generated
-deck and builds the matching VIR package. It then copies opaque
-runtime/native/LLVM artifacts and deliberately replaces the generated
-`lib/pretty.js` with `web/formatter-lab.js`. In the default lab mode it
+deck and builds the matching VIR package. Lab mode then copies opaque
+runtime/native/LLVM artifacts and deliberately replaces generated
+`lib/pretty.js` with `web/formatter-lab.js`. In that mode it
 also replaces `lib/panel.js` with `web/panel-lab.js`; production mode
-keeps the generated ordinary panel. It does not replace
-`lib/panel.css`.
+keeps the generated ordinary panel. `vir-only` replaces the formatter
+with the geometry-only `panel-measurer.js`; `js` copies no VIR assets.
+No profile replaces `lib/panel.css`.
 
 `panelPlugins` is intentionally a narrow API: its classic scripts
 execute synchronously in array order at the point where formatter
@@ -197,13 +214,16 @@ lean-llvm/{README.md,SHA256SUMS,emscripten-loader.mjs,
            prettyM.mjs,prettyM.wasm}
 ```
 
-`scripts/assemble.sh` generates one `VirPanelRegistry` package set
-from the assembled deck. Its root closes the canonical
-`VersoSlides.Pretty` operations, the deduplicated format/annotation
-table, and the complete resident panel contents over one shared table.
-The React-capable runtime serves both the formatter matrix and the
-panel component; the browser smoke test asserts that both bridges hold
-the same runtime object. Set `LEAN_VIR_DIR` to a built VIR checkout
+`scripts/assemble.sh` generates a `VirPanelRegistry` package set from
+the assembled deck. Lab mode closes the canonical `VersoSlides.Pretty`
+operations, deduplicated format/annotation table, and complete resident
+panel contents over one shared table. Production VIR profiles retain the
+same resident contents but expose only `mountContent` and `unmount`;
+the current result is 14 package members and two exports rather than the
+lab package's 21 members and nine exports. The React-capable runtime
+serves both formatter and component clients in lab mode, and the browser
+smoke asserts that both bridges hold the same runtime object. Set
+`LEAN_VIR_DIR` to a built VIR checkout
 when it is not available at `../../_artifacts/lean-vir`.
 
 The formatter ABI retains the existing typed, flat, semantic, HTML,

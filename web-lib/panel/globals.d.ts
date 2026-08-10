@@ -93,6 +93,8 @@ interface VersoPrettyVirBridge {
     ready?: Promise<unknown>;
     status?: string;
     error?: unknown;
+    assets?: string[];
+    startupTimings?: { importMs: number; initializeMs: number; totalMs: number };
     warnings?: Record<string, boolean>;
 }
 

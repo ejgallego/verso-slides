@@ -5,13 +5,20 @@ open VersoSlides
 
 namespace VirPrettyDemo
 
-def runtimeConfig : Html := Html.text false <| String.intercalate "\n" [
-  "<script>",
-  "window.__versoPrettyConfig = { compare: true, controls: true, columns: 40 };",
-  "window.__versoPrettyVirConfig = {",
+private def virRuntimeFields : List String := [
   "  runtimeUrl: new URL(\"vir-pretty/vir-runtime.js\", window.location.href).href,",
   "  wasmUrl: new URL(\"vir-pretty/lean-vir/wasm/vir-upstream.wasm\", window.location.href).href,",
-  "  irPackageSetUrl: new URL(\"vir-pretty/vir-ir/VirPanelRegistry.irpkg-set.json\", window.location.href).href,",
+  "  irPackageSetUrl: new URL(\"vir-pretty/vir-ir/VirPanelRegistry.irpkg-set.json\", window.location.href).href,"
+]
+
+def productionRuntimeConfig : Html := Html.text false <| String.intercalate "\n" <|
+  ["<script>", "window.__versoPrettyVirConfig = {"] ++ virRuntimeFields ++ ["};", "</script>"]
+
+def labRuntimeConfig : Html := Html.text false <| String.intercalate "\n" <| [
+  "<script>",
+  "window.__versoPrettyConfig = { compare: true, controls: true, columns: 40 };",
+  "window.__versoPrettyVirConfig = {"
+] ++ virRuntimeFields ++ [
   "  formatExportName: \"VirPanelRegistry.formatSegments\",",
   "  renderedExportName: \"VirPanelRegistry.formatRendered\",",
   "  renderPlanExportName: \"VirPanelRegistry.formatRenderPlan\",",
@@ -32,16 +39,21 @@ def runtimeConfig : Html := Html.text false <| String.intercalate "\n" [
   "</script>"
 ]
 
-def config : Config := {
+private def baseConfig : Config := {
   theme := "black"
   transition := "slide"
   outputDir := "_site"
+}
+
+def config : Config := {
+  baseConfig with
   extraHead := #[
-    runtimeConfig,
+    labRuntimeConfig,
     {{ <script src={{"vir-pretty/coi-register.js"}}></script> }}
   ]
   panelPlugins := #[
     "vir-pretty/pretty-experiments.js",
+    "vir-pretty/vir-loader.js",
     "vir-pretty/pretty-vir.js",
     "vir-pretty/pretty-native.js",
     "vir-pretty/pretty-native-flat.js",
@@ -50,5 +62,24 @@ def config : Config := {
     "vir-pretty/panel-component.js"
   ]
 }
+
+def productionConfig : Config := {
+  baseConfig with
+  extraHead := #[
+    productionRuntimeConfig,
+    {{ <script src={{"vir-pretty/coi-register.js"}}></script> }}
+  ]
+  panelPlugins := #[
+    "vir-pretty/vir-loader.js",
+    "vir-pretty/panel-component.js"
+  ]
+}
+
+def jsConfig : Config := baseConfig
+
+def configForProfile : Option String → Config
+  | some "js" => jsConfig
+  | some "vir-fallback" | some "vir-only" | some "production" => productionConfig
+  | _ => config
 
 end VirPrettyDemo

@@ -34,16 +34,25 @@ async def main() -> None:
             "() => window.__versoVirPanel?.status === 'ready'",
             timeout=60_000,
         )
+        # Exercise the path a human sees after revisiting/reloading a served deck.
+        await page.reload(wait_until="networkidle")
+        await page.wait_for_function(
+            "() => window.__versoVirPanel?.status === 'ready'",
+            timeout=60_000,
+        )
         assert await page.evaluate("typeof window.__versoPanelRenderer?.render") == "function"
         assert await page.locator(".pretty-controls").count() == 0
-        await page.evaluate(
+        has_js_fallback = await page.evaluate(
             """() => {
               window.__productionPanelFallback = {
                 goalsToHtml: window.goalsToHtml,
                 formatToHtml: window.formatToHtml
               };
+              const present = typeof window.goalsToHtml === 'function'
+                && typeof window.formatToHtml === 'function';
               window.goalsToHtml = undefined;
               window.formatToHtml = undefined;
+              return present;
             }"""
         )
 
@@ -56,14 +65,29 @@ async def main() -> None:
         panel = block.locator(".info-panel")
         await page.evaluate("window.__versoVirPanel.calls.length = 0")
         await block.locator(".tactic .keyword").first.click()
-        await page.wait_for_function(
-            """el => el.querySelector('.goal') && window.__versoVirPanel.calls
-              .filter(call => call.kind === 'mount').length >= 2""",
-            arg=await panel.element_handle(),
-            timeout=30_000,
-        )
+        try:
+            await page.wait_for_function(
+                """el => el.querySelector('.goal [data-binding]') && window.__versoVirPanel.calls
+                  .filter(call => call.kind === 'mount').length >= 2""",
+                arg=await panel.element_handle(),
+                timeout=30_000,
+            )
+        except Exception as error:
+            diagnostic = await page.evaluate(
+                """panel => ({
+                  revealReady: Reveal.isReady(),
+                  renderer: typeof window.__versoPanelRenderer?.render,
+                  virStatus: window.__versoVirPanel?.status,
+                  calls: window.__versoVirPanel?.calls,
+                  panelHtml: panel.innerHTML,
+                  sourceCount: document.querySelectorAll('.tactic .keyword').length
+                })""",
+                arg=await panel.element_handle(),
+            )
+            raise AssertionError({"browser": diagnostic, "pageErrors": page_errors}) from error
         assert await panel.locator(".reflowed").count() >= 1
-        assert await panel.locator("[data-binding]").count() >= 1
+        binding_count = await panel.locator("[data-binding]").count()
+        assert binding_count >= 1, await panel.inner_html()
         assert await panel.get_attribute("data-vir-panel-component") is None
 
         first_calls = await page.evaluate(
@@ -122,6 +146,9 @@ async def main() -> None:
             arg=[await dark_panel.element_handle(), calls_before_signature],
             timeout=30_000,
         )
+        await page.evaluate(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))"
+        )
 
         # Removing the optional renderer must leave the built-in path usable.
         await page.evaluate(
@@ -137,22 +164,24 @@ async def main() -> None:
             "window.__versoVirPanel.calls.filter(call => call.kind === 'mount').length"
         )
         await dark_block.locator("[data-verso-hover]").first.click()
-        await page.wait_for_function(
-            "el => !!el.querySelector('code[data-rich-format] .reflowed')",
-            arg=await dark_panel.element_handle(),
+        fallback_selector = (
+            "code[data-rich-format] .reflowed"
+            if has_js_fallback
+            else "code[data-rich-format]"
         )
-        assert (
-            await page.evaluate(
-                "window.__versoVirPanel.calls.filter(call => call.kind === 'mount').length"
-            )
-            == calls_before_fallback
+        await dark_panel.locator(fallback_selector).wait_for()
+        calls_after_fallback = await page.evaluate(
+            "window.__versoVirPanel.calls.filter(call => call.kind === 'mount').length"
+        )
+        assert calls_after_fallback == calls_before_fallback, await page.evaluate(
+            "window.__versoVirPanel.calls"
         )
         assert not page_errors, page_errors
         await browser.close()
 
     print(
         "PASS ordinary panel VIR renderer without JS semantic formatters, "
-        "plus resize, signature, and fallback"
+        "plus reload, resize, signature, and fallback"
     )
 
 

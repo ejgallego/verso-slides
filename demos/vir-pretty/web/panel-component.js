@@ -84,12 +84,21 @@
         if (!Number.isSafeInteger(contentId) || contentId < 0) return false;
 
         const previous = panelStates.get(panel);
+        const panelWidth = panel.clientWidth;
+        if (
+            previous &&
+            previous.target === target &&
+            previous.contentId === contentId &&
+            (previous.measuring || Math.abs(previous.panelWidth - panelWidth) < 0.5)
+        ) {
+            return true;
+        }
         if (previous && previous.target !== target && bridge.unmount) {
             bridge.unmount(previous.target);
         }
         if (!bridge.mount(target, contentId, [], true)) return false;
 
-        const state = { target, contentId };
+        const state = { target, contentId, panelWidth, measuring: true };
         panelStates.set(panel, state);
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
@@ -113,7 +122,12 @@
                     widths.push(safeWidth(pixels / measured.spaceWidth));
                 }
                 measured.cleanup();
-                if (!bridge.mount(target, contentId, widths, false)) releasePanel(panel);
+                if (!bridge.mount(target, contentId, widths, false)) {
+                    releasePanel(panel);
+                } else {
+                    state.measuring = false;
+                    state.panelWidth = panel.clientWidth;
+                }
             });
         });
         return true;

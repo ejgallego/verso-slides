@@ -15,6 +15,8 @@ const sources = {
     leanModel: "VersoSlides/Panel/Component.lean",
     virReactView: "experiments/vir-panel/VirPanelExperiment.lean",
     virPanelHostAdapter: "demos/vir-pretty/web/panel-component.js",
+    virLoader: "demos/vir-pretty/web/vir-loader.js",
+    panelMeasurer: "demos/vir-pretty/web/panel-measurer.js",
 };
 
 const sourceMetrics = {};
@@ -44,9 +46,20 @@ const baselineApplicationLines = baseline.panelLines + baseline.formatterLines;
 const production = sum(sourceMetrics.productionPanel, sourceMetrics.productionFormatter);
 const lab = sum(sourceMetrics.labPanel, sourceMetrics.labFormatter);
 const leanSemanticLines = sourceMetrics.leanModel.lines + sourceMetrics.virReactView.lines;
-const projectedHybridLines = sourceMetrics.productionPanel.lines + leanSemanticLines;
-const projectedHybridWithAdapterLines =
-    projectedHybridLines + sourceMetrics.virPanelHostAdapter.lines;
+const jsProfileLines =
+    sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines;
+const virOnlyProfileLines =
+    sourceMetrics.productionPanel.lines +
+    sourceMetrics.panelMeasurer.lines +
+    sourceMetrics.virLoader.lines +
+    sourceMetrics.virPanelHostAdapter.lines +
+    leanSemanticLines;
+const virOnlySharedLoaderLines = virOnlyProfileLines - sourceMetrics.virLoader.lines;
+const virFallbackProfileLines =
+    jsProfileLines +
+    sourceMetrics.virLoader.lines +
+    sourceMetrics.virPanelHostAdapter.lines +
+    leanSemanticLines;
 const result = {
     sources: sourceMetrics,
     deliveredJavaScript: {
@@ -55,24 +68,29 @@ const result = {
         labMinusProduction: subtract(lab, production),
     },
     humanFactors: {
-        currentApplicationSpecificLines:
-            sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines,
         baselineApplicationSpecificLines: baselineApplicationLines,
-        productionPanelHookLines: sourceMetrics.productionPanel.lines - baseline.panelLines,
+        productionPanelHookLines: 53,
+        productionPanelReadyFixLines:
+            sourceMetrics.productionPanel.lines - baseline.panelLines - 53,
         leanSemanticLines,
-        productionProjectionLinesBeforeAdapter: projectedHybridLines,
-        productionProjectionBeforeAdapterReductionPercent: roundPercent(
-            1 - projectedHybridLines / baselineApplicationLines,
-        ),
-        productionProjectionLines: projectedHybridWithAdapterLines,
-        productionProjectionLineReductionPercent: roundPercent(
-            1 - projectedHybridWithAdapterLines / baselineApplicationLines,
-        ),
+        profiles: {
+            js: profileLines(jsProfileLines, baselineApplicationLines),
+            virOnly: profileLines(virOnlyProfileLines, baselineApplicationLines),
+            virOnlyWithSharedLoader: profileLines(
+                virOnlySharedLoaderLines,
+                baselineApplicationLines,
+            ),
+            virFallback: profileLines(virFallbackProfileLines, baselineApplicationLines),
+            virOnlyChargingSharedPretty: profileLines(
+                virOnlyProfileLines + sourceMetrics.sharedPretty.lines,
+                baselineApplicationLines,
+            ),
+        },
         semanticLineReductionPercent: roundPercent(
             1 - leanSemanticLines / sourceMetrics.productionFormatter.lines,
         ),
         sharedPrettyLines: sourceMetrics.sharedPretty.lines,
-        note: "The pinned baseline is the 658-line panel plus 662-line formatter before this pilot. The source projection fully charges the generic panel hook and current instrumented host adapter, while treating the VIR loader and DOM measurer as shared host infrastructure; the demo bundle retains the formatter lab.",
+        note: "The pinned baseline is the 658-line panel plus 662-line formatter before this pilot. Actual profile counts fully charge their selected browser adapter, loader, and measurer. Lean's canonical shared Pretty module and generated registry source are excluded except in virOnlyChargingSharedPretty.",
     },
 };
 
@@ -97,36 +115,28 @@ try {
     };
 }
 
-const residentPilotRoot = resolve(root, "demos/vir-pretty/_site/vir-pretty");
+const residentPilotRoot = resolve(root, "demos/vir-pretty/_profiles/vir-only/vir-pretty");
 try {
     const runtime = await fileMetrics(resolve(residentPilotRoot, "vir-runtime.js"));
+    const wasm = await fileMetrics(resolve(residentPilotRoot, "lean-vir/wasm/vir-upstream.wasm"));
     const irFiles = await walkIrPackages(resolve(residentPilotRoot, "vir-ir"));
     const ir = await sumFiles(irFiles);
     const registry = JSON.parse(
         await readFile(resolve(residentPilotRoot, "verso-pretty-registry.json"), "utf8"),
     );
-    result.unifiedVirPilot = {
+    result.productionVirArtifact = {
         runtime,
+        wasm,
         ir: { ...ir, members: irFiles.length },
         formatCount: registry.formatCount,
         contentCount: registry.panelContentCount,
         runtimeInstances: 1,
-        exports: [
-            "VirPanelRegistry.formatSegments",
-            "VirPanelRegistry.formatRendered",
-            "VirPanelRegistry.formatRenderPlan",
-            "VirPanelRegistry.formatHtml",
-            "VirPanelRegistry.formatCount",
-            "VirPanelRegistry.formatRenderedById",
-            "VirPanelRegistry.formatRenderPlanById",
-            "VirPanelRegistry.mountContent",
-            "VirPanelRegistry.unmount",
-        ],
+        exports: ["VirPanelRegistry.mountContent", "VirPanelRegistry.unmount"],
     };
 } catch (error) {
-    result.unifiedVirPilot = {
+    result.productionVirArtifact = {
         unavailable: true,
-        hint: "run demos/vir-pretty/scripts/assemble.sh",
+        hint: "run VIR_PRETTY_PROFILE=vir-only demos/vir-pretty/scripts/assemble.sh",
         error: String(error?.message ?? error),
     };
 }
@@ -169,4 +179,12 @@ function subtract(left, right) {
 
 function roundPercent(value) {
     return Math.round(value * 1000) / 10;
+}
+
+function profileLines(lines, baselineLines) {
+    return {
+        lines,
+        changeLines: lines - baselineLines,
+        changePercent: roundPercent(lines / baselineLines - 1),
+    };
 }
