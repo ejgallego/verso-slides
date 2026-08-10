@@ -5,7 +5,11 @@
 
     /**
      * @typedef {HTMLElement & { _activeSource: Element | null }} PanelBlock
-     * @typedef {HTMLElement & { _richFormatSource: Element | null }} InfoPanel
+     * @typedef {HTMLElement & {
+     *   _richFormatSource: Element | null,
+     *   _virPanelTarget: Element | null,
+     *   _virPanelContentId: number | null
+     * }} InfoPanel
      * @typedef {{
      *   id: VersoPrettyTimingDisplay,
      *   label: string,
@@ -168,6 +172,10 @@
         document.querySelectorAll(".code-with-panel").forEach(setupBlock);
         initPrettyControls();
         refreshPanelsWhenPrettyBackendsReady();
+        window.addEventListener("verso-vir-panel-status", function () {
+            reflowPrettyPanels();
+            renderPrettyControls();
+        });
 
         Reveal.on("fragmentshown", onFragmentShown);
         Reveal.on("fragmenthidden", onFragmentHidden);
@@ -274,8 +282,12 @@
                 config.workload = workload;
             }
         }
+        if (params.has("virPanel")) {
+            config.virPanel = params.get("virPanel") !== "0";
+        }
         if (!Number.isInteger(config.columns)) config.columns = 40;
         if (!Number.isInteger(config.workload)) config.workload = 0;
+        if (typeof config.virPanel !== "boolean") config.virPanel = false;
         config.timing = selectedPrettyTimingDisplay().id;
         if (config.mode === "matrix") {
             config.breadth = selectedPrettyBreadth();
@@ -557,6 +569,7 @@
         url.searchParams.set("prettyControls", config.controls === true ? "1" : "0");
         url.searchParams.set("prettyTiming", selectedPrettyTimingDisplay().id);
         url.searchParams.set("prettyWorkload", String(prettyWorkloadCodePoints()));
+        url.searchParams.set("virPanel", config.virPanel === true ? "1" : "0");
         if (usingPrettyMatrix()) {
             url.searchParams.set("prettyMode", "matrix");
             url.searchParams.set("prettyBreadth", selectedPrettyBreadth());
@@ -1031,6 +1044,33 @@
         });
         labBody.appendChild(compareLabel);
 
+        var componentBridge = window.__versoVirPanel;
+        var componentStatus = componentBridge ? componentBridge.status : "unavailable";
+        var componentLabel = document.createElement("label");
+        componentLabel.className = "pretty-controls-toggle";
+        var componentInput = document.createElement("input");
+        componentInput.type = "checkbox";
+        componentInput.checked = config.virPanel === true;
+        componentInput.disabled = componentStatus !== "ready";
+        var componentState = document.createElement("span");
+        componentState.className =
+            "pretty-controls-status status-" +
+            componentStatus.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+        componentState.textContent = componentStatus;
+        componentLabel.append(
+            componentInput,
+            document.createTextNode(" VIR panel component "),
+            componentState,
+        );
+        componentLabel.title =
+            "Use the resident Lean model and VIR/React view for complete goal/signature content. Browser selection, measurement, geometry, and dragging remain in JavaScript.";
+        componentInput.addEventListener("change", function () {
+            config.virPanel = componentInput.checked;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        labBody.appendChild(componentLabel);
+
         var experiments = prettyExperiments();
         if (experiments.length > 0) {
             var experimentLabel = document.createElement("label");
@@ -1243,6 +1283,8 @@
             return;
 
         block._activeSource = null;
+        panel._virPanelTarget = null;
+        panel._virPanelContentId = null;
 
         // Click handler on code element
         codeEl.addEventListener("click", function (e) {
@@ -1610,6 +1652,7 @@
         if (codeEl) drawElementOutline(codeEl, el, "panel-outline-focus");
 
         // Store the source element for reflow on resize
+        releaseVirPanel(panel);
         panel._richFormatSource = null;
         setPrettyComparisonActive(panel, false);
 
@@ -1626,14 +1669,17 @@
                 var richFmt = ts.getAttribute("data-rich-format");
                 if (richFmt && typeof goalsToHtml === "function") {
                     panel._richFormatSource = ts;
-                    try {
-                        var goalsData = JSON.parse(richFmt);
-                        renderGoalsFormat(panel, goalsData);
-                        html = null; // already set innerHTML
-                    } catch (e) {
-                        html = '<span class="hl lean">' + ts.innerHTML + "</span>";
-                        panel._richFormatSource = null;
-                    }
+                    if (tryMountVirPanel(panel, ts, panel)) {
+                        html = null;
+                    } else
+                        try {
+                            var goalsData = JSON.parse(richFmt);
+                            renderGoalsFormat(panel, goalsData);
+                            html = null; // already set innerHTML
+                        } catch (e) {
+                            html = '<span class="hl lean">' + ts.innerHTML + "</span>";
+                            panel._richFormatSource = null;
+                        }
                 } else {
                     html = '<span class="hl lean">' + ts.innerHTML + "</span>";
                 }
@@ -1657,7 +1703,9 @@
             try {
                 var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
                 panel._richFormatSource = sigCode;
-                renderSignatureFormat(panel, sigCode, fmtData);
+                if (!tryMountVirPanel(panel, sigCode, sigCode)) {
+                    renderSignatureFormat(panel, sigCode, fmtData);
+                }
             } catch (e) {
                 // Fall back to plain text signature on error
                 panel._richFormatSource = null;
@@ -1680,6 +1728,94 @@
      */
     function getPanelMeasurer(panel) {
         return createDOMMeasurer(panel);
+    }
+
+    /** @return {VersoVirPanelBridge | null} */
+    function virPanelBridge() {
+        var bridge = window.__versoVirPanel;
+        return bridge && bridge.status === "ready" ? bridge : null;
+    }
+
+    /** @return {boolean} */
+    function virPanelEnabled() {
+        var config = window.__versoPrettyConfig;
+        return !!(config && config.virPanel === true);
+    }
+
+    /** @param {number} pixels @param {number} spaceWidth @return {number} */
+    function virPanelColumns(pixels, spaceWidth) {
+        var columns = Math.floor(pixels / spaceWidth);
+        return Number.isSafeInteger(columns) ? Math.max(1, Math.min(240, columns)) : 40;
+    }
+
+    /** @param {InfoPanel} panel */
+    function releaseVirPanel(panel) {
+        var target = panel._virPanelTarget;
+        var bridge = virPanelBridge();
+        if (target && bridge && typeof bridge.unmount === "function") {
+            bridge.unmount(target);
+        }
+        panel._virPanelTarget = null;
+        panel._virPanelContentId = null;
+        delete panel.dataset.virPanelComponent;
+        delete panel.dataset.virPanelContent;
+        delete panel.dataset.virPanelColumns;
+    }
+
+    /**
+     * Mount one generated resident content value. The first render establishes
+     * the goal grid; a second render uses the measured type-column width.
+     * @param {InfoPanel} panel
+     * @param {Element} source
+     * @param {Element} target
+     * @return {boolean}
+     */
+    function tryMountVirPanel(panel, source, target) {
+        if (!virPanelEnabled()) return false;
+        var bridge = virPanelBridge();
+        if (!bridge || typeof bridge.mount !== "function") return false;
+        var mount = bridge.mount;
+        var rawId = source.getAttribute("data-vir-panel-content");
+        var contentId = rawId === null ? NaN : Number(rawId);
+        if (!Number.isSafeInteger(contentId) || contentId < 0) return false;
+
+        if (panel._virPanelTarget && panel._virPanelTarget !== target) releaseVirPanel(panel);
+        var measurer = getPanelMeasurer(panel);
+        var initialPixels =
+            target === panel && typeof contentWidth === "function"
+                ? contentWidth(panel)
+                : target.getBoundingClientRect().width;
+        var initialColumns = virPanelColumns(initialPixels, measurer.spaceWidth);
+        measurer.cleanup();
+        if (!mount(target, contentId, initialColumns)) return false;
+
+        panel._virPanelTarget = target;
+        panel._virPanelContentId = contentId;
+        panel.dataset.virPanelComponent = "mounted";
+        panel.dataset.virPanelContent = String(contentId);
+
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (
+                    panel._virPanelTarget !== target ||
+                    panel._virPanelContentId !== contentId ||
+                    !virPanelEnabled()
+                ) {
+                    return;
+                }
+                var typeCell = target.querySelector(".type");
+                if (!typeCell) return;
+                var measured = getPanelMeasurer(panel);
+                var columns = virPanelColumns(
+                    measured.measureElWidth(typeCell),
+                    measured.spaceWidth,
+                );
+                measured.cleanup();
+                mount(target, contentId, columns);
+                panel.dataset.virPanelColumns = String(columns);
+            });
+        });
+        return true;
     }
 
     /**
@@ -2217,9 +2353,15 @@
             var parsed = JSON.parse(richFmt);
             // Detect whether this is goal data (array) or signature format data (has "fmt" key)
             if (Array.isArray(parsed) && typeof goalsToHtml === "function") {
-                renderGoalsFormat(panel, parsed);
+                if (!tryMountVirPanel(panel, source, panel)) {
+                    releaseVirPanel(panel);
+                    renderGoalsFormat(panel, parsed);
+                }
             } else if (parsed.fmt && typeof formatToHtml === "function") {
-                renderSignatureFormat(panel, /** @type {HTMLElement} */ (source), parsed);
+                if (!tryMountVirPanel(panel, source, source)) {
+                    releaseVirPanel(panel);
+                    renderSignatureFormat(panel, /** @type {HTMLElement} */ (source), parsed);
+                }
             }
         } catch (e) {
             // Fall back to pre-rendered HTML on error

@@ -13,6 +13,11 @@ def runtimeConfig : Html := Html.text false <| String.intercalate "\n" [
   "  wasmUrl: new URL(\"vir-pretty/lean-vir/wasm/vir-upstream.wasm\", window.location.href).href,",
   "  irPackageUrl: new URL(\"vir-pretty/verso-pretty.irpkg\", window.location.href).href",
   "};",
+  "window.__versoVirPanelConfig = {",
+  "  runtimeUrl: new URL(\"vir-pretty/panel-react-runtime.js\", window.location.href).href,",
+  "  wasmUrl: new URL(\"vir-pretty/lean-vir/wasm/vir-upstream.wasm\", window.location.href).href,",
+  "  irPackageSetUrl: new URL(\"vir-pretty/panel-ir/VirPanelRegistry.irpkg-set.json\", window.location.href).href",
+  "};",
   "window.__versoPrettyNativeConfig = {",
   "  adapterUrl: new URL(\"vir-pretty/lean-native/prettyM-browser-adapter.mjs\", window.location.href).href,",
   "  wasmUrl: new URL(\"vir-pretty/lean-native/prettyM.wasm\", window.location.href).href,",
@@ -32,7 +37,8 @@ def config : Config := {
   outputDir := "_site"
   extraHead := #[
     runtimeConfig,
-    {{ <script src={{"vir-pretty/coi-register.js"}}></script> }}
+    {{ <script src={{"vir-pretty/coi-register.js"}}></script> }},
+    {{ <script type="module" src={{"vir-pretty/panel-component.js"}}></script> }}
   ]
   panelPlugins := #[
     "vir-pretty/pretty-experiments.js",

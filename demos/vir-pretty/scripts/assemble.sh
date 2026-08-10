@@ -6,6 +6,9 @@ artifact_dir="$demo_root/_artifacts"
 out_dir="${OUT_DIR:-$demo_root/_site}"
 workspace_root="$(cd "$demo_root/../.." && pwd)"
 lean_vir_dir="${LEAN_VIR_DIR:-$workspace_root/_artifacts/lean-vir}"
+panel_experiment_dir="$workspace_root/experiments/vir-panel"
+panel_module_set_dir="$panel_experiment_dir/.lake/build/vir/module-sets"
+esbuild="$lean_vir_dir/node_modules/.bin/esbuild"
 native_flat_dir="$artifact_dir/lean-native-flat"
 native_flat_enabled=0
 native_html_dir="$artifact_dir/lean-native-html"
@@ -108,6 +111,10 @@ if [[ ! -x "$lean_vir_dir/.lake/build/bin/vir_irpkg" ]]; then
   echo "set LEAN_VIR_DIR to a built lean-vir checkout" >&2
   exit 1
 fi
+if [[ ! -x "$esbuild" ]]; then
+  echo "esbuild not found: $esbuild" >&2
+  exit 1
+fi
 
 registry_dir="$demo_root/.lake/verso-pretty-registry"
 registry_source="$registry_dir/PrettyRegistry.lean"
@@ -115,7 +122,8 @@ python3 "$demo_root/scripts/generate-pretty-registry.py" \
   "$out_dir" \
   "$registry_source" \
   "$out_dir/vir-pretty/verso-pretty-registry.json" \
-  --pretty-source "$workspace_root/VersoSlides/Pretty.lean"
+  --pretty-source "$workspace_root/VersoSlides/Pretty.lean" \
+  --panel-output "$panel_experiment_dir/VirPanelRegistry.lean"
 
 (cd "$lean_vir_dir" && lake exe vir_irpkg \
   "$out_dir/vir-pretty/verso-pretty.irpkg" \
@@ -130,7 +138,27 @@ python3 "$demo_root/scripts/generate-pretty-registry.py" \
   VersoSlides.PrettyRegistry.formatRenderedByIdForVir \
   VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir)
 
-for asset in pretty-experiments.js pretty-vir.js pretty-native.js pretty-native-flat.js pretty-native-html.js pretty-llvm.js coi-register.js; do
+(cd "$panel_experiment_dir" && lake build +VirPanelRegistry:vir)
+panel_ir_dir="$out_dir/vir-pretty/panel-ir"
+rm -rf "$panel_ir_dir"
+mkdir -p "$panel_ir_dir"
+install -m 0644 \
+  "$panel_module_set_dir/VirPanelRegistry.irpkg-set.json" \
+  "$panel_module_set_dir/VirPanelRegistry.irpkg" \
+  "$panel_ir_dir/"
+rsync -a \
+  "$panel_module_set_dir/VirPanelRegistry.parts/" \
+  "$panel_ir_dir/VirPanelRegistry.parts/"
+
+"$esbuild" "$lean_vir_dir/web/src/browser-react-runtime.js" \
+  --bundle \
+  --format=esm \
+  --platform=browser \
+  --target=es2020 \
+  --minify \
+  --outfile="$out_dir/vir-pretty/panel-react-runtime.js"
+
+for asset in pretty-experiments.js pretty-vir.js pretty-native.js pretty-native-flat.js pretty-native-html.js pretty-llvm.js panel-component.js coi-register.js; do
   install -D -m 0644 "$demo_root/web/$asset" "$out_dir/vir-pretty/$asset"
 done
 install -D -m 0644 "$demo_root/web/coi-serviceworker.js" "$out_dir/coi-serviceworker.js"

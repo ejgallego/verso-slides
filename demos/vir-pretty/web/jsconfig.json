@@ -16,6 +16,7 @@
         "pretty-native-flat.js",
         "pretty-native-html.js",
         "pretty-llvm.js",
+        "panel-component.js",
         "coi-register.js",
         "../../../web-lib/panel/globals.d.ts"
     ]

@@ -61,13 +61,16 @@ private def goal (value : Panel.Goal) (width : Nat) : Html :=
   Html.divWith #[Attr.className "goal"] <|
     name.toArray ++ hypotheses.toArray ++ #[conclusion]
 
-/-- React view for the compiler-neutral panel model. -/
-def view : Lean.Vir.React.Component Panel.Model := fun model =>
+private def contentView (model : Panel.Model) : Html :=
   match model.content with
   | .empty => Html.divWith #[Attr.className "panel-empty"] #[]
   | .signature value => richText value model.width
   | .goals values => Html.divWith #[Attr.className "panel-goals"]
       (values.map (goal · model.width))
+
+/-- React view for the compiler-neutral panel model. -/
+def view : Lean.Vir.React.Component Panel.Model := fun model =>
+  Html.spanWith #[Attr.className "hl lean"] #[contentView model]
 
 /-- Mount an arbitrary panel model supplied through VIR's typed boundary. -/
 @[vir_export]

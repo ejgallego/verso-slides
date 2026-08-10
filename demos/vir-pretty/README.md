@@ -119,6 +119,9 @@ element/props model rather than introduce an unrelated tree vocabulary here.
 The restored deck has the same functionality as the in-tree prototype:
 
 - live Lean code panels and draggable panel sizing;
+- an opt-in **VIR panel component** control that mounts complete generated
+  goal/signature content by resident ID, performs the measured two-pass layout,
+  and falls back to the JavaScript panel path when disabled;
 - a two-dimensional backend × compiled-breadth selector plus an expandable
   Custom Lab for ABI diagnostics, arbitrary processor selection, raw timing
   displays, and single/compare modes;
@@ -165,6 +168,11 @@ available at `../../_artifacts/lean-vir`. The exported names
 deliberately retain the existing `VersoSlides.Pretty.*` ABI so current
 artifacts remain usable while the demo is moved out of the Verso
 implementation repository.
+
+Assembly also generates `VirPanelRegistry.lean` from the same deck scan and
+builds its React-capable package set. The browser-facing component ABI is only
+`mountContent(selector, contentId, width)` plus `unmount(selector)`; format,
+annotation, and goal data stay resident in the generated package.
 
 The host deck, VIR package generator, FIR Wasm package, and LLVM
 package may use different Lean versions: each artifact is a

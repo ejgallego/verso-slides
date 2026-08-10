@@ -14,6 +14,7 @@ const sources = {
     sharedPretty: "VersoSlides/Pretty.lean",
     leanModel: "VersoSlides/Panel/Component.lean",
     virReactView: "experiments/vir-panel/VirPanelExperiment.lean",
+    virPanelHostAdapter: "demos/vir-pretty/web/panel-component.js",
 };
 
 const sourceMetrics = {};
@@ -37,6 +38,8 @@ const production = sum(sourceMetrics.productionPanel, sourceMetrics.productionFo
 const lab = sum(sourceMetrics.labPanel, sourceMetrics.labFormatter);
 const leanSemanticLines = sourceMetrics.leanModel.lines + sourceMetrics.virReactView.lines;
 const projectedHybridLines = sourceMetrics.productionPanel.lines + leanSemanticLines;
+const projectedHybridWithAdapterLines =
+    projectedHybridLines + sourceMetrics.virPanelHostAdapter.lines;
 const result = {
     sources: sourceMetrics,
     deliveredJavaScript: {
@@ -50,14 +53,21 @@ const result = {
         leanSemanticLines,
         projectedHybridLinesBeforeBridge: projectedHybridLines,
         projectedHybridLineReductionPercent: roundPercent(
-            1 - projectedHybridLines /
-                (sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines),
+            1 -
+                projectedHybridLines /
+                    (sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines),
+        ),
+        projectedHybridWithAdapterLinesBeforePanelHooks: projectedHybridWithAdapterLines,
+        projectedHybridWithAdapterLineReductionPercent: roundPercent(
+            1 -
+                projectedHybridWithAdapterLines /
+                    (sourceMetrics.productionPanel.lines + sourceMetrics.productionFormatter.lines),
         ),
         semanticLineReductionPercent: roundPercent(
             1 - leanSemanticLines / sourceMetrics.productionFormatter.lines,
         ),
         sharedPrettyLines: sourceMetrics.sharedPretty.lines,
-        note: "The hybrid projection retains the complete browser panel, replaces the JavaScript formatter with the Lean component/view, and excludes the final host bridge.",
+        note: "The first projection excludes the host adapter. The second includes its standalone runtime bootstrap but still excludes the opt-in control and panel hook lines.",
     },
 };
 
@@ -78,6 +88,29 @@ try {
     result.virReactArtifact = {
         unavailable: true,
         hint: "run scripts/build-vir-panel-experiment.sh",
+        error: String(error?.message ?? error),
+    };
+}
+
+const residentPilotRoot = resolve(root, "demos/vir-pretty/_site/vir-pretty");
+try {
+    const runtime = await fileMetrics(resolve(residentPilotRoot, "panel-react-runtime.js"));
+    const irFiles = await walkIrPackages(resolve(residentPilotRoot, "panel-ir"));
+    const ir = await sumFiles(irFiles);
+    const registry = JSON.parse(
+        await readFile(resolve(residentPilotRoot, "verso-pretty-registry.json"), "utf8"),
+    );
+    result.residentPanelPilot = {
+        runtime,
+        ir: { ...ir, members: irFiles.length },
+        formatCount: registry.formatCount,
+        contentCount: registry.panelContentCount,
+        productionExports: ["VirPanelRegistry.mountContent", "VirPanelRegistry.unmount"],
+    };
+} catch (error) {
+    result.residentPanelPilot = {
+        unavailable: true,
+        hint: "run demos/vir-pretty/scripts/assemble.sh",
         error: String(error?.message ?? error),
     };
 }

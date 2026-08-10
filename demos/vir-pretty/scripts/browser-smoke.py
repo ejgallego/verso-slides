@@ -265,11 +265,130 @@ async def main() -> None:
         await shared_columns.press("Tab")
         assert await shared_columns.input_value() == "32"
 
+        await page.wait_for_function(
+            "() => window.__versoVirPanel?.status === 'ready'",
+            timeout=60_000,
+        )
+        component_toggle = controls.locator(
+            ".pretty-controls-toggle", has_text="VIR panel component"
+        ).locator("input")
+        assert not await component_toggle.is_disabled()
+        await page.evaluate("window.__versoVirPanel.calls.length = 0")
+        await component_toggle.check()
+        assert "virPanel=1" in page.url
+        panel = block.locator(".info-panel")
+        await page.wait_for_function(
+            "el => el.dataset.virPanelComponent === 'mounted' && !!el.dataset.virPanelColumns",
+            arg=await panel.element_handle(),
+            timeout=30_000,
+        )
+        assert await panel.locator(".goal").count() >= 1
+        assert await panel.locator(".reflowed").count() >= 1
+        assert await panel.locator("[data-binding]").count() >= 1
+        assert await panel.locator(".pretty-compare-pane").count() == 0
+        resident_boundary = await page.evaluate(
+            """() => ({
+              status: window.__versoVirPanel.status,
+              contentId: Number(document.querySelector('.info-panel[data-vir-panel-content]')
+                ?.dataset.virPanelContent),
+              columns: Number(document.querySelector('.info-panel[data-vir-panel-columns]')
+                ?.dataset.virPanelColumns),
+              packageCount: window.__versoVirPanel.runtime.packageInfo.packageCount,
+              totalMs: window.__versoVirPanel.lastCall.timings.totalMs
+            })"""
+        )
+        assert resident_boundary["status"] == "ready"
+        assert resident_boundary["contentId"] >= 0
+        assert resident_boundary["columns"] >= 1
+        assert resident_boundary["packageCount"] == 14
+        assert resident_boundary["totalMs"] >= 0
+        first_boundary = await page.evaluate(
+            """() => window.__versoVirPanel.calls
+              .filter(call => call.kind === 'mount')
+              .slice(0, 2)
+              .map(call => ({ width: call.width, ...call.timings }))"""
+        )
+        assert len(first_boundary) == 2
+        assert first_boundary[0]["width"] >= 1
+        assert first_boundary[1]["width"] >= 1
+        repeated_boundary = await page.evaluate(
+            """() => {
+              const bridge = window.__versoVirPanel;
+              const panel = document.querySelector('.info-panel[data-vir-panel-content]');
+              const contentId = Number(panel.dataset.virPanelContent);
+              const columns = Number(panel.dataset.virPanelColumns);
+              const samples = [];
+              for (let i = 0; i < 31; i++) {
+                if (!bridge.mount(panel, contentId, columns)) throw new Error('resident remount failed');
+                if (i > 0) samples.push(bridge.lastCall.timings);
+              }
+              const median = key => {
+                const values = samples.map(value => Number(value[key] || 0)).sort((a, b) => a - b);
+                return values[Math.floor(values.length / 2)];
+              };
+              return {
+                calls: samples.length,
+                marshalMs: median('marshalMs'),
+                executeMs: median('executeMs'),
+                hostMs: median('hostMs'),
+                decodeMs: median('decodeMs'),
+                totalMs: median('totalMs')
+              };
+            }"""
+        )
+        assert repeated_boundary["calls"] == 30
+        assert repeated_boundary["totalMs"] >= 0
+        safe_width = await page.evaluate(
+            """() => {
+              const bridge = window.__versoVirPanel;
+              const panel = document.querySelector('.info-panel[data-vir-panel-content]');
+              const contentId = Number(panel.dataset.virPanelContent);
+              if (!bridge.mount(panel, contentId, Number.POSITIVE_INFINITY)) {
+                throw new Error('bounded-width remount failed');
+              }
+              return bridge.calls.at(-1).width;
+            }"""
+        )
+        assert safe_width == 40
+
+        dark_index = await page.evaluate(
+            """() => [...document.querySelectorAll('.slides > section')]
+              .findIndex(slide => slide.querySelector('h1, h2, h3')?.textContent.trim() === 'Dark Code')"""
+        )
+        assert dark_index >= 0
+        await page.evaluate("index => Reveal.slide(index)", dark_index)
+        dark_block = page.locator(".slides > section").nth(dark_index).locator(
+            ".code-with-panel"
+        ).first
+        await dark_block.locator("[data-verso-hover]").first.click()
+        panel = dark_block.locator(".info-panel")
+        await page.wait_for_function(
+            "el => el.dataset.virPanelComponent === 'mounted'",
+            arg=await panel.element_handle(),
+            timeout=30_000,
+        )
+        assert await panel.locator("code[data-rich-format] .reflowed").count() == 1
+
+        await component_toggle.uncheck()
+        await page.wait_for_function(
+            "el => !el.dataset.virPanelComponent",
+            arg=await panel.element_handle(),
+        )
+        assert "virPanel=0" in page.url
+
         assert await page.evaluate("typeof runPrettyDifferentialCorpus") == "undefined"
         assert not page_errors, page_errors
         await browser.close()
 
-    print("PASS backend × compiled-breadth panel smoke")
+    print(
+        "PASS backend × compiled-breadth panel smoke; "
+        "resident component repeated median "
+        f"first={first_boundary[0]['totalMs']:.3f} ms, "
+        f"measured-remount={first_boundary[1]['totalMs']:.3f} ms, "
+        f"total={repeated_boundary['totalMs']:.3f} ms, "
+        f"execute={repeated_boundary['executeMs']:.3f} ms, "
+        f"host={repeated_boundary['hostMs']:.3f} ms"
+    )
 
 
 if __name__ == "__main__":

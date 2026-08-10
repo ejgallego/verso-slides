@@ -29,13 +29,17 @@ the current source comparison is:
 
 | Boundary | JavaScript baseline | Lean/VIR pilot | Physical-line change |
 | --- | ---: | ---: | ---: |
-| semantic formatter/component | 662 | 248 | -62.5% |
-| projected hybrid application code, before the final host bridge | 1,320 | 906 | -31.4% |
+| semantic formatter/component | 662 | 251 | -62.1% |
+| projected hybrid application code, before the host adapter | 1,320 | 909 | -31.1% |
+| projected hybrid including the 96-line instrumented runtime adapter, before panel hooks | 1,320 | 1,005 | -23.9% |
 
-The second row retains all 658 lines of the ordinary browser panel and replaces
-the 662-line JavaScript formatter with the 141-line compiler-neutral component
-and 107-line VIR/React view. It is a ceiling rather than a completed reduction:
-the final bridge will add code, so the pilot target is a 20--30% net reduction.
+The projections retain all 658 lines of the ordinary browser panel and replace
+the 662-line JavaScript formatter with the 141-line compiler-neutral component,
+110-line VIR/React view, and then the standalone runtime adapter. The opt-in lab
+currently adds a further 142 net lines to its panel for the toggle, fallback,
+two-pass measurement, and instrumentation. Charging all of that experimental
+UI as production code yields a conservative 13.1% reduction; a production hook
+should target roughly 20% rather than preserve the lab controls and call log.
 
 The shared Lean formatter is 526 lines and serves the formatter matrix as well
 as this component. Assembly embeds that canonical source in its generated,
@@ -54,16 +58,16 @@ The compiler-neutral Lean component is 141 lines:
 - `VersoSlides/Panel/Component.lean:122-139` invokes Lean `prettyM` and resolves
   annotations into semantic render plans.
 
-The VIR-specific React view is 107 lines:
+The VIR-specific React view is 110 lines:
 
 - `experiments/vir-panel/VirPanelExperiment.lean:17-34` turns semantic render
   nodes into React text/span resources while preserving CSS classes and binding
   metadata.
 - `experiments/vir-panel/VirPanelExperiment.lean:39-70` composes hypotheses,
   conclusions, goals, signatures, and empty content.
-- `experiments/vir-panel/VirPanelExperiment.lean:72-80` exports typed mount and
+- `experiments/vir-panel/VirPanelExperiment.lean:75-83` exports typed mount and
   unmount operations.
-- `experiments/vir-panel/VirPanelExperiment.lean:82-105` supplies only the
+- `experiments/vir-panel/VirPanelExperiment.lean:85-108` supplies only the
   deterministic smoke fixture.
 
 For comparison, the remaining ordinary JavaScript responsibilities are visible
@@ -104,6 +108,20 @@ and React. If those runtimes are already resident, the incremental component is
 closer to the 27.8-KB-gzip IR package, but this experiment does not yet measure
 cross-component runtime amortization.
 
+The real-content hybrid builds `VirPanelRegistry` after the deck is assembled.
+The generated package contains 58 deduplicated formats and 59 complete
+goal/signature contents, reaches 14 package-set members, and exposes exactly two
+production calls:
+
+- `mountContent(selector, contentId, width)`;
+- `unmount(selector)`.
+
+No `Std.Format`, goal JSON, annotation table, or recursive VDOM crosses that
+boundary. The same generated metadata records both format and content counts.
+The 14 IR members are 1,226,609 raw bytes and about 53.2 KB gzip. Under the shared
+runtime assumption, 53.2 KB gzip is therefore the current incremental delivery
+cost of this deck-specific component and its resident content.
+
 ## Runtime observations
 
 `node experiments/vir-panel/smoke.mjs` validates the virtual React tree and
@@ -117,8 +135,12 @@ prints call phases. One observed run on this development machine was:
 The useful conclusion is not the absolute Node virtual-host number. It is that
 about 95% of repeated `execute` time is already attributed to React host work;
 there is no obvious Lean formatter hotspot in this small component. A real
-Chromium smoke also commits and queries the expected React DOM, but it is a
-correctness test rather than a statistically useful browser benchmark.
+Chromium smoke now exercises real resident goal and signature contents. Across
+several warmed-runtime runs, the first real resident goal render took 3.7--8.6 ms,
+the measured-width remount took 0.65--4.1 ms, and thirty same-content remounts
+had 0.045--0.10-ms medians. The repeated figure is useful as a repeated-call and
+React-reconciliation check, not an end-to-end selection benchmark: identical
+content can take the React no-op path.
 
 ## Improvements demonstrated by VIR
 
@@ -131,7 +153,7 @@ correctness test rather than a statistically useful browser benchmark.
    including token classes and `data-binding` metadata. Both the virtual host
    and Chromium verify this.
 4. Compiler neutrality is retained: the model and update function import only
-   Verso Slides, while the 107-line view is the only VIR-specific layer.
+   Verso Slides, while the 110-line view is the only VIR-specific layer.
 5. The generated package manifest makes reached declarations, host imports,
    exports, Lean version, and artifact membership inspectable.
 
@@ -139,22 +161,30 @@ correctness test rather than a statistically useful browser benchmark.
 
 1. The cold payload is much larger than the 12.1-KB-gzip production
    panel-plus-formatter. VIR only becomes plausible when the runtime is reused.
-2. A naïve end-to-end state-machine integration adds two host interactions per
-   selection: selection emits focus/content effects, then accepted content emits
-   a width request. The current DOM-local JavaScript path is synchronous.
-3. Goal rendering currently needs actual `.type` cell widths. The JavaScript
-   renderer constructs structure, lets CSS lay it out, measures it, and then
-   formats expressions. The VIR fixture uses a supplied fixed column width; it
-   has not reproduced this two-pass behavior.
+2. Resident generation adds 147 lines to the existing Python registry tool and
+   emits a large generated Lean module. It removes runtime JSON conversion but
+   introduces build-time machinery that should eventually become a reusable
+   Verso/VIR facility rather than remain demo-specific.
+3. The hybrid now performs the real two-pass layout: render the structure,
+   measure a `.type` cell in JavaScript, convert pixels to monospace columns,
+   and remount. The current model supplies one shared width to the component;
+   broader parity testing must confirm that this matches every goal layout.
 4. Source discovery, focus outlines, rectangle geometry, dragging, fragment
    automation, hover-doc lookup, markdown rendering, and resize observation are
    browser work and are intentionally not implemented by the Lean component.
-5. `mountModel` proves the typed surface but has not yet been exercised with a
-   complete browser-originated `Std.Format` heap. A deck-resident model or
-   content ID would avoid repeatedly marshaling that tree.
+5. The opt-in lab hook is intentionally instrumented and adds 142 net lines to
+   `panel-lab.js`; it is evidence for the boundary, not yet the minimal API we
+   would ship in the ordinary panel.
 6. React is an additional policy/dependency for ordinary Verso Slides. The
    direct host time in repeated calls shows that changing the language of the
    view does not remove DOM/React cost.
+7. The demo currently instantiates a separate React-capable VIR runtime beside
+   the formatter runtime. Browser caching avoids downloading the Wasm twice,
+   but shared runtime state and memory remain an architectural assumption, not
+   something this assembly path has demonstrated yet.
+8. Consequently, the same 58 resident formats are compiled into both formatter
+   and panel registries today. A unified runtime/package set should share that
+   table; the size and maintenance benefit of doing so has not been measured.
 
 ## Current assessment
 
@@ -162,23 +192,28 @@ VIR is a good fit for the semantic panel component—selection policy, typed
 content, Lean formatting, annotation resolution, and view composition. It is
 not a compelling replacement for browser orchestration or geometry.
 
-The next useful experiment is a hybrid integration in the real panel: keep DOM
-discovery, focus/outline drawing, and width measurement in the small JavaScript
-host; pass a resident content ID plus measured width to the VIR component; let
-Lean/VIR own the goal/signature React subtree. Measure incremental payload when
-another VIR component is already loaded, host crossings per click, first and
-repeated interaction latency, and DOM parity. That will evaluate the actual
-architectural trade rather than merely porting more JavaScript.
+That hybrid now exists behind the **VIR panel component** control in the real
+demo. It keeps DOM discovery, focus/outline drawing, width measurement, dragging,
+and fallback in JavaScript while Lean/VIR owns the resident goal/signature React
+subtree.
+
+The next decision point is maintainability rather than feasibility. We should
+compare DOM/text output across the full fixture corpus and resize cases, measure
+a complete first selection plus its measured remount, and then reduce the
+demo-specific generator/hook surface. If the production hook cannot remain near
+the 20--25% net source-reduction target, the formatter-only VIR boundary is the
+better maintenance trade.
 
 ## Reproduction
 
 ```text
 lake exe test-panel-component
 cd experiments/vir-panel
-lake build +VirPanelExperiment:vir
+lake build +VirPanelRegistry:vir
 node smoke.mjs
 cd ../..
-scripts/build-vir-panel-experiment.sh
-uv run --project browser-tests pytest browser-tests/test_vir_panel_experiment.py -q --browser=chromium
+demos/vir-pretty/scripts/assemble.sh
+python3 demos/vir-pretty/scripts/serve.py
+uv run --with playwright python demos/vir-pretty/scripts/browser-smoke.py http://127.0.0.1:18332
 node scripts/panel-component-metrics.mjs
 ```
