@@ -215,6 +215,8 @@ interface VersoVirPanelCall {
     kind: "mount" | "unmount";
     contentId?: number;
     width?: number;
+    widths?: number[];
+    measureOnly?: boolean;
     timings: VersoPrettyVirCallTimings;
 }
 
@@ -225,7 +227,12 @@ interface VersoVirPanelBridge {
     lastCall?: VersoPrettyVirTimedCall;
     calls: VersoVirPanelCall[];
     ready?: Promise<unknown>;
-    mount?: (target: Element, contentId: number, width: number) => boolean;
+    mount?: (
+        target: Element,
+        contentId: number,
+        width: number | number[],
+        measureOnly?: boolean,
+    ) => boolean;
     unmount?: (target: Element) => boolean;
 }
 
@@ -241,6 +248,10 @@ interface Window {
     runVirPanelParityCorpus?: (options?: {
         widths?: number[];
         expectedContents?: number;
+    }) => Promise<unknown>;
+    runVirPanelGeometryCorpus?: (options?: {
+        panelWidths?: number[];
+        expectedGoals?: number;
     }) => Promise<unknown>;
 }
 
@@ -352,6 +363,13 @@ declare function getPrettyMatrixBackend(
 declare function createColumnMeasurer(columns: number): DOMMeasurer;
 declare function goalsToHtml(goals: any[]): { html: string; formats: any[] };
 declare function fillReflowedSpans(container: Element, formats: any[], measurer: DOMMeasurer): void;
+declare function fillReflowedSpans(
+    container: Element,
+    formats: any[],
+    measurer: DOMMeasurer,
+    backend: string,
+    fixedWidth?: number,
+): PrettyTimings;
 declare function compactFormatSourceLength(fmtJson: any): number;
 declare function emptyPrettyTimings(): PrettyTimings;
 declare function addPrettyTimings(target: PrettyTimings, source: PrettyTimings): PrettyTimings;

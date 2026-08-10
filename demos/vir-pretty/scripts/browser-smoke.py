@@ -281,6 +281,20 @@ async def main() -> None:
         assert corpus["widths"] == [12, 40, 80, 20, 120, 1, 240, 32], corpus
         assert corpus["cases"] == 59 * len(corpus["widths"])
         assert corpus["failures"] == [], corpus["failures"]
+        geometry = await page.evaluate("runVirPanelGeometryCorpus()")
+        assert geometry["goalContents"] == 17, geometry
+        assert geometry["panelWidths"] == [240, 360, 520, 760], geometry
+        assert geometry["cases"] == 68, geometry
+        assert geometry["multiWidthCases"] == 64, geometry
+        assert geometry["maxCellSpread"] == 6, geometry
+        assert geometry["widthVectorMismatchCases"] == 0, geometry
+        assert geometry["scalarDifferingCases"] == 14, geometry
+        assert geometry["contentMeasuredVectorDifferingCases"] == 7, geometry
+        assert geometry["differingCases"] == 3, geometry
+        assert [
+            (failure["id"], failure["panelWidth"])
+            for failure in geometry["failures"]
+        ] == [(14, 240), (15, 240), (16, 240)], geometry["failures"]
         component_toggle = controls.locator(
             ".pretty-controls-toggle", has_text="VIR panel component"
         ).locator("input")
@@ -322,11 +336,20 @@ async def main() -> None:
             """() => window.__versoVirPanel.calls
               .filter(call => call.kind === 'mount')
               .slice(0, 2)
-              .map(call => ({ width: call.width, ...call.timings }))"""
+              .map(call => ({
+                width: call.width,
+                widths: call.widths,
+                measureOnly: call.measureOnly,
+                ...call.timings
+              }))"""
         )
         assert len(first_boundary) == 2
-        assert first_boundary[0]["width"] >= 1
+        assert first_boundary[0]["width"] == 0
+        assert first_boundary[0]["widths"] == []
+        assert first_boundary[0]["measureOnly"] is True
         assert first_boundary[1]["width"] >= 1
+        assert len(first_boundary[1]["widths"]) >= 1
+        assert first_boundary[1]["measureOnly"] is False
 
         # Exercise the production resize path rather than calling the bridge
         # directly: divider drag -> CSS grid resize -> ResizeObserver -> remount.

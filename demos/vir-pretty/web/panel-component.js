@@ -4,8 +4,8 @@
  * Browser adapter for the resident VIR/React panel-component pilot.
  *
  * The public host boundary is deliberately two calls: mount a resident content
- * ID at a measured column width, or unmount it. All goal and format data stays
- * inside the generated VIR package set.
+ * ID for structural measurement or at measured per-cell column widths, and
+ * unmount it. All goal and format data stays inside the generated VIR package.
  */
 
 const root = window;
@@ -41,6 +41,13 @@ function safeWidth(width) {
     return Number.isSafeInteger(rounded) ? Math.max(1, Math.min(240, rounded)) : 40;
 }
 
+/** @param {number | number[]} width @param {boolean} allowEmpty @return {number[]} */
+function safeWidths(width, allowEmpty) {
+    const values = Array.isArray(width) ? width : [width];
+    const widths = values.slice(0, 4096).map(safeWidth);
+    return widths.length > 0 || allowEmpty ? widths : [40];
+}
+
 bridge.ready = (async () => {
     try {
         const pretty = root.__versoPrettyVir;
@@ -55,19 +62,22 @@ bridge.ready = (async () => {
         const callTimed = runtime.callTimed?.bind(runtime);
         if (!callTimed) throw new Error("shared VIR runtime does not expose timed calls");
         bridge.runtime = runtime;
-        bridge.mount = function (target, contentId, width) {
-            const boundedWidth = safeWidth(width);
+        bridge.mount = function (target, contentId, width, measureOnly = false) {
+            const widths = safeWidths(width, measureOnly);
             const call = callTimed(
                 "VirPanelRegistry.mountContent",
                 selectorFor(target),
                 contentId,
-                boundedWidth,
+                widths,
+                measureOnly,
             );
             bridge.lastCall = call;
             bridge.calls.push({
                 kind: "mount",
                 contentId,
-                width: boundedWidth,
+                width: widths[0] || 0,
+                widths,
+                measureOnly,
                 timings: call.timings,
             });
             if (bridge.calls.length > 100) bridge.calls.shift();

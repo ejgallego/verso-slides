@@ -21,7 +21,8 @@ def main : IO UInt32 := do
   let stale := Panel.update inner.model (.provideContent 10 (.goals #[]))
   let current := Panel.update inner.model (.provideContent 20 (.goals #[]))
   let narrow := Panel.update current.model (.resized 0)
-  let cleared := Panel.update narrow.model .clear
+  let cells := Panel.update narrow.model (.resizedCells #[0, 7])
+  let cleared := Panel.update cells.model .clear
   let rendered :=
     Panel.Content.renderPlans
       (.signature { format := Std.Format.group ("hello" ++ Std.Format.line ++ "world") })
@@ -34,8 +35,17 @@ def main : IO UInt32 := do
       ("last source wraps to outer source", wrapped.model.activeSource == some 10),
       ("stale content reply ignored", stale.effects.isEmpty),
       ("current content requests width", current.effects == #[.requestWidth]),
+      ("content starts with a measurement pass", current.model.measureOnly),
       ("width is clamped", narrow.model.width == 1),
+      ("uniform resize completes measurement", !narrow.model.measureOnly),
+      ("uniform resize clears cell widths", narrow.model.widths.isEmpty),
+      ("cell widths are clamped", cells.model.widths == #[1, 7]),
+      ("cell resize updates fallback width", cells.model.width == 1),
+      ("cell resize completes measurement", !cells.model.measureOnly),
+      ("cell width uses measured value", cells.model.richTextWidth 1 == 7),
+      ("cell width falls back", cells.model.richTextWidth 2 == 1),
       ("clear drops selection", cleared.model.activeSource.isNone),
+      ("clear drops measurement state", cleared.model.widths.isEmpty && !cleared.model.measureOnly),
       ("clear requests focus cleanup", cleared.effects == #[.clearSourceFocus]),
       ("component uses Lean pretty layout",
         rendered[0]?.map (fun plan => plan.nodes.map (·.text)) == some #["hello", "\n", "world"])]

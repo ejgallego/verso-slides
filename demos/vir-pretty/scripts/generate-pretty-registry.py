@@ -273,12 +273,14 @@ def formatRenderPlanById (id width indent : Nat) : Pretty.ResidentRenderPlan :=
   Pretty.formatRenderPlanAt formats annotationTables id width indent
 
 @[vir_export]
-def mountContent (selector : String) (contentId width : Nat) : DomM Bool :=
+def mountContent (selector : String) (contentId : Nat)
+    (widths : Array Nat) (measureOnly : Bool) : DomM Bool :=
   match contents[contentId]? with
   | none => pure false
   | some content =>
+    let width := widths[0]?.getD 40
     Lean.Vir.React.Root.renderComponentIntoSelector selector
-      VirPanelExperiment.view {{ content, width := max 1 width }}
+      VirPanelExperiment.view {{ content, width := max 1 width, widths, measureOnly }}
 
 @[vir_export]
 def unmount (selector : String) : DomM Bool :=

@@ -1760,11 +1760,12 @@
         delete panel.dataset.virPanelComponent;
         delete panel.dataset.virPanelContent;
         delete panel.dataset.virPanelColumns;
+        delete panel.dataset.virPanelWidths;
     }
 
     /**
      * Mount one generated resident content value. The first render establishes
-     * the goal grid; a second render uses the measured type-column width.
+     * the goal grid; a second render uses every measured type-cell width.
      * @param {InfoPanel} panel
      * @param {Element} source
      * @param {Element} target
@@ -1780,14 +1781,7 @@
         if (!Number.isSafeInteger(contentId) || contentId < 0) return false;
 
         if (panel._virPanelTarget && panel._virPanelTarget !== target) releaseVirPanel(panel);
-        var measurer = getPanelMeasurer(panel);
-        var initialPixels =
-            target === panel && typeof contentWidth === "function"
-                ? contentWidth(panel)
-                : target.getBoundingClientRect().width;
-        var initialColumns = virPanelColumns(initialPixels, measurer.spaceWidth);
-        measurer.cleanup();
-        if (!mount(target, contentId, initialColumns)) return false;
+        if (!mount(target, contentId, [], true)) return false;
 
         panel._virPanelTarget = target;
         panel._virPanelContentId = contentId;
@@ -1803,16 +1797,28 @@
                 ) {
                     return;
                 }
-                var typeCell = target.querySelector(".type");
-                if (!typeCell) return;
                 var measured = getPanelMeasurer(panel);
-                var columns = virPanelColumns(
-                    measured.measureElWidth(typeCell),
-                    measured.spaceWidth,
-                );
+                var typeCells = target.querySelectorAll(".type .reflowed");
+                var widths = Array.from(typeCells).map(function (cell) {
+                    return virPanelColumns(
+                        measured.measureElWidth(/** @type {Element} */ (cell.closest(".type"))),
+                        measured.spaceWidth,
+                    );
+                });
+                if (widths.length === 0) {
+                    widths.push(
+                        virPanelColumns(
+                            target === panel
+                                ? contentWidth(panel)
+                                : measured.measureElWidth(target),
+                            measured.spaceWidth,
+                        ),
+                    );
+                }
                 measured.cleanup();
-                mount(target, contentId, columns);
-                panel.dataset.virPanelColumns = String(columns);
+                mount(target, contentId, widths, false);
+                panel.dataset.virPanelColumns = String(widths[0]);
+                panel.dataset.virPanelWidths = JSON.stringify(widths);
             });
         });
         return true;

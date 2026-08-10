@@ -10,6 +10,7 @@
     /**
      * @typedef {{id: number, raw: string, origin: string}} ResidentFixture
      * @typedef {{id: number, width: number, origin: string, javascript: *, vir: *}} ParityFailure
+     * @typedef {{id: number, panelWidth: number, origin: string, cellColumns: number[], cellRatios: number[], virWidths: number[], javascript: *, vir: *}} GeometryFailure
      */
 
     /** @param {ParentNode} root @param {string} origin @param {Map<number, ResidentFixture>} fixtures */
@@ -92,6 +93,22 @@
         });
     }
 
+    /** @param {number} pixels @param {number} spaceWidth @return {number} */
+    function formatColumns(pixels, spaceWidth) {
+        var columns = Math.floor(pixels / spaceWidth);
+        return Number.isSafeInteger(columns) ? Math.max(1, Math.min(240, columns)) : 40;
+    }
+
+    /** @param {HTMLElement} panel @return {number} */
+    function contentWidth(panel) {
+        var style = getComputedStyle(panel);
+        return (
+            panel.clientWidth -
+            parseFloat(style.paddingLeft || "0") -
+            parseFloat(style.paddingRight || "0")
+        );
+    }
+
     /** @param {HTMLElement} host @param {*} payload @param {number} width */
     function renderJavascript(host, payload, width) {
         var measurer = createColumnMeasurer(width);
@@ -114,6 +131,63 @@
             host.replaceChildren(reflowed);
         }
         measurer.cleanup();
+    }
+
+    /**
+     * Render the production JavaScript goal path using the actual CSS geometry
+     * of every `.type` cell.
+     * @param {HTMLElement} host
+     * @param {*} payload
+     * @return {{cellColumns: number[], cellRatios: number[]}}
+     */
+    function renderJavascriptGeometry(host, payload) {
+        var goals = goalsToHtml(payload);
+        host.innerHTML = '<span class="hl lean">' + goals.html + "</span>";
+        var measurer = createDOMMeasurer(host);
+        var cellRatios = Array.from(host.querySelectorAll(".reflowed[data-fmt-idx]"))
+            .map(function (span) {
+                return span.closest(".type");
+            })
+            .filter(function (cell) {
+                return cell !== null;
+            })
+            .map(function (cell) {
+                return measurer.measureElWidth(cell) / measurer.spaceWidth;
+            });
+        var cellColumns = cellRatios.map(function (ratio) {
+            return formatColumns(ratio, 1);
+        });
+        fillReflowedSpans(host, goals.formats, measurer, "js");
+        measurer.cleanup();
+        return { cellColumns: cellColumns, cellRatios: cellRatios };
+    }
+
+    /** @param {number} width @return {HTMLElement} */
+    function geometryPanel(width) {
+        var panel = document.createElement("div");
+        panel.className = "info-panel";
+        panel.style.cssText =
+            "position:relative;inset:auto;box-sizing:border-box;" +
+            "height:1000px;overflow:visible;width:" +
+            width +
+            "px";
+        return panel;
+    }
+
+    /** @param {HTMLElement} host @return {number[]} */
+    function measureVirWidths(host) {
+        var measured = createDOMMeasurer(host);
+        var widths = Array.from(host.querySelectorAll(".type .reflowed")).map(function (cell) {
+            return formatColumns(
+                measured.measureElWidth(/** @type {Element} */ (cell.closest(".type"))),
+                measured.spaceWidth,
+            );
+        });
+        if (widths.length === 0) {
+            widths.push(formatColumns(contentWidth(host), measured.spaceWidth));
+        }
+        measured.cleanup();
+        return widths;
     }
 
     /**
@@ -202,5 +276,170 @@
         };
     }
 
+    /**
+     * Compare scalar, content-first-vector, and structure-first-vector VIR
+     * protocols with the production JavaScript per-cell geometry path.
+     * @param {{panelWidths?: number[], expectedGoals?: number}} [options]
+     */
+    async function runVirPanelGeometryCorpus(options) {
+        var selected = options || {};
+        var panelWidths = selected.panelWidths || [240, 360, 520, 760];
+        var expectedGoals = selected.expectedGoals || 17;
+        var bridge = window.__versoVirPanel;
+        if (!bridge?.ready) throw new Error("VIR panel bridge is not configured");
+        await bridge.ready;
+        if (bridge.status !== "ready" || !bridge.mount || !bridge.unmount) {
+            throw bridge.error || new Error("VIR panel bridge is unavailable");
+        }
+
+        /** @type {Map<number, ResidentFixture>} */
+        var fixtures = new Map();
+        collectElements(document, "index.html", fixtures);
+        var docsResponse = await fetch(new URL("-verso-docs.json", window.location.href));
+        if (!docsResponse.ok) throw new Error("failed to fetch generated hover documentation");
+        collectDocs(await docsResponse.json(), "-verso-docs.json", fixtures);
+        var goals = Array.from(fixtures.values())
+            .map(function (fixture) {
+                return { fixture: fixture, payload: JSON.parse(fixture.raw) };
+            })
+            .filter(function (entry) {
+                return Array.isArray(entry.payload);
+            });
+        if (goals.length !== expectedGoals) {
+            throw new Error("expected " + expectedGoals + " goal contents, found " + goals.length);
+        }
+
+        var fixtureHost = document.createElement("div");
+        fixtureHost.style.cssText =
+            "position:fixed;left:-10000px;top:0;visibility:hidden;pointer-events:none";
+        var javascriptHost = geometryPanel(panelWidths[0]);
+        var virHost = geometryPanel(panelWidths[0]);
+        fixtureHost.append(javascriptHost, virHost);
+        (document.querySelector(".reveal") || document.body).appendChild(fixtureHost);
+
+        /** @type {GeometryFailure[]} */
+        var failures = [];
+        var cases = 0;
+        var multiWidthCases = 0;
+        var maxCellSpread = 0;
+        var scalarDifferingCases = 0;
+        var contentMeasuredVectorDifferingCases = 0;
+        var differingCases = 0;
+        var widthVectorMismatchCases = 0;
+        /** @type {{id: number, panelWidth: number, cellColumns: number[], cellRatios: number[], virWidths: number[]}[]} */
+        var observations = [];
+        try {
+            for (var entry of goals) {
+                for (var panelWidth of panelWidths) {
+                    javascriptHost.style.width = panelWidth + "px";
+                    virHost.style.width = panelWidth + "px";
+                    var geometry = renderJavascriptGeometry(javascriptHost, entry.payload);
+                    var distinct = new Set(geometry.cellColumns);
+                    if (distinct.size > 1) multiWidthCases += 1;
+                    if (geometry.cellColumns.length > 0) {
+                        maxCellSpread = Math.max(
+                            maxCellSpread,
+                            Math.max.apply(null, geometry.cellColumns) -
+                                Math.min.apply(null, geometry.cellColumns),
+                        );
+                    }
+
+                    var initialMeasured = createDOMMeasurer(virHost);
+                    var initialWidth = formatColumns(
+                        contentWidth(virHost),
+                        initialMeasured.spaceWidth,
+                    );
+                    initialMeasured.cleanup();
+                    if (!bridge.mount(virHost, entry.fixture.id, initialWidth, false)) {
+                        throw new Error("VIR rejected initial control mount");
+                    }
+                    await nextFrame();
+                    await nextFrame();
+                    var javascript = snapshot(javascriptHost);
+                    var contentMeasuredWidths = measureVirWidths(virHost);
+                    if (!bridge.mount(virHost, entry.fixture.id, contentMeasuredWidths[0], false)) {
+                        throw new Error("VIR rejected measured scalar-width control remount");
+                    }
+                    await nextFrame();
+                    await nextFrame();
+                    if (JSON.stringify(javascript) !== JSON.stringify(snapshot(virHost))) {
+                        scalarDifferingCases += 1;
+                    }
+
+                    if (!bridge.mount(virHost, entry.fixture.id, contentMeasuredWidths, false)) {
+                        throw new Error("VIR rejected content-measured control remount");
+                    }
+                    await nextFrame();
+                    await nextFrame();
+                    if (JSON.stringify(javascript) !== JSON.stringify(snapshot(virHost))) {
+                        contentMeasuredVectorDifferingCases += 1;
+                    }
+
+                    if (!bridge.mount(virHost, entry.fixture.id, [], true)) {
+                        throw new Error("VIR rejected resident content ID " + entry.fixture.id);
+                    }
+                    await nextFrame();
+                    await nextFrame();
+                    var virWidths = measureVirWidths(virHost);
+                    if (JSON.stringify(geometry.cellColumns) !== JSON.stringify(virWidths)) {
+                        widthVectorMismatchCases += 1;
+                    }
+                    if (!bridge.mount(virHost, entry.fixture.id, virWidths, false)) {
+                        throw new Error("VIR rejected measured goal remount");
+                    }
+                    await nextFrame();
+                    await nextFrame();
+
+                    cases += 1;
+                    var vir = snapshot(virHost);
+                    var differs = JSON.stringify(javascript) !== JSON.stringify(vir);
+                    if (differs) differingCases += 1;
+                    if ((distinct.size > 1 || differs) && observations.length < 16) {
+                        observations.push({
+                            id: entry.fixture.id,
+                            panelWidth: panelWidth,
+                            cellColumns: geometry.cellColumns,
+                            cellRatios: geometry.cellRatios.map(function (ratio) {
+                                return Math.round(ratio * 1000) / 1000;
+                            }),
+                            virWidths: virWidths,
+                        });
+                    }
+                    if (differs && failures.length < 8) {
+                        failures.push({
+                            id: entry.fixture.id,
+                            panelWidth: panelWidth,
+                            origin: entry.fixture.origin,
+                            cellColumns: geometry.cellColumns,
+                            cellRatios: geometry.cellRatios.map(function (ratio) {
+                                return Math.round(ratio * 1000) / 1000;
+                            }),
+                            virWidths: virWidths,
+                            javascript: javascript,
+                            vir: vir,
+                        });
+                    }
+                }
+            }
+        } finally {
+            bridge.unmount(virHost);
+            fixtureHost.remove();
+        }
+        return {
+            goalContents: goals.length,
+            panelWidths: panelWidths,
+            cases: cases,
+            multiWidthCases: multiWidthCases,
+            maxCellSpread: maxCellSpread,
+            widthVectorMismatchCases: widthVectorMismatchCases,
+            scalarDifferingCases: scalarDifferingCases,
+            contentMeasuredVectorDifferingCases: contentMeasuredVectorDifferingCases,
+            differingCases: differingCases,
+            observations: observations,
+            failures: failures,
+        };
+    }
+
     window.runVirPanelParityCorpus = runVirPanelParityCorpus;
+    window.runVirPanelGeometryCorpus = runVirPanelGeometryCorpus;
 })();
