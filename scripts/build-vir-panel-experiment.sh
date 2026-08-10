@@ -19,8 +19,15 @@ fi
 
 (cd "$experiment_dir" && lake build +VirPanelExperiment:vir)
 
+rm -rf "$out_dir/ir"
 mkdir -p "$out_dir/ir"
-rsync -a --delete "$module_set_dir/" "$out_dir/ir/"
+install -m 0644 \
+  "$module_set_dir/VirPanelExperiment.irpkg-set.json" \
+  "$module_set_dir/VirPanelExperiment.irpkg" \
+  "$out_dir/ir/"
+rsync -a \
+  "$module_set_dir/VirPanelExperiment.parts/" \
+  "$out_dir/ir/VirPanelExperiment.parts/"
 install -m 0644 "$experiment_dir/index.html" "$out_dir/index.html"
 install -m 0644 "$experiment_dir/app.js" "$out_dir/app.js"
 install -m 0644 "$lean_vir_dir/web/public/vir-upstream.wasm" "$out_dir/vir-upstream.wasm"

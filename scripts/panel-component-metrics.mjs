@@ -67,7 +67,7 @@ const result = {
             1 - leanSemanticLines / sourceMetrics.productionFormatter.lines,
         ),
         sharedPrettyLines: sourceMetrics.sharedPretty.lines,
-        note: "The first projection excludes the host adapter. The second includes its standalone runtime bootstrap but still excludes the opt-in control and panel hook lines.",
+        note: "The first projection excludes the host adapter. The second includes the adapter that borrows the formatter runtime but still excludes the opt-in control and panel hook lines.",
     },
 };
 
@@ -94,21 +94,32 @@ try {
 
 const residentPilotRoot = resolve(root, "demos/vir-pretty/_site/vir-pretty");
 try {
-    const runtime = await fileMetrics(resolve(residentPilotRoot, "panel-react-runtime.js"));
-    const irFiles = await walkIrPackages(resolve(residentPilotRoot, "panel-ir"));
+    const runtime = await fileMetrics(resolve(residentPilotRoot, "vir-runtime.js"));
+    const irFiles = await walkIrPackages(resolve(residentPilotRoot, "vir-ir"));
     const ir = await sumFiles(irFiles);
     const registry = JSON.parse(
         await readFile(resolve(residentPilotRoot, "verso-pretty-registry.json"), "utf8"),
     );
-    result.residentPanelPilot = {
+    result.unifiedVirPilot = {
         runtime,
         ir: { ...ir, members: irFiles.length },
         formatCount: registry.formatCount,
         contentCount: registry.panelContentCount,
-        productionExports: ["VirPanelRegistry.mountContent", "VirPanelRegistry.unmount"],
+        runtimeInstances: 1,
+        exports: [
+            "VirPanelRegistry.formatSegments",
+            "VirPanelRegistry.formatRendered",
+            "VirPanelRegistry.formatRenderPlan",
+            "VirPanelRegistry.formatHtml",
+            "VirPanelRegistry.formatCount",
+            "VirPanelRegistry.formatRenderedById",
+            "VirPanelRegistry.formatRenderPlanById",
+            "VirPanelRegistry.mountContent",
+            "VirPanelRegistry.unmount",
+        ],
     };
 } catch (error) {
-    result.residentPanelPilot = {
+    result.unifiedVirPilot = {
         unavailable: true,
         hint: "run demos/vir-pretty/scripts/assemble.sh",
         error: String(error?.message ?? error),

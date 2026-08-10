@@ -104,6 +104,7 @@ interface VersoPrettyVirConfig {
     debugWasm?: boolean;
     fetchCache?: RequestCache;
     irPackageUrl?: string;
+    irPackageSetUrl?: string;
     jsonExportName?: string;
     formatExportName?: string;
     renderedExportName?: string;
@@ -210,12 +211,6 @@ interface VersoPrettyConfig {
     virPanel?: boolean;
 }
 
-interface VersoVirPanelConfig {
-    runtimeUrl?: string;
-    wasmUrl?: string;
-    irPackageSetUrl?: string;
-}
-
 interface VersoVirPanelCall {
     kind: "mount" | "unmount";
     contentId?: number;
@@ -226,7 +221,7 @@ interface VersoVirPanelCall {
 interface VersoVirPanelBridge {
     status: string;
     error?: unknown;
-    runtime?: unknown;
+    runtime?: VersoPrettyVirRuntime;
     lastCall?: VersoPrettyVirTimedCall;
     calls: VersoVirPanelCall[];
     ready?: Promise<unknown>;
@@ -243,7 +238,6 @@ interface Window {
     __versoPrettyLlvm?: VersoPrettyLlvmBridge;
     __versoPrettyLlvmConfig?: VersoPrettyLlvmConfig;
     __versoVirPanel?: VersoVirPanelBridge;
-    __versoVirPanelConfig?: VersoVirPanelConfig;
 }
 
 /** pretty.js — render a format tree to HTML at a given pixel width (global). */

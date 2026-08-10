@@ -11,8 +11,8 @@ The production and benchmark delivery paths are now distinct:
 | Path | Panel | Formatter | Raw bytes | gzip bytes |
 | --- | ---: | ---: | ---: | ---: |
 | ordinary slides | 658 lines | 662 lines | 48,673 | 12,084 |
-| formatter lab | 2,359 lines | 2,683 lines | 190,378 | 35,904 |
-| lab overhead | +1,701 lines | +2,021 lines | +141,705 | +23,820 |
+| formatter lab | 2,501 lines | 2,551 lines | 191,561 | 36,726 |
+| lab overhead | +1,843 lines | +1,889 lines | +142,888 | +24,642 |
 
 The ordinary implementation is the last post-nested-tactic version before the
 VIR comparison work. The full matrix panel, matrix formatter, backend adapters,
@@ -31,14 +31,14 @@ the current source comparison is:
 | --- | ---: | ---: | ---: |
 | semantic formatter/component | 662 | 251 | -62.1% |
 | projected hybrid application code, before the host adapter | 1,320 | 909 | -31.1% |
-| projected hybrid including the 96-line instrumented runtime adapter, before panel hooks | 1,320 | 1,005 | -23.9% |
+| projected hybrid including the 95-line instrumented host adapter, before panel hooks | 1,320 | 1,004 | -23.9% |
 
 The projections retain all 658 lines of the ordinary browser panel and replace
 the 662-line JavaScript formatter with the 141-line compiler-neutral component,
-110-line VIR/React view, and then the standalone runtime adapter. The opt-in lab
+110-line VIR/React view, and then the shared-runtime host adapter. The opt-in lab
 currently adds a further 142 net lines to its panel for the toggle, fallback,
 two-pass measurement, and instrumentation. Charging all of that experimental
-UI as production code yields a conservative 13.1% reduction; a production hook
+UI as production code yields a conservative 13.2% reduction; a production hook
 should target roughly 20% rather than preserve the lab controls and call log.
 
 The shared Lean formatter is 526 lines and serves the formatter matrix as well
@@ -89,7 +89,7 @@ therefore explicit rather than conventional.
 
 `lake build +VirPanelExperiment:vir` reaches:
 
-- 289 declarations: 255 Lean IR and 34 native externs;
+- 294 declarations: 260 Lean IR and 34 native externs;
 - 13 package-set members;
 - 3 public entries (`mountModel`, `mountFixture`, and `unmount`);
 - 16 JavaScript host imports.
@@ -100,27 +100,43 @@ The current standalone browser artifact costs:
 | --- | ---: | ---: |
 | VIR runtime Wasm | 732,061 | 166,244 |
 | React-enabled runtime bundle | 342,184 | 97,523 |
-| 13 IR package members | 190,955 | 27,346 |
-| total | 1,265,200 | 291,113 |
+| 13 IR package members | 193,900 | 27,448 |
+| total | 1,268,145 | 291,215 |
 
 This is the decisive cold-delivery drawback if a deck does not already use VIR
 and React. If those runtimes are already resident, the incremental component is
-closer to the 27.8-KB-gzip IR package, but this experiment does not yet measure
+closer to the 27.4-KB-gzip IR package, but this experiment does not yet measure
 cross-component runtime amortization.
 
 The real-content hybrid builds `VirPanelRegistry` after the deck is assembled.
 The generated package contains 58 deduplicated formats and 59 complete
-goal/signature contents, reaches 14 package-set members, and exposes exactly two
-production calls:
+goal/signature contents. Its single shared table serves the formatter matrix
+and the React component. The package reaches 21 members and exposes nine calls:
+the four nonresident formatter surfaces, format count, two resident formatter
+surfaces, and the two component operations:
 
 - `mountContent(selector, contentId, width)`;
 - `unmount(selector)`.
 
-No `Std.Format`, goal JSON, annotation table, or recursive VDOM crosses that
-boundary. The same generated metadata records both format and content counts.
-The 14 IR members are 1,226,609 raw bytes and about 53.2 KB gzip. Under the shared
-runtime assumption, 53.2 KB gzip is therefore the current incremental delivery
-cost of this deck-specific component and its resident content.
+No `Std.Format`, goal JSON, annotation table, or recursive VDOM crosses the
+component boundary. The same generated metadata records both format and
+content counts. The 21 IR members are 1,445,283 raw bytes and 82,512 bytes
+gzip. The broader reach than the old panel-only package is expected: this one
+package now includes every formatter ABI that was previously supplied by a
+separate artifact.
+
+The consolidation result is measurable:
+
+| Browser delivery, excluding shared Wasm | Separate formatter + panel | Unified | Change |
+| --- | ---: | ---: | ---: |
+| IR, raw | 2,716,854 | 1,445,283 | -46.8% |
+| IR, gzip | 153,523 | 82,512 | -46.3% |
+| runtime JavaScript + IR, raw | 3,174,807 | 1,787,467 | -43.7% |
+| runtime JavaScript + IR, gzip | 279,824 | 180,035 | -35.7% |
+| live VIR runtime instances | 2 | 1 | -50.0% |
+
+The browser test checks object identity between the formatter and component
+bridges, so the one-runtime claim is no longer an amortization assumption.
 
 ## Runtime observations
 
@@ -129,8 +145,8 @@ prints call phases. One observed run on this development machine was:
 
 | Call | marshal | execute | host inside execute | decode | total |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| first mount | 0.604 ms | 20.065 ms | 14.329 ms | 0.098 ms | 21.793 ms |
-| repeated median, 30 mounts | 0.014 ms | 1.950 ms | 1.855 ms | 0.004 ms | 1.999 ms |
+| first mount | 0.201 ms | 7.735 ms | 5.737 ms | 0.043 ms | 8.313 ms |
+| repeated median, 30 mounts | 0.006 ms | 0.893 ms | 0.857 ms | 0.002 ms | 0.905 ms |
 
 The useful conclusion is not the absolute Node virtual-host number. It is that
 about 95% of repeated `execute` time is already attributed to React host work;
@@ -141,6 +157,13 @@ the measured-width remount took 0.65--4.1 ms, and thirty same-content remounts
 had 0.045--0.10-ms medians. The repeated figure is useful as a repeated-call and
 React-reconciliation check, not an end-to-end selection benchmark: identical
 content can take the React no-op path.
+
+After consolidation, three fresh Chromium processes using the already-ready
+shared formatter runtime measured 1.91--2.30 ms for the first component mount,
+0.53--0.77 ms for its measured-width remount, and 0.020--0.025-ms repeated
+medians. This is evidence that sharing does not introduce a regression, not a
+causal speedup claim; the package shape and runtime warm-up sequence both
+changed.
 
 ## Improvements demonstrated by VIR
 
@@ -161,10 +184,11 @@ content can take the React no-op path.
 
 1. The cold payload is much larger than the 12.1-KB-gzip production
    panel-plus-formatter. VIR only becomes plausible when the runtime is reused.
-2. Resident generation adds 147 lines to the existing Python registry tool and
-   emits a large generated Lean module. It removes runtime JSON conversion but
-   introduces build-time machinery that should eventually become a reusable
-   Verso/VIR facility rather than remain demo-specific.
+2. Resident and unified-export generation adds 204 lines to the existing
+   Python registry tool and emits a large generated Lean module. It removes
+   runtime JSON conversion but introduces build-time machinery that should
+   eventually become a reusable Verso/VIR facility rather than remain
+   demo-specific.
 3. The hybrid now performs the real two-pass layout: render the structure,
    measure a `.type` cell in JavaScript, convert pixels to monospace columns,
    and remount. The current model supplies one shared width to the component;
@@ -178,13 +202,10 @@ content can take the React no-op path.
 6. React is an additional policy/dependency for ordinary Verso Slides. The
    direct host time in repeated calls shows that changing the language of the
    view does not remove DOM/React cost.
-7. The demo currently instantiates a separate React-capable VIR runtime beside
-   the formatter runtime. Browser caching avoids downloading the Wasm twice,
-   but shared runtime state and memory remain an architectural assumption, not
-   something this assembly path has demonstrated yet.
-8. Consequently, the same 58 resident formats are compiled into both formatter
-   and panel registries today. A unified runtime/package set should share that
-   table; the size and maintenance benefit of doing so has not been measured.
+7. The unified package still has 21 members because it retains all four typed
+   formatter output variants. A production-selected capability subset may be
+   smaller, but splitting the experimental matrix again would defeat this
+   consolidation test.
 
 ## Current assessment
 
@@ -198,20 +219,17 @@ and fallback in JavaScript while Lean/VIR owns the resident goal/signature React
 subtree.
 
 The next decision point is maintainability rather than feasibility. We should
-compare DOM/text output across the full fixture corpus and resize cases, measure
-a complete first selection plus its measured remount, and then reduce the
-demo-specific generator/hook surface. If the production hook cannot remain near
-the 20--25% net source-reduction target, the formatter-only VIR boundary is the
-better maintenance trade.
+compare DOM/text output across the full fixture corpus and resize cases, then
+reduce the demo-specific generator/hook surface. If the production hook cannot
+remain near the 20--25% net source-reduction target, the formatter-only VIR
+boundary is the better maintenance trade.
 
 ## Reproduction
 
 ```text
 lake exe test-panel-component
-cd experiments/vir-panel
-lake build +VirPanelRegistry:vir
-node smoke.mjs
-cd ../..
+scripts/build-vir-panel-experiment.sh
+(cd experiments/vir-panel && node smoke.mjs)
 demos/vir-pretty/scripts/assemble.sh
 python3 demos/vir-pretty/scripts/serve.py
 uv run --with playwright python demos/vir-pretty/scripts/browser-smoke.py http://127.0.0.1:18332

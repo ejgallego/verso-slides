@@ -12,6 +12,7 @@
      *   debugWasm?: boolean,
      *   fetchCache?: RequestCache,
      *   irPackageUrl?: string,
+     *   irPackageSetUrl?: string,
      *   jsonExportName?: string,
      *   formatExportName?: string,
      *   renderedExportName?: string,
@@ -90,7 +91,9 @@
     var runtimeImported = startupStarted;
     var runtimeUrl = config.runtimeUrl || fromScript("./lean-vir/js/vir-runtime.js");
     var wasmUrl = config.wasmUrl || fromScript("./lean-vir/wasm/vir-upstream.wasm");
-    var irPackageUrl = config.irPackageUrl || fromScript("./verso-pretty.irpkg");
+    var irPackageSetUrl = config.irPackageSetUrl || null;
+    var irPackageUrl =
+        config.irPackageUrl || (irPackageSetUrl ? null : fromScript("./verso-pretty.irpkg"));
 
     var bridge = root.__versoPrettyVir || {};
     bridge.enabled = true;
@@ -121,14 +124,19 @@
         config.residentRenderPlanExportName ||
         bridge.residentRenderPlanExportName ||
         "VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir";
-    bridge.assets = [scriptUrl, runtimeUrl, wasmUrl, irPackageUrl];
+    bridge.assets = [scriptUrl, runtimeUrl, wasmUrl, irPackageSetUrl || irPackageUrl].filter(
+        function (asset) {
+            return typeof asset === "string";
+        },
+    );
     root.__versoPrettyVir = bridge;
 
     bridge.ready = import(runtimeUrl)
         .then(function (runtimeModule) {
             runtimeImported = performance.now();
-            if (typeof runtimeModule.createVirRuntime !== "function") {
-                throw new Error("lean-vir runtime module does not export createVirRuntime");
+            var hasFactory = typeof runtimeModule.createBrowserReactRuntimeFactory === "function";
+            if (!hasFactory && typeof runtimeModule.createVirRuntime !== "function") {
+                throw new Error("lean-vir runtime module does not export a supported factory");
             }
             var fetchCache = config.fetchCache || "default";
             /** @param {string | URL} path */
@@ -148,6 +156,23 @@
                 debugWasm: config.debugWasm === true,
                 fetchBytes: fetchBytes,
             };
+            if (hasFactory) {
+                var factory = runtimeModule.createBrowserReactRuntimeFactory(runtimeOptions);
+                if (irPackageSetUrl) {
+                    return factory.createRuntime({ irPackageSetUrl: irPackageSetUrl });
+                }
+                if (!irPackageUrl) throw new Error("missing VIR IR package URL");
+                return fetchBytes(irPackageUrl).then(
+                    function (/** @type {ArrayBuffer | Uint8Array} */ packageBytes) {
+                        return factory.createRuntime({ irPackageSetBytes: [packageBytes] });
+                    },
+                );
+            }
+            if (irPackageSetUrl) {
+                runtimeOptions.irPackageSetUrl = irPackageSetUrl;
+                return runtimeModule.createVirRuntime(runtimeOptions);
+            }
+            if (!irPackageUrl) throw new Error("missing VIR IR package URL");
             if (typeof runtimeModule.IR_PACKAGE_SET_FORMAT === "string") {
                 return fetchBytes(irPackageUrl).then(
                     function (/** @type {ArrayBuffer | Uint8Array} */ packageBytes) {
@@ -265,7 +290,6 @@
             return null;
         });
     [
-        "vir",
         "vir-format",
         "vir-semantic",
         "vir-html",

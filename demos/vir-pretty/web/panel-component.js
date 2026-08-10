@@ -9,7 +9,6 @@
  */
 
 const root = window;
-const config = root.__versoVirPanelConfig || {};
 const selectors = new WeakMap();
 let nextHostId = 1;
 
@@ -17,7 +16,6 @@ let nextHostId = 1;
 const bridge = {
     status: "loading",
     error: null,
-    runtime: null,
     calls: [],
 };
 root.__versoVirPanel = bridge;
@@ -45,20 +43,21 @@ function safeWidth(width) {
 
 bridge.ready = (async () => {
     try {
-        if (!config.runtimeUrl || !config.wasmUrl || !config.irPackageSetUrl) {
-            throw new Error("VIR panel component configuration is incomplete");
+        const pretty = root.__versoPrettyVir;
+        if (!pretty?.ready) {
+            throw new Error("shared VIR formatter runtime is not configured");
         }
-        const runtimeModule = await import(config.runtimeUrl);
-        const factory = runtimeModule.createBrowserReactRuntimeFactory({
-            wasmUrl: config.wasmUrl,
-        });
-        const runtime = await factory.createRuntime({
-            irPackageSetUrl: config.irPackageSetUrl,
-        });
+        await pretty.ready;
+        if (pretty.status !== "ready" || !pretty.runtime) {
+            throw pretty.error || new Error("shared VIR formatter runtime failed to initialize");
+        }
+        const runtime = pretty.runtime;
+        const callTimed = runtime.callTimed?.bind(runtime);
+        if (!callTimed) throw new Error("shared VIR runtime does not expose timed calls");
         bridge.runtime = runtime;
         bridge.mount = function (target, contentId, width) {
             const boundedWidth = safeWidth(width);
-            const call = runtime.callTimed(
+            const call = callTimed(
                 "VirPanelRegistry.mountContent",
                 selectorFor(target),
                 contentId,
@@ -77,7 +76,7 @@ bridge.ready = (async () => {
         bridge.unmount = function (target) {
             const selector = selectors.get(target);
             if (!selector) return true;
-            const call = runtime.callTimed("VirPanelRegistry.unmount", selector);
+            const call = callTimed("VirPanelRegistry.unmount", selector);
             bridge.lastCall = call;
             bridge.calls.push({ kind: "unmount", timings: call.timings });
             if (bridge.calls.length > 100) bridge.calls.shift();

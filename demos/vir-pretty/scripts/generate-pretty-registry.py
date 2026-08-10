@@ -235,6 +235,43 @@ private initialize contents : Array Panel.Content ← pure #[
     {contents}
   ]
 
+/-
+The formatter matrix and the React panel deliberately share this module, its
+resident tables, and one VIR runtime. These wrappers keep the browser-facing
+ABI explicit without duplicating the canonical formatter implementation.
+-/
+
+@[vir_export]
+def formatSegments (format : Std.Format) (width indent : Nat) :
+    Array Pretty.Segment :=
+  Pretty.formatSegmentsForVir format width indent
+
+@[vir_export]
+def formatRendered (format : Std.Format) (width indent : Nat) : Pretty.Rendered :=
+  Pretty.formatRenderedForVir format width indent
+
+@[vir_export]
+def formatRenderPlan (format : Std.Format)
+    (annotations : Array Pretty.TaggedAnnotation) (width indent : Nat) :
+    Pretty.RenderPlan :=
+  Pretty.formatRenderPlanForVir format annotations width indent
+
+@[vir_export]
+def formatHtml (format : Std.Format)
+    (annotations : Array Pretty.TaggedAnnotation) (width indent : Nat) : String :=
+  Pretty.formatHtmlForVir format annotations width indent
+
+@[vir_export]
+def formatCount : Nat := formats.size
+
+@[vir_export]
+def formatRenderedById (id width indent : Nat) : Pretty.ResidentRendered :=
+  Pretty.formatRenderedAt formats id width indent
+
+@[vir_export]
+def formatRenderPlanById (id width indent : Nat) : Pretty.ResidentRenderPlan :=
+  Pretty.formatRenderPlanAt formats annotationTables id width indent
+
 @[vir_export]
 def mountContent (selector : String) (contentId width : Nat) : DomM Bool :=
   match contents[contentId]? with
@@ -347,6 +384,11 @@ def main() -> None:
         type=Path,
         help="also generate the resident VIR/React panel-content module",
     )
+    parser.add_argument(
+        "--combined-panel",
+        action="store_true",
+        help="write the unified formatter/panel VIR module to lean_output",
+    )
     args = parser.parse_args()
 
     index = args.site_dir / "index.html"
@@ -358,27 +400,45 @@ def main() -> None:
     for docs in sorted(args.site_dir.glob("*verso-docs.json")):
         patch_docs(docs, registry)
 
+    if args.combined_panel and args.panel_output is not None:
+        raise SystemExit("--combined-panel and --panel-output are mutually exclusive")
+
     args.lean_output.parent.mkdir(parents=True, exist_ok=True)
-    args.lean_output.write_text(registry.lean_module(args.pretty_source))
+    args.lean_output.write_text(
+        registry.panel_module()
+        if args.combined_panel
+        else registry.lean_module(args.pretty_source)
+    )
     if args.panel_output is not None:
         args.panel_output.parent.mkdir(parents=True, exist_ok=True)
         args.panel_output.write_text(registry.panel_module())
-    args.metadata_output.parent.mkdir(parents=True, exist_ok=True)
-    args.metadata_output.write_text(
-        json.dumps(
+    metadata = {
+        "schemaVersion": 2,
+        "formatCount": len(registry.formats),
+        "idField": "formatId",
+        "entrypoint": (
+            "VirPanelRegistry.formatRenderedById"
+            if args.combined_panel
+            else "VersoSlides.PrettyRegistry.formatRenderedByIdForVir"
+        ),
+        "output": "text-events-utf8/v1",
+        "renderPlanEntrypoint": (
+            "VirPanelRegistry.formatRenderPlanById"
+            if args.combined_panel
+            else "VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir"
+        ),
+        "renderPlanOutput": "semantic-render-plan/v1",
+    }
+    if args.combined_panel or args.panel_output is not None:
+        metadata.update(
             {
-                "schemaVersion": 2,
-                "formatCount": len(registry.formats),
-                "idField": "formatId",
-                "entrypoint": "VersoSlides.PrettyRegistry.formatRenderedByIdForVir",
-                "output": "text-events-utf8/v1",
-                "renderPlanEntrypoint": "VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir",
-                "renderPlanOutput": "semantic-render-plan/v1",
                 "panelContentCount": len(registry.contents),
                 "panelEntrypoint": "VirPanelRegistry.mountContent",
-            },
-            indent=2,
+            }
         )
+    args.metadata_output.parent.mkdir(parents=True, exist_ok=True)
+    args.metadata_output.write_text(
+        json.dumps(metadata, indent=2)
         + "\n"
     )
     print(

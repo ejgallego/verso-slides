@@ -55,8 +55,10 @@ Verso Slides owns the compact JavaScript reference renderer, ordinary panel,
 and the generic plugin hook. The demo owns the expanded formatter registry,
 comparison panel, candidate adapters, Wasm artifacts, runtime configuration,
 processor controls, and presentation content. Its VIR adapter accepts
-both the historical single-package API and the current package-set
-API. Benchmark execution and report visualization are intentionally
+both the historical single-package API and the current package-set API. This
+demo uses the latter to load one React-capable runtime and one generated
+package containing every formatter and panel-component export. Benchmark
+execution and report visualization are intentionally
 absent: they now belong to the standalone VIR benchmark webapp. After
 `slidesMain`, `scripts/assemble.sh` assigns resident format IDs in the
 generated deck and builds the matching VIR package. It then copies opaque
@@ -89,8 +91,9 @@ The registry classifies VIR flat and resident output as layout variants, VIR
 resident render-plan and direct-DOM materialization as semantic variants, and
 the optional FIR flat adapter as a layout variant. They vary an ABI or host
 endpoint, not compiled breadth, so they do not become additional matrix columns.
-The historical VIR JSON path is no longer a named experiment or matrix member;
-it remains temporarily in Custom Lab as a compatibility diagnostic.
+The historical VIR JSON path has been removed from both the matrix and Custom
+Lab; the typed `Std.Format` boundary is the narrowest VIR input surface kept by
+the demo.
 
 The specialized VIR candidates isolate separate boundary experiments. `VIR Flat`
 removes per-segment tag-stack copies while preserving the direct typed
@@ -159,20 +162,19 @@ lean-llvm/{README.md,SHA256SUMS,emscripten-loader.mjs,
            prettyM.mjs,prettyM.wasm}
 ```
 
-`scripts/assemble.sh` generates `verso-pretty.irpkg` for the assembled
-deck from the canonical `../../VersoSlides/Pretty.lean` source plus its
-deduplicated resident table. The source is embedded into the generated target
-so the artifact remains self-contained without maintaining a second formatter
-copy in the demo. Set `LEAN_VIR_DIR` to a built VIR checkout when it is not
-available at `../../_artifacts/lean-vir`. The exported names
-deliberately retain the existing `VersoSlides.Pretty.*` ABI so current
-artifacts remain usable while the demo is moved out of the Verso
-implementation repository.
+`scripts/assemble.sh` generates one `VirPanelRegistry` package set from the
+assembled deck. Its root closes the canonical `VersoSlides.Pretty` operations,
+the deduplicated format/annotation table, and the complete resident panel
+contents over one shared table. The React-capable runtime serves both the
+formatter matrix and the panel component; the browser smoke test asserts that
+both bridges hold the same runtime object. Set `LEAN_VIR_DIR` to a built VIR
+checkout when it is not available at `../../_artifacts/lean-vir`.
 
-Assembly also generates `VirPanelRegistry.lean` from the same deck scan and
-builds its React-capable package set. The browser-facing component ABI is only
-`mountContent(selector, contentId, width)` plus `unmount(selector)`; format,
-annotation, and goal data stay resident in the generated package.
+The formatter ABI retains the existing typed, flat, semantic, HTML, and
+resident-ID surfaces under `VirPanelRegistry.*`. The browser-facing component
+ABI remains only `mountContent(selector, contentId, width)` plus
+`unmount(selector)`; format, annotation, and goal data stay resident in that
+same package.
 
 The host deck, VIR package generator, FIR Wasm package, and LLVM
 package may use different Lean versions: each artifact is a

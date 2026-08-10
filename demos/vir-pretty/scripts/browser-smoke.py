@@ -12,7 +12,6 @@ BASE_BACKEND_IDS = [
     "js",
     "js-render",
     "js-html",
-    "vir",
     "vir-format",
     "vir-semantic",
     "vir-html",
@@ -82,6 +81,7 @@ async def main() -> None:
               primaryLayout: getPrettyMatrixBackend('vir', 'layout').id,
               virLayout: getPrettyMatrixBackends('vir', 'layout').map(x => x.id),
               virSemantic: getPrettyMatrixBackends('vir', 'semantic').map(x => x.id),
+              legacyJsonRegistered: getPrettyBackend('vir') !== null,
               legacyJsonInMatrix: getPrettyMatrixBackends('vir', 'layout')
                 .some(x => x.id === 'vir')
             })"""
@@ -90,6 +90,7 @@ async def main() -> None:
             "primaryLayout": "vir-format",
             "virLayout": ["vir-format", "vir-flat", "vir-resident"],
             "virSemantic": ["vir-semantic", "vir-render", "vir-dom"],
+            "legacyJsonRegistered": False,
             "legacyJsonInMatrix": False,
         }
         vir_layout_cell = matrix.locator(
@@ -294,13 +295,17 @@ async def main() -> None:
               columns: Number(document.querySelector('.info-panel[data-vir-panel-columns]')
                 ?.dataset.virPanelColumns),
               packageCount: window.__versoVirPanel.runtime.packageInfo.packageCount,
+              interfaceExports: window.__versoVirPanel.runtime.packageInfo.interfaceExports,
+              sharedRuntime: window.__versoVirPanel.runtime === window.__versoPrettyVir.runtime,
               totalMs: window.__versoVirPanel.lastCall.timings.totalMs
             })"""
         )
         assert resident_boundary["status"] == "ready"
         assert resident_boundary["contentId"] >= 0
         assert resident_boundary["columns"] >= 1
-        assert resident_boundary["packageCount"] == 14
+        assert resident_boundary["packageCount"] == 21
+        assert resident_boundary["interfaceExports"] == 9
+        assert resident_boundary["sharedRuntime"] is True
         assert resident_boundary["totalMs"] >= 0
         first_boundary = await page.evaluate(
             """() => window.__versoVirPanel.calls

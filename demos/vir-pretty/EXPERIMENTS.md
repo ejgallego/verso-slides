@@ -31,7 +31,7 @@ Named diagnostics live in **Custom Lab**. Selecting one leaves the main matrix
 and activates its exact concrete candidate set. The URL records matrix mode,
 families, breadth, and resolved candidates—or the matching diagnostic ID—so a
 view can be shared and reproduced. The historical VIR JSON transport diagnostic
-has been phased out; the compatibility candidate is not part of the main matrix.
+and its compatibility candidate have both been removed.
 
 ## Timing envelope
 

@@ -83,3 +83,39 @@ def test_registry_deduplicates_and_attaches_ids(tmp_path: Path):
         "renderPlanEntrypoint": "VersoSlides.PrettyRegistry.formatRenderPlanByIdForVir",
         "renderPlanOutput": "semantic-render-plan/v1",
     }
+
+
+def test_combined_registry_exports_formatter_and_panel_surfaces(tmp_path: Path):
+    site = tmp_path / "site"
+    site.mkdir()
+    payload = {"fmt": [5, "Nat"], "annotations": {}}
+    (site / "index.html").write_text(
+        f"<code {rich_attribute(payload)}></code>"
+    )
+    lean_output = tmp_path / "VirPanelRegistry.lean"
+    metadata_output = site / "verso-pretty-registry.json"
+
+    subprocess.run(
+        [
+            "python3",
+            str(ROOT / "demos" / "vir-pretty" / "scripts" / "generate-pretty-registry.py"),
+            str(site),
+            str(lean_output),
+            str(metadata_output),
+            "--combined-panel",
+        ],
+        check=True,
+        cwd=ROOT,
+    )
+
+    source = lean_output.read_text()
+    assert "def formatSegments" in source
+    assert "def formatRenderedById" in source
+    assert "def mountContent" in source
+    assert source.count("private initialize formats") == 1
+
+    metadata = json.loads(metadata_output.read_text())
+    assert metadata["entrypoint"] == "VirPanelRegistry.formatRenderedById"
+    assert metadata["renderPlanEntrypoint"] == "VirPanelRegistry.formatRenderPlanById"
+    assert metadata["panelContentCount"] == 1
+    assert metadata["panelEntrypoint"] == "VirPanelRegistry.mountContent"
