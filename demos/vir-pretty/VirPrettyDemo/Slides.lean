@@ -247,7 +247,8 @@ JavaScript wins this small surface. FIR is the fastest compiled candidate.
 
 - VIR: shared runtime plus Lean reuse
 - Measure the same corpus and phase boundaries
-- FIR next: flat/resident and HTML artifacts
+- FIR Flat now isolates the output representation
+- FIR next: resident input and HTML artifacts
 - Long-lived FIR needs bounded reclamation
 
 *VIR is already compelling for reuse and maintainability.*

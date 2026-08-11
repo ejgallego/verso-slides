@@ -120,6 +120,17 @@ async def main() -> None:
         experiment = controls.locator(".pretty-controls-experiment select")
         options = await experiment.locator("option").evaluate_all("els => els.map(el => el.value)")
         assert "vir-transport" not in options
+        assert "fir-output" in options
+        await experiment.select_option("fir-output")
+        checked = await controls.locator(".pretty-controls-backend input:checked").evaluate_all(
+            "els => els.map(el => el.value)"
+        )
+        assert checked == ["native", "native-flat"]
+        assert "prettyExperiment=fir-output" in page.url
+        assert "direct flat text/style events" in await controls.locator(
+            ".pretty-controls-question"
+        ).inner_text()
+
         await experiment.select_option("vir-output")
         checked = await controls.locator(".pretty-controls-backend input:checked").evaluate_all(
             "els => els.map(el => el.value)"

@@ -25,6 +25,7 @@ visible-format call sequence at the Verso panel boundary.
 | VIR rendering boundary     | VIR Resident, VIR Render       | JS tag resolution versus Lean-resolved semantic nodes | Resident ID, package tables, VIR runtime, `prettyM`, annotations, HTML semantics | Cost and ownership shift at the rendering endpoint                |
 | VIR host materializer      | VIR Render, VIR Direct DOM     | HTML-string construction + parse versus DOM construction + fragment commit | Resident ID, package tables, VIR call, semantic render plan, columns, final populated DOM | Cost of the browser endpoint after the VIR boundary               |
 | VIR input residency        | VIR Flat, VIR Resident         | Imported tree versus package-resident ID            | Flat output, VIR runtime, `prettyM`          | Cost of transferring/reconstructing a static format               |
+| FIR output boundary        | FIR Wasm, FIR Wasm Flat        | PrettyTrace versus text plus flat UTF-8 events      | Browser Format input, FIR runtime family, `prettyM`, columns, final HTML | Cost of the FIR output representation                             |
 | All backends               | All available                  | Several variables at once                           | Source format and columns only               | Exploratory overview; do not attribute a delta to one cause       |
 
 Named diagnostics live in **Custom Lab**. Selecting one leaves the main matrix
@@ -134,27 +135,28 @@ path are already present, so the cell stays gray until the artifact is staged
 and becomes selectable without a UI change afterward. See
 [`handoffs/fir-wasm-html-runtime/AGENT_TASK.md`](../../handoffs/fir-wasm-html-runtime/AGENT_TASK.md).
 
-## Pending FIR output experiment
+## FIR output experiment
 
-The current FIR control artifact, source `d4422df…`, still exposes
+The refreshed FIR control artifact, source `c780c94…`, exposes
 `fir.prettyM.browser/v1` and `PrettyTrace`; JavaScript post-processing
-of that trace would not constitute this experiment.
+of that trace is part of the control boundary.
 
-The required candidate package is specified by
+The accepted candidate package is specified by
 [`contracts/fir-native-flat-v1.json`](contracts/fir-native-flat-v1.json)
 and checked by `scripts/validate-native-flat-package.py`. Its browser
 API is `fir.prettyM.flat.browser/v1`, its public input and ownership
 protocols remain the same as the native control, and its Wasm result
 is `text-events-utf8/v1` directly. The artifact is staged separately
 as `lean-native-flat/`; it never replaces `lean-native/`. The
-preferred Lean target is the compiler-neutral
+published package pins FIR `a4dce92…`, Verso `3dbc9ef…`, and the
+154,635-byte zero-import Wasm digest `60a70d63…`. Its Lean target is the compiler-neutral
 `VersoSlides.Pretty.formatRenderedForRuntime`; the historical
 `formatRenderedForVir` name is only a compatibility alias. The
 complete producer handoff is
 [`handoffs/fir-wasm-flat-runtime/AGENT_TASK.md`](../../handoffs/fir-wasm-flat-runtime/AGENT_TASK.md).
 
-Once such a package is present, assembly registers `native-flat` and
-adds a **FIR output boundary** preset containing exactly the two FIR
+Assembly now registers `native-flat` and adds a **FIR output boundary**
+preset containing exactly the two FIR
 backends:
 
 ```text
@@ -167,6 +169,15 @@ HTML must remain fixed. The useful result is the change in execute,
 decode, payload size, and total time. Package-resident native input is
 a separate later experiment; combining it with flat output would
 prevent attribution.
+
+The 2026-08-11 deck check covered 58 resident formats at widths 20, 40,
+and 80, with five measured repetitions: 870 parity-checked samples per
+backend and no page errors. Median execute was 0.720 ms for PrettyTrace
+and 0.780 ms for Flat, while median output decode fell from 0.770 ms to
+0.275 ms and committed pipeline total fell from 2.470 ms to 2.020 ms.
+This points to a downstream representation/materialization benefit, not
+an execution-speed win. These deck measurements remain exploratory; use
+the standalone benchmark for headline comparisons.
 
 ## Artifact ownership
 
