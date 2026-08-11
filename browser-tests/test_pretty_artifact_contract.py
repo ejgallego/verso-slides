@@ -1,4 +1,4 @@
-"""Tests for browser artifact subset and pending FIR native-flat contracts."""
+"""Tests for browser artifact subsets and FIR Flat/HTML contracts."""
 
 from __future__ import annotations
 
@@ -192,6 +192,26 @@ def test_native_flat_contract_rejects_trace_output(tmp_path: Path):
     assert "flat output capability mismatch" in result.stderr
 
 
+def test_native_flat_contract_rejects_provisional_package(tmp_path: Path):
+    package = tmp_path / "flat"
+    make_flat_package(package)
+    build_path = package / "BUILD.json"
+    build = json.loads(build_path.read_text())
+    build["provisional"] = True
+    build_path.write_text(json.dumps(build))
+    write_manifest(
+        package,
+        ["BUILD.json", "prettyM-browser-adapter.mjs", "prettyM.wasm", "prettyM.wasm.json"],
+    )
+    result = subprocess.run(
+        [sys.executable, VALIDATE_FLAT, package],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "provisional package is not publishable" in result.stderr
+
+
 def test_native_html_contract_accepts_the_declared_boundary(tmp_path: Path):
     package = tmp_path / "html"
     make_html_package(package)
@@ -222,3 +242,23 @@ def test_native_html_contract_rejects_render_plan_output(tmp_path: Path):
     )
     assert result.returncode == 1
     assert "HTML output capability mismatch" in result.stderr
+
+
+def test_native_html_contract_rejects_provisional_package(tmp_path: Path):
+    package = tmp_path / "html"
+    make_html_package(package)
+    build_path = package / "BUILD.json"
+    build = json.loads(build_path.read_text())
+    build["provisional"] = True
+    build_path.write_text(json.dumps(build))
+    write_manifest(
+        package,
+        ["BUILD.json", "prettyM-browser-adapter.mjs", "prettyM.wasm", "prettyM.wasm.json"],
+    )
+    result = subprocess.run(
+        [sys.executable, VALIDATE_HTML, package],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "provisional package is not publishable" in result.stderr

@@ -52,6 +52,7 @@ def validate(package: Path) -> dict[str, object]:
 
     require(build.get("format") in expected["formats"], "unsupported BUILD format")
     require(build.get("sourceDirty") is False, "source provenance must be clean")
+    require(build.get("provisional") is not True, "provisional package is not publishable")
     require(build.get("entry") == descriptor.get("entry"), "entry mismatch")
     require(build.get("params") == expected["params"], "BUILD parameter ABI mismatch")
     require(descriptor.get("params") == expected["params"], "descriptor parameter ABI mismatch")
