@@ -98,10 +98,21 @@ async def main() -> None:
             '.pretty-matrix-cell[data-pretty-backend="vir"]'
             '[data-pretty-breadth="layout"]'
         )
-        assert await vir_layout_cell.locator(".pretty-matrix-variants").inner_text() == (
-            "+2 variants"
+        assert await vir_layout_cell.locator(".pretty-matrix-choice").evaluate_all(
+            "els => els.map(el => el.dataset.prettyCandidate)"
+        ) == ["vir-format", "vir-flat", "vir-resident"]
+        vir_variant_names = await vir_layout_cell.locator(
+            ".pretty-matrix-choice.is-variant .pretty-matrix-candidate"
+        ).all_inner_texts()
+        assert vir_variant_names == ["VIR Flat", "VIR Resident"]
+        fir_layout_cell = matrix.locator(
+            '.pretty-matrix-cell[data-pretty-backend="fir"]'
+            '[data-pretty-breadth="layout"]'
         )
-        assert "VIR Flat, VIR Resident" in (await vir_layout_cell.get_attribute("title"))
+        assert await fir_layout_cell.locator(".pretty-matrix-choice").evaluate_all(
+            "els => els.map(el => el.dataset.prettyCandidate)"
+        ) == ["native", "native-flat"]
+        assert "FIR Wasm Flat" in await fir_layout_cell.inner_text()
         included = await matrix.locator(".pretty-matrix-cell.is-included").evaluate_all(
             "els => els.map(el => el.dataset.prettyBackend)"
         )
@@ -121,7 +132,7 @@ async def main() -> None:
         options = await experiment.locator("option").evaluate_all("els => els.map(el => el.value)")
         assert "vir-transport" not in options
         assert "fir-output" in options
-        await experiment.select_option("fir-output")
+        await fir_layout_cell.locator('[data-pretty-candidate="native-flat"]').click()
         checked = await controls.locator(".pretty-controls-backend input:checked").evaluate_all(
             "els => els.map(el => el.value)"
         )

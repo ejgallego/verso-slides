@@ -894,8 +894,7 @@
                     matrix.appendChild(unavailable);
                     return;
                 }
-                var cell = document.createElement("button");
-                cell.type = "button";
+                var cell = document.createElement("div");
                 var isCurrent = active && selectedBreadth === breadth.id;
                 var isIncluded = isCurrent && selectedFamilies.has(family.id);
                 cell.className =
@@ -904,47 +903,72 @@
                     (isIncluded ? " is-included" : "");
                 cell.dataset.prettyBackend = family.id;
                 cell.dataset.prettyBreadth = breadth.id;
-                var state = typeof candidate.status === "function" ? candidate.status() : "ready";
-                var candidateName = document.createElement("span");
-                candidateName.className = "pretty-matrix-candidate";
-                candidateName.textContent = candidate.label;
-                var variantCount = candidates.length - 1;
-                if (variantCount > 0) {
-                    var variants = document.createElement("span");
+                /** @param {PrettyBackendDefinition} implementation @param {boolean} primary */
+                function implementationButton(implementation, primary) {
+                    var choice = document.createElement("button");
+                    choice.type = "button";
+                    choice.className =
+                        "pretty-matrix-choice " + (primary ? "is-primary" : "is-variant");
+                    choice.dataset.prettyCandidate = implementation.id;
+                    var name = document.createElement("span");
+                    name.className = "pretty-matrix-candidate";
+                    name.textContent = implementation.label;
+                    var state =
+                        typeof implementation.status === "function"
+                            ? implementation.status()
+                            : "ready";
+                    var candidateState = document.createElement("span");
+                    candidateState.className =
+                        "pretty-controls-status status-" +
+                        state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+                    candidateState.textContent = state;
+                    choice.append(name, candidateState);
+                    choice.title = prettyBackendBoundaryDetails(implementation);
+                    choice.addEventListener("click", function () {
+                        if (primary) {
+                            var next = selectedPrettyFamilies();
+                            next.add(family.id);
+                            config.families = /** @type {*} */ (Array.from(next));
+                            config.breadth = /** @type {*} */ (breadth.id);
+                            activatePrettyMatrix();
+                        } else {
+                            var controlled = prettyExperiments().find(function (experiment) {
+                                var ids = availableExperimentBackendIds(experiment);
+                                return (
+                                    ids.length === 2 &&
+                                    ids.includes(candidate.id) &&
+                                    ids.includes(implementation.id)
+                                );
+                            });
+                            if (controlled) {
+                                applyPrettyExperiment(controlled);
+                                prettyCustomLabOpen = true;
+                            } else {
+                                config.backends = [implementation.id];
+                                config.experiment = "custom";
+                                config.mode = "custom";
+                                config.compare = true;
+                            }
+                        }
+                        persistPrettyConfig();
+                        reflowPrettyPanels();
+                        renderPrettyControls();
+                    });
+                    return choice;
+                }
+                cell.appendChild(implementationButton(candidate, true));
+                if (candidates.length > 1) {
+                    var variants = document.createElement("div");
                     variants.className = "pretty-matrix-variants";
-                    variants.textContent =
-                        "+" + variantCount + (variantCount === 1 ? " variant" : " variants");
-                    cell.append(candidateName, variants);
-                } else {
-                    cell.appendChild(candidateName);
+                    var variantsLabel = document.createElement("span");
+                    variantsLabel.className = "pretty-matrix-variants-label";
+                    variantsLabel.textContent = "Alternates";
+                    variants.appendChild(variantsLabel);
+                    candidates.slice(1).forEach(function (variant) {
+                        variants.appendChild(implementationButton(variant, false));
+                    });
+                    cell.appendChild(variants);
                 }
-                var candidateState = document.createElement("span");
-                candidateState.className =
-                    "pretty-controls-status status-" +
-                    state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
-                candidateState.textContent = state;
-                cell.appendChild(candidateState);
-                cell.title = prettyBackendBoundaryDetails(candidate);
-                if (variantCount > 0) {
-                    cell.title +=
-                        "\n\nOther implementations in Custom Lab: " +
-                        candidates
-                            .slice(1)
-                            .map(function (variant) {
-                                return variant.label;
-                            })
-                            .join(", ");
-                }
-                cell.addEventListener("click", function () {
-                    var next = selectedPrettyFamilies();
-                    next.add(family.id);
-                    config.families = /** @type {*} */ (Array.from(next));
-                    config.breadth = /** @type {*} */ (breadth.id);
-                    activatePrettyMatrix();
-                    persistPrettyConfig();
-                    reflowPrettyPanels();
-                    renderPrettyControls();
-                });
                 matrix.appendChild(cell);
             });
         });

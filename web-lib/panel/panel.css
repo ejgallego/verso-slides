@@ -210,11 +210,6 @@
     text-align: left;
 }
 
-button.pretty-matrix-cell {
-    cursor: pointer;
-}
-
-.pretty-matrix-cell:hover,
 .pretty-matrix-cell.is-current {
     border-color: rgba(109, 158, 235, 0.5);
 }
@@ -253,16 +248,52 @@ button.pretty-matrix-cell {
 }
 
 .pretty-matrix-variants {
-    color: #7f8a98;
-    font-size: 0.61em;
-    line-height: 1.1;
+    display: grid;
+    gap: 0.08rem;
+    padding-top: 0.12rem;
+    border-top: 1px solid rgba(180, 180, 180, 0.14);
 }
 
-.pretty-matrix-cell.is-included .pretty-matrix-variants {
+.pretty-matrix-variants-label {
+    color: #7f8a98;
+    font-size: 0.56em;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.pretty-matrix-cell.is-included .pretty-matrix-variants-label {
     color: #afc5e6;
 }
 
-.pretty-matrix-cell .pretty-controls-status {
+.pretty-matrix-choice {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.2rem;
+    width: 100%;
+    padding: 0.12rem 0.16rem;
+    border: 0;
+    border-radius: 0.18rem;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.pretty-matrix-choice:hover,
+.pretty-matrix-choice:focus-visible {
+    color: #e6f0ff;
+    background: rgba(109, 158, 235, 0.17);
+    outline: none;
+}
+
+.pretty-matrix-choice.is-variant .pretty-matrix-candidate {
+    color: #b5c7df;
+    font-size: 0.63em;
+}
+
+.pretty-matrix-choice .pretty-controls-status {
     font-size: 0.64em;
 }
 
