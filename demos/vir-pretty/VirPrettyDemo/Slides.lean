@@ -234,6 +234,19 @@ backgroundColor := some "#f5f5f5"
 
 JavaScript wins this small surface. FIR is the fastest compiled candidate.
 
+# Complete HTML
+
+*Median 256+ code points → committed DOM*
+
+- JavaScript: 0.420 ms
+- FIR Wasm: 3.700 ms
+- VIR: 12.770 ms
+
+1,218 parity-checked samples per backend. FIR now owns layout,
+annotations, escaping, and span construction.
+
+*FIR's current source escape loop is quadratic.*
+
 # The useful boundary
 
 - Lean/VIR owns semantic data, policy, layout, and structure
@@ -247,8 +260,8 @@ JavaScript wins this small surface. FIR is the fastest compiled candidate.
 
 - VIR: shared runtime plus Lean reuse
 - Measure the same corpus and phase boundaries
-- FIR Flat now isolates the output representation
-- FIR next: resident input and HTML artifacts
-- Long-lived FIR needs bounded reclamation
+- FIR HTML closes the three-way renderer test
+- FIR next: linear escaping and resident input
+- Long-lived FIR still needs bounded reclamation
 
 *VIR is already compelling for reuse and maintainability.*

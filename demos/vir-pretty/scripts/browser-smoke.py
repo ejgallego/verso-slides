@@ -50,10 +50,15 @@ async def main() -> None:
         )
         await page.goto(args.url, wait_until="networkidle")
         backend_ids = list(BASE_BACKEND_IDS)
+        html_ids = list(HTML_IDS)
         if await page.evaluate("getPrettyBackend('native-flat') !== null"):
             backend_ids.insert(backend_ids.index("native") + 1, "native-flat")
-        if await page.evaluate("getPrettyBackend('native-html') !== null"):
+        native_html_available = await page.evaluate(
+            "getPrettyBackend('native-html') !== null"
+        )
+        if native_html_available:
             backend_ids.insert(backend_ids.index("native") + 1, "native-html")
+            html_ids.append("native-html")
         await page.wait_for_function(
             """ids => ids.every(id => {
               const backend = getPrettyBackend(id);
@@ -66,17 +71,21 @@ async def main() -> None:
         controls = page.locator(".pretty-controls")
         await controls.wait_for(state="visible")
         assert await controls.locator(":scope > summary").inner_text() == (
-            "Pipeline · HTML rendering · 2/4 backends"
+            f"Pipeline · HTML rendering · {len(html_ids)}/4 backends"
         )
         await controls.locator(":scope > summary").click()
         matrix = controls.locator(".pretty-matrix")
         assert await matrix.locator(".pretty-matrix-cell").count() == 12
-        assert await matrix.locator(".pretty-matrix-cell.is-unsupported").count() == 4
+        assert await matrix.locator(".pretty-matrix-cell.is-unsupported").count() == (
+            3 if native_html_available else 4
+        )
         assert await matrix.locator(".pretty-matrix-cell.is-current").count() == 4
-        assert await matrix.locator(".pretty-matrix-cell.is-included").count() == 2
+        assert await matrix.locator(".pretty-matrix-cell.is-included").count() == len(
+            html_ids
+        )
         assert await matrix.locator(
             '.pretty-matrix-cell.is-current.is-unsupported'
-        ).count() == 2
+        ).count() == (1 if native_html_available else 2)
         matrix_registry = await page.evaluate(
             """() => ({
               primaryLayout: getPrettyMatrixBackend('vir', 'layout').id,
@@ -113,10 +122,19 @@ async def main() -> None:
             "els => els.map(el => el.dataset.prettyCandidate)"
         ) == ["native", "native-flat"]
         assert "FIR Wasm Flat" in await fir_layout_cell.inner_text()
+        fir_html_cell = matrix.locator(
+            '.pretty-matrix-cell[data-pretty-backend="fir"]'
+            '[data-pretty-breadth="html"]'
+        )
+        if native_html_available:
+            assert await fir_html_cell.locator(".pretty-matrix-choice").evaluate_all(
+                "els => els.map(el => el.dataset.prettyCandidate)"
+            ) == ["native-html"]
+            assert "FIR Wasm HTML" in await fir_html_cell.inner_text()
         included = await matrix.locator(".pretty-matrix-cell.is-included").evaluate_all(
             "els => els.map(el => el.dataset.prettyBackend)"
         )
-        assert included == ["js", "vir"]
+        assert included == (["js", "vir", "fir"] if native_html_available else ["js", "vir"])
         boundary = controls.locator(".pretty-matrix-boundary")
         assert "escaping" in await boundary.locator(".pretty-controls-question").inner_text()
 
@@ -177,11 +195,11 @@ async def main() -> None:
         await block.locator(".tactic .keyword").first.click()
         panes = block.locator(".pretty-compare-pane")
         await page.wait_for_function(
-            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(HTML_IDS)}",
+            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(html_ids)}",
             arg=await block.element_handle(),
             timeout=30_000,
         )
-        assert await panes.evaluate_all("els => els.map(el => el.dataset.prettyBackend)") == HTML_IDS
+        assert await panes.evaluate_all("els => els.map(el => el.dataset.prettyBackend)") == html_ids
         assert await block.locator('[data-pretty-backend="vir-html"]').get_attribute(
             "data-pretty-output"
         ) == "html"
@@ -203,6 +221,16 @@ async def main() -> None:
             f"VIR: {vir_html!r}\n"
             f"Console: {console_warnings!r}"
         )
+        if native_html_available:
+            fir_html = await block.locator(
+                '[data-pretty-backend="native-html"] .pretty-compare-body'
+            ).inner_html()
+            assert fir_html == js_html, (
+                "FIR complete HTML differs from JavaScript complete HTML\n"
+                f"JavaScript: {js_html!r}\n"
+                f"FIR: {fir_html!r}\n"
+                f"Console: {console_warnings!r}"
+            )
 
         await matrix.locator(
             '.pretty-matrix-breadth[data-pretty-breadth="semantic"]'
@@ -236,14 +264,15 @@ async def main() -> None:
         await matrix.locator(
             '.pretty-matrix-breadth[data-pretty-breadth="html"]'
         ).click()
+        expected_html_ids = ",".join(html_ids)
         await page.wait_for_function(
-            "el => [...el.querySelectorAll('.pretty-compare-pane')].map(x => x.dataset.prettyBackend).join(',') === 'js-html,vir-html'",
+            f"el => [...el.querySelectorAll('.pretty-compare-pane')].map(x => x.dataset.prettyBackend).join(',') === '{expected_html_ids}'",
             arg=await block.element_handle(),
         )
         parity = await panes.locator(".pretty-compare-parity").evaluate_all(
             "els => els.map(el => el.dataset.outputParity)"
         )
-        assert parity == ["equivalent"] * len(HTML_IDS)
+        assert parity == ["equivalent"] * len(html_ids)
         timing_titles = await panes.locator(".pretty-compare-time").evaluate_all(
             "els => els.map(el => el.title)"
         )
@@ -272,15 +301,15 @@ async def main() -> None:
         assert all(text.startswith("Execute · ") for text in timing_texts)
         await timing_display.select_option("tracks")
         total_texts = await panes.locator(".pretty-timing-tracks-total").all_inner_texts()
-        assert len(total_texts) == len(HTML_IDS)
+        assert len(total_texts) == len(html_ids)
         assert all("Total" in text and "ms" in text for text in total_texts)
-        assert await panes.locator(".pretty-timing-track").count() == 5 * len(HTML_IDS)
+        assert await panes.locator(".pretty-timing-track").count() == 5 * len(html_ids)
         assert "prettyTiming=tracks" in page.url
 
         vir_toggle = matrix.locator('.pretty-matrix-backend input[value="vir"]')
         await vir_toggle.uncheck()
         await page.wait_for_function(
-            "el => el.querySelectorAll('.pretty-compare-pane').length === 1",
+            f"el => el.querySelectorAll('.pretty-compare-pane').length === {len(html_ids) - 1}",
             arg=await block.element_handle(),
         )
         await matrix.locator('.pretty-matrix-backend input[value="vir"]').check()
@@ -350,7 +379,7 @@ async def main() -> None:
         assert resident_boundary["status"] == "ready"
         assert resident_boundary["contentId"] >= 0
         assert resident_boundary["columns"] >= 1
-        assert resident_boundary["packageCount"] == 22
+        assert resident_boundary["packageCount"] == 15
         assert resident_boundary["interfaceExports"] == 10
         assert resident_boundary["sharedRuntime"] is True
         assert resident_boundary["totalMs"] >= 0

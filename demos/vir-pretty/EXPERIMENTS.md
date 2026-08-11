@@ -25,7 +25,7 @@ visible-format call sequence at the Verso panel boundary.
 | VIR rendering boundary     | VIR Resident, VIR Render       | JS tag resolution versus Lean-resolved semantic nodes | Resident ID, package tables, VIR runtime, `prettyM`, annotations, HTML semantics | Cost and ownership shift at the rendering endpoint                |
 | VIR host materializer      | VIR Render, VIR Direct DOM     | HTML-string construction + parse versus DOM construction + fragment commit | Resident ID, package tables, VIR call, semantic render plan, columns, final populated DOM | Cost of the browser endpoint after the VIR boundary               |
 | VIR input residency        | VIR Flat, VIR Resident         | Imported tree versus package-resident ID            | Flat output, VIR runtime, `prettyM`          | Cost of transferring/reconstructing a static format               |
-| FIR output boundary        | FIR Wasm, FIR Wasm Flat        | PrettyTrace versus text plus flat UTF-8 events      | Browser Format input, FIR runtime family, `prettyM`, columns, final HTML | Cost of the FIR output representation                             |
+| FIR output boundary        | FIR Wasm, FIR Wasm Flat        | PrettyTrace versus text plus flat UTF-8 events      | Lean 4.32 input ABI family, `prettyM` semantics, columns, final HTML | Cross-revision output-boundary observation; not yet causal         |
 | All backends               | All available                  | Several variables at once                           | Source format and columns only               | Exploratory overview; do not attribute a delta to one cause       |
 
 Named diagnostics live in **Custom Lab**. Selecting one leaves the main matrix
@@ -120,20 +120,30 @@ tests.
 3. **Observation cards:** a small, forwardable conclusion with
    protocol, provenance, caveats, and owner-facing follow-up.
 
-## Pending FIR HTML breadth
+## FIR HTML breadth
 
 JavaScript and VIR now both provide canonical HTML cells. Their backend execute
 phase includes layout, annotation resolution, escaping, and token-span
 construction; only the common DOM commit remains in the host. Exact rendered
 HTML is checked before timing interpretation.
 
-The FIR cell is activated by a separately published package satisfying
+The accepted FIR package satisfies
 [`contracts/fir-native-html-v1.json`](contracts/fir-native-html-v1.json). It
 compiles `VersoSlides.Pretty.formatHtmlForRuntime`, is staged as
-`lean-native-html/`, and registers as `native-html`. The host adapter and assembly
-path are already present, so the cell stays gray until the artifact is staged
-and becomes selectable without a UI change afterward. See
+`lean-native-html/`, and registers as `native-html`. It pins FIR
+`bef6851c…`, Verso `2ee1c804…`, and a 187,855-byte zero-import Wasm with
+SHA-256 `ce63b4fd…`. See
 [`handoffs/fir-wasm-html-runtime/AGENT_TASK.md`](../../handoffs/fir-wasm-html-runtime/AGENT_TASK.md).
+
+The 2026-08-11 three-way check covered 58 resident formats at widths 20, 40,
+and 80, with seven measured repetitions: 1,218 parity-checked samples per
+backend and no page errors. Median committed pipeline total was 0.420 ms for
+JavaScript HTML, 3.700 ms for FIR HTML, and 12.770 ms for VIR HTML. Median
+backend execute was 0.200, 1.995, and 9.075 ms respectively. These are local
+exploratory observations, not a causal compiler comparison: the runtimes,
+Lean versions, and input transports differ. FIR's current source-local
+character-at-a-time escape loop is also quadratic and has a separately tracked
+throughput follow-up.
 
 ## FIR output experiment
 
@@ -164,11 +174,12 @@ FIR Wasm       browser Format → PrettyTrace → panel segments
 FIR Wasm Flat  browser Format → text + UTF-8 style events → panel segments
 ```
 
-The input adapter, compiler/runtime, format corpus, width, and final
-HTML must remain fixed. The useful result is the change in execute,
-decode, payload size, and total time. Package-resident native input is
-a separate later experiment; combining it with flat output would
-prevent attribution.
+The current packages share the Lean 4.32 browser Format ABI family, format
+corpus, width, and final HTML, but they pin different FIR revisions
+(`c780c94…` for the control and `a4dce92…` for Flat). The current result is
+therefore exploratory. A causal output-representation result requires both
+packages to be rebuilt from one FIR compiler/runtime commit. Package-resident
+native input remains a separate later experiment.
 
 The 2026-08-11 deck check covered 58 resident formats at widths 20, 40,
 and 80, with five measured repetitions: 870 parity-checked samples per

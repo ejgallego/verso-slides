@@ -69,18 +69,18 @@
                 id: "fir-output",
                 label: "FIR output boundary",
                 question:
-                    "What changes when FIR returns direct flat text/style events instead of PrettyTrace, with its input adapter and runtime held fixed?",
+                    "What do the current cross-revision FIR packages show when direct flat text/style events replace PrettyTrace?",
                 backends: ["native", "native-flat"],
-                design: "controlled",
+                design: "exploratory",
                 variable: "FIR output: PrettyTrace ↔ direct text + style events",
                 controls: [
-                    "FIR compiler/runtime",
-                    "browser Format adapter",
+                    "Lean 4.32 browser Format ABI family",
                     "prettyM logic",
                     "column budget",
+                    "final populated DOM",
                 ],
                 measures:
-                    "Incremental execute, decode, payload, and total cost of removing PrettyTrace.",
+                    "Execute, decode, payload, and total observations; causal attribution waits for a same-revision pair.",
             });
         }
         var allExperiment = prettyConfig.experiments.find(function (experiment) {

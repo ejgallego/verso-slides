@@ -237,8 +237,8 @@ the assembled deck. Lab mode closes the canonical `VersoSlides.Pretty`
 operations, deduplicated format/annotation table, and complete resident
 panel contents over one shared table. Production VIR profiles retain the
 same resident contents and expose `mountContent`, `unmount`, and the Lean
-Reveal policy planner. The current result is 15 package members and three
-exports rather than the lab package's 22 members and ten exports. The
+Reveal policy planner. Both generated profiles currently retain 15 package
+members. Production exposes three exports rather than the lab package's ten. The
 React-capable runtime serves the formatter, panel, and Reveal-policy clients;
 the browser smokes assert that all three bridges hold the same runtime object
 and execute a policy case. Set
