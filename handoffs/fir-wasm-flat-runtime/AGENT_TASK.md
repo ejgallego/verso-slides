@@ -99,7 +99,7 @@ The important requirements are:
 
 Keep the Lean version inside the self-contained package provenance.
 For this controlled pair, preserve the current FIR Wasm control's Lean
-4.32 public input layout; the host deck itself uses Lean 4.33 and does
+4.33 public input layout; the host deck also uses Lean 4.33 and does
 not share heap objects with the artifact.
 
 ## Browser adapter

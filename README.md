@@ -1016,7 +1016,7 @@ Both compiled artifacts expose the same versioned browser contract:
 
 ```text
 fir.prettyM.browser/v1
-lean-4.32-Std.Format.compact/v1
+lean-4.33-Std.Format.compact/v1
 render({ format, width, indent, column }) → { trace, timings, memory }
 ```
 

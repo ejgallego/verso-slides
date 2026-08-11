@@ -214,7 +214,7 @@
             adapterImported = performance.now();
             if (
                 adapterModule.PRETTY_M_BROWSER_API_VERSION !== "fir.prettyM.browser/v1" ||
-                adapterModule.PRETTY_M_INPUT_LAYOUT_VERSION !== "lean-4.32-Std.Format.compact/v1" ||
+                adapterModule.PRETTY_M_INPUT_LAYOUT_VERSION !== "lean-4.33-Std.Format.compact/v1" ||
                 typeof adapterModule.loadEmscriptenPrettyMAdapter !== "function" ||
                 !adapterModule.PrettyFormat
             ) {

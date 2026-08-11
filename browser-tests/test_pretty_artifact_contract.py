@@ -64,7 +64,7 @@ def make_flat_package(package: Path) -> None:
                 "module": "prettyM-browser-adapter.mjs",
                 "apiVersion": "fir.prettyM.flat.browser/v1",
             },
-            "inputLayout": {"version": "lean-4.32-Std.Format.compact/v1"},
+            "inputLayout": {"version": "lean-4.33-Std.Format.compact/v1"},
             "ownership": {"version": "fir.prettyM.module-owned-transfer/v1"},
             "output": {
                 "semantic": "RenderedTextEvents",
@@ -90,7 +90,7 @@ def make_html_package(package: Path) -> None:
     descriptor = {
         "entry": "VersoSlides.Pretty.formatHtmlForRuntime",
         "imports": [],
-        "params": ["tobject", "tobject", "tobject", "tobject", "tobject"],
+        "params": ["tobject", "object", "tobject", "tobject", "tobject"],
         "result": "object",
     }
     (package / "prettyM.wasm.json").write_text(json.dumps(descriptor))
@@ -121,7 +121,7 @@ def make_html_package(package: Path) -> None:
                 "module": "prettyM-browser-adapter.mjs",
                 "apiVersion": "fir.prettyM.html.browser/v1",
             },
-            "inputLayout": {"version": "lean-4.32-Std.Format.compact/v1"},
+            "inputLayout": {"version": "lean-4.33-Std.Format.compact/v1"},
             "ownership": {"version": "fir.prettyM.module-owned-transfer/v1"},
             "output": {
                 "semantic": "EscapedHtmlString",

@@ -43,7 +43,7 @@ Signature:
   (width indent column : Nat) → String
 ```
 
-This exact source also builds as the demo's self-contained Lean 4.32 module.
+This exact source also builds as the demo's self-contained Lean 4.33 module.
 If FIR vendors it, retain source provenance and digest. Keep the concrete Lean
 version inside the self-contained artifact metadata; the browser boundary is
 version-independent and no Lean heap is shared with the host deck.

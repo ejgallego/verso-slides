@@ -155,7 +155,7 @@ checks = [
     (manifest.get("schemaVersion") == 1, "manifest schema"),
     (manifest.get("profile") == "emscripten", "Emscripten profile"),
     (manifest.get("pipeline") == "lean-final-impure-lcnf-to-c-to-wasm", "LLVM pipeline"),
-    (toolchain.get("lean", {}).get("version") == "4.32.0", "Lean toolchain"),
+    (toolchain.get("lean", {}).get("version") == "4.33.0", "Lean toolchain"),
     (isinstance(toolchain.get("lean", {}).get("commit"), str), "Lean provenance"),
     (isinstance(toolchain.get("emscripten", {}).get("version"), str), "Emscripten toolchain"),
     (runtime.get("threads") is True, "threaded runtime"),
@@ -247,7 +247,7 @@ checks = [
      {"prepare", "execute", "decode", "render"}, "browser adapter phases"),
     ({"normalizeMs", "allocateMs", "encodeMs", "prepareMs", "executeMs", "decodeMs"}
      <= set(browser_adapter.get("timings", [])), "browser adapter timings"),
-    (input_layout.get("version") == "lean-4.32-Std.Format.compact/v1",
+    (input_layout.get("version") == "lean-4.33-Std.Format.compact/v1",
      "versioned input layout"),
     (ownership.get("version") == "fir.prettyM.module-owned-transfer/v1",
      "versioned ownership contract"),
