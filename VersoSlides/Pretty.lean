@@ -125,7 +125,13 @@ private structure RenderedState where
   events : Array StyleEvent := #[]
 deriving Inhabited
 
-private abbrev RenderedM := StateM RenderedState
+private abbrev RenderedM (α : Type) := RenderedState → α × RenderedState
+
+@[reducible] private def renderedMonad : Monad RenderedM where
+  pure value := fun state => (value, state)
+  bind action next := fun state =>
+    let (value, state) := action state
+    next value state
 
 private structure RenderPlanState where
   nodes : Array RenderNode := #[]
@@ -172,35 +178,43 @@ private instance : Std.Format.MonadPrettyFormat PrettyM where
   endTags count :=
     modify fun st => { st with tagStack := popTags st.tagStack count }
 
-private instance : Std.Format.MonadPrettyFormat RenderedM where
+@[reducible] private def renderedPretty : Std.Format.MonadPrettyFormat RenderedM where
   pushOutput s :=
     if s.isEmpty then
-      pure ()
+      fun st => ((), st)
     else
-      modify fun st =>
-        { st with
+      fun st =>
+        ((), { st with
           chunks := st.chunks.push s
           byteOffset := st.byteOffset + s.utf8ByteSize
-          column := st.column + String.Internal.length s }
+          column := st.column + String.Internal.length s })
   pushNewline indent :=
-    modify fun st =>
-      { st with
+    fun st =>
+      ((), { st with
         chunks := st.chunks.push (String.Internal.pushn "\n" ' ' indent)
         byteOffset := st.byteOffset + indent + 1
         column := indent
-        events := st.events.push { offset := st.byteOffset, kind := 2, value := indent } }
-  currColumn := return (← get).column
+        events := st.events.push { offset := st.byteOffset, kind := 2, value := indent } })
+  currColumn := fun st => (st.column, st)
   startTag tag :=
-    modify fun st =>
-      { st with
-        events := st.events.push { offset := st.byteOffset, kind := 0, value := tag } }
+    fun st =>
+      ((), { st with
+        events := st.events.push { offset := st.byteOffset, kind := 0, value := tag } })
   endTags count :=
     if count == 0 then
-      pure ()
+      fun st => ((), st)
     else
-      modify fun st =>
-        { st with
-          events := st.events.push { offset := st.byteOffset, kind := 1, value := count } }
+      fun st =>
+        ((), { st with
+          events := st.events.push { offset := st.byteOffset, kind := 1, value := count } })
+
+private def joinChunks (chunks : Array String) : String :=
+  let rec loop (index : Nat) (text : String) : String :=
+    if h : index < chunks.size then
+      loop (index + 1) (String.Internal.append text chunks[index])
+    else
+      text
+  loop 0 ""
 
 private def annotationSlotFor
     (annotations : Array TaggedAnnotation) (tag : Nat) : Nat :=
@@ -311,9 +325,10 @@ not copy the active tag stack for each emitted chunk.
 -/
 public def formatRendered (f : Std.Format) (width : Nat) (indent : Nat := 0)
     (column : Nat := 0) : Rendered :=
-  let act : RenderedM Unit := Std.Format.prettyM f width indent
-  let st := (act.run { column }).2
-  { text := String.join st.chunks.toList, events := st.events }
+  let act : RenderedM Unit :=
+    @Std.Format.prettyM RenderedM f width indent renderedMonad renderedPretty
+  let st := (act { column }).2
+  { text := joinChunks st.chunks, events := st.events }
 
 /--
 Runtime-neutral flat-output entrypoint with no optional parameters.
