@@ -149,7 +149,13 @@ private structure HtmlState where
   annotations : Array TaggedAnnotation := #[]
 deriving Inhabited
 
-private abbrev HtmlM := StateM HtmlState
+private abbrev HtmlM (α : Type) := HtmlState → α × HtmlState
+
+@[reducible] private def htmlMonad : Monad HtmlM where
+  pure value := fun state => (value, state)
+  bind action next := fun state =>
+    let (value, state) := action state
+    next value state
 
 private def popTags (tags : Array Nat) : Nat → Array Nat
   | 0 => tags
@@ -235,7 +241,22 @@ private def innermostAnnotationSlot
   visit tags.size
 
 private def escapeHtml (s : String) : String :=
-  s.replace "&" "&amp;" |>.replace "<" "&lt;" |>.replace ">" "&gt;" |>.replace "\"" "&quot;"
+  let rec loop : Nat → String.Pos s → String → String
+    | 0, _, escaped => escaped
+    | fuel + 1, position, escaped =>
+      if h : position ≠ s.endPos then
+        let character := position.get h
+        let escaped :=
+          match character with
+          | '&' => String.Internal.append escaped "&amp;"
+          | '<' => String.Internal.append escaped "&lt;"
+          | '>' => String.Internal.append escaped "&gt;"
+          | '\"' => String.Internal.append escaped "&quot;"
+          | character => escaped.push character
+        loop fuel (position.next h) escaped
+      else
+        escaped
+  loop (s.utf8ByteSize + 1) s.startPos ""
 
 private def annotatedTextToHtml (rawText : String)
     (annotation : Option TokenAnnotation) : String :=
@@ -243,10 +264,12 @@ private def annotatedTextToHtml (rawText : String)
   match annotation with
   | none => text
   | some annotation =>
-    let binding := annotation.binding.map fun value =>
-      " data-binding=\"" ++ escapeHtml value ++ "\""
-    "<span class=\"" ++ escapeHtml (annotation.cssClass ++ " token") ++ "\"" ++
-      binding.getD "" ++ ">" ++ text ++ "</span>"
+    let binding :=
+      match annotation.binding with
+      | none => ""
+      | some value => " data-binding=\"" ++ escapeHtml value ++ "\""
+    "<span class=\"" ++ escapeHtml (annotation.cssClass ++ " token") ++ "\"" ++ binding ++
+      ">" ++ text ++ "</span>"
 
 private def innermostAnnotation (annotations : Array TaggedAnnotation)
     (tags : Array Nat) : Option TokenAnnotation :=
@@ -279,26 +302,26 @@ private instance : Std.Format.MonadPrettyFormat RenderPlanM where
   endTags count :=
     modify fun st => { st with tagStack := popTags st.tagStack count }
 
-private instance : Std.Format.MonadPrettyFormat HtmlM where
+@[reducible] private def htmlPretty : Std.Format.MonadPrettyFormat HtmlM where
   pushOutput s :=
     if s.isEmpty then
-      pure ()
+      fun st => ((), st)
     else
-      modify fun st =>
-        { st with
+      fun st =>
+        ((), { st with
           chunks := st.chunks.push <| annotatedTextToHtml s <|
             innermostAnnotation st.annotations st.tagStack
-          column := st.column + String.Internal.length s }
+          column := st.column + String.Internal.length s })
   pushNewline indent :=
-    modify fun st =>
-      { st with
+    fun st =>
+      ((), { st with
         chunks := st.chunks.push (String.Internal.pushn "\n" ' ' indent)
-        column := indent }
-  currColumn := return (← get).column
+        column := indent })
+  currColumn := fun st => (st.column, st)
   startTag tag :=
-    modify fun st => { st with tagStack := st.tagStack.push tag }
+    fun st => ((), { st with tagStack := st.tagStack.push tag })
   endTags count :=
-    modify fun st => { st with tagStack := popTags st.tagStack count }
+    fun st => ((), { st with tagStack := popTags st.tagStack count })
 
 /-- Render a `Std.Format` into text segments, preserving active tag IDs. -/
 public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0)
@@ -375,9 +398,10 @@ remain browser-owned and outside this surface.
 -/
 public def formatHtml (f : Std.Format) (annotations : Array TaggedAnnotation)
     (width : Nat) (indent : Nat := 0) (column : Nat := 0) : String :=
-  let act : HtmlM Unit := Std.Format.prettyM f width indent
-  let st := (act.run { column, annotations }).2
-  String.join st.chunks.toList
+  let act : HtmlM Unit :=
+    @Std.Format.prettyM HtmlM f width indent htmlMonad htmlPretty
+  let st := (act { column, annotations }).2
+  joinChunks st.chunks
 
 /-- Runtime-neutral complete-HTML entrypoint with no optional parameters. -/
 public def formatHtmlForRuntime (f : Std.Format)
