@@ -12,4 +12,4 @@ lean_lib VirPanelExperiment where
   roots := #[`VirPanelExperiment]
 
 lean_lib VirPanelGenerated where
-  roots := #[`VirPanelRegistry]
+  roots := #[`VirPanelRegistry, `PrettyHtmlBenchmark]
