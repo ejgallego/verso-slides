@@ -15,6 +15,7 @@ import VersoSlides.InlineLean
 import VersoSlides.Diagram
 import VersoSlides.Animate
 import VersoSlides.Pretty
+import VersoSlides.Panel.Component
 import VersoSlides.SlideCode
 import VersoSlides.SlideCode.Export
 import VersoSlides.SlideCode.Render

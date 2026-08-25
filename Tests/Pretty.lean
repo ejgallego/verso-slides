@@ -38,25 +38,25 @@ structure TestState where
   failed : Nat := 0
   errors : Array String := #[]
 
-def TestState.report (s : TestState) : IO UInt32 := do
-  if s.errors.isEmpty then
-    IO.println s!"All {s.passed} tests passed."
+def TestState.report (state : TestState) : IO UInt32 := do
+  if state.errors.isEmpty then
+    IO.println s!"All {state.passed} tests passed."
     return 0
   else
-    for e in s.errors do
-      IO.eprintln e
-    IO.eprintln s!"\n{s.failed} of {s.passed + s.failed} tests FAILED."
+    for error in state.errors do
+      IO.eprintln error
+    IO.eprintln s!"\n{state.failed} of {state.passed + state.failed} tests FAILED."
     return 1
 
 abbrev TestM := StateRefT TestState IO
 
 private def testEq [BEq α] [Repr α] (name : String) (actual expected : α) : TestM Unit := do
   if actual == expected then
-    modify fun s => { s with passed := s.passed + 1 }
+    modify fun state => { state with passed := state.passed + 1 }
   else
-    modify fun s => { s with
-      failed := s.failed + 1
-      errors := s.errors.push
+    modify fun state => { state with
+      failed := state.failed + 1
+      errors := state.errors.push
         s!"FAIL: {name}\n  expected: {reprStr expected}\n  actual:   {reprStr actual}" }
 
 def main : IO UInt32 := do
@@ -78,6 +78,31 @@ where
         { text := "inner", tags := #[7, 8] },
         { text := "tail", tags := #[7] }
       ]
+
+    let annotations : Array TaggedAnnotation := #[
+      { tag := 3, annotation := { cssClass := "outer", binding := none } },
+      { tag := 7, annotation := { cssClass := "inner", binding := some "Nat" } }
+    ]
+    let format := Format.group <|
+      Format.tag 3 ("a" ++ Format.line ++ Format.tag 7 "b")
+    let plan := formatRenderPlan format annotations 80
+    testEq "render plan nodes" plan.nodes #[
+      { text := "a", annotationSlot := 1 },
+      { text := " ", annotationSlot := 1 },
+      { text := "b", annotationSlot := 2 }
+    ]
+    testEq "render plan annotations" plan.annotations #[
+      { cssClass := "outer", binding := none },
+      { cssClass := "inner", binding := some "Nat" }
+    ]
+
+    let unsortedPlan := formatRenderPlan format annotations.reverse 1
+    testEq "unsorted annotation output"
+      (String.join <| unsortedPlan.nodes.toList.map fun node => node.text)
+      "a\nb"
+    testEq "unsorted annotation slots"
+      (unsortedPlan.nodes.map fun node => node.annotationSlot)
+      #[2, 0, 1]
 
 end Tests.Pretty
 

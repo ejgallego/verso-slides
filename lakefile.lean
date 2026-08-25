@@ -65,5 +65,8 @@ lean_exe «test-comment-parsers» where
 lean_exe «test-pretty» where
   root := `Tests.Pretty
 
+lean_exe «test-panel-component» where
+  root := `Tests.PanelComponent
+
 lean_exe «test-config-validation» where
   root := `Tests.ConfigValidation
