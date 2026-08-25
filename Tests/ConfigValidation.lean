@@ -112,7 +112,29 @@ def main : IO UInt32 := do
     expectFail "asset clashes with extraCss even when both are text"
       { theme := .custom (dummyBundle (dummyCss "theme.css")
                            #[dummyAsset "shared.css"]),
-        extraCss := #[dummyCss "shared.css"] }
+        extraCss := #[dummyCss "shared.css"] },
+    expectFail "embedded asset cannot escape output directory"
+      { extraAssets := #[dummyAsset "../runtime.js"] },
+    expectFail "embedded asset path has no empty components"
+      { extraAssets := #[dummyAsset "generated//runtime.js"] },
+    expectOk "generated asset directory"
+      { extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "generated" }] },
+    expectFail "generated asset directory source must exist"
+      { extraAssetDirs := #[{ source := "TestFixtures/not-present",
+                              destination := "generated" }] },
+    expectFail "generated asset directory destination is top-level"
+      { extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "generated/nested" }] },
+    expectFail "generated asset directory destination is unique"
+      { extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "generated" },
+                            { source := "TestFixtures/theme-assets",
+                              destination := "generated" }] },
+    expectFail "generated directory conflicts with embedded asset"
+      { extraAssets := #[dummyAsset "generated/runtime.js"],
+        extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "generated" }] }
   ]
   let mut failed := 0
   for run in cases do

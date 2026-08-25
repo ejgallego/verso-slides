@@ -45,6 +45,24 @@ public structure ThemeAsset where
   contents : ByteArray
 deriving Inhabited
 
+/-- A theme-independent name for an embedded output asset. -/
+public abbrev Asset := ThemeAsset
+
+/--
+A generated directory to install alongside the slideshow.
+
+The source remains on disk rather than being embedded in the slide generator,
+which makes this suitable for compiler products such as JavaScript module
+trees and Wasm binaries. The destination is one top-level directory name under
+the slideshow output directory; paths, {lit}`.` and
+{lit}`..` are rejected. The complete destination is replaced on each render,
+so files removed by the producer do not survive as stale output.
+-/
+public structure AssetDirectory where
+  source : System.FilePath
+  destination : String
+deriving Inhabited
+
 /--
 Convert the output of {lit}`include_bin_dir` into a {name}`ThemeAsset` array.
 
@@ -179,6 +197,19 @@ public structure Config where
   /-- Extra elements to add to the page's {lit}`head` tag. -/
   extraHead : Array Html := #[]
   extraJs : Array String := #[]
+  /--
+  Additional embedded files to write under
+  {name (full := Config.outputDir)}`outputDir`.
+
+  This is the theme-independent counterpart of {name}`CustomTheme.assets` and
+  is appropriate for small, source-controlled assets. Use
+  {name (full := Config.extraAssetDirs)}`extraAssetDirs` for generated or large
+  directory trees.
+  -/
+  extraAssets : Array Asset := #[]
+  /-- Generated directory trees to install under
+  {name (full := Config.outputDir)}`outputDir`. -/
+  extraAssetDirs : Array AssetDirectory := #[]
   /--
   Math prelude evaluated once before any math on the page is rendered.
   Typical contents are {lit}`\def` / {lit}`\newcommand` / {lit}`\gdef`

@@ -610,6 +610,12 @@ private def AssetPayload.kind : AssetPayload → String
   | .text _ => "text"
   | .binary _ => "binary"
 
+private def validateAssetFilename (source filename : String) : IO Unit := do
+  let parts := filename.splitToList fun c => c == '/' || c == '\\'
+  if filename.isEmpty || (System.FilePath.mk filename).isAbsolute ||
+      parts.any fun part => part.isEmpty || part == "." || part == ".." then
+    throw <| IO.userError s!"Invalid output filename \"{filename}\" from {source}: expected a relative path without empty, `.` or `..` components."
+
 /--
 Records a file entry at {lit}`filename`, treating it as already-present
 when the previous entry at the same filename has identical contents (so
@@ -621,6 +627,7 @@ sources and their content kinds.
 private def recordAsset (seen : Std.HashMap String (String × AssetPayload))
     (filename source : String) (payload : AssetPayload) :
     IO (Std.HashMap String (String × AssetPayload)) := do
+  validateAssetFilename source filename
   match seen.get? filename with
   | none => return seen.insert filename (source, payload)
   | some (prevSource, prev) =>
@@ -631,10 +638,10 @@ private def recordAsset (seen : Std.HashMap String (String × AssetPayload))
         s!"Filename collision in config: \"{filename}\" is claimed by {prevSource} ({prev.kind}) and {source} ({payload.kind}) with different contents."
 
 /--
-Builds the deduplicated asset plan for a {name}`Config`: the custom
+Builds the deduplicated embedded-asset plan for a {name}`Config`: the custom
 theme's stylesheet (if any), every bundled theme asset, and every
-{lit}`extraCss` entry. When two entries share a filename their contents
-must match; otherwise {name}`IO.userError` is raised.
+{lit}`extraCss` and {lit}`extraAssets` entry. When two entries share a filename
+their contents must match; otherwise {name}`IO.userError` is raised.
 
 Returns the map of filenames to (source, payload) pairs so
 {lit}`slidesMain` can write each file exactly once without
@@ -654,23 +661,109 @@ def Config.collectAssets (config : Config) :
   for css in config.extraCss do
     seen ← recordAsset seen css.filename
       "extraCss" (.text css.contents.css)
+  for asset in config.extraAssets do
+    seen ← recordAsset seen asset.filename
+      "extraAssets" (.binary asset.contents)
   return seen
 
+private def reservedOutputNames : Array String :=
+  #["index.html", "-verso-docs.json", "verso", "images"]
+
+private def validateAssetDirDestination (destination : String) : IO Unit := do
+  if destination.isEmpty || destination == "." || destination == ".." ||
+      destination.startsWith ".verso-asset-" ||
+      destination.any fun c => c == '/' || c == '\\' then
+    throw <| IO.userError s!"Invalid extraAssetDirs destination: \"{destination}\". Expected one top-level directory name."
+  if reservedOutputNames.contains destination then
+    throw <| IO.userError s!"extraAssetDirs destination \"{destination}\" is reserved by Verso Slides."
+
+private partial def validateAssetDirTree (path : System.FilePath) : IO Unit := do
+  let metadata ← path.symlinkMetadata
+  match metadata.type with
+  | .dir =>
+    for entry in (← path.readDir) do
+      validateAssetDirTree entry.path
+  | .file => pure ()
+  | .symlink =>
+    throw <| IO.userError s!"extraAssetDirs source contains a symbolic link: {path}"
+  | .other =>
+    throw <| IO.userError s!"extraAssetDirs source contains an unsupported file: {path}"
+
+private def Config.validateAssetDirs (config : Config)
+    (assetPlan : Std.HashMap String (String × AssetPayload)) : IO Unit := do
+  let mut destinations : Std.HashMap String Unit := {}
+  for assetDir in config.extraAssetDirs do
+    validateAssetDirDestination assetDir.destination
+    if destinations.contains assetDir.destination then
+      throw <| IO.userError s!"Duplicate extraAssetDirs destination: \"{assetDir.destination}\"."
+    destinations := destinations.insert assetDir.destination ()
+    if !(← assetDir.source.pathExists) then
+      throw <| IO.userError s!"extraAssetDirs source does not exist: {assetDir.source}"
+    if !(← assetDir.source.isDir) then
+      throw <| IO.userError s!"extraAssetDirs source is not a directory: {assetDir.source}"
+    validateAssetDirTree assetDir.source
+    for (filename, _, _) in assetPlan.toList do
+      if (System.FilePath.components filename).head? == some assetDir.destination then
+        throw <| IO.userError s!"extraAssetDirs destination \"{assetDir.destination}\" conflicts with configured asset \"{filename}\"."
+
+private partial def copyAssetDir (source destination : System.FilePath) : IO Unit := do
+  IO.FS.createDirAll destination
+  for entry in (← source.readDir) do
+    let sourcePath := entry.path
+    let destinationPath := destination / entry.fileName
+    match (← sourcePath.symlinkMetadata).type with
+    | .dir => copyAssetDir sourcePath destinationPath
+    | .file => writeBinFileWithDirs destinationPath (← IO.FS.readBinFile sourcePath)
+    | .symlink =>
+      throw <| IO.userError s!"extraAssetDirs source contains a symbolic link: {sourcePath}"
+    | .other =>
+      throw <| IO.userError s!"extraAssetDirs source contains an unsupported file: {sourcePath}"
+
+private def removeAssetPath (path : System.FilePath) : IO Unit := do
+  if ← path.pathExists then
+    if ← path.isDir then
+      IO.FS.removeDirAll path
+    else
+      IO.FS.removeFile path
+
+private def installAssetDirs (outputDir : System.FilePath)
+    (assetDirs : Array AssetDirectory) : IO Unit := do
+  for h : index in [:assetDirs.size] do
+    let assetDir := assetDirs[index]
+    let stage := outputDir / s!".verso-asset-stage-{index}"
+    let backup := outputDir / s!".verso-asset-backup-{index}"
+    let destination := outputDir / assetDir.destination
+    removeAssetPath stage
+    removeAssetPath backup
+    try copyAssetDir assetDir.source stage
+    catch e =>
+      removeAssetPath stage
+      throw e
+    if ← destination.pathExists then
+      IO.FS.rename destination backup
+    try IO.FS.rename stage destination
+    catch e =>
+      if ← backup.pathExists then IO.FS.rename backup destination
+      removeAssetPath stage
+      throw e
+    removeAssetPath backup
+
 /--
-Checks that every filename supplied through {lit}`Config.theme` (when
-{lit}`.custom`), its bundled assets, and {lit}`extraCss` either is unique
-or is repeated with identical contents. Raises {name}`IO.userError` on
-divergent-contents clashes; duplicates with identical contents are
-silently deduplicated.
+Checks configured output assets before rendering. Embedded filenames must be
+safe and either unique or repeated with identical contents. Generated asset
+directories must exist, contain no symbolic links, and own distinct safe
+top-level destinations. Raises {name}`IO.userError` on invalid input.
 -/
 def Config.validateFilenames (config : Config) : IO Unit := do
-  let _ ← config.collectAssets
+  let assetPlan ← config.collectAssets
+  config.validateAssetDirs assetPlan
 
 /-- Generates a {lit}`reveal.js` slide presentation from a Verso document. -/
 def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWithLogger do
   -- Validate the config and build the deduplicated asset plan up-front so
   -- any filename collision fails before we start writing files.
   let assetPlan ← config.collectAssets
+  config.validateAssetDirs assetPlan
 
   -- Run the traversal pass (collects CSS blocks, etc.)
   let (doc, traverseState) ← (Slides.traverse doc : TraverseM (Part Slides)) () {}
@@ -714,6 +807,10 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
     match payload with
     | .text body => writeFileWithDirs (dir / filename) body
     | .binary bytes => writeBinFileWithDirs (dir / filename) bytes
+
+  -- Install generated trees after ordinary files. Each destination is owned
+  -- by one source directory and replaced as a unit to prevent stale files.
+  installAssetDirs dir config.extraAssetDirs
 
   -- Copy local images to the output directory
   if !traverseState.imageFiles.isEmpty then

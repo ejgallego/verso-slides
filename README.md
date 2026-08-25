@@ -719,8 +719,20 @@ becomes `data-transition="zoom"`.
   [Custom CSS](#custom-css).
 - `extraJs : Array String` — extra `<script src=…>` tags appended to
   the page.
+- `extraAssets : Array Asset` — small embedded files written alongside
+  the presentation.
+- `extraAssetDirs : Array AssetDirectory` — generated directory trees
+  copied from the filesystem into owned top-level output directories.
 - `outputDir : System.FilePath` — where to write `index.html` and the
   vendored assets. Defaults to `_slides`.
+
+`extraAssetDirs` is intended for build products that should not be
+embedded into the slide generator, such as a JavaScript module tree
+and its Wasm binary. Each entry names a source directory and one
+top-level destination under `outputDir`. Sources are validated before
+rendering, symbolic links are rejected, and the destination is
+replaced as a unit so removed producer files cannot survive as stale
+presentation output.
 
 ### Auto-Advance
 

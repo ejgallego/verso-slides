@@ -40,11 +40,23 @@ def hlCustomCss : HighlightTheme where
   contents := ⟨".hljs { background: #abcdef; }\n"⟩
 
 def main : IO UInt32 := do
+  let staleAsset := "_test/markup/generated-assets/stale.txt"
+  IO.FS.createDirAll "_test/markup/generated-assets"
+  IO.FS.writeFile staleAsset "must be removed"
   let rc ← slidesMain
     { theme := "black", outputDir := "_test/markup", extraCss := #[markupBannerCss]
+      extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                            destination := "generated-assets" }]
       mathPrelude := "\\def\\RR{\\mathbb{R}}\n\\newcommand{\\Hom}[2]{\\mathrm{Hom}(#1, #2)}\n" }
     (%doc TestFixtures.Markup)
   if rc != 0 then return rc
+  let copiedMarker := "_test/markup/generated-assets/marker.png"
+  if !(← System.FilePath.pathExists copiedMarker) then
+    IO.eprintln s!"Missing copied asset directory fixture: {copiedMarker}"
+    return 1
+  if ← System.FilePath.pathExists staleAsset then
+    IO.eprintln s!"Stale generated asset survived directory replacement: {staleAsset}"
+    return 1
   let rc ← slidesMain
     { theme := "black", outputDir := "_test/code" }
     (%doc TestFixtures.Code)
