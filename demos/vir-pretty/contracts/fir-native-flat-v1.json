@@ -1,0 +1,45 @@
+{
+    "contract": "verso.pretty.fir-native-flat-package/v1",
+    "files": {
+        "build": "BUILD.json",
+        "checksums": "SHA256SUMS",
+        "adapter": "prettyM-browser-adapter.mjs",
+        "module": "prettyM.wasm",
+        "descriptor": "prettyM.wasm.json"
+    },
+    "build": {
+        "formats": ["fir-prettyM-package-metadata-v2"],
+        "params": ["tobject", "tobject", "tobject", "tobject"],
+        "result": "object",
+        "functionImports": 0,
+        "memoryImports": 0,
+        "memoryExports": 1,
+        "representation": "wasm32-lean64",
+        "memoryOwner": "module",
+        "browserApiVersion": "fir.prettyM.flat.browser/v1",
+        "ownershipVersion": "fir.prettyM.module-owned-transfer/v1"
+    },
+    "inputLayout": {
+        "representation": "compact-discriminated-union",
+        "constructors": ["nil", "line", "align", "text", "nest", "append", "group", "tag"]
+    },
+    "adapter": {
+        "apiVersionExport": "PRETTY_M_BROWSER_API_VERSION",
+        "formatFactoryExport": "PrettyFormat",
+        "factoryExport": "fetchPrettyMAdapter",
+        "renderMethod": "render",
+        "resultField": "rendered"
+    },
+    "output": {
+        "semantic": "RenderedTextEvents",
+        "schema": "text-events-utf8/v1",
+        "physical": "object",
+        "textProjection": "String",
+        "offsetUnit": "utf8-byte",
+        "eventKinds": {
+            "startTag": 0,
+            "endTags": 1,
+            "unstyledNewline": 2
+        }
+    }
+}

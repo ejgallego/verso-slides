@@ -8,6 +8,9 @@ _test
 lib
 -verso-docs.json
 
+# generated benchmark observations
+performance-cards/pretty
+
 # vendored files
 vendor
 subverso

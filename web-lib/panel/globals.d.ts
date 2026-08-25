@@ -21,75 +21,310 @@ declare var tippy: ((targets: unknown, props?: unknown) => unknown) & Record<str
 /** marked.js Markdown parser (global, may not be loaded). */
 declare var marked: { parse(text: string): string } | undefined;
 
-interface VersoPrettyConfig {
-    /** IDs included in comparison mode, in registry order. */
-    backends?: string[];
-    /** Whether panels show all selected backends side by side. */
-    compare?: boolean;
-    /** Whether the interactive formatter options control is visible. */
-    controls?: boolean;
-    /** Deterministic character-column budget used for comparison. */
-    columns?: number;
-    /** ID of the formatter used outside comparison mode. */
-    backend?: string;
-    /** Value shown in each comparison pane's primary timing label. */
-    timing?: VersoPrettyTimingDisplay;
+interface VersoPrettyVirRuntime {
+    call(name: string, ...args: any[]): any;
+    callTimed?(name: string, ...args: any[]): VersoPrettyVirTimedCall;
+}
+
+interface VersoPrettyVirCallTimings {
+    marshalMs: number;
+    executeMs: number;
+    decodeMs: number;
+    hostMs: number;
+    totalMs: number;
+}
+
+interface VersoPrettyVirTimedCall {
+    value: any;
+    timings: VersoPrettyVirCallTimings;
+}
+
+interface VersoPrettyVirBridge {
+    enabled?: boolean;
+    runtime?: VersoPrettyVirRuntime;
+    jsonExportName?: string;
+    formatExportName?: string;
+    renderedExportName?: string;
+    renderPlanExportName?: string;
+    htmlExportName?: string;
+    residentExportName?: string;
+    residentRenderPlanExportName?: string;
+    residentHtmlExportName?: string;
+    formatJsonSegmentsJson?: (fmtJson: string, width: number, indent: number) => string;
+    formatSegments?: (fmt: unknown, width: number, indent: number) => unknown;
+    formatRendered?: (fmt: unknown, width: number, indent: number) => unknown;
+    formatRenderPlan?: (
+        fmt: unknown,
+        annotations: unknown[],
+        width: number,
+        indent: number,
+    ) => unknown;
+    formatHtml?: (fmt: unknown, annotations: unknown[], width: number, indent: number) => string;
+    formatRenderedById?: (formatId: number, width: number, indent: number) => unknown;
+    formatRenderPlanById?: (formatId: number, width: number, indent: number) => unknown;
+    formatHtmlById?: (formatId: number, width: number, indent: number) => string;
+    formatJsonSegmentsJsonTimed?: (
+        fmtJson: string,
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
+    formatSegmentsTimed?: (fmt: unknown, width: number, indent: number) => VersoPrettyVirTimedCall;
+    formatRenderedTimed?: (fmt: unknown, width: number, indent: number) => VersoPrettyVirTimedCall;
+    formatRenderPlanTimed?: (
+        fmt: unknown,
+        annotations: unknown[],
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
+    formatHtmlTimed?: (
+        fmt: unknown,
+        annotations: unknown[],
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
+    formatRenderedByIdTimed?: (
+        formatId: number,
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
+    formatRenderPlanByIdTimed?: (
+        formatId: number,
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
+    formatHtmlByIdTimed?: (
+        formatId: number,
+        width: number,
+        indent: number,
+    ) => VersoPrettyVirTimedCall;
+    ready?: Promise<unknown>;
+    status?: string;
+    error?: unknown;
+    assets?: string[];
+    startupTimings?: { importMs: number; initializeMs: number; totalMs: number };
+    warnings?: Record<string, boolean>;
+}
+
+interface VersoPrettyVirConfig {
+    enabled?: boolean;
+    runtimeUrl?: string;
+    wasmUrl?: string;
+    wasmDebugUrl?: string;
+    debugWasm?: boolean;
+    fetchCache?: RequestCache;
+    irPackageUrl?: string;
+    irPackageSetUrl?: string;
+    jsonExportName?: string;
+    formatExportName?: string;
+    renderedExportName?: string;
+    renderPlanExportName?: string;
+    htmlExportName?: string;
+    residentExportName?: string;
+    residentRenderPlanExportName?: string;
+    residentHtmlExportName?: string;
+}
+
+interface VersoPrettyNativeBridge {
+    enabled?: boolean;
+    status?: string;
+    ready?: Promise<unknown>;
+    error?: unknown;
+    build?: unknown;
+    lastMemory?: Record<string, number>;
+    startupTimings?: Record<string, number>;
+    formatSegments?: (fmtJson: unknown, width: number, indent: number, column: number) => Segment[];
+    formatSegmentsTimed?: (
+        fmtJson: unknown,
+        width: number,
+        indent: number,
+        column: number,
+    ) => {
+        text: string;
+        segments: Segment[];
+        timings: PrettyTimings;
+        memory?: Record<string, number>;
+    };
+    traceToSegments?: (trace: {
+        text: string;
+        events: Array<{ kind: number; text: string; value: bigint }>;
+    }) => Segment[];
+    warnings?: Record<string, boolean>;
+}
+
+interface VersoPrettyNativeConfig {
+    enabled?: boolean;
+    adapterUrl?: string;
+    wasmUrl?: string;
+    descriptorUrl?: string;
+    buildUrl?: string;
+    fetchCache?: RequestCache;
+    maximumNodes?: number;
+}
+
+interface VersoPrettyLlvmBridge {
+    enabled?: boolean;
+    status?: string;
+    ready?: Promise<unknown>;
+    error?: unknown;
+    manifest?: unknown;
+    lastMemory?: Record<string, number>;
+    startupTimings?: Record<string, number>;
+    dispose?: () => void;
+    formatSegments?: (fmtJson: unknown, width: number, indent: number, column: number) => Segment[];
+    formatSegmentsTimed?: (
+        fmtJson: unknown,
+        width: number,
+        indent: number,
+        column: number,
+    ) => {
+        text: string;
+        segments: Segment[];
+        timings: PrettyTimings;
+        memory?: Record<string, number>;
+    };
+    traceToSegments?: (trace: {
+        text: string;
+        events: Array<{ kind: number; text: string; value: bigint }>;
+    }) => Segment[];
+    warnings?: Record<string, boolean>;
+}
+
+interface VersoPrettyLlvmConfig {
+    enabled?: boolean;
+    adapterUrl?: string;
+    manifestUrl?: string;
+    maximumNodes?: number;
+    maximumBytes?: number;
+}
+
+interface VersoPrettyLlvmHtmlBridge {
+    enabled?: boolean;
+    status?: string;
+    ready?: Promise<unknown>;
+    error?: unknown;
+    manifest?: unknown;
+    lastMemory?: Record<string, number>;
+    startupTimings?: Record<string, number>;
+    dispose?: () => void;
+    formatHtmlTimed?: (
+        fmtJson: unknown,
+        annotations: Record<string, TokenAnnotation>,
+        width: number,
+        indent: number,
+        column: number,
+    ) => {
+        html: string;
+        timings: PrettyTimings;
+        memory?: Record<string, number>;
+    };
 }
 
 type VersoPrettyTimingDisplay =
     | "total"
+    | "prepare"
     | "execute"
     | "marshal"
     | "decode"
     | "render"
+    | "commit"
+    | "host"
     | "wall"
     | "tracks";
 
+interface VersoPrettyConfig {
+    compare?: boolean;
+    backend?: string;
+    backends?: string[];
+    experiment?: string;
+    experiments?: PrettyExperimentDefinition[];
+    columns?: number;
+    workload?: number;
+    controls?: boolean;
+    timing?: VersoPrettyTimingDisplay;
+    mode?: "matrix" | "custom";
+    families?: Array<"js" | "vir" | "fir" | "llvm">;
+    breadth?: "layout" | "semantic" | "html";
+    virPanel?: boolean;
+}
+
+interface VersoVirPanelCall {
+    kind: "mount" | "unmount";
+    contentId?: number;
+    width?: number;
+    widths?: number[];
+    measureOnly?: boolean;
+    timings: VersoPrettyVirCallTimings;
+}
+
+interface VersoVirPanelInteraction {
+    contentId: number;
+    cacheHit: boolean;
+    widths: number[];
+    structureCallMs: number;
+    frameWaitMs: number;
+    measureMs: number;
+    finalCallMs: number;
+    totalMs: number;
+    structureTimings?: VersoPrettyVirCallTimings;
+    finalTimings?: VersoPrettyVirCallTimings;
+}
+
+interface VersoVirPanelBridge {
+    status: string;
+    error?: unknown;
+    runtime?: VersoPrettyVirRuntime;
+    lastCall?: VersoPrettyVirTimedCall;
+    calls: VersoVirPanelCall[];
+    lastInteraction?: VersoVirPanelInteraction;
+    interactions: VersoVirPanelInteraction[];
+    ready?: Promise<unknown>;
+    mount?: (
+        target: Element,
+        contentId: number,
+        width: number | number[],
+        measureOnly?: boolean,
+    ) => boolean;
+    unmount?: (target: Element) => boolean;
+}
+
+/** Optional full-content renderer installed before panel.js initializes. */
+interface VersoPanelRenderer {
+    /** Return true after taking ownership of target's rendered content. */
+    render(panel: HTMLElement, source: Element, target: Element): boolean;
+    /** Cancel pending work and unmount content owned on behalf of panel. */
+    release(panel: HTMLElement): void;
+}
+
 interface Window {
     __versoPrettyConfig?: VersoPrettyConfig;
+    __versoPrettyVir?: VersoPrettyVirBridge;
+    __versoPrettyVirConfig?: VersoPrettyVirConfig;
+    __versoPrettyNative?: VersoPrettyNativeBridge;
+    __versoPrettyNativeConfig?: VersoPrettyNativeConfig;
+    __versoPrettyNativeFlat?: VersoPrettyNativeBridge;
+    __versoPrettyNativeHtml?: VersoPrettyNativeBridge;
+    __versoPrettyLlvm?: VersoPrettyLlvmBridge;
+    __versoPrettyLlvmConfig?: VersoPrettyLlvmConfig;
+    __versoPrettyLlvmHtml?: VersoPrettyLlvmHtmlBridge;
+    __versoPrettyLlvmHtmlConfig?: VersoPrettyLlvmConfig;
+    __versoVirPanel?: VersoVirPanelBridge;
+    __versoPanelRenderer?: VersoPanelRenderer;
+    runVirPanelParityCorpus?: (options?: {
+        widths?: number[];
+        expectedContents?: number;
+    }) => Promise<unknown>;
+    runVirPanelGeometryCorpus?: (options?: {
+        panelWidths?: number[];
+        expectedGoals?: number;
+    }) => Promise<unknown>;
+    runPrettyBackendMeasurement?: (options: {
+        backends: string[];
+        widths?: number[];
+        repetitions?: number;
+        warmups?: number;
+        minimumCodePoints?: number;
+    }) => Promise<unknown>;
 }
-
-interface PrettyBackendDefinition {
-    id: string;
-    label: string;
-    capabilities?: { output: string; width: string };
-    status?: () => string;
-    ready?: Promise<unknown>;
-    renderSegments?(
-        fmtJson: any,
-        annotations: Record<string, any>,
-        pixelWidth: number,
-        measurer: DOMMeasurer,
-    ): Array<{ text: string; tags: number[] }> | null;
-    renderTimed?(
-        fmtJson: any,
-        annotations: Record<string, any>,
-        pixelWidth: number,
-        measurer: DOMMeasurer,
-    ): PrettySegmentResult;
-}
-
-declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;
-declare function getPrettyBackends(): PrettyBackendDefinition[];
-declare function getPrettyBackend(id: string): PrettyBackendDefinition | null;
-
-declare function formatToHtmlWithBackend(
-    fmtJson: any,
-    annotations: Record<string, any>,
-    pixelWidth: number,
-    measurer: DOMMeasurer,
-    backendId: string,
-): string | null;
-
-declare function emptyPrettyTimings(): PrettyTimings;
-declare function createColumnMeasurer(columns: number): DOMMeasurer;
-declare function formatToHtmlTimed(
-    fmtJson: any,
-    annotations: Record<string, any>,
-    pixelWidth: number,
-    measurer: DOMMeasurer,
-    backendId: string,
-): { html: string | null; durationMs: number; timings: PrettyTimings };
 
 /** pretty.js — render a format tree to HTML at a given pixel width (global). */
 declare function formatToHtml(
@@ -98,6 +333,117 @@ declare function formatToHtml(
     pixelWidth: number,
     measurer: DOMMeasurer,
 ): string;
+
+declare function formatToHtmlWithBackend(
+    fmtJson: any,
+    annotations: Record<string, any>,
+    pixelWidth: number,
+    measurer: DOMMeasurer,
+    backend: string,
+    formatId?: number,
+): string | null;
+
+declare function formatToHtmlTimed(
+    fmtJson: any,
+    annotations: Record<string, any>,
+    pixelWidth: number,
+    measurer: DOMMeasurer,
+    backend: string,
+    formatId?: number,
+): {
+    html: string | null;
+    fragment: DocumentFragment | null;
+    durationMs: number;
+    timings: PrettyTimings;
+};
+
+declare function formatPrettyOutputTimed(
+    fmtJson: any,
+    annotations: Record<string, any>,
+    pixelWidth: number,
+    measurer: DOMMeasurer,
+    backend: string,
+    formatId?: number,
+): TimedPrettyResult;
+
+declare function insertPrettyOutput(target: Element, output: TimedPrettyResult | null): boolean;
+declare function insertPrettyOutputTimed(
+    target: Element,
+    output: TimedPrettyResult | null,
+): boolean;
+
+interface PrettyBackendDefinition {
+    id: string;
+    label: string;
+    ready?: Promise<unknown>;
+    status?: () => string;
+    capabilities?: {
+        runtime?: "javascript" | "vir" | "fir-native" | "llvm-emscripten";
+        input?: "compact-tree" | "json-string" | "lean-format" | "resident-id" | "browser-format";
+        output: "segments" | "text-events" | "render-plan" | "pretty-trace" | "text" | "html";
+        width: "pixels" | "columns";
+        materializer?: "html-string" | "dom-fragment";
+        matrix?: {
+            backend: "js" | "vir" | "fir" | "llvm";
+            breadth: "layout" | "semantic" | "html";
+            role?: "primary" | "variant";
+        };
+    };
+    renderSegments?(
+        fmtJson: any,
+        annotations: Record<string, any>,
+        pixelWidth: number,
+        measurer: DOMMeasurer,
+        formatId?: number,
+    ): Array<{ text: string; tags: number[] }> | null;
+    renderTimed?(
+        fmtJson: any,
+        annotations: Record<string, any>,
+        pixelWidth: number,
+        measurer: DOMMeasurer,
+        formatId?: number,
+    ): PrettyRenderResult;
+}
+
+interface PrettyExperimentDefinition {
+    id: string;
+    label: string;
+    question: string;
+    backends: string[];
+    design?: "controlled" | "end-to-end" | "exploratory";
+    variable?: string;
+    controls?: string[];
+    measures?: string;
+    excludes?: string[];
+    timing?: VersoPrettyTimingDisplay;
+    primaryTiming?: VersoPrettyTimingDisplay;
+    phaseKeys?: string[];
+}
+
+declare function registerPrettyBackend(backend: PrettyBackendDefinition): void;
+declare function getPrettyBackends(): PrettyBackendDefinition[];
+declare function getPrettyBackend(id: string): PrettyBackendDefinition | null;
+declare function getPrettyMatrixBackends(
+    family: "js" | "vir" | "fir" | "llvm",
+    breadth: "layout" | "semantic" | "html",
+): PrettyBackendDefinition[];
+declare function getPrettyMatrixBackend(
+    family: "js" | "vir" | "fir" | "llvm",
+    breadth: "layout" | "semantic" | "html",
+): PrettyBackendDefinition | null;
+declare function createColumnMeasurer(columns: number): DOMMeasurer;
+declare function goalsToHtml(goals: any[]): { html: string; formats: any[] };
+declare function fillReflowedSpans(container: Element, formats: any[], measurer: DOMMeasurer): void;
+declare function fillReflowedSpans(
+    container: Element,
+    formats: any[],
+    measurer: DOMMeasurer,
+    backend: string,
+    fixedWidth?: number,
+): PrettyTimings;
+declare function compactFormatSourceLength(fmtJson: any): number;
+declare function emptyPrettyTimings(): PrettyTimings;
+declare function addPrettyTimings(target: PrettyTimings, source: PrettyTimings): PrettyTimings;
 
 /** pretty.js — create a DOM-based measurer for pixel-accurate text width measurement (global). */
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;

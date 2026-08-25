@@ -1,0 +1,2532 @@
+// @ts-check
+/* Interactive info panel for Lean code blocks in reveal.js slides. */
+(function () {
+    "use strict";
+
+    /**
+     * @typedef {HTMLElement & { _activeSource: Element | null }} PanelBlock
+     * @typedef {HTMLElement & {
+     *   _richFormatSource: Element | null,
+     *   _virPanelTarget: Element | null,
+     *   _virPanelContentId: number | null
+     * }} InfoPanel
+     * @typedef {{
+     *   id: VersoPrettyTimingDisplay,
+     *   label: string,
+     *   shortLabel: string,
+     *   key: string | null,
+     *   scope: string
+     * }} PrettyTimingDisplay
+     * @typedef {{
+     *   id: string,
+     *   label: string,
+     *   question: string,
+     *   backends: string[],
+     *   design?: "controlled" | "end-to-end" | "exploratory",
+     *   variable?: string,
+     *   controls?: string[],
+     *   measures?: string,
+     *   excludes?: string[],
+     *   timing?: VersoPrettyTimingDisplay,
+     *   primaryTiming?: VersoPrettyTimingDisplay,
+     *   phaseKeys?: string[]
+     * }} PrettyExperiment
+     */
+
+    /** @type {Record<string, *> | null} */
+    var docsJson = null; // fetched once on init
+    /** @type {HTMLDetailsElement | null} */
+    var prettyControls = null;
+    var prettyCustomLabOpen = false;
+    /** @type {PrettyTimingDisplay[]} */
+    var PRETTY_TIMING_DISPLAYS = [
+        {
+            id: "total",
+            label: "Pipeline total (committed DOM)",
+            shortLabel: "Total",
+            key: "committedTotalMs",
+            scope: "Compact input → equivalent populated DOM. Includes adapters, backend execution, output normalization, host construction, and the HTML-parse/fragment commit; excludes layout and paint.",
+        },
+        {
+            id: "prepare",
+            label: "Pipeline prepare (detached output)",
+            shortLabel: "Prepare",
+            key: "totalMs",
+            scope: "Compact input → detached HTML string or DOM fragment. This diagnostic stops before the candidates reach the same output state.",
+        },
+        {
+            id: "execute",
+            label: "Backend execute",
+            shortLabel: "Execute",
+            key: "executeMs",
+            scope: "Backend-owned computation through the candidate's declared endpoint. Depending on selected breadth, this ends at low-level styled output, semantic nodes, or escaped HTML.",
+        },
+        {
+            id: "marshal",
+            label: "Input preparation",
+            shortLabel: "Marshal",
+            key: "marshalMs",
+            scope: "Public input → backend-ready input. For JS this is compact-tree deserialization and render-context setup.",
+        },
+        {
+            id: "decode",
+            label: "Output normalization",
+            shortLabel: "Decode",
+            key: "decodeMs",
+            scope: "Backend result → browser-ready segments or semantic nodes. VIR Render validates its nodes without reconstructing tag stacks.",
+        },
+        {
+            id: "render",
+            label: "Host construction",
+            shortLabel: "Build",
+            key: "renderMs",
+            scope: "Browser-ready output → escaped HTML string or detached DOM fragment. This stops at unequal intermediate states and is diagnostic only.",
+        },
+        {
+            id: "commit",
+            label: "DOM commit",
+            shortLabel: "Commit",
+            key: "commitMs",
+            scope: "Detached output → populated host element. HTML strings pay parsing; DOM fragments pay child transfer and replacement.",
+        },
+        {
+            id: "host",
+            label: "Host total (construct + commit)",
+            shortLabel: "Host",
+            key: "hostTotalMs",
+            scope: "Browser-ready semantic output → equivalent populated DOM. This is the primary controlled metric for host materializers.",
+        },
+        {
+            id: "wall",
+            label: "Panel wall",
+            shortLabel: "Wall",
+            key: "wallMs",
+            scope: "Outer panel work around the formatter. It is useful diagnostically but is not a controlled backend phase.",
+        },
+        {
+            id: "tracks",
+            label: "Phase tracks",
+            shortLabel: "Phases",
+            key: null,
+            scope: "Marshal + Execute + Decode + Build + Commit. Tracks end at equivalent populated DOM; layout and paint remain excluded.",
+        },
+    ];
+    var PRETTY_TIMING_PHASES = [
+        { key: "marshalMs", label: "Marshal", shortLabel: "M" },
+        { key: "executeMs", label: "Execute", shortLabel: "E" },
+        { key: "decodeMs", label: "Decode", shortLabel: "D" },
+        { key: "renderMs", label: "Host construction", shortLabel: "B" },
+        { key: "commitMs", label: "DOM commit", shortLabel: "C" },
+    ];
+    var PRETTY_WORKLOADS = [
+        { codePoints: 0, label: "Visible code once" },
+        { codePoints: 256, label: "At least 256 code points" },
+        { codePoints: 2048, label: "At least 2K code points" },
+        { codePoints: 8192, label: "At least 8K code points" },
+    ];
+    var PRETTY_MATRIX_BACKENDS = [
+        { id: "js", label: "JavaScript" },
+        { id: "vir", label: "VIR" },
+        { id: "fir", label: "FIR Wasm" },
+        { id: "llvm", label: "LLVM" },
+    ];
+    var PRETTY_MATRIX_BREADTHS = [
+        {
+            id: "layout",
+            label: "Layout",
+            shortLabel: "Layout",
+            description:
+                "The backend runs prettyM and returns low-level styled output; annotation lookup and HTML stay in the host.",
+        },
+        {
+            id: "semantic",
+            label: "Semantic rendering",
+            shortLabel: "Semantic",
+            description:
+                "The backend also resolves the innermost token annotation into semantic sibling nodes; HTML stays in the host.",
+        },
+        {
+            id: "html",
+            label: "HTML rendering",
+            shortLabel: "HTML",
+            description:
+                "The backend owns layout, annotation resolution, escaping, and span construction; only DOM commit stays in the host.",
+        },
+    ];
+
+    function init() {
+        initializePrettyConfig();
+
+        // Fetch the hover-docs JSON
+        fetch("-verso-docs.json")
+            .then(function (r) {
+                return r.ok ? r.json() : {};
+            })
+            .then(function (j) {
+                docsJson = j;
+            })
+            .catch(function () {
+                docsJson = {};
+            });
+
+        document.querySelectorAll(".code-with-panel").forEach(setupBlock);
+        initPrettyControls();
+        refreshPanelsWhenPrettyBackendsReady();
+        window.addEventListener("verso-vir-panel-status", function () {
+            reflowPrettyPanels();
+            renderPrettyControls();
+        });
+
+        Reveal.on("fragmentshown", onFragmentShown);
+        Reveal.on("fragmenthidden", onFragmentHidden);
+        Reveal.on("slidechanged", onSlideChanged);
+        Reveal.on("resize", function () {
+            document.querySelectorAll(".code-with-panel").forEach(function (el) {
+                redrawFocusOutline(/** @type {PanelBlock} */ (el));
+            });
+        });
+    }
+
+    function refreshPanelsWhenPrettyBackendsReady() {
+        getPrettyBackends().forEach(function (backend) {
+            if (!backend.ready || typeof backend.ready.then !== "function") return;
+            backend.ready.then(function () {
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+        });
+    }
+
+    function initializePrettyConfig() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        var params = new URLSearchParams(window.location.search);
+        var matrixRequested =
+            params.get("prettyMode") === "matrix" ||
+            params.has("prettyFamilies") ||
+            params.has("prettyBreadth");
+        if (params.has("prettyFamilies")) {
+            config.families = /** @type {*} */ (
+                (params.get("prettyFamilies") || "")
+                    .split(",")
+                    .map(function (family) {
+                        return family.trim();
+                    })
+                    .filter(function (family) {
+                        return PRETTY_MATRIX_BACKENDS.some(function (backend) {
+                            return backend.id === family;
+                        });
+                    })
+            );
+        }
+        if (params.has("prettyBreadth")) {
+            var queryBreadth = params.get("prettyBreadth");
+            if (
+                PRETTY_MATRIX_BREADTHS.some(function (breadth) {
+                    return breadth.id === queryBreadth;
+                })
+            ) {
+                config.breadth = /** @type {*} */ (queryBreadth);
+            }
+        }
+        if (matrixRequested) config.mode = "matrix";
+        if (params.has("pretty")) {
+            var queryBackends = (params.get("pretty") || "")
+                .split(",")
+                .map(function (id) {
+                    return id.trim();
+                })
+                .filter(function (id) {
+                    return id.length > 0;
+                });
+            config.backends = queryBackends.length > 0 ? queryBackends : undefined;
+            if (!matrixRequested) config.mode = "custom";
+        }
+        if (!matrixRequested && !params.has("pretty") && params.has("prettyExperiment")) {
+            var requestedExperiment = prettyExperimentById(params.get("prettyExperiment"));
+            if (requestedExperiment) applyPrettyExperiment(requestedExperiment);
+        } else if (
+            !matrixRequested &&
+            config.mode !== "matrix" &&
+            !params.has("pretty") &&
+            !Array.isArray(config.backends)
+        ) {
+            var configuredExperiment = prettyExperimentById(config.experiment);
+            if (configuredExperiment) applyPrettyExperiment(configuredExperiment);
+        }
+        if (params.has("prettyCompare")) {
+            config.compare = params.get("prettyCompare") !== "0";
+        }
+        if (params.has("prettyControls")) {
+            config.controls = params.get("prettyControls") !== "0";
+        }
+        if (params.has("prettyBackend")) {
+            config.backend = params.get("prettyBackend") || "js";
+        }
+        if (params.has("prettyColumns")) {
+            var columns = Number(params.get("prettyColumns"));
+            if (Number.isInteger(columns) && columns >= 1 && columns <= 240) {
+                config.columns = columns;
+            }
+        }
+        if (params.has("prettyTiming")) {
+            config.timing = prettyTimingDisplayById(params.get("prettyTiming")).id;
+        }
+        if (params.has("prettyWorkload")) {
+            var workload = Number(params.get("prettyWorkload"));
+            if (
+                PRETTY_WORKLOADS.some(function (choice) {
+                    return choice.codePoints === workload;
+                })
+            ) {
+                config.workload = workload;
+            }
+        }
+        if (params.has("virPanel")) {
+            config.virPanel = params.get("virPanel") !== "0";
+        }
+        if (!Number.isInteger(config.columns)) config.columns = 40;
+        if (!Number.isInteger(config.workload)) config.workload = 0;
+        if (typeof config.virPanel !== "boolean") config.virPanel = false;
+        config.timing = selectedPrettyTimingDisplay().id;
+        if (config.mode === "matrix") {
+            config.breadth = selectedPrettyBreadth();
+            config.families = /** @type {*} */ (Array.from(selectedPrettyFamilies()));
+            activatePrettyMatrix();
+        } else if (prettyExperiments().length > 0) {
+            var matchedExperiment = matchingPrettyExperiment();
+            config.experiment = matchedExperiment ? matchedExperiment.id : "custom";
+        }
+    }
+
+    /** @return {PrettyExperiment[]} */
+    function prettyExperiments() {
+        var root = /** @type {Window} */ (window);
+        var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.experiments;
+        if (!Array.isArray(configured)) return [];
+        var available = new Set(
+            getPrettyBackends().map(function (backend) {
+                return backend.id;
+            }),
+        );
+        var seen = new Set();
+        return configured.filter(function (candidate) {
+            if (
+                !candidate ||
+                typeof candidate.id !== "string" ||
+                candidate.id.length === 0 ||
+                seen.has(candidate.id) ||
+                typeof candidate.label !== "string" ||
+                typeof candidate.question !== "string" ||
+                !Array.isArray(candidate.backends) ||
+                !candidate.backends.some(function (id) {
+                    return available.has(id);
+                })
+            ) {
+                return false;
+            }
+            seen.add(candidate.id);
+            return true;
+        });
+    }
+
+    /**
+     * @param {PrettyExperiment} experiment
+     * @return {string[]}
+     */
+    function availableExperimentBackendIds(experiment) {
+        var available = new Set(
+            getPrettyBackends().map(function (backend) {
+                return backend.id;
+            }),
+        );
+        return experiment.backends.filter(function (id, index) {
+            return available.has(id) && experiment.backends.indexOf(id) === index;
+        });
+    }
+
+    /**
+     * @param {string | null | undefined} id
+     * @return {PrettyExperiment | null}
+     */
+    function prettyExperimentById(id) {
+        return (
+            prettyExperiments().find(function (experiment) {
+                return experiment.id === id;
+            }) || null
+        );
+    }
+
+    /** @return {PrettyExperiment | null} */
+    function matchingPrettyExperiment() {
+        var root = /** @type {Window} */ (window);
+        if (root.__versoPrettyConfig && root.__versoPrettyConfig.mode === "matrix") return null;
+        var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.backends;
+        var selected = new Set(
+            Array.isArray(configured)
+                ? configured
+                : getPrettyBackends().map(function (backend) {
+                      return backend.id;
+                  }),
+        );
+        return (
+            prettyExperiments().find(function (experiment) {
+                var ids = availableExperimentBackendIds(experiment);
+                return (
+                    ids.length === selected.size &&
+                    ids.every(function (id) {
+                        return selected.has(id);
+                    })
+                );
+            }) || null
+        );
+    }
+
+    /** @param {PrettyExperiment} experiment */
+    function applyPrettyExperiment(experiment) {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        config.backends = availableExperimentBackendIds(experiment);
+        config.experiment = experiment.id;
+        config.mode = "custom";
+        config.compare = true;
+        config.timing = prettyTimingDisplayById(experiment.timing || "tracks").id;
+    }
+
+    /** @return {"layout" | "semantic" | "html"} */
+    function selectedPrettyBreadth() {
+        var root = /** @type {Window} */ (window);
+        var selected = root.__versoPrettyConfig && root.__versoPrettyConfig.breadth;
+        return PRETTY_MATRIX_BREADTHS.some(function (breadth) {
+            return breadth.id === selected;
+        })
+            ? /** @type {"layout" | "semantic" | "html"} */ (selected)
+            : "html";
+    }
+
+    /** @return {Set<string>} */
+    function selectedPrettyFamilies() {
+        var root = /** @type {Window} */ (window);
+        var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.families;
+        var known = new Set(
+            PRETTY_MATRIX_BACKENDS.map(function (backend) {
+                return backend.id;
+            }),
+        );
+        var selected = new Set(
+            Array.isArray(configured)
+                ? configured.filter(function (family) {
+                      return known.has(family);
+                  })
+                : PRETTY_MATRIX_BACKENDS.map(function (backend) {
+                      return backend.id;
+                  }),
+        );
+        return selected;
+    }
+
+    /**
+     * @param {string} family
+     * @param {string} breadth
+     * @return {PrettyBackendDefinition | null}
+     */
+    function prettyMatrixCandidate(family, breadth) {
+        return getPrettyMatrixBackend(/** @type {*} */ (family), /** @type {*} */ (breadth));
+    }
+
+    /** @return {PrettyBackendDefinition[]} */
+    function resolvedPrettyMatrixBackends() {
+        var families = selectedPrettyFamilies();
+        var breadth = selectedPrettyBreadth();
+        return PRETTY_MATRIX_BACKENDS.map(function (family) {
+            return families.has(family.id) ? prettyMatrixCandidate(family.id, breadth) : null;
+        }).filter(function (backend) {
+            return backend !== null;
+        });
+    }
+
+    /** @return {boolean} */
+    function usingPrettyMatrix() {
+        var root = /** @type {Window} */ (window);
+        return !!(root.__versoPrettyConfig && root.__versoPrettyConfig.mode === "matrix");
+    }
+
+    function activatePrettyMatrix() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        config.mode = "matrix";
+        config.compare = true;
+        config.backends = resolvedPrettyMatrixBackends().map(function (backend) {
+            return backend.id;
+        });
+    }
+
+    /** @return {PrettyBackendDefinition[]} */
+    function selectedPrettyBackends() {
+        var root = /** @type {Window} */ (window);
+        if (usingPrettyMatrix()) return resolvedPrettyMatrixBackends();
+        var configured = root.__versoPrettyConfig && root.__versoPrettyConfig.backends;
+        if (!Array.isArray(configured)) return getPrettyBackends();
+        var selected = new Set(configured);
+        var backends = getPrettyBackends().filter(function (backend) {
+            return selected.has(backend.id);
+        });
+        return backends.length > 0 ? backends : getPrettyBackends().slice(0, 1);
+    }
+
+    /** @return {number} */
+    function prettyComparisonColumns() {
+        var root = /** @type {Window} */ (window);
+        var columns = root.__versoPrettyConfig && root.__versoPrettyConfig.columns;
+        return Number.isInteger(columns) ? Math.max(1, Math.min(240, Number(columns))) : 40;
+    }
+
+    /** @return {number} */
+    function prettyWorkloadCodePoints() {
+        var root = /** @type {Window} */ (window);
+        var selected = root.__versoPrettyConfig && root.__versoPrettyConfig.workload;
+        return PRETTY_WORKLOADS.some(function (choice) {
+            return choice.codePoints === selected;
+        })
+            ? Number(selected)
+            : 0;
+    }
+
+    /**
+     * @param {string | null | undefined} selected
+     * @return {PrettyTimingDisplay}
+     */
+    function prettyTimingDisplayById(selected) {
+        return (
+            PRETTY_TIMING_DISPLAYS.find(function (display) {
+                return display.id === selected;
+            }) || PRETTY_TIMING_DISPLAYS[0]
+        );
+    }
+
+    /** @return {PrettyTimingDisplay} */
+    function selectedPrettyTimingDisplay() {
+        var root = /** @type {Window} */ (window);
+        var selected = root.__versoPrettyConfig && root.__versoPrettyConfig.timing;
+        return prettyTimingDisplayById(selected);
+    }
+
+    /** @param {PrettyTimingDisplay} display */
+    function prettyTimingDisplayScope(display) {
+        var experiment = matchingPrettyExperiment();
+        if (display.id !== "tracks" || !experiment || !Array.isArray(experiment.phaseKeys)) {
+            return display.scope;
+        }
+        return (
+            "Guided lanes: " +
+            selectedPrettyTimingPhases()
+                .map(function (phase) {
+                    return phase.label;
+                })
+                .join(" + ") +
+            ". Primary metric: " +
+            selectedPrettyExperimentPrimaryDisplay().label +
+            "."
+        );
+    }
+
+    /** @return {PrettyTimingDisplay} */
+    function selectedPrettyExperimentPrimaryDisplay() {
+        var experiment = matchingPrettyExperiment();
+        var display = prettyTimingDisplayById(
+            experiment && experiment.primaryTiming ? experiment.primaryTiming : "total",
+        );
+        return display.key === null ? prettyTimingDisplayById("total") : display;
+    }
+
+    function reflowPrettyPanels() {
+        document.querySelectorAll(".info-panel").forEach(function (panel) {
+            reflowPanel(/** @type {InfoPanel} */ (panel));
+        });
+    }
+
+    function persistPrettyConfig() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || {};
+        var url = new URL(window.location.href);
+        if (usingPrettyMatrix()) {
+            config.backends = resolvedPrettyMatrixBackends().map(function (backend) {
+                return backend.id;
+            });
+        }
+        url.searchParams.set(
+            "pretty",
+            (
+                config.backends ||
+                getPrettyBackends().map(function (backend) {
+                    return backend.id;
+                })
+            ).join(","),
+        );
+        url.searchParams.set("prettyCompare", config.compare === true ? "1" : "0");
+        url.searchParams.set("prettyBackend", config.backend || "js");
+        url.searchParams.set("prettyColumns", String(prettyComparisonColumns()));
+        url.searchParams.set("prettyControls", config.controls === true ? "1" : "0");
+        url.searchParams.set("prettyTiming", selectedPrettyTimingDisplay().id);
+        url.searchParams.set("prettyWorkload", String(prettyWorkloadCodePoints()));
+        url.searchParams.set("virPanel", config.virPanel === true ? "1" : "0");
+        if (usingPrettyMatrix()) {
+            url.searchParams.set("prettyMode", "matrix");
+            url.searchParams.set("prettyBreadth", selectedPrettyBreadth());
+            url.searchParams.set("prettyFamilies", Array.from(selectedPrettyFamilies()).join(","));
+            url.searchParams.delete("prettyExperiment");
+        } else {
+            url.searchParams.set("prettyMode", "custom");
+            url.searchParams.delete("prettyBreadth");
+            url.searchParams.delete("prettyFamilies");
+        }
+        if (!usingPrettyMatrix() && prettyExperiments().length > 0) {
+            var experiment = matchingPrettyExperiment();
+            config.experiment = experiment ? experiment.id : "custom";
+            url.searchParams.set("prettyExperiment", config.experiment);
+        }
+        window.history.replaceState(null, "", url);
+    }
+
+    function initPrettyControls() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig;
+        if (!config || config.controls !== true) return;
+        prettyControls = document.createElement("details");
+        prettyControls.className = "pretty-controls";
+        document.body.appendChild(prettyControls);
+        renderPrettyControls();
+    }
+
+    /**
+     * @param {string | undefined} value
+     * @return {string}
+     */
+    function prettyBoundaryLabel(value) {
+        /** @type {Record<string, string>} */
+        var labels = {
+            javascript: "JavaScript",
+            vir: "VIR",
+            "fir-native": "FIR Wasm",
+            "llvm-emscripten": "LLVM/Emscripten",
+            "compact-tree": "compact tree",
+            "json-string": "JSON string",
+            "lean-format": "Lean Format",
+            "resident-id": "resident ID",
+            "browser-format": "browser Format",
+            segments: "segments",
+            "text-events": "text + events",
+            "render-plan": "semantic nodes",
+            "pretty-trace": "PrettyTrace",
+            text: "text",
+            pixels: "pixels",
+            columns: "columns",
+            "html-string": "HTML string",
+            "dom-fragment": "DOM fragment",
+        };
+        return value && labels[value] ? labels[value] : value || "unspecified";
+    }
+
+    /**
+     * @param {PrettyBackendDefinition} backend
+     * @param {string} key
+     * @return {string | undefined}
+     */
+    function prettyBackendCapability(backend, key) {
+        var capabilities = backend.capabilities;
+        if (!capabilities) return undefined;
+        if (key === "runtime") return capabilities.runtime;
+        if (key === "input") return capabilities.input;
+        if (key === "output") return capabilities.output;
+        if (key === "width") return capabilities.width;
+        if (key === "materializer") return capabilities.materializer || "html-string";
+        return undefined;
+    }
+
+    /**
+     * @param {PrettyBackendDefinition[]} backends
+     * @param {Set<string>} selected
+     * @return {Set<string>}
+     */
+    function varyingPrettyCapabilityKeys(backends, selected) {
+        var keys = ["runtime", "input", "output", "width", "materializer"];
+        return new Set(
+            keys.filter(function (key) {
+                var values = new Set();
+                backends.forEach(function (backend) {
+                    if (!selected.has(backend.id)) return;
+                    values.add(prettyBackendCapability(backend, key) || "unspecified");
+                });
+                return values.size > 1;
+            }),
+        );
+    }
+
+    /**
+     * @param {PrettyBackendDefinition} backend
+     * @param {Set<string>} varying
+     * @param {boolean} active
+     * @return {HTMLElement}
+     */
+    function prettyBackendBoundaryMatrix(backend, varying, active) {
+        var capability = document.createElement("span");
+        capability.className = "pretty-controls-capability";
+        var capabilities = backend.capabilities;
+        if (!capabilities) {
+            capability.textContent = "Boundary metadata unavailable";
+            return capability;
+        }
+        [
+            ["runtime", "Runtime"],
+            ["input", "Input"],
+            ["output", "Output"],
+            ["width", "Width"],
+            ["materializer", "Materializer"],
+        ].forEach(function (entry) {
+            var key = entry[0];
+            var dimension = document.createElement("span");
+            dimension.className =
+                "pretty-controls-dimension" + (active && varying.has(key) ? " is-variable" : "");
+            var dimensionName = document.createElement("span");
+            dimensionName.className = "pretty-controls-dimension-name";
+            dimensionName.textContent = entry[1];
+            var value = document.createElement("span");
+            value.textContent = prettyBoundaryLabel(prettyBackendCapability(backend, key));
+            dimension.append(dimensionName, value);
+            capability.appendChild(dimension);
+        });
+        return capability;
+    }
+
+    /**
+     * @param {HTMLElement} parent
+     * @param {string} term
+     * @param {string} description
+     */
+    function appendPrettyBoundaryFact(parent, term, description) {
+        var row = document.createElement("div");
+        var label = document.createElement("dt");
+        label.textContent = term;
+        var value = document.createElement("dd");
+        value.textContent = description;
+        row.append(label, value);
+        parent.appendChild(row);
+    }
+
+    /**
+     * @param {PrettyExperiment | null} experiment
+     * @return {HTMLElement}
+     */
+    function prettyBoundaryCard(experiment) {
+        var card = document.createElement("section");
+        card.className = "pretty-controls-boundary";
+        var design = experiment && experiment.design ? experiment.design : "custom";
+        card.dataset.design = design;
+
+        var designLabel = document.createElement("span");
+        designLabel.className = "pretty-controls-design";
+        designLabel.textContent =
+            {
+                controlled: "Controlled boundary test",
+                "end-to-end": "End-to-end comparison",
+                exploratory: "Exploratory view",
+                custom: "Custom comparison",
+            }[design] || design;
+        card.appendChild(designLabel);
+
+        var question = document.createElement("p");
+        question.className = "pretty-controls-question";
+        question.textContent = experiment
+            ? experiment.question
+            : "This selection does not match a named test boundary.";
+        card.appendChild(question);
+
+        var facts = document.createElement("dl");
+        if (experiment && experiment.variable) {
+            appendPrettyBoundaryFact(facts, "Changes", experiment.variable);
+        }
+        if (experiment && Array.isArray(experiment.controls) && experiment.controls.length > 0) {
+            appendPrettyBoundaryFact(facts, "Held fixed", experiment.controls.join(" · "));
+        }
+        appendPrettyBoundaryFact(
+            facts,
+            "Measures",
+            experiment && experiment.measures
+                ? experiment.measures
+                : "Exploration only; multiple boundaries may differ, so deltas are not causal.",
+        );
+        if (experiment && Array.isArray(experiment.excludes) && experiment.excludes.length > 0) {
+            appendPrettyBoundaryFact(facts, "Excludes", experiment.excludes.join(" · "));
+        }
+        card.appendChild(facts);
+        return card;
+    }
+
+    /** @return {HTMLElement} */
+    function prettyMatrixBoundaryCard() {
+        var breadthId = selectedPrettyBreadth();
+        var breadth = PRETTY_MATRIX_BREADTHS.find(function (candidate) {
+            return candidate.id === breadthId;
+        });
+        var card = document.createElement("section");
+        card.className = "pretty-controls-boundary pretty-matrix-boundary";
+        card.dataset.design = "end-to-end";
+
+        var designLabel = document.createElement("span");
+        designLabel.className = "pretty-controls-design";
+        designLabel.textContent = "Compiled breadth · " + (breadth ? breadth.label : breadthId);
+        var question = document.createElement("p");
+        question.className = "pretty-controls-question";
+        question.textContent = breadth ? breadth.description : "Unknown pipeline breadth.";
+        var facts = document.createElement("dl");
+        appendPrettyBoundaryFact(
+            facts,
+            "Changes",
+            "Backend/compiler and its adapter; the selected pipeline endpoint is fixed.",
+        );
+        appendPrettyBoundaryFact(
+            facts,
+            "Endpoint",
+            breadthId === "html"
+                ? "Escaped HTML string, before common DOM commit."
+                : breadthId === "semantic"
+                  ? "Semantic sibling-node plan, before common host HTML construction."
+                  : "Low-level styled layout output, before common annotation lookup and HTML construction.",
+        );
+        appendPrettyBoundaryFact(
+            facts,
+            "Measures",
+            "Pipeline total is the fair cross-backend number; phase tracks explain where each implementation spends it.",
+        );
+        card.append(designLabel, question, facts);
+        return card;
+    }
+
+    /**
+     * @param {VersoPrettyConfig} config
+     * @return {HTMLElement}
+     */
+    function prettyMatrixSelector(config) {
+        var active = usingPrettyMatrix();
+        var selectedBreadth = selectedPrettyBreadth();
+        var selectedFamilies = selectedPrettyFamilies();
+        var matrix = document.createElement("div");
+        matrix.className = "pretty-matrix" + (active ? " is-active" : "");
+        matrix.setAttribute("role", "table");
+        matrix.setAttribute("aria-label", "Backend by compiled pipeline breadth");
+
+        var corner = document.createElement("div");
+        corner.className = "pretty-matrix-corner";
+        corner.textContent = "Backend";
+        matrix.appendChild(corner);
+
+        PRETTY_MATRIX_BREADTHS.forEach(function (breadth) {
+            var header = document.createElement("button");
+            header.type = "button";
+            header.className =
+                "pretty-matrix-breadth" +
+                (active && selectedBreadth === breadth.id ? " is-selected" : "");
+            header.dataset.prettyBreadth = breadth.id;
+            header.textContent = breadth.shortLabel;
+            header.title = breadth.description;
+            header.addEventListener("click", function () {
+                config.breadth = /** @type {*} */ (breadth.id);
+                activatePrettyMatrix();
+                persistPrettyConfig();
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+            matrix.appendChild(header);
+        });
+
+        PRETTY_MATRIX_BACKENDS.forEach(function (family) {
+            var currentCandidate = prettyMatrixCandidate(family.id, selectedBreadth);
+            var rowLabel = document.createElement("label");
+            rowLabel.className =
+                "pretty-matrix-backend" + (currentCandidate ? "" : " is-unsupported");
+            var toggle = document.createElement("input");
+            toggle.type = "checkbox";
+            toggle.value = family.id;
+            toggle.checked = active && !!currentCandidate && selectedFamilies.has(family.id);
+            toggle.disabled = !currentCandidate;
+            var labelText = document.createElement("span");
+            labelText.textContent = family.label;
+            rowLabel.append(toggle, labelText);
+            if (!currentCandidate) {
+                rowLabel.title = family.label + " does not provide the selected breadth yet.";
+            }
+            toggle.addEventListener("change", function () {
+                var next = selectedPrettyFamilies();
+                if (toggle.checked) next.add(family.id);
+                else next.delete(family.id);
+                var hasAvailable = PRETTY_MATRIX_BACKENDS.some(function (backend) {
+                    return (
+                        next.has(backend.id) &&
+                        prettyMatrixCandidate(backend.id, selectedPrettyBreadth()) !== null
+                    );
+                });
+                if (!hasAvailable) {
+                    toggle.checked = true;
+                    return;
+                }
+                config.families = /** @type {*} */ (Array.from(next));
+                activatePrettyMatrix();
+                persistPrettyConfig();
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+            matrix.appendChild(rowLabel);
+
+            PRETTY_MATRIX_BREADTHS.forEach(function (breadth) {
+                var candidate = prettyMatrixCandidate(family.id, breadth.id);
+                var candidates = getPrettyMatrixBackends(
+                    /** @type {*} */ (family.id),
+                    /** @type {*} */ (breadth.id),
+                );
+                if (!candidate) {
+                    var unavailable = document.createElement("span");
+                    unavailable.className =
+                        "pretty-matrix-cell is-unsupported" +
+                        (active && selectedBreadth === breadth.id ? " is-current" : "");
+                    unavailable.textContent = "—";
+                    unavailable.title =
+                        family.label + " does not currently provide " + breadth.label + ".";
+                    matrix.appendChild(unavailable);
+                    return;
+                }
+                var primaryCandidate = candidate;
+                var cell = document.createElement("div");
+                var isCurrent = active && selectedBreadth === breadth.id;
+                var isIncluded = isCurrent && selectedFamilies.has(family.id);
+                cell.className =
+                    "pretty-matrix-cell" +
+                    (isCurrent ? " is-current" : "") +
+                    (isIncluded ? " is-included" : "");
+                cell.dataset.prettyBackend = family.id;
+                cell.dataset.prettyBreadth = breadth.id;
+                /** @param {PrettyBackendDefinition} implementation @param {boolean} primary */
+                function implementationButton(implementation, primary) {
+                    var choice = document.createElement("button");
+                    choice.type = "button";
+                    choice.className =
+                        "pretty-matrix-choice " + (primary ? "is-primary" : "is-variant");
+                    choice.dataset.prettyCandidate = implementation.id;
+                    var name = document.createElement("span");
+                    name.className = "pretty-matrix-candidate";
+                    name.textContent = implementation.label;
+                    var state =
+                        typeof implementation.status === "function"
+                            ? implementation.status()
+                            : "ready";
+                    var candidateState = document.createElement("span");
+                    candidateState.className =
+                        "pretty-controls-status status-" +
+                        state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+                    candidateState.textContent = state;
+                    choice.append(name, candidateState);
+                    choice.title = prettyBackendBoundaryDetails(implementation);
+                    choice.addEventListener("click", function () {
+                        if (primary) {
+                            var next = selectedPrettyFamilies();
+                            next.add(family.id);
+                            config.families = /** @type {*} */ (Array.from(next));
+                            config.breadth = /** @type {*} */ (breadth.id);
+                            activatePrettyMatrix();
+                        } else {
+                            var controlled = prettyExperiments().find(function (experiment) {
+                                var ids = availableExperimentBackendIds(experiment);
+                                return (
+                                    ids.length === 2 &&
+                                    ids.includes(primaryCandidate.id) &&
+                                    ids.includes(implementation.id)
+                                );
+                            });
+                            if (controlled) {
+                                applyPrettyExperiment(controlled);
+                                prettyCustomLabOpen = true;
+                            } else {
+                                config.backends = [implementation.id];
+                                config.experiment = "custom";
+                                config.mode = "custom";
+                                config.compare = true;
+                            }
+                        }
+                        persistPrettyConfig();
+                        reflowPrettyPanels();
+                        renderPrettyControls();
+                    });
+                    return choice;
+                }
+                cell.appendChild(implementationButton(candidate, true));
+                if (candidates.length > 1) {
+                    var variants = document.createElement("div");
+                    variants.className = "pretty-matrix-variants";
+                    var variantsLabel = document.createElement("span");
+                    variantsLabel.className = "pretty-matrix-variants-label";
+                    variantsLabel.textContent = "Alternates";
+                    variants.appendChild(variantsLabel);
+                    candidates.slice(1).forEach(function (variant) {
+                        variants.appendChild(implementationButton(variant, false));
+                    });
+                    cell.appendChild(variants);
+                }
+                matrix.appendChild(cell);
+            });
+        });
+        return matrix;
+    }
+
+    /**
+     * @param {PrettyBackendDefinition} backend
+     * @return {string}
+     */
+    function prettyBackendBoundaryDetails(backend) {
+        var capabilities = backend.capabilities;
+        if (!capabilities) return "Boundary metadata unavailable";
+        return [
+            "Runtime: " + prettyBoundaryLabel(capabilities.runtime),
+            "Input boundary: " + prettyBoundaryLabel(capabilities.input),
+            "Output boundary: " + prettyBoundaryLabel(capabilities.output),
+            "Backend width model: " + prettyBoundaryLabel(capabilities.width),
+            "Host materializer: " + prettyBoundaryLabel(capabilities.materializer || "html-string"),
+            "Comparison width model: shared columns",
+        ].join("\n");
+    }
+
+    function renderPrettyControls() {
+        if (!prettyControls) return;
+        var wasOpen = prettyControls.open;
+        var previousLab = prettyControls.querySelector(".pretty-controls-lab");
+        if (previousLab instanceof HTMLDetailsElement) prettyCustomLabOpen = previousLab.open;
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig || (root.__versoPrettyConfig = {});
+        var backends = getPrettyBackends();
+        var selected = new Set(
+            selectedPrettyBackends().map(function (backend) {
+                return backend.id;
+            }),
+        );
+        var selectedCount = backends.filter(function (backend) {
+            return selected.has(backend.id);
+        }).length;
+
+        var experiment = matchingPrettyExperiment();
+        var summary = document.createElement("summary");
+        summary.textContent = usingPrettyMatrix()
+            ? "Pipeline · " +
+              (
+                  PRETTY_MATRIX_BREADTHS.find(function (breadth) {
+                      return breadth.id === selectedPrettyBreadth();
+                  }) || PRETTY_MATRIX_BREADTHS[0]
+              ).label +
+              " · " +
+              selectedCount +
+              "/" +
+              PRETTY_MATRIX_BACKENDS.length +
+              " backends"
+            : experiment
+              ? "Diagnostic · " + experiment.label
+              : "Custom Lab · " + selectedCount + "/" + backends.length + " candidates";
+        var menu = document.createElement("div");
+        menu.className = "pretty-controls-menu";
+
+        var guided = document.createElement("section");
+        guided.className = "pretty-controls-guided";
+        var guidedHeading = document.createElement("div");
+        guidedHeading.className = "pretty-controls-section-heading";
+        var guidedTitle = document.createElement("span");
+        guidedTitle.textContent = "Backend × compiled breadth";
+        var guidedCount = document.createElement("span");
+        guidedCount.className = "pretty-controls-section-count";
+        guidedCount.textContent = selectedCount + " runnable";
+        guidedHeading.append(guidedTitle, guidedCount);
+        guided.appendChild(guidedHeading);
+        guided.appendChild(prettyMatrixSelector(config));
+        if (usingPrettyMatrix()) guided.appendChild(prettyMatrixBoundaryCard());
+        menu.appendChild(guided);
+
+        var lab = document.createElement("details");
+        lab.className = "pretty-controls-lab";
+        lab.open = prettyCustomLabOpen || (!usingPrettyMatrix() && !experiment);
+        lab.addEventListener("toggle", function () {
+            prettyCustomLabOpen = lab.open;
+        });
+        var labSummary = document.createElement("summary");
+        labSummary.textContent = "Custom Lab · processors and diagnostics";
+        var labBody = document.createElement("div");
+        labBody.className = "pretty-controls-lab-body";
+
+        var compareLabel = document.createElement("label");
+        compareLabel.className = "pretty-controls-toggle";
+        var compareInput = document.createElement("input");
+        compareInput.type = "checkbox";
+        compareInput.checked = config.compare === true;
+        compareLabel.append(compareInput, document.createTextNode(" Compare panes"));
+        compareInput.addEventListener("change", function () {
+            config.compare = compareInput.checked;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        labBody.appendChild(compareLabel);
+
+        var componentBridge = window.__versoVirPanel;
+        var componentStatus = componentBridge ? componentBridge.status : "unavailable";
+        var componentLabel = document.createElement("label");
+        componentLabel.className = "pretty-controls-toggle";
+        var componentInput = document.createElement("input");
+        componentInput.type = "checkbox";
+        componentInput.checked = config.virPanel === true;
+        componentInput.disabled = componentStatus !== "ready";
+        var componentState = document.createElement("span");
+        componentState.className =
+            "pretty-controls-status status-" +
+            componentStatus.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+        componentState.textContent = componentStatus;
+        componentLabel.append(
+            componentInput,
+            document.createTextNode(" VIR panel component "),
+            componentState,
+        );
+        componentLabel.title =
+            "Use the resident Lean model and VIR/React view for complete goal/signature content. Browser selection, measurement, geometry, and dragging remain in JavaScript.";
+        componentInput.addEventListener("change", function () {
+            config.virPanel = componentInput.checked;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        labBody.appendChild(componentLabel);
+
+        var experiments = prettyExperiments();
+        if (experiments.length > 0) {
+            var experimentLabel = document.createElement("label");
+            experimentLabel.className = "pretty-controls-experiment";
+            experimentLabel.appendChild(document.createTextNode("Named diagnostic "));
+            var experimentSelect = document.createElement("select");
+            experiments.forEach(function (candidate) {
+                var option = document.createElement("option");
+                option.value = candidate.id;
+                option.textContent = candidate.label;
+                option.selected = !!experiment && candidate.id === experiment.id;
+                experimentSelect.appendChild(option);
+            });
+            var customOption = document.createElement("option");
+            customOption.value = "custom";
+            customOption.textContent = "Open Custom Lab…";
+            customOption.selected = !experiment;
+            experimentSelect.appendChild(customOption);
+            experimentSelect.addEventListener("change", function () {
+                var next = prettyExperimentById(experimentSelect.value);
+                if (!next) {
+                    prettyCustomLabOpen = true;
+                    lab.open = true;
+                    experimentSelect.value = experiment ? experiment.id : "custom";
+                    return;
+                }
+                applyPrettyExperiment(next);
+                persistPrettyConfig();
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+            experimentLabel.appendChild(experimentSelect);
+            labBody.appendChild(experimentLabel);
+            labBody.appendChild(prettyBoundaryCard(experiment));
+        }
+
+        var settings = document.createElement("div");
+        settings.className = "pretty-controls-settings";
+        guided.appendChild(settings);
+
+        var processors = document.createElement("fieldset");
+        var legend = document.createElement("legend");
+        legend.textContent = "Candidates · checked = included";
+        processors.appendChild(legend);
+        var varyingCapabilities = varyingPrettyCapabilityKeys(backends, selected);
+        backends.forEach(function (backend) {
+            var label = document.createElement("label");
+            label.className = "pretty-controls-backend";
+            var input = document.createElement("input");
+            input.type = "checkbox";
+            input.value = backend.id;
+            input.checked = selected.has(backend.id);
+            var name = document.createElement("span");
+            name.className = "pretty-controls-name";
+            name.textContent = backend.label;
+            var description = document.createElement("span");
+            description.className = "pretty-controls-backend-description";
+            description.append(
+                name,
+                prettyBackendBoundaryMatrix(backend, varyingCapabilities, selected.has(backend.id)),
+            );
+            var state = typeof backend.status === "function" ? backend.status() : "ready";
+            var status = document.createElement("span");
+            status.className =
+                "pretty-controls-status status-" +
+                state.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+            status.textContent = state;
+            label.title = prettyBackendBoundaryDetails(backend);
+            label.append(input, description, status);
+            input.addEventListener("change", function () {
+                var next = new Set(
+                    Array.isArray(config.backends)
+                        ? config.backends
+                        : backends.map(function (candidate) {
+                              return candidate.id;
+                          }),
+                );
+                if (input.checked) next.add(backend.id);
+                else next.delete(backend.id);
+                if (next.size === 0) {
+                    input.checked = true;
+                    return;
+                }
+                config.backends = backends
+                    .map(function (candidate) {
+                        return candidate.id;
+                    })
+                    .filter(function (id) {
+                        return next.has(id);
+                    });
+                config.mode = "custom";
+                var matched = matchingPrettyExperiment();
+                config.experiment = matched ? matched.id : "custom";
+                persistPrettyConfig();
+                reflowPrettyPanels();
+                renderPrettyControls();
+            });
+            processors.appendChild(label);
+        });
+        labBody.appendChild(processors);
+
+        var columnsLabel = document.createElement("label");
+        columnsLabel.className = "pretty-controls-columns";
+        columnsLabel.appendChild(document.createTextNode("Columns "));
+        var columnsInput = document.createElement("input");
+        columnsInput.type = "number";
+        columnsInput.min = "1";
+        columnsInput.max = "240";
+        columnsInput.step = "1";
+        columnsInput.value = String(prettyComparisonColumns());
+        columnsInput.addEventListener("change", function () {
+            var columns = Number(columnsInput.value);
+            if (!Number.isInteger(columns) || columns < 1 || columns > 240) {
+                columnsInput.value = String(prettyComparisonColumns());
+                return;
+            }
+            config.columns = columns;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        columnsLabel.appendChild(columnsInput);
+        settings.appendChild(columnsLabel);
+
+        var primaryLabel = document.createElement("label");
+        primaryLabel.className = "pretty-controls-primary";
+        primaryLabel.appendChild(document.createTextNode("Single backend "));
+        var primary = document.createElement("select");
+        backends.forEach(function (backend) {
+            var option = document.createElement("option");
+            option.value = backend.id;
+            option.textContent = backend.label;
+            option.selected = backend.id === (config.backend || "js");
+            primary.appendChild(option);
+        });
+        primary.addEventListener("change", function () {
+            config.backend = primary.value;
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        primaryLabel.appendChild(primary);
+        labBody.appendChild(primaryLabel);
+
+        var timingLabel = document.createElement("label");
+        timingLabel.className = "pretty-controls-timing";
+        timingLabel.appendChild(document.createTextNode("Timing display "));
+        var timing = document.createElement("select");
+        var selectedTiming = selectedPrettyTimingDisplay();
+        PRETTY_TIMING_DISPLAYS.forEach(function (display) {
+            var option = document.createElement("option");
+            option.value = display.id;
+            option.textContent = display.label;
+            option.selected = display.id === selectedTiming.id;
+            timing.appendChild(option);
+        });
+        timing.addEventListener("change", function () {
+            var display = prettyTimingDisplayById(timing.value);
+            config.timing = display.id;
+            timingScope.textContent = prettyTimingDisplayScope(display);
+            persistPrettyConfig();
+            refreshTimingDisplays(document);
+        });
+        timingLabel.appendChild(timing);
+        labBody.appendChild(timingLabel);
+
+        var timingScope = document.createElement("p");
+        timingScope.className = "pretty-controls-timing-scope";
+        timingScope.textContent = prettyTimingDisplayScope(selectedTiming);
+        labBody.appendChild(timingScope);
+
+        var workloadLabel = document.createElement("label");
+        workloadLabel.className = "pretty-controls-workload";
+        workloadLabel.appendChild(document.createTextNode("Workload "));
+        var workload = document.createElement("select");
+        PRETTY_WORKLOADS.forEach(function (choice) {
+            var option = document.createElement("option");
+            option.value = String(choice.codePoints);
+            option.textContent = choice.label;
+            option.selected = choice.codePoints === prettyWorkloadCodePoints();
+            workload.appendChild(option);
+        });
+        workload.addEventListener("change", function () {
+            config.workload = Number(workload.value);
+            persistPrettyConfig();
+            reflowPrettyPanels();
+        });
+        workloadLabel.appendChild(workload);
+        settings.appendChild(workloadLabel);
+
+        var note = document.createElement("p");
+        note.className = "pretty-controls-note";
+        note.textContent =
+            "Gray cells are genuinely unavailable combinations. Results use one column budget and repeat the same visible formats; Custom Lab retains ABI and transport diagnostics.";
+        guided.appendChild(note);
+
+        lab.append(labSummary, labBody);
+        menu.appendChild(lab);
+
+        prettyControls.replaceChildren(summary, menu);
+        prettyControls.open = wasOpen;
+    }
+
+    // ---- Per-block setup ----
+
+    /** @param {Element} blockEl */
+    function setupBlock(blockEl) {
+        var block = /** @type {PanelBlock} */ (blockEl);
+        var codeEl = /** @type {Element} */ (block.querySelector("code.hl.lean.block"));
+        var panel = /** @type {InfoPanel} */ (block.querySelector(".info-panel"));
+        if (!block.querySelector("code.hl.lean.block") || !block.querySelector(".info-panel"))
+            return;
+
+        block._activeSource = null;
+        panel._virPanelTarget = null;
+        panel._virPanelContentId = null;
+
+        // Click handler on code element
+        codeEl.addEventListener("click", function (e) {
+            var chain = findClickableChain(/** @type {Element} */ (e.target), codeEl);
+            var chosen = cycleClickable(block, chain);
+            if (chosen) {
+                clearHoverPreview(codeEl);
+                updatePanel(panel, chosen, block);
+            }
+        });
+
+        // Hover preview — show what would be selected on click
+        codeEl.addEventListener("mouseover", function (e) {
+            var chain = findClickableChain(/** @type {Element} */ (e.target), codeEl);
+            var chosen = cycleClickable(block, chain);
+            if (chosen && chosen !== block._activeSource) {
+                clearHoverPreview(codeEl);
+                chosen.classList.add("panel-hover");
+                drawElementOutline(codeEl, chosen, "panel-outline-hover");
+            } else {
+                clearHoverPreview(codeEl);
+            }
+        });
+        /** @type {HTMLElement} */ (codeEl).addEventListener("mouseout", function (e) {
+            if (!e.relatedTarget || !codeEl.contains(/** @type {Node} */ (e.relatedTarget))) {
+                clearHoverPreview(codeEl);
+            }
+        });
+
+        // Binding highlighting — works across code and panel
+        /** @param {Event} e */
+        function onBindingOver(e) {
+            var tok = /** @type {Element} */ (e.target).closest(".token[data-binding]");
+            if (!tok) return;
+            var binding = tok.getAttribute("data-binding");
+            if (!binding) return;
+            var sel = '.token[data-binding="' + binding + '"]';
+            codeEl.querySelectorAll(sel).forEach(function (t) {
+                t.classList.add("binding-hl");
+            });
+            panel.querySelectorAll(sel).forEach(function (t) {
+                t.classList.add("binding-hl");
+            });
+        }
+        /** @param {Event} e */
+        function onBindingOut(e) {
+            var tok = /** @type {Element} */ (e.target).closest(".token[data-binding]");
+            if (!tok) return;
+            codeEl.querySelectorAll(".token.binding-hl").forEach(function (t) {
+                t.classList.remove("binding-hl");
+            });
+            panel.querySelectorAll(".token.binding-hl").forEach(function (t) {
+                t.classList.remove("binding-hl");
+            });
+        }
+        codeEl.addEventListener("mouseover", onBindingOver);
+        codeEl.addEventListener("mouseout", onBindingOut);
+        panel.addEventListener("mouseover", onBindingOver);
+        panel.addEventListener("mouseout", onBindingOut);
+
+        // Divider drag
+        var divider = block.querySelector(".panel-divider");
+        if (divider) setupDividerDrag(block, /** @type {HTMLElement} */ (divider));
+
+        // ResizeObserver for reflowing rich format content and redrawing the
+        // focus outline (the code may rewrap when the divider moves)
+        if (typeof ResizeObserver !== "undefined") {
+            /** @type {ReturnType<typeof setTimeout> | null} */
+            var reflowTimer = null;
+            var observer = new ResizeObserver(function () {
+                if (reflowTimer) clearTimeout(reflowTimer);
+                reflowTimer = setTimeout(function () {
+                    reflowPanel(panel);
+                    redrawFocusOutline(block);
+                }, 100);
+            });
+            observer.observe(panel);
+            observer.observe(codeEl);
+        }
+    }
+
+    /** @param {Element} codeEl */
+    function clearHoverPreview(codeEl) {
+        codeEl.querySelectorAll(".panel-hover").forEach(function (el) {
+            el.classList.remove("panel-hover");
+        });
+        setOutlinePath(codeEl, "panel-outline-hover", "");
+    }
+
+    // ---- Focus/hover outline overlay ----
+    //
+    // CSS `outline` on an inline element that wraps across lines is drawn as a
+    // separate closed box per line fragment in Firefox and Safari (only
+    // Chromium merges the fragments). To get one contiguous border in every
+    // browser we draw it ourselves: merge the element's client rects (one per
+    // line) into a single staircase polygon and stroke it in an SVG overlay.
+
+    var SVG_NS = "http://www.w3.org/2000/svg";
+
+    /**
+     * Get (or create) the outline overlay for a code block, with one path for
+     * the focused element and one for the hover preview.
+     * @param {Element} codeEl
+     * @return {SVGSVGElement}
+     */
+    function ensureOutlineSvg(codeEl) {
+        var existing = codeEl.querySelector(":scope > svg.panel-outline-svg");
+        if (existing) return /** @type {SVGSVGElement} */ (existing);
+        var svg = /** @type {SVGSVGElement} */ (document.createElementNS(SVG_NS, "svg"));
+        svg.setAttribute("class", "panel-outline-svg");
+        svg.setAttribute("aria-hidden", "true");
+        ["panel-outline-focus", "panel-outline-hover"].forEach(function (cls) {
+            var path = document.createElementNS(SVG_NS, "path");
+            path.setAttribute("class", cls);
+            svg.appendChild(path);
+        });
+        codeEl.appendChild(svg);
+        return svg;
+    }
+
+    /**
+     * @param {Element} codeEl
+     * @param {string} cls
+     * @param {string} d
+     */
+    function setOutlinePath(codeEl, cls, d) {
+        var svg = ensureOutlineSvg(codeEl);
+        var path = svg.querySelector("." + cls);
+        if (path) path.setAttribute("d", d);
+    }
+
+    /**
+     * Merge an element's client rects into one rect per line.
+     * @param {Element} el
+     * @return {Array<{left: number, right: number, top: number, bottom: number}>}
+     */
+    function lineRects(el) {
+        /** @type {Array<{left: number, right: number, top: number, bottom: number}>} */
+        var lines = [];
+        var rects = el.getClientRects();
+        for (var i = 0; i < rects.length; i++) {
+            var r = rects[i];
+            if (r.width === 0 || r.height === 0) continue;
+            var merged = false;
+            for (var j = 0; j < lines.length; j++) {
+                var ln = lines[j];
+                // Same line if the vertical ranges mostly overlap
+                var overlap = Math.min(ln.bottom, r.bottom) - Math.max(ln.top, r.top);
+                if (overlap > 0.5 * Math.min(ln.bottom - ln.top, r.height)) {
+                    ln.left = Math.min(ln.left, r.left);
+                    ln.right = Math.max(ln.right, r.right);
+                    ln.top = Math.min(ln.top, r.top);
+                    ln.bottom = Math.max(ln.bottom, r.bottom);
+                    merged = true;
+                    break;
+                }
+            }
+            if (!merged) lines.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+        }
+        lines.sort(function (a, b) {
+            return a.top - b.top;
+        });
+        return lines;
+    }
+
+    /**
+     * Draw a single contiguous outline around all line fragments of `el`,
+     * into the overlay path identified by `cls` ("" for el === null clears it).
+     * @param {Element} codeEl
+     * @param {Element | null} el
+     * @param {string} cls
+     */
+    function drawElementOutline(codeEl, el, cls) {
+        if (!el) {
+            setOutlinePath(codeEl, cls, "");
+            return;
+        }
+        var lines = lineRects(el);
+        if (lines.length === 0) {
+            setOutlinePath(codeEl, cls, "");
+            return;
+        }
+
+        // Coordinates are computed relative to the SVG overlay itself, and
+        // divided by the reveal.js zoom so they live in element-space pixels.
+        var svg = ensureOutlineSvg(codeEl);
+        var origin = svg.getBoundingClientRect();
+        var scale =
+            codeEl.getBoundingClientRect().width /
+                /** @type {HTMLElement} */ (codeEl).offsetWidth || 1;
+        var pad = 2; // outline offset, in element-space pixels
+
+        /** @param {number} x */
+        function relX(x) {
+            return (x - origin.left) / scale;
+        }
+        /** @param {number} y */
+        function relY(y) {
+            return (y - origin.top) / scale;
+        }
+
+        var n = lines.length;
+        // Vertical boundaries between consecutive lines, so adjacent fragments
+        // share an edge instead of leaving a gap or double border.
+        /** @type {number[]} */
+        var bounds = [];
+        for (var i = 0; i < n - 1; i++) {
+            bounds.push(relY((lines[i].bottom + lines[i + 1].top) / 2));
+        }
+
+        /** @type {Array<{x: number, y: number}>} */
+        var pts = [];
+        /**
+         * @param {number} x
+         * @param {number} y
+         */
+        function pt(x, y) {
+            // Skip zero-length jogs (e.g. consecutive lines with equal edges)
+            var last = pts[pts.length - 1];
+            if (last && Math.abs(last.x - x) < 0.5 && Math.abs(last.y - y) < 0.5) return;
+            pts.push({ x: x, y: y });
+        }
+
+        // Clockwise: across the top, down the right side (jogging at each line
+        // boundary), back across the bottom, and up the left side.
+        pt(relX(lines[0].left) - pad, relY(lines[0].top) - pad);
+        pt(relX(lines[0].right) + pad, relY(lines[0].top) - pad);
+        for (var i = 0; i < n - 1; i++) {
+            pt(relX(lines[i].right) + pad, bounds[i]);
+            pt(relX(lines[i + 1].right) + pad, bounds[i]);
+        }
+        pt(relX(lines[n - 1].right) + pad, relY(lines[n - 1].bottom) + pad);
+        pt(relX(lines[n - 1].left) - pad, relY(lines[n - 1].bottom) + pad);
+        for (var i = n - 1; i > 0; i--) {
+            pt(relX(lines[i].left) - pad, bounds[i - 1]);
+            pt(relX(lines[i - 1].left) - pad, bounds[i - 1]);
+        }
+
+        setOutlinePath(codeEl, cls, roundedPathFrom(pts, 4));
+    }
+
+    /**
+     * Build an SVG path for a closed polygon, rounding each corner with a
+     * quadratic curve of the given radius (clamped to half of each adjacent
+     * segment so short jogs stay well-formed).
+     * @param {Array<{x: number, y: number}>} pts
+     * @param {number} radius
+     * @return {string}
+     */
+    function roundedPathFrom(pts, radius) {
+        var n = pts.length;
+        if (n < 3) return "";
+        /** @type {string[]} */
+        var parts = [];
+        for (var i = 0; i < n; i++) {
+            var prev = pts[(i + n - 1) % n];
+            var cur = pts[i];
+            var next = pts[(i + 1) % n];
+            var inLen = Math.hypot(cur.x - prev.x, cur.y - prev.y);
+            var outLen = Math.hypot(next.x - cur.x, next.y - cur.y);
+            if (inLen === 0 || outLen === 0) {
+                parts.push((i === 0 ? "M" : "L") + cur.x.toFixed(2) + " " + cur.y.toFixed(2));
+                continue;
+            }
+            var r = Math.min(radius, inLen / 2, outLen / 2);
+            // Corner start: back off along the incoming edge; corner end:
+            // advance along the outgoing edge.
+            var sx = cur.x + ((prev.x - cur.x) / inLen) * r;
+            var sy = cur.y + ((prev.y - cur.y) / inLen) * r;
+            var ex = cur.x + ((next.x - cur.x) / outLen) * r;
+            var ey = cur.y + ((next.y - cur.y) / outLen) * r;
+            parts.push(
+                (i === 0 ? "M" : "L") + sx.toFixed(2) + " " + sy.toFixed(2),
+                "Q" +
+                    cur.x.toFixed(2) +
+                    " " +
+                    cur.y.toFixed(2) +
+                    " " +
+                    ex.toFixed(2) +
+                    " " +
+                    ey.toFixed(2),
+            );
+        }
+        return parts.join(" ") + " Z";
+    }
+
+    /**
+     * Redraw the focus outline of a block (e.g. after a resize or rewrap).
+     * @param {PanelBlock} block
+     */
+    function redrawFocusOutline(block) {
+        var codeEl = block.querySelector("code.hl.lean.block");
+        if (!codeEl) return;
+        drawElementOutline(codeEl, block._activeSource, "panel-outline-focus");
+    }
+
+    // ---- Clickable element discovery ----
+
+    /**
+     * @param {Element} el
+     * @return {boolean}
+     */
+    function isClickable(el) {
+        return (
+            el.classList.contains("tactic") ||
+            el.classList.contains("has-info") ||
+            el.hasAttribute("data-verso-hover")
+        );
+    }
+
+    /**
+     * Collect clickable ancestors from target up to codeEl, outermost first.
+     * @param {Element} target
+     * @param {Element} codeEl
+     * @return {Element[]}
+     */
+    function findClickableChain(target, codeEl) {
+        /** @type {Element[]} */
+        var chain = [];
+        /** @type {Element | null} */
+        var el = target;
+        while (el && el !== codeEl) {
+            if (isClickable(el)) chain.push(el);
+            el = el.parentElement;
+        }
+        chain.reverse(); // outermost first
+        return chain;
+    }
+
+    /**
+     * Pick which element to select: outermost if nothing active in this chain,
+     * otherwise cycle inward from the active element toward the click target.
+     * @param {PanelBlock} block
+     * @param {Element[]} chain
+     * @return {Element | null}
+     */
+    function cycleClickable(block, chain) {
+        if (chain.length === 0) return null;
+        var active = block._activeSource;
+        var idx = active ? chain.indexOf(active) : -1;
+        if (idx >= 0 && idx < chain.length - 1) {
+            return chain[idx + 1];
+        }
+        return chain[0];
+    }
+
+    // ---- Panel update ----
+
+    /**
+     * @param {InfoPanel} panel
+     * @param {Element} el
+     * @param {PanelBlock} block
+     */
+    function updatePanel(panel, el, block) {
+        // Clear previous focus
+        var codeEl = block.querySelector("code.hl.lean.block");
+        if (codeEl) {
+            codeEl.querySelectorAll(".panel-focus").forEach(function (f) {
+                f.classList.remove("panel-focus");
+            });
+        }
+
+        block._activeSource = el;
+        el.classList.add("panel-focus");
+        if (codeEl) drawElementOutline(codeEl, el, "panel-outline-focus");
+
+        // Store the source element for reflow on resize
+        releaseVirPanel(panel);
+        panel._richFormatSource = null;
+        setPrettyComparisonActive(panel, false);
+
+        /** @type {string | null} */
+        var html = "";
+
+        if (el.classList.contains("tactic")) {
+            // `:scope >` restricts to this tactic's _own_ state. A tactic with nested child tactics
+            // (e.g. a multi-step `rw`) holds its own `.tactic-state` as a direct child, after the
+            // nested tactics. Each child has its own `.tactic-state`. It's important to avoid
+            // selecting one of them by accident.
+            var ts = el.querySelector(":scope > .tactic-state");
+            if (ts) {
+                var richFmt = ts.getAttribute("data-rich-format");
+                if (richFmt && typeof goalsToHtml === "function") {
+                    panel._richFormatSource = ts;
+                    if (tryMountVirPanel(panel, ts, panel)) {
+                        html = null;
+                    } else
+                        try {
+                            var goalsData = JSON.parse(richFmt);
+                            renderGoalsFormat(panel, goalsData);
+                            html = null; // already set innerHTML
+                        } catch (e) {
+                            html = '<span class="hl lean">' + ts.innerHTML + "</span>";
+                            panel._richFormatSource = null;
+                        }
+                } else {
+                    html = '<span class="hl lean">' + ts.innerHTML + "</span>";
+                }
+            }
+        } else if (el.classList.contains("has-info")) {
+            // `:scope >` ensures that nested info isn't chosen instead of this element's info.
+            var msgs = el.querySelector(":scope > .hover-info.messages");
+            if (msgs) html = '<span class="hl lean">' + msgs.innerHTML + "</span>";
+        } else if (el.hasAttribute("data-verso-hover")) {
+            var id = el.getAttribute("data-verso-hover");
+            html = lookupHoverDoc(id);
+        }
+
+        if (html !== null) panel.innerHTML = html;
+
+        // Check for reflowable signature format data in hover content
+        var sigCode = /** @type {HTMLElement | null} */ (
+            panel.querySelector("code[data-rich-format]")
+        );
+        if (sigCode && typeof formatToHtml === "function") {
+            try {
+                var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
+                panel._richFormatSource = sigCode;
+                if (!tryMountVirPanel(panel, sigCode, sigCode)) {
+                    renderSignatureFormat(panel, sigCode, fmtData);
+                }
+            } catch (e) {
+                // Fall back to plain text signature on error
+                panel._richFormatSource = null;
+            }
+        }
+
+        // Render docstrings with marked
+        if (typeof marked !== "undefined") {
+            var m = /** @type {typeof marked} */ (marked);
+            panel.querySelectorAll(".docstring").forEach(function (ds) {
+                ds.innerHTML = /** @type {string} */ (m.parse(ds.textContent || ""));
+            });
+        }
+    }
+
+    /**
+     * Create a DOM measurer for text and element width measurement.
+     * @param {HTMLElement} panel
+     * @return {DOMMeasurer}
+     */
+    function getPanelMeasurer(panel) {
+        return createDOMMeasurer(panel);
+    }
+
+    /** @return {VersoVirPanelBridge | null} */
+    function virPanelBridge() {
+        var bridge = window.__versoVirPanel;
+        return bridge && bridge.status === "ready" ? bridge : null;
+    }
+
+    /** @return {boolean} */
+    function virPanelEnabled() {
+        var config = window.__versoPrettyConfig;
+        return !!(config && config.virPanel === true);
+    }
+
+    /** @param {number} pixels @param {number} spaceWidth @return {number} */
+    function virPanelColumns(pixels, spaceWidth) {
+        var columns = Math.floor(pixels / spaceWidth);
+        return Number.isSafeInteger(columns) ? Math.max(1, Math.min(240, columns)) : 40;
+    }
+
+    /** @param {InfoPanel} panel */
+    function releaseVirPanel(panel) {
+        var target = panel._virPanelTarget;
+        var bridge = virPanelBridge();
+        if (target && bridge && typeof bridge.unmount === "function") {
+            bridge.unmount(target);
+        }
+        panel._virPanelTarget = null;
+        panel._virPanelContentId = null;
+        delete panel.dataset.virPanelComponent;
+        delete panel.dataset.virPanelContent;
+        delete panel.dataset.virPanelColumns;
+        delete panel.dataset.virPanelWidths;
+    }
+
+    /**
+     * Mount one generated resident content value. The first render establishes
+     * the goal grid; a second render uses every measured type-cell width.
+     * @param {InfoPanel} panel
+     * @param {Element} source
+     * @param {Element} target
+     * @return {boolean}
+     */
+    function tryMountVirPanel(panel, source, target) {
+        if (!virPanelEnabled()) return false;
+        var bridge = virPanelBridge();
+        if (!bridge || typeof bridge.mount !== "function") return false;
+        var mount = bridge.mount;
+        var rawId = source.getAttribute("data-vir-panel-content");
+        var contentId = rawId === null ? NaN : Number(rawId);
+        if (!Number.isSafeInteger(contentId) || contentId < 0) return false;
+
+        if (panel._virPanelTarget && panel._virPanelTarget !== target) releaseVirPanel(panel);
+        if (!mount(target, contentId, [], true)) return false;
+
+        panel._virPanelTarget = target;
+        panel._virPanelContentId = contentId;
+        panel.dataset.virPanelComponent = "mounted";
+        panel.dataset.virPanelContent = String(contentId);
+
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (
+                    panel._virPanelTarget !== target ||
+                    panel._virPanelContentId !== contentId ||
+                    !virPanelEnabled()
+                ) {
+                    return;
+                }
+                var measured = getPanelMeasurer(panel);
+                var typeCells = target.querySelectorAll(".type .reflowed");
+                var widths = Array.from(typeCells).map(function (cell) {
+                    return virPanelColumns(
+                        measured.measureElWidth(/** @type {Element} */ (cell.closest(".type"))),
+                        measured.spaceWidth,
+                    );
+                });
+                if (widths.length === 0) {
+                    widths.push(
+                        virPanelColumns(
+                            target === panel
+                                ? contentWidth(panel)
+                                : measured.measureElWidth(target),
+                            measured.spaceWidth,
+                        ),
+                    );
+                }
+                measured.cleanup();
+                mount(target, contentId, widths, false);
+                panel.dataset.virPanelColumns = String(widths[0]);
+                panel.dataset.virPanelWidths = JSON.stringify(widths);
+            });
+        });
+        return true;
+    }
+
+    /**
+     * @param {HTMLElement} panel
+     * @param {boolean} active
+     */
+    function setPrettyComparisonActive(panel, active) {
+        var block = panel.closest(".code-with-panel");
+        if (block) block.classList.toggle("pretty-compare-active", active);
+    }
+
+    /**
+     * @return {boolean}
+     */
+    function prettyComparisonEnabled() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig;
+        return !!(config && config.compare === true);
+    }
+
+    /**
+     * @return {string}
+     */
+    function selectedPrettyBackend() {
+        var root = /** @type {Window} */ (window);
+        var config = root.__versoPrettyConfig;
+        var backend = config && config.backend;
+        return typeof backend === "string" && backend.length > 0 ? backend : "js";
+    }
+
+    /**
+     * @param {FormatData[]} formats
+     * @return {number}
+     */
+    function prettyFormatSetCodePoints(formats) {
+        return formats.reduce(function (total, entry) {
+            return total + compactFormatSourceLength(entry.fmt);
+        }, 0);
+    }
+
+    /**
+     * Repeat the complete visible format set, rather than changing its shape,
+     * so every backend receives exactly the same sequence of calls.
+     * @param {number} codePointsPerPass
+     * @return {number}
+     */
+    function prettyWorkloadIterations(codePointsPerPass) {
+        var target = prettyWorkloadCodePoints();
+        if (target === 0) return 1;
+        return Math.min(2048, Math.max(1, Math.ceil(target / Math.max(1, codePointsPerPass))));
+    }
+
+    /**
+     * @param {HTMLElement} el
+     * @return {number}
+     */
+    function contentWidth(el) {
+        var style = getComputedStyle(el);
+        return (
+            el.clientWidth -
+            parseFloat(style.paddingLeft || "0") -
+            parseFloat(style.paddingRight || "0")
+        );
+    }
+
+    /**
+     * @param {number} ms
+     * @return {string}
+     */
+    function formatTiming(ms) {
+        if (!Number.isFinite(ms)) return "";
+        if (ms < 0.1) return "<0.1 ms";
+        return ms.toFixed(ms < 10 ? 1 : 0) + " ms";
+    }
+
+    /**
+     * Track lanes are intentionally compact; the control and hover detail
+     * establish that these unitless labels are milliseconds.
+     *
+     * @param {number} ms
+     * @return {string}
+     */
+    function formatTimingTrackValue(ms) {
+        if (!Number.isFinite(ms)) return "";
+        if (ms < 0.1) return "<.1";
+        return ms.toFixed(ms < 10 ? 1 : 0);
+    }
+
+    /**
+     * @param {HTMLElement} timeEl
+     * @param {string} key
+     * @return {number}
+     */
+    function timingValue(timeEl, key) {
+        var value = Number(timeEl.dataset[key]);
+        return Number.isFinite(value) ? Math.max(0, value) : 0;
+    }
+
+    /**
+     * Use one absolute scale across every phase and backend in a comparison.
+     * This makes the tracks directly comparable instead of normalizing each
+     * backend independently.
+     *
+     * @param {HTMLElement} timeEl
+     * @return {number}
+     */
+    function timingTrackScale(timeEl) {
+        var primary = selectedPrettyExperimentPrimaryDisplay();
+        var primaryKey = /** @type {string} */ (primary.key);
+        var comparison = timeEl.closest(".pretty-compare");
+        if (!comparison) return Math.max(0.001, timingValue(timeEl, primaryKey));
+        var scale = 0;
+        comparison.querySelectorAll(".pretty-compare-time").forEach(function (candidate) {
+            var candidateEl = /** @type {HTMLElement} */ (candidate);
+            scale = Math.max(scale, timingValue(candidateEl, primaryKey));
+        });
+        return Math.max(0.001, scale);
+    }
+
+    /** @return {Array<{key: string, label: string, shortLabel: string}>} */
+    function selectedPrettyTimingPhases() {
+        var experiment = matchingPrettyExperiment();
+        if (!experiment || !Array.isArray(experiment.phaseKeys)) return PRETTY_TIMING_PHASES;
+        var selected = new Set(experiment.phaseKeys);
+        var phases = PRETTY_TIMING_PHASES.filter(function (phase) {
+            return selected.has(phase.key);
+        });
+        return phases.length > 0 ? phases : PRETTY_TIMING_PHASES;
+    }
+
+    /**
+     * @param {HTMLElement} timeEl
+     */
+    function renderTimingDisplay(timeEl) {
+        var display = selectedPrettyTimingDisplay();
+        timeEl.classList.toggle("pretty-timing-tracks", display.id === "tracks");
+        var header = timeEl.closest(".pretty-compare-header");
+        if (header) header.classList.toggle("pretty-timing-header-tracks", display.id === "tracks");
+        if (display.id !== "tracks" && display.key !== null) {
+            timeEl.textContent =
+                display.shortLabel + " · " + formatTiming(timingValue(timeEl, display.key));
+            return;
+        }
+
+        var scale = timingTrackScale(timeEl);
+        var tracks = document.createDocumentFragment();
+        var total = document.createElement("span");
+        total.className = "pretty-timing-tracks-total";
+        var totalLabel = document.createElement("span");
+        var primaryDisplay = selectedPrettyExperimentPrimaryDisplay();
+        totalLabel.textContent = primaryDisplay.shortLabel;
+        var totalValue = document.createElement("span");
+        totalValue.textContent = formatTiming(
+            timingValue(timeEl, /** @type {string} */ (primaryDisplay.key)),
+        );
+        total.append(totalLabel, totalValue);
+        tracks.appendChild(total);
+        selectedPrettyTimingPhases().forEach(function (phase) {
+            var value = timingValue(timeEl, phase.key);
+            var row = document.createElement("span");
+            row.className = "pretty-timing-track";
+            row.dataset.timingPhase = phase.key;
+            row.title = phase.label + ": " + formatTiming(value);
+
+            var label = document.createElement("span");
+            label.className = "pretty-timing-track-label";
+            label.textContent = phase.shortLabel;
+            label.setAttribute("aria-hidden", "true");
+
+            var rail = document.createElement("span");
+            rail.className = "pretty-timing-track-rail";
+            var fill = document.createElement("span");
+            fill.className = "pretty-timing-track-fill";
+            fill.style.width = Math.min(100, (value / scale) * 100) + "%";
+            rail.appendChild(fill);
+
+            var number = document.createElement("span");
+            number.className = "pretty-timing-track-value";
+            number.textContent = formatTimingTrackValue(value);
+            row.append(label, rail, number);
+            tracks.appendChild(row);
+        });
+        timeEl.replaceChildren(tracks);
+    }
+
+    /**
+     * @param {ParentNode} root
+     */
+    function refreshTimingDisplays(root) {
+        root.querySelectorAll(".pretty-compare-time[data-total-ms]").forEach(function (time) {
+            renderTimingDisplay(/** @type {HTMLElement} */ (time));
+        });
+    }
+
+    /**
+     * @param {HTMLElement} timeEl
+     * @param {PrettyTimings} timings
+     * @param {number} wallMs
+     */
+    function setTimingDetails(timeEl, timings, wallMs) {
+        var details = [
+            "Pipeline total (input → committed DOM): " +
+                formatTiming(timings.committedTotalMs || timings.totalMs),
+            "Pipeline prepare (input → detached output): " + formatTiming(timings.totalMs),
+        ];
+        if (
+            typeof timings.batchIterations === "number" &&
+            typeof timings.batchCodePoints === "number"
+        ) {
+            details.push(
+                "Workload: " +
+                    Math.round(timings.batchCodePoints) +
+                    " code points across " +
+                    Math.round(timings.batchIterations) +
+                    " pass" +
+                    (timings.batchIterations === 1 ? "" : "es"),
+            );
+        }
+        if (typeof timings.runtimeTotalMs === "number" && Number.isFinite(timings.runtimeTotalMs)) {
+            details.push("  VIR call total: " + formatTiming(timings.runtimeTotalMs));
+        }
+        details.push("Marshal: " + formatTiming(timings.marshalMs));
+        /** @type {Array<[keyof PrettyTimings, string]>} */
+        var phaseDetails = [
+            ["adapterInputMs", "  Verso input"],
+            ["normalizeMs", "  Normalize"],
+            ["allocateMs", "  Allocate"],
+            ["encodeMs", "  Encode"],
+            ["runtimeMarshalMs", "  VIR runtime"],
+        ];
+        phaseDetails.forEach(function (detail) {
+            var value = timings[detail[0]];
+            if (typeof value === "number" && Number.isFinite(value)) {
+                details.push(detail[1] + ": " + formatTiming(value));
+            }
+        });
+        details.push("Backend execute (layout + owned output): " + formatTiming(timings.executeMs));
+        if (typeof timings.hostMs === "number" && Number.isFinite(timings.hostMs)) {
+            details.push("  JS host imports (included): " + formatTiming(timings.hostMs));
+        }
+        details.push("Output normalization: " + formatTiming(timings.decodeMs));
+        if (
+            typeof timings.runtimeDecodeMs === "number" &&
+            Number.isFinite(timings.runtimeDecodeMs)
+        ) {
+            details.push("  VIR runtime: " + formatTiming(timings.runtimeDecodeMs));
+        }
+        if (
+            typeof timings.adapterOutputMs === "number" &&
+            Number.isFinite(timings.adapterOutputMs)
+        ) {
+            details.push("  Verso output: " + formatTiming(timings.adapterOutputMs));
+        }
+        details.push("Host construction: " + formatTiming(timings.renderMs));
+        details.push("DOM commit: " + formatTiming(timings.commitMs || 0));
+        details.push(
+            "Host total (construct + commit): " +
+                formatTiming(timings.hostTotalMs || timings.renderMs),
+        );
+        if (
+            typeof timings.inputBytes === "number" &&
+            typeof timings.rawObjects === "number" &&
+            typeof timings.allocationCalls === "number"
+        ) {
+            details.push(
+                "Input arena: " +
+                    Math.round(timings.inputBytes) +
+                    " B, " +
+                    Math.round(timings.rawObjects) +
+                    " objects, " +
+                    Math.round(timings.allocationCalls) +
+                    " allocation" +
+                    (timings.allocationCalls === 1 ? "" : "s"),
+            );
+        }
+        if (
+            typeof timings.requestBytes === "number" &&
+            typeof timings.responseBytes === "number" &&
+            typeof timings.formatNodes === "number"
+        ) {
+            details.push(
+                "Wire: " +
+                    Math.round(timings.requestBytes) +
+                    " B request, " +
+                    Math.round(timings.responseBytes) +
+                    " B response, " +
+                    Math.round(timings.formatNodes) +
+                    " nodes",
+            );
+        }
+        if (
+            typeof timings.heapBytesBefore === "number" &&
+            typeof timings.heapBytesAfter === "number"
+        ) {
+            details.push(
+                "Emscripten heap: " +
+                    Math.round(timings.heapBytesBefore) +
+                    " → " +
+                    Math.round(timings.heapBytesAfter) +
+                    " B",
+            );
+        }
+        details.push("Panel wall time: " + formatTiming(wallMs));
+        timeEl.title = details.join("\n");
+        timeEl.setAttribute("aria-label", timeEl.title);
+        timeEl.dataset.marshalMs = String(timings.marshalMs);
+        timeEl.dataset.executeMs = String(timings.executeMs);
+        timeEl.dataset.decodeMs = String(timings.decodeMs);
+        timeEl.dataset.renderMs = String(timings.renderMs);
+        timeEl.dataset.commitMs = String(timings.commitMs || 0);
+        timeEl.dataset.hostTotalMs = String(timings.hostTotalMs || timings.renderMs);
+        timeEl.dataset.totalMs = String(timings.totalMs);
+        timeEl.dataset.committedTotalMs = String(timings.committedTotalMs || timings.totalMs);
+        timeEl.dataset.wallMs = String(wallMs);
+        var comparison = timeEl.closest(".pretty-compare");
+        if (comparison) refreshTimingDisplays(comparison);
+        else renderTimingDisplay(timeEl);
+    }
+
+    /**
+     * @param {HTMLElement} container
+     * @return {Array<{
+     *   backend: PrettyBackendDefinition,
+     *   body: HTMLElement,
+     *   time: HTMLElement,
+     *   parity: HTMLElement
+     * }>}
+     */
+    function setupPrettyComparison(container) {
+        var comparison = document.createElement("div");
+        comparison.className = "pretty-compare";
+        var panes = selectedPrettyBackends().map(function (backend) {
+            var pane = document.createElement("div");
+            pane.className = "pretty-compare-pane";
+            pane.dataset.prettyBackend = backend.id;
+
+            var header = document.createElement("div");
+            header.className = "pretty-compare-header";
+            var identity = document.createElement("div");
+            identity.className = "pretty-compare-identity";
+            var label = document.createElement("span");
+            label.className = "pretty-compare-name";
+            label.textContent = backend.label;
+            if (backend.capabilities) {
+                label.title = prettyBackendBoundaryDetails(backend);
+                pane.dataset.prettyRuntime = backend.capabilities.runtime || "unspecified";
+                pane.dataset.prettyInput = backend.capabilities.input || "unspecified";
+                pane.dataset.prettyOutput = backend.capabilities.output;
+                pane.dataset.prettyMaterializer =
+                    backend.capabilities.materializer || "html-string";
+            }
+            var time = document.createElement("span");
+            time.className = "pretty-compare-time";
+            var parity = document.createElement("span");
+            parity.className = "pretty-compare-parity";
+            parity.textContent = "Output · checking";
+            identity.append(label, parity);
+            header.append(identity, time);
+
+            var body = document.createElement("div");
+            body.className = "pretty-compare-body";
+            pane.append(header, body);
+            comparison.append(pane);
+            return { backend: backend, body: body, time: time, parity: parity };
+        });
+        container.replaceChildren(comparison);
+        return panes;
+    }
+
+    /**
+     * Report whether the candidates reached the same serialized DOM. This is a
+     * visible correctness guard for the current panel input, not a substitute
+     * for the corpus-level differential tests.
+     * @param {Array<{body: HTMLElement, parity: HTMLElement}>} panes
+     */
+    function setPrettyComparisonParity(panes) {
+        var available = panes.filter(function (pane) {
+            return !pane.body.querySelector(".pretty-compare-unavailable");
+        });
+        var equivalent =
+            available.length > 1 &&
+            available.every(function (pane) {
+                return pane.body.innerHTML === available[0].body.innerHTML;
+            });
+        panes.forEach(function (pane) {
+            var unavailable = !!pane.body.querySelector(".pretty-compare-unavailable");
+            var status = unavailable
+                ? "unavailable"
+                : available.length === 1
+                  ? "rendered"
+                  : equivalent
+                    ? "equivalent"
+                    : "differs";
+            pane.parity.dataset.outputParity = status;
+            pane.parity.textContent =
+                status === "equivalent"
+                    ? "Output ✓ equivalent"
+                    : status === "rendered"
+                      ? "Output ✓ rendered"
+                      : status === "differs"
+                        ? "Output ✕ differs"
+                        : "Output — unavailable";
+        });
+    }
+
+    /**
+     * @param {HTMLElement} body
+     * @param {*} goalsData
+     * @param {string} backend
+     * @param {HTMLElement} timeEl
+     */
+    function renderGoalsPane(body, goalsData, backend, timeEl) {
+        var start = performance.now();
+        var result = goalsToHtml(goalsData);
+        body.innerHTML = '<span class="hl lean">' + result.html + "</span>";
+        var columns = prettyComparisonColumns();
+        var measurer = createColumnMeasurer(columns);
+        var codePoints = prettyFormatSetCodePoints(result.formats);
+        var iterations = prettyWorkloadIterations(codePoints);
+        var timings = emptyPrettyTimings();
+        for (var iteration = 0; iteration < iterations; iteration++) {
+            addPrettyTimings(
+                timings,
+                fillReflowedSpans(body, result.formats, measurer, backend, columns),
+            );
+        }
+        var wallMs = performance.now() - start;
+        timings.batchIterations = iterations;
+        timings.batchCodePoints = codePoints * iterations;
+        timings.batchWallMs = wallMs;
+        setTimingDetails(timeEl, timings, wallMs);
+    }
+
+    /**
+     * @param {HTMLElement} panel
+     * @param {*} goalsData
+     */
+    function renderGoalsFormat(panel, goalsData) {
+        var comparing = prettyComparisonEnabled() && typeof formatPrettyOutputTimed === "function";
+        setPrettyComparisonActive(panel, comparing);
+        if (comparing) {
+            var panes = setupPrettyComparison(panel);
+            panes.forEach(function (pane) {
+                renderGoalsPane(pane.body, goalsData, pane.backend.id, pane.time);
+            });
+            setPrettyComparisonParity(panes);
+            return;
+        }
+
+        var result = goalsToHtml(goalsData);
+        // Pass 1: insert structural HTML so table layout computes cell widths.
+        panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
+        // Pass 2: measure actual .type cell widths and format expressions.
+        var measurer = getPanelMeasurer(panel);
+        fillReflowedSpans(panel, result.formats, measurer, selectedPrettyBackend());
+    }
+
+    /**
+     * @param {HTMLElement} body
+     * @param {*} fmtData
+     * @param {string} backend
+     * @param {HTMLElement} timeEl
+     */
+    function renderSignaturePane(body, fmtData, backend, timeEl) {
+        var start = performance.now();
+        var columns = prettyComparisonColumns();
+        var measurer = createColumnMeasurer(columns);
+        var codePoints = compactFormatSourceLength(fmtData.fmt);
+        var iterations = prettyWorkloadIterations(codePoints);
+        var timings = emptyPrettyTimings();
+        var reflowed = document.createElement("span");
+        reflowed.className = "reflowed";
+        for (var iteration = 0; iteration < iterations; iteration++) {
+            var timed = formatPrettyOutputTimed(
+                fmtData.fmt,
+                fmtData.annotations,
+                columns,
+                measurer,
+                backend,
+                fmtData.formatId,
+            );
+            insertPrettyOutputTimed(reflowed, timed);
+            addPrettyTimings(timings, timed.timings);
+        }
+        body.replaceChildren(reflowed);
+        var wallMs = performance.now() - start;
+        timings.batchIterations = iterations;
+        timings.batchCodePoints = codePoints * iterations;
+        timings.batchWallMs = wallMs;
+        setTimingDetails(timeEl, timings, wallMs);
+    }
+
+    /**
+     * @param {HTMLElement} panel
+     * @param {HTMLElement} sigCode
+     * @param {*} fmtData
+     */
+    function renderSignatureFormat(panel, sigCode, fmtData) {
+        var comparing = prettyComparisonEnabled() && typeof formatPrettyOutputTimed === "function";
+        setPrettyComparisonActive(panel, comparing);
+        if (comparing) {
+            var panes = setupPrettyComparison(sigCode);
+            panes.forEach(function (pane) {
+                renderSignaturePane(pane.body, fmtData, pane.backend.id, pane.time);
+            });
+            setPrettyComparisonParity(panes);
+            return;
+        }
+
+        var measurer = getPanelMeasurer(panel);
+        var rendered = formatPrettyOutputTimed(
+            fmtData.fmt,
+            fmtData.annotations,
+            contentWidth(panel),
+            measurer,
+            selectedPrettyBackend(),
+            fmtData.formatId,
+        );
+        var reflowed = document.createElement("span");
+        reflowed.className = "reflowed";
+        insertPrettyOutput(reflowed, rendered);
+        sigCode.replaceChildren(reflowed);
+    }
+
+    /**
+     * Reflow the panel's rich format content at current width.
+     * @param {InfoPanel} panel
+     */
+    function reflowPanel(panel) {
+        var source = panel._richFormatSource;
+        if (!source) return;
+        var richFmt = source.getAttribute("data-rich-format");
+        if (!richFmt) return;
+        try {
+            var parsed = JSON.parse(richFmt);
+            // Detect whether this is goal data (array) or signature format data (has "fmt" key)
+            if (Array.isArray(parsed) && typeof goalsToHtml === "function") {
+                if (!tryMountVirPanel(panel, source, panel)) {
+                    releaseVirPanel(panel);
+                    renderGoalsFormat(panel, parsed);
+                }
+            } else if (parsed.fmt && typeof formatToHtml === "function") {
+                if (!tryMountVirPanel(panel, source, source)) {
+                    releaseVirPanel(panel);
+                    renderSignatureFormat(panel, /** @type {HTMLElement} */ (source), parsed);
+                }
+            }
+        } catch (e) {
+            // Fall back to pre-rendered HTML on error
+        }
+    }
+
+    /**
+     * @param {string | null} id
+     * @return {string}
+     */
+    function lookupHoverDoc(id) {
+        if (!docsJson || !id) return "";
+        var entry = docsJson[id];
+        if (!entry) return "";
+        // entry is the HTML string from verso hover data
+        if (typeof entry === "string") {
+            return '<span class="hl lean">' + entry + "</span>";
+        }
+        // Could be an object with .hover field
+        if (entry.hover) {
+            return '<span class="hl lean">' + entry.hover + "</span>";
+        }
+        return "";
+    }
+
+    // ---- Fragment automation ----
+
+    /** @param {{ fragment: HTMLElement }} evt */
+    function onFragmentShown(evt) {
+        var frag = evt.fragment;
+        if (!frag || !frag.classList.contains("slide-click-only")) return;
+
+        var block = /** @type {PanelBlock | null} */ (frag.closest(".code-with-panel"));
+        if (!block) return;
+
+        var panel = /** @type {InfoPanel | null} */ (block.querySelector(".info-panel"));
+        if (!panel) return;
+
+        // Find the clickable element targeted by this fragment
+        var target = frag.querySelector(".tactic, .has-info, [data-verso-hover]");
+        if (target) updatePanel(panel, target, block);
+    }
+
+    /** @param {{ fragment: HTMLElement }} evt */
+    function onFragmentHidden(evt) {
+        var frag = evt.fragment;
+        if (!frag || !frag.classList.contains("slide-click-only")) return;
+
+        var block = /** @type {PanelBlock | null} */ (frag.closest(".code-with-panel"));
+        if (!block) return;
+
+        syncPanelToLastVisible(block);
+    }
+
+    function onSlideChanged() {
+        var slide = Reveal.getCurrentSlide();
+        if (!slide) return;
+        slide.querySelectorAll(".code-with-panel").forEach(function (el) {
+            syncPanelToLastVisible(/** @type {PanelBlock} */ (el));
+        });
+    }
+
+    /** @param {PanelBlock} block */
+    function syncPanelToLastVisible(block) {
+        var panel = /** @type {InfoPanel | null} */ (block.querySelector(".info-panel"));
+        if (!panel) return;
+
+        // Find the last visible slide-click-only fragment
+        var frags = block.querySelectorAll(".fragment.slide-click-only.visible");
+        if (frags.length > 0) {
+            var last = frags[frags.length - 1];
+            var target = last.querySelector(".tactic, .has-info, [data-verso-hover]");
+            if (target) {
+                updatePanel(panel, target, block);
+                return;
+            }
+        }
+
+        // No visible fragments — clear panel
+        var codeEl = block.querySelector("code.hl.lean.block");
+        if (codeEl) {
+            codeEl.querySelectorAll(".panel-focus").forEach(function (f) {
+                f.classList.remove("panel-focus");
+            });
+            drawElementOutline(codeEl, null, "panel-outline-focus");
+        }
+        block._activeSource = null;
+        setPrettyComparisonActive(panel, false);
+        panel.innerHTML = "";
+    }
+
+    // ---- Divider drag ----
+
+    /**
+     * @param {HTMLElement} block
+     * @param {HTMLElement} divider
+     */
+    function setupDividerDrag(block, divider) {
+        var dragging = false;
+
+        divider.addEventListener("mousedown", function (e) {
+            e.preventDefault();
+            dragging = true;
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
+        });
+
+        document.addEventListener("mousemove", function (e) {
+            if (!dragging) return;
+            var rect = block.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var pct = x / rect.width;
+
+            if (pct > 0.95) {
+                // Collapse panel
+                block.classList.add("panel-collapsed");
+            } else {
+                block.classList.remove("panel-collapsed");
+                var codeFr = Math.max(0.2, Math.min(0.9, pct));
+                var panelFr = 1 - codeFr;
+                block.style.setProperty("--code-ratio", codeFr + "fr");
+                block.style.setProperty("--panel-ratio", panelFr + "fr");
+            }
+        });
+
+        document.addEventListener("mouseup", function () {
+            if (!dragging) return;
+            dragging = false;
+            document.body.style.cursor = "";
+            document.body.style.userSelect = "";
+        });
+    }
+
+    // ---- Entry point ----
+    if (Reveal.isReady()) init();
+    else Reveal.on("ready", init);
+})();

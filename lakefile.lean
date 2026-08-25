@@ -67,5 +67,8 @@ lean_exe «test-pretty» where
 lean_exe «test-panel-component» where
   root := `Tests.PanelComponent
 
+lean_exe «test-reveal-policy» where
+  root := `Tests.RevealPolicy
+
 lean_exe «test-config-validation» where
   root := `Tests.ConfigValidation

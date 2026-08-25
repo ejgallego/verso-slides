@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "lib": ["ES2024", "WebWorker"],
+        "target": "ES2024",
+        "module": "ESNext",
+        "noEmit": true,
+        "strict": true,
+        "checkJs": true
+    },
+    "include": ["coi-serviceworker.js"]
+}

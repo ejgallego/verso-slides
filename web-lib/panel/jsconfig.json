@@ -2,6 +2,7 @@
     "compilerOptions": {
         "lib": ["ES2024", "DOM", "DOM.Iterable"],
         "target": "ES2024",
+        "module": "ESNext",
         "noEmit": true,
         "strict": true,
         "checkJs": true

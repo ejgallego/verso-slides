@@ -1,0 +1,40 @@
+{
+    "contract": "verso.pretty.fir-native-html-package/v1",
+    "files": {
+        "build": "BUILD.json",
+        "checksums": "SHA256SUMS",
+        "adapter": "prettyM-browser-adapter.mjs",
+        "module": "prettyM.wasm",
+        "descriptor": "prettyM.wasm.json"
+    },
+    "build": {
+        "formats": ["fir-prettyM-package-metadata-v2"],
+        "params": ["tobject", "object", "tobject", "tobject", "tobject"],
+        "result": "object",
+        "functionImports": 0,
+        "memoryImports": 0,
+        "memoryExports": 1,
+        "representation": "wasm32-lean64",
+        "memoryOwner": "module",
+        "browserApiVersion": "fir.prettyM.html.browser/v1",
+        "ownershipVersion": "fir.prettyM.module-owned-transfer/v1"
+    },
+    "inputLayout": {
+        "representation": "compact-discriminated-union-plus-tagged-annotations",
+        "constructors": ["nil", "line", "align", "text", "nest", "append", "group", "tag"],
+        "annotations": "Array VersoSlides.Pretty.TaggedAnnotation"
+    },
+    "adapter": {
+        "apiVersionExport": "PRETTY_M_BROWSER_API_VERSION",
+        "formatFactoryExport": "PrettyFormat",
+        "factoryExport": "fetchPrettyMAdapter",
+        "renderMethod": "render",
+        "resultField": "html"
+    },
+    "output": {
+        "semantic": "EscapedHtmlString",
+        "schema": "verso-token-html/v1",
+        "physical": "object",
+        "escaping": "html-text-and-double-quoted-attribute/v1"
+    }
+}

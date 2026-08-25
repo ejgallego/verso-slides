@@ -1,0 +1,6 @@
+/.lake/
+/.beam/
+/_site/
+/_profiles/
+/_artifacts/
+__pycache__/

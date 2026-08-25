@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "lib": ["ES2024", "DOM", "DOM.Iterable"],
+        "target": "ES2024",
+        "module": "ESNext",
+        "noEmit": true,
+        "strict": true,
+        "checkJs": true
+    },
+    "include": [
+        "formatter-lab.js",
+        "panel-lab.js",
+        "pretty-experiments.js",
+        "vir-loader.js",
+        "pretty-vir.js",
+        "pretty-native.js",
+        "pretty-native-flat.js",
+        "pretty-native-html.js",
+        "pretty-llvm.js",
+        "pretty-llvm-html.js",
+        "panel-component.js",
+        "panel-measurer.js",
+        "../scripts/panel-parity-corpus.js",
+        "../scripts/backend-measure.js",
+        "coi-register.js",
+        "../../../web-lib/panel/globals.d.ts"
+    ]
+}

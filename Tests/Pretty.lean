@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 import VersoSlides.Pretty
 
+open Lean
 open Std
 open VersoSlides.Pretty
 
@@ -19,6 +20,13 @@ private def hardLineDoc : Format :=
 private def nestedDoc : Format :=
   Format.nest 2 ("." ++ Format.align false ++ "a" ++ Format.line ++ "b")
 
+private def listDoc : Format :=
+  Format.group <|
+    Format.nest 1 <|
+      "[" ++ "alpha," ++ Format.line ++
+      "beta," ++ Format.line ++
+      "gamma" ++ "]"
+
 private def paragraphDoc : Format :=
   Format.fill <|
     "lean" ++ Format.line ++
@@ -30,79 +38,226 @@ private def paragraphDoc : Format :=
 private def taggedDoc : Format :=
   Format.tag 7 "hello"
 
+private def taggedUnicodeLineDoc : Format :=
+  Format.tag 7 ("α" ++ Format.line ++ "β")
+
 private def nestedTaggedDoc : Format :=
   Format.tag 7 ("outer" ++ Format.tag 8 "inner" ++ "tail")
+
+private def annotations : Array TaggedAnnotation :=
+  #[
+    { tag := 7, annotation := { cssClass := "outer", binding := some "decl" } },
+    { tag := 8, annotation := { cssClass := "inner", binding := none } }
+  ]
+
+private def unsortedAnnotations : Array TaggedAnnotation :=
+  #[
+    { tag := 8, annotation := { cssClass := "inner", binding := none } },
+    { tag := 7, annotation := { cssClass := "outer", binding := some "decl" } }
+  ]
+
+private def duplicateAnnotations : Array TaggedAnnotation :=
+  #[
+    { tag := 7, annotation := { cssClass := "old", binding := none } },
+    { tag := 7, annotation := { cssClass := "outer", binding := some "decl" } },
+    { tag := 8, annotation := { cssClass := "inner", binding := none } }
+  ]
+
+private def groupedLineJson : String :=
+  "[5,[4,\"hello\",[4,1,\"world\"]]]"
+
+private def nestedJson : String :=
+  "[3,2,[4,\".\",[4,[2,false],[4,\"a\",[4,1,\"b\"]]]]]"
+
+private def taggedJson : String :=
+  "[7,7,\"hello\"]"
 
 structure TestState where
   passed : Nat := 0
   failed : Nat := 0
   errors : Array String := #[]
 
-def TestState.report (state : TestState) : IO UInt32 := do
-  if state.errors.isEmpty then
-    IO.println s!"All {state.passed} tests passed."
+def TestState.report (s : TestState) : IO UInt32 := do
+  if s.errors.isEmpty then
+    IO.println s!"All {s.passed} tests passed."
     return 0
   else
-    for error in state.errors do
-      IO.eprintln error
-    IO.eprintln s!"\n{state.failed} of {state.passed + state.failed} tests FAILED."
+    for e in s.errors do
+      IO.eprintln e
+    IO.eprintln s!"\n{s.failed} of {s.passed + s.failed} tests FAILED."
     return 1
 
 abbrev TestM := StateRefT TestState IO
 
+private def fail (name : String) (expected actual : String) : TestM Unit :=
+  modify fun s => { s with
+    failed := s.failed + 1
+    errors := s.errors.push
+      s!"FAIL: {name}\n  expected: {expected}\n  actual:   {actual}"
+  }
+
+private def pass : TestM Unit :=
+  modify fun s => { s with passed := s.passed + 1 }
+
 private def testEq [BEq α] [Repr α] (name : String) (actual expected : α) : TestM Unit := do
   if actual == expected then
-    modify fun state => { state with passed := state.passed + 1 }
+    pass
   else
-    modify fun state => { state with
-      failed := state.failed + 1
-      errors := state.errors.push
-        s!"FAIL: {name}\n  expected: {reprStr expected}\n  actual:   {reprStr actual}" }
+    fail name (reprStr expected) (reprStr actual)
+
+private def testExceptEq [BEq α] [Repr α]
+    (name : String) (actual : Except String α) (expected : α) : TestM Unit := do
+  match actual with
+  | .ok value => testEq name value expected
+  | .error err => fail name (reprStr expected) s!"error: {err}"
+
+private def testJsonExceptEq
+    (name : String) (actual : Except String Json) (expected : Json) : TestM Unit := do
+  match actual with
+  | .ok value =>
+    if value == expected then
+      pass
+    else
+      fail name (Json.compress expected) (Json.compress value)
+  | .error err =>
+    fail name (Json.compress expected) s!"error: {err}"
 
 def main : IO UInt32 := do
-  let ((), state) ← tests.run {}
-  state.report
+  let ((), s) ← tests.run {}
+  s.report
 where
   tests : TestM Unit := do
-    testEq "wide group" (formatPlain groupedLineDoc 80) "hello world"
-    testEq "narrow group" (formatPlain groupedLineDoc 8) "hello\nworld"
-    testEq "hard newline" (formatPlain hardLineDoc 80) "αβ\nγ"
-    testEq "nested align" (formatPlain nestedDoc 5) ". a\n  b"
-    testEq "fill paragraph" (formatPlain paragraphDoc 16)
+    testEq "wide group"
+      (formatPlain groupedLineDoc 80)
+      "hello world"
+    testEq "narrow group"
+      (formatPlain groupedLineDoc 8)
+      "hello\nworld"
+    testEq "hard newline"
+      (formatPlain hardLineDoc 80)
+      "αβ\nγ"
+    testEq "nested align"
+      (formatPlain nestedDoc 5)
+      ". a\n  b"
+    testEq "list"
+      (formatPlain listDoc 12)
+      "[alpha,\n beta,\n gamma]"
+    testEq "fill paragraph"
+      (formatPlain paragraphDoc 16)
       "lean ir runs\nformat.pretty\ninside wasm"
-    testEq "tagged segment" (formatSegments taggedDoc 80)
+    testEq "tagged segment"
+      (formatSegments taggedDoc 80)
       #[{ text := "hello", tags := #[7] }]
-    testEq "nested tag stack" (formatSegments nestedTaggedDoc 80)
+    testEq "direct format VIR wrapper"
+      (formatSegmentsForVir taggedDoc 80 0)
+      #[{ text := "hello", tags := #[7] }]
+    testEq "flat rendered output"
+      (formatRendered taggedDoc 80)
+      { text := "hello"
+        events := #[
+          { offset := 0, kind := 0, value := 7 },
+          { offset := 5, kind := 1, value := 1 }
+        ] }
+    testEq "flat rendered UTF-8 offsets and unstyled newline"
+      (formatRenderedForVir taggedUnicodeLineDoc 80 0)
+      { text := "α\nβ"
+        events := #[
+          { offset := 0, kind := 0, value := 7 },
+          { offset := 2, kind := 2, value := 0 },
+          { offset := 5, kind := 1, value := 1 }
+        ] }
+    testEq "render plan resolves innermost annotation"
+      (formatRenderPlan nestedTaggedDoc annotations 80)
+      { annotations := #[
+          { cssClass := "outer", binding := some "decl" },
+          { cssClass := "inner", binding := none }
+        ]
+        nodes := #[
+          { text := "outer", annotationSlot := 1 },
+          { text := "inner", annotationSlot := 2 },
+          { text := "tail", annotationSlot := 1 }
+        ] }
+    testEq "render plan preserves unsorted annotation lookup"
+      (formatRenderPlan nestedTaggedDoc unsortedAnnotations 80).nodes
       #[
-        { text := "outer", tags := #[7] },
-        { text := "inner", tags := #[7, 8] },
-        { text := "tail", tags := #[7] }
+        { text := "outer", annotationSlot := 2 },
+        { text := "inner", annotationSlot := 1 },
+        { text := "tail", annotationSlot := 2 }
       ]
-
-    let annotations : Array TaggedAnnotation := #[
-      { tag := 3, annotation := { cssClass := "outer", binding := none } },
-      { tag := 7, annotation := { cssClass := "inner", binding := some "Nat" } }
-    ]
-    let format := Format.group <|
-      Format.tag 3 ("a" ++ Format.line ++ Format.tag 7 "b")
-    let plan := formatRenderPlan format annotations 80
-    testEq "render plan nodes" plan.nodes #[
-      { text := "a", annotationSlot := 1 },
-      { text := " ", annotationSlot := 1 },
-      { text := "b", annotationSlot := 2 }
-    ]
-    testEq "render plan annotations" plan.annotations #[
-      { cssClass := "outer", binding := none },
-      { cssClass := "inner", binding := some "Nat" }
-    ]
-
-    let unsortedPlan := formatRenderPlan format annotations.reverse 1
-    testEq "unsorted annotation output"
-      (String.join <| unsortedPlan.nodes.toList.map fun node => node.text)
-      "a\nb"
-    testEq "unsorted annotation slots"
-      (unsortedPlan.nodes.map fun node => node.annotationSlot)
-      #[2, 0, 1]
+    testEq "sorted duplicate annotations keep the last entry"
+      (formatRenderPlan nestedTaggedDoc duplicateAnnotations 80).nodes
+      #[
+        { text := "outer", annotationSlot := 2 },
+        { text := "inner", annotationSlot := 3 },
+        { text := "tail", annotationSlot := 2 }
+      ]
+    testEq "render plan keeps pretty newlines unstyled"
+      (formatRenderPlanForVir taggedUnicodeLineDoc annotations 80 0)
+      { annotations := #[
+          { cssClass := "outer", binding := some "decl" },
+          { cssClass := "inner", binding := none }
+        ]
+        nodes := #[
+          { text := "α", annotationSlot := 1 },
+          { text := "\n", annotationSlot := 0 },
+          { text := "β", annotationSlot := 1 }
+        ] }
+    testEq "resident render plan lookup"
+      (formatRenderPlanAt #[groupedLineDoc, taggedDoc] #[#[], annotations] 1 80 0)
+      { found := true
+        renderPlan := {
+          annotations := #[
+            { cssClass := "outer", binding := some "decl" },
+            { cssClass := "inner", binding := none }
+          ]
+          nodes := #[{ text := "hello", annotationSlot := 1 }]
+        } }
+    testEq "resident render plan rejects misaligned ID"
+      (formatRenderPlanAt #[taggedDoc] #[] 0 80 0).found
+      false
+    testEq "resident format lookup"
+      (formatRenderedAt #[groupedLineDoc, taggedDoc] 1 80 0)
+      { found := true
+        rendered := {
+          text := "hello"
+          events := #[
+            { offset := 0, kind := 0, value := 7 },
+            { offset := 5, kind := 1, value := 1 }
+          ]
+        } }
+    testEq "resident format lookup rejects invalid ID"
+      (formatRenderedAt #[groupedLineDoc] 4 80 0).found
+      false
+    testExceptEq "json wide group"
+      (formatJsonPlain groupedLineJson 80)
+      "hello world"
+    testExceptEq "json narrow group"
+      (formatJsonPlain groupedLineJson 8)
+      "hello\nworld"
+    testExceptEq "json nested align"
+      (formatJsonPlain nestedJson 5)
+      ". a\n  b"
+    testExceptEq "json tagged segment"
+      (formatJsonSegments taggedJson 80)
+      #[{ text := "hello", tags := #[7] }]
+    testJsonExceptEq "json result wrapper"
+      (Json.parse (formatJsonSegmentsJson taggedJson 80))
+      (Json.mkObj [
+        ("ok", true),
+        ("segments", toJson (#[{ text := "hello", tags := #[7] }] : Array Segment))
+      ])
+    testJsonExceptEq "json result wrapper error"
+      (Json.parse (formatJsonSegmentsJson "[9]" 80))
+      (Json.mkObj [
+        ("ok", false),
+        ("error", "format array: unknown node tag 9")
+      ])
+    testJsonExceptEq "json result wrapper for VIR"
+      (Json.parse (formatJsonSegmentsJsonForVir taggedJson 80 0))
+      (Json.mkObj [
+        ("ok", true),
+        ("segments", toJson (#[{ text := "hello", tags := #[7] }] : Array Segment))
+      ])
 
 end Tests.Pretty
 

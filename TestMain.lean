@@ -31,11 +31,15 @@ def main (args : List String) : IO UInt32 := do
   if rc != 0 then return rc
 
   let rc ← runCmd "lake" #["exe", "test-pretty"]
-    "Running compiler-neutral pretty-printer and render-plan tests"
+    "Running the Std.Format rendering-surface tests"
   if rc != 0 then return rc
 
   let rc ← runCmd "lake" #["exe", "test-panel-component"]
-    "Running compiler-neutral panel model tests"
+    "Running compiler-neutral panel component tests"
+  if rc != 0 then return rc
+
+  let rc ← runCmd "lake" #["exe", "test-reveal-policy"]
+    "Running Reveal animation policy unit tests"
   if rc != 0 then return rc
 
   -- Step 1: generate test fixture slides

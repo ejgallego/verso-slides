@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>VIR panel component experiment</title>
+        <style>
+            :root {
+                font-family: system-ui, sans-serif;
+                color-scheme: light dark;
+            }
+            body {
+                max-width: 56rem;
+                margin: 3rem auto;
+                padding: 0 1rem;
+            }
+            #panel {
+                padding: 1rem;
+                border: 1px solid #8888;
+                border-radius: 0.5rem;
+            }
+            .panel-goals,
+            .goal,
+            .hypotheses {
+                display: grid;
+                gap: 0.35rem;
+            }
+            .hypothesis,
+            .conclusion {
+                display: grid;
+                grid-template-columns: auto auto 1fr;
+                gap: 0.4rem;
+            }
+            .goal-name {
+                font-weight: 700;
+            }
+            .type,
+            .reflowed {
+                min-width: 0;
+                white-space: pre-wrap;
+                font-family: monospace;
+            }
+            .keyword {
+                color: #cf65ff;
+            }
+            #metrics {
+                font: 0.8rem/1.4 monospace;
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Lean-authored React panel</h1>
+        <div id="panel" aria-label="VIR panel mount"></div>
+        <pre id="metrics"></pre>
+        <script type="module" src="app.js"></script>
+    </body>
+</html>
