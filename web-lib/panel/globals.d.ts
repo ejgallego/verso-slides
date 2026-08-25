@@ -3,6 +3,7 @@
 /** Reveal.js presentation API (global). */
 declare var Reveal: {
     on(event: string, callback: (...args: any[]) => void): void;
+    isReady(): boolean;
     getCurrentSlide(): HTMLElement | null;
     getRevealElement(): HTMLElement | null;
     getScale(): number;
@@ -35,7 +36,13 @@ interface VersoVirRuntime {
     call(name: string, ...args: unknown[]): unknown;
 }
 
+interface VersoPanelRenderer {
+    render(panel: HTMLElement, source: Element, target: Element): boolean;
+    release?(panel: HTMLElement): void;
+}
+
 interface Window {
     versoVir: VersoVirRuntime;
     versoVirReady: Promise<VersoVirRuntime>;
+    __versoPanelRenderer?: VersoPanelRenderer;
 }

@@ -74,5 +74,6 @@ function updateSlides() {
         });
     });
 }
-Reveal.on("ready", updateSlides);
+if (Reveal.isReady()) updateSlides();
+else Reveal.on("ready", updateSlides);
 Reveal.on("slidechanged", updateSlides);
