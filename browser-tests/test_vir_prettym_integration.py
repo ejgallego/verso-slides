@@ -18,24 +18,10 @@ def test_review_surface_replaces_only_prettym_layout():
     assert "function createDOMMeasurer(" in pretty
 
 
-def test_demo_selects_the_narrow_vir_runtime():
-    main = (ROOT / "Main.lean").read_text()
-    assert 'filename := "vir-prettym-runtime.js"' in main
-    assert 'destination := "vir-prettym"' in main
-    assert 'source := ".lake/build/vir/browser/VirPrettyM"' in main
-    assert "coi-register" not in main
-    assert "vir-panel" not in main
-
+def test_narrow_runtime_remains_available_below_panel_followup():
     export = (ROOT / "VirPrettyM.lean").read_text()
     assert export.count("@[vir_export]") == 1
     assert "def formatSegments" in export
-
-
-def test_demo_uses_the_declarative_vir_browser_facet():
-    lakefile = (ROOT / "lakefile.lean").read_text()
-    assert "require lean_vir from git" in lakefile
-    assert "needs := #[`+VirPrettyM:virBrowser]" in lakefile
-    assert "target virPrettyMDemoAssets" not in lakefile
-    assert "IO.Process" not in lakefile
-    assert "integration/vir-prettym" not in lakefile
-    assert not (ROOT / "integration" / "vir-prettym").exists()
+    pretty = (ROOT / "web-lib" / "panel" / "pretty.js").read_text()
+    assert 'window.versoVir.call(' in pretty
+    assert '"VersoSlides.VirPrettyM.formatSegments"' in pretty

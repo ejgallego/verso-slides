@@ -479,6 +479,12 @@ set_option verso.slides.panel false
 The `panel` flag and the `verso.slides.panel` option apply to `lean`,
 `leanModule`, and `leanLibCode` code blocks.
 
+This branch also contains a concrete, unconditional VIR implementation
+of the semantic panel renderer. Build and smoke the ordinary demo deck
+with `scripts/build-vir-panel-demo.sh`; see
+[`docs/VIR_PANEL_INTEGRATION.md`](docs/VIR_PANEL_INTEGRATION.md) for the
+runtime boundary and artifact-generation contract.
+
 ### Tips
 
 Use the `-show` flag to include Lean code that is not rendered. This

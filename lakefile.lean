@@ -34,7 +34,6 @@ lean_lib VirPrettyMIntegration where
 
 @[default_target] lean_exe «demo-slides» where
   root := `Main
-  needs := #[`+VirPrettyM:virBrowser]
 
 lean_exe «extract-lakefile» where
   root := `ExtractLakefile
