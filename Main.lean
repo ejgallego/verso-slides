@@ -5,10 +5,28 @@ Author: David Thrane Christiansen
 -/
 import VersoSlides
 import Demo
+import VersoUtil.BinFiles
 
 open VersoSlides
+open Verso.BinFiles
+
+private def virPrettyMBootstrap : Asset where
+  filename := "vir-prettym-bootstrap.js"
+  contents := include_bin "web-lib/vir-prettym/bootstrap.js"
+
+private def virPrettyMConfig : Config := {
+  theme := "black"
+  slideNumber := true
+  transition := "slide"
+  extraJs := #[virPrettyMBootstrap.filename]
+  extraAssets := #[virPrettyMBootstrap]
+  extraAssetDirs := #[{
+    source := ".lake/build/vir/web-assets/vir-prettym"
+    destination := "vir-prettym"
+  }]
+}
 
 def main : IO UInt32 :=
   slidesMain
-    (config := { theme := "black", slideNumber := true, transition := "slide" })
+    (config := virPrettyMConfig)
     (doc := %doc Demo)

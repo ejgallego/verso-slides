@@ -8,6 +8,8 @@ import Lake
 open System Lake DSL
 
 require verso from git "https://github.com/leanprover/verso.git"@"main"
+require lean_vir from git "https://github.com/ejgallego/lean-vir.git" @
+  "a1dab8b404280289a720374b59de5873f405294d"
 
 package «verso-slides» where
   version := v!"0.1.0"
@@ -27,7 +29,12 @@ lean_lib VersoSlides where
 lean_lib Demo where
   needs := #[`@verso/+Verso.Code.External:highlighted]
 
-@[default_target] lean_exe «demo-slides» where root := `Main
+lean_lib «vir-prettym» where
+  roots := #[`VersoSlides.VirPrettyM]
+
+@[default_target] lean_exe «demo-slides» where
+  root := `Main
+  needs := #[`@/«vir-prettym»:virWebAssets]
 
 lean_exe «extract-lakefile» where
   root := `ExtractLakefile

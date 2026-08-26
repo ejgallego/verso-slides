@@ -654,5 +654,9 @@
     }
 
     // ---- Entry point ----
-    Reveal.on("ready", init);
+    Reveal.on("ready", function () {
+        window.versoVirReady.then(init).catch(function (error) {
+            console.error("Could not initialize the VIR runtime.", error);
+        });
+    });
 })();

@@ -734,6 +734,9 @@ rendering, symbolic links are rejected, and the destination is
 replaced as a unit so removed producer files cannot survive as stale
 presentation output.
 
+The demo's Lake configuration and VIR-backed `Std.Format` integration
+are documented in [docs/VIR_PRETTYM_INTEGRATION.md](docs/VIR_PRETTYM_INTEGRATION.md).
+
 ### Auto-Advance
 
 `autoSlide`, `autoSlideStoppable`, and `autoSlideMethod` together
