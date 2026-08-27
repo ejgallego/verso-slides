@@ -30,6 +30,10 @@ def main (args : List String) : IO UInt32 := do
     "Running Config.validateFilenames unit tests"
   if rc != 0 then return rc
 
+  let rc ← runCmd "lake" #["exe", "test-pretty"]
+    "Running Std.Format pretty-printer tests"
+  if rc != 0 then return rc
+
   -- Step 1: generate test fixture slides
   let rc ← runCmd "lake" #["exe", "test-fixtures-build"] "Generating test fixtures"
   if rc != 0 then return rc

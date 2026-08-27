@@ -39,14 +39,41 @@ def hlCustomCss : HighlightTheme where
   filename := "hl/my-hl.css"
   contents := ⟨".hljs { background: #abcdef; }\n"⟩
 
+private def virPrettyMBootstrap : Asset where
+  filename := "vir-prettym-bootstrap.js"
+  contents := include_bin "../web-lib/vir-prettym/bootstrap.js"
+
+private def virPrettyMCodeConfig : Config := {
+  theme := "black"
+  outputDir := "_test/code"
+  extraJs := #[virPrettyMBootstrap.filename]
+  extraAssets := #[virPrettyMBootstrap]
+  extraAssetDirs := #[{
+    source := ".lake/build/vir/web-assets/vir-prettym"
+    destination := "vir-prettym"
+  }]
+}
+
 def main : IO UInt32 := do
+  let staleAsset := "_test/markup/generated-assets/stale.txt"
+  IO.FS.createDirAll "_test/markup/generated-assets"
+  IO.FS.writeFile staleAsset "must be removed"
   let rc ← slidesMain
     { theme := "black", outputDir := "_test/markup", extraCss := #[markupBannerCss]
+      extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                            destination := "generated-assets" }]
       mathPrelude := "\\def\\RR{\\mathbb{R}}\n\\newcommand{\\Hom}[2]{\\mathrm{Hom}(#1, #2)}\n" }
     (%doc TestFixtures.Markup)
   if rc != 0 then return rc
+  let copiedMarker := "_test/markup/generated-assets/marker.png"
+  if !(← System.FilePath.pathExists copiedMarker) then
+    IO.eprintln s!"Missing copied asset directory fixture: {copiedMarker}"
+    return 1
+  if ← System.FilePath.pathExists staleAsset then
+    IO.eprintln s!"Stale generated asset survived directory replacement: {staleAsset}"
+    return 1
   let rc ← slidesMain
-    { theme := "black", outputDir := "_test/code" }
+    virPrettyMCodeConfig
     (%doc TestFixtures.Code)
   if rc != 0 then return rc
   let rc ← slidesMain

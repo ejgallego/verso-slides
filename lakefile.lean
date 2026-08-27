@@ -47,6 +47,7 @@ lean_lib TestFixtures
 
 lean_exe «test-fixtures-build» where
   root := `TestFixtures.Build
+  needs := #[`@/«vir-prettym»:virWebAssets]
 
 lean_lib TestElab where
   needs := #[`@verso/+Verso.Code.External:highlighted]
@@ -61,6 +62,9 @@ lean_exe «test-render» where
 
 lean_exe «test-comment-parsers» where
   root := `Tests.CommentParsers
+
+lean_exe «test-pretty» where
+  root := `Tests.Pretty
 
 lean_exe «test-config-validation» where
   root := `Tests.ConfigValidation
