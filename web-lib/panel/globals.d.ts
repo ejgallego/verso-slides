@@ -35,7 +35,14 @@ interface VersoVirRuntime {
     call(name: string, ...args: unknown[]): unknown;
 }
 
+interface VersoVirLifecycleCounts {
+    createRuntime: number;
+    startup: number;
+    dispose: number;
+}
+
 interface Window {
     versoVir: VersoVirRuntime;
     versoVirReady: Promise<VersoVirRuntime>;
+    versoVirLifecycle: VersoVirLifecycleCounts;
 }

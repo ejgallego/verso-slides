@@ -41,6 +41,24 @@ VersoSlides supports:
 Read on for examples of each.
 :::
 
+# One Runtime, Two Lean Packages
+
+This deck composes code from *Verso Search* and *Verso Slides* into
+one VIR package set and one live browser runtime.
+
+```html
+<div class="vir-composition-demo" data-verso-vir-composition>
+  <p><strong>Verso Search ranking:</strong></p>
+  <ol data-verso-vir-ranking aria-live="polite">
+    <li>Waiting for the shared VIR runtime…</li>
+  </ol>
+  <p><small data-verso-vir-lifecycle>Starting one shared runtime…</small></p>
+</div>
+```
+
+The later proof-state panel is rendered by the Verso Slides contribution
+through that same runtime.
+
 # Code Example
 
 Here is an elaborated Lean code block:

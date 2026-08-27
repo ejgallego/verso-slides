@@ -7,7 +7,8 @@ import Lake
 
 open System Lake DSL
 
-require verso from git "https://github.com/leanprover/verso.git"@"main"
+require verso from git "https://github.com/ejgallego/verso.git" @
+  "8d7684ca846d94e40d8a307abc015949e3b977a0"
 require lean_vir from git "https://github.com/ejgallego/lean-vir.git" @
   "a1dab8b404280289a720374b59de5873f405294d"
 
