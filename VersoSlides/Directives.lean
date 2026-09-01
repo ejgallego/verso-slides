@@ -447,8 +447,6 @@ Intercepts the Markdown-like `![alt](url)` syntax and warns that the `{image}` r
 instead, since it supports width, height, and class, and uses local path resolution. Controlled by
 the `verso.slides.warnOnImage` option. After warning, delegates to the default handler.
 -/
--- `Directives` imports Verso's default image expander, so Lean loads that registration first.
--- Keyed expanders are tried newest-first; throwing unsupported below falls through to the default.
 @[inline_expander Lean.Doc.Syntax.image]
 public meta def warnOnMarkdownImage : InlineExpander
   | `(inline| image( $alt:str ) ( $url )) => do

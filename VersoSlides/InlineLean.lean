@@ -82,7 +82,8 @@ private meta partial def collectQueryOutput : Highlighted → Array Highlighted
 
 /--
 Slides-specific code block configuration, extending {name}`LeanBlockConfig` with a panel toggle and
-a vertical-stretch toggle.
+a vertical-stretch toggle. This structure is public because it occurs in the public type of
+{name}`lean`.
 -/
 structure SlidesLeanBlockConfig extends LeanBlockConfig where
   panel : Bool
@@ -153,8 +154,9 @@ meta def elabCommandsWithFormat (config : LeanBlockConfig) (str : StrLit)
 
     let origScopes := origScopes.modifyHead fun sc =>
       let opts := pp.tagAppFns.set (Elab.async.set sc.opts false) true
-      -- Elaborate documented declarations as public so they keep their written names instead of
-      -- module-private mangled names, and so later slide examples can refer to them.
+      -- Under the module system, declarations are private by default and receive mangled names.
+      -- Documented declarations must remain public so later code blocks can refer to them by the
+      -- names written in the slides.
       { sc with opts, isPublic := true }
 
     let text ← getFileMap
@@ -351,7 +353,10 @@ meta def leanInline : RoleExpanderOf LeanInlineConfig
 
     toSlidesHighlightedInline config.show hls term
 
-/-- Configuration for the `name` role. -/
+/--
+Configuration for the registered `name` role. This structure is public because it occurs in the
+public type of {name}`name`.
+-/
 structure NameConfig where
   full : Option Name
 

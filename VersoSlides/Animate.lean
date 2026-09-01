@@ -61,6 +61,10 @@ def SlideAnimation.compile (sa : SlideAnimation) (fps : Nat := 60) : CompiledSli
     (sa.steps.filterMap fun s =>
       if s.pause then some s.fragmentIndex else none).toArray
 
+/--
+Configuration for the registered `animate` code-block expander. This structure is public because
+it occurs in the public type of {name}`animate`.
+-/
 structure AnimateConfig where
   fps : Nat := 60
   background : Option String := none

@@ -45,8 +45,6 @@ lean_exe «test-fixtures-build» where
 lean_lib TestElab where
   needs := #[`@verso/+Verso.Code.External:highlighted]
 
-lean_lib Tests
-
 lean_exe «test-fragmentize» where
   root := `Tests.Fragmentize
 

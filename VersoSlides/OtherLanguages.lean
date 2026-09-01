@@ -51,7 +51,10 @@ private meta def langName : Verso.ArgParse.ValDesc DocElabM String where
     | .str s => pure s.getString
     | other => throwError "Expected language name (identifier or string), got {repr other}"
 
-/-- Configuration for the `code` block expander: a required language name. -/
+/--
+Configuration for the registered `code` block expander: a required language name. This structure
+is public because it occurs in the public type of {name}`code`.
+-/
 structure CodeConfig where
   language : String
 

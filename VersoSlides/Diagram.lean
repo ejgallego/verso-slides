@@ -27,6 +27,10 @@ public section
 
 namespace VersoSlides
 
+/--
+Configuration for the registered `diagram` code-block expander. This structure is public because
+it occurs in the public type of {name}`diagram`.
+-/
 structure DiagramConfig where
   background : Option String := none
 
