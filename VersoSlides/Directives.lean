@@ -442,18 +442,16 @@ public meta def image : RoleExpanderOf ImageArgs
 
   ``(Inline.other (VersoSlides.InlineExt.image $(quote imgSrc) $(quote alt) $(quote args.width) $(quote args.height) $(quote args.class)) #[])
 
--- Remove Verso's default image expander from the dispatcher and invoke it explicitly below.
--- Keeping both expanders registered would make the warning depend on registration/import order.
-attribute [-inline_expander] Lean.Doc.Syntax.image.expand
-
 /--
 Intercepts the Markdown-like `![alt](url)` syntax and warns that the `{image}` role should be used
 instead, since it supports width, height, and class, and uses local path resolution. Controlled by
 the `verso.slides.warnOnImage` option. After warning, delegates to the default handler.
 -/
+-- `Directives` imports Verso's default image expander, so Lean loads that registration first.
+-- Keyed expanders are tried newest-first; throwing unsupported below falls through to the default.
 @[inline_expander Lean.Doc.Syntax.image]
 public meta def warnOnMarkdownImage : InlineExpander
-  | stx@`(inline| image( $alt:str ) ( $url )) => do
+  | `(inline| image( $alt:str ) ( $url )) => do
     if (← getOptions).getBool `verso.slides.warnOnImage true then
       let suggestion := "{image " ++ url.getString.quote ++ "}[" ++ alt.getString ++ "]"
       let msg := m!"This image syntax is missing features that are useful for slides, such as width and height."
@@ -462,7 +460,7 @@ public meta def warnOnMarkdownImage : InlineExpander
          m!"It supports width, height, and CSS class, and it copies images to the output directory.").hint
         #[{ suggestion := .string suggestion }]
       logWarningAt alt (msg ++ h)
-    Lean.Doc.Syntax.image.expand stx
+    throwUnsupportedSyntax
   | _ => throwUnsupportedSyntax
 
 /-- Arguments for the `:::table` directive. All features are off by default. -/
