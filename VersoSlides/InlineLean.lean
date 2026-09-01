@@ -153,8 +153,8 @@ meta def elabCommandsWithFormat (config : LeanBlockConfig) (str : StrLit)
 
     let origScopes := origScopes.modifyHead fun sc =>
       let opts := pp.tagAppFns.set (Elab.async.set sc.opts false) true
-      -- Keep declarations from documented code in the public environment so their written names
-      -- remain usable by later slide examples under the module system.
+      -- Elaborate documented declarations as public so they keep their written names instead of
+      -- module-private mangled names, and so later slide examples can refer to them.
       { sc with opts, isPublic := true }
 
     let text ← getFileMap
