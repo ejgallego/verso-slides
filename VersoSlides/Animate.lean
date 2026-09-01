@@ -6,6 +6,8 @@ Author: David Thrane Christiansen
 
 module
 
+-- The expanders below refer to Basic declarations inside generated quotations, which Shake does
+-- not record as declaration dependencies.
 meta import VersoSlides.Basic -- shake: keep
 import VersoSlides.Diagram
 public meta import VersoSlides.Diagram
@@ -23,9 +25,9 @@ open Verso.Genre.Manual.InlineLean.Scopes (runWithOpenDecls runWithVariables)
 open Verso (withoutAsync)
 open Lean.Doc.Syntax
 
-namespace VersoSlides
-
 public section
+
+namespace VersoSlides
 
 /-- A step in a slide animation. Extends {name}`Illuminate.Step` with an optional
     `reveal.js` fragment index for interleaving with other slide fragments. -/
@@ -147,7 +149,5 @@ private meta opaque animateExpanderImpl (config : AnimateConfig) (str : StrLit) 
 @[code_block]
 meta def «animate» : CodeBlockExpanderOf AnimateConfig
   | config, str => animateExpanderImpl config str
-
-end
 
 end VersoSlides

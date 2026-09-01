@@ -442,6 +442,8 @@ public meta def image : RoleExpanderOf ImageArgs
 
   ``(Inline.other (VersoSlides.InlineExt.image $(quote imgSrc) $(quote alt) $(quote args.width) $(quote args.height) $(quote args.class)) #[])
 
+-- Remove Verso's default image expander from the dispatcher and invoke it explicitly below.
+-- Keeping both expanders registered would make the warning depend on registration/import order.
 attribute [-inline_expander] Lean.Doc.Syntax.image.expand
 
 /--

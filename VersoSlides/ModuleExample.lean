@@ -6,6 +6,8 @@ Author: David Thrane Christiansen
 
 module
 
+-- The expanders below refer to Basic declarations inside generated quotations, which Shake does
+-- not record as declaration dependencies.
 meta import VersoSlides.Basic -- shake: keep
 public import VersoSlides.InlineLean
 import VersoSlides.SlideCode
@@ -16,9 +18,9 @@ open Verso.ArgParse
 open Verso.Log
 open Lean
 
-namespace VersoSlides
-
 public section
+
+namespace VersoSlides
 
 /-- Environment variables that should be cleared when running Lake/Lean subprocesses.
 Prevents the parent's build environment from leaking into child processes, which
@@ -489,7 +491,3 @@ where
   mkImports (root : Name) (mods : Array Name) : String :=
     "module\n" ++
     String.join (mods |>.filter (root.isPrefixOf ·) |>.toList |>.map (s!"import {·}\n"))
-
-end
-
-end VersoSlides

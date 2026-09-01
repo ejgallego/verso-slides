@@ -23,9 +23,9 @@ open Verso.Code (HighlightHtmlM highlightingStyle highlightingJs)
 HTML generation for {lit}`reveal.js` slides
 -/
 
-namespace VersoSlides
-
 public section
+
+namespace VersoSlides
 
 /-- Pushes a CSS class onto all top-level HTML tags in a fragment. -/
 partial def addClassToHtml (cls : String) : Html → Html
@@ -724,7 +724,5 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
       writeBinFileWithDirs (imagesDir / outputName) contents
 
   IO.println s!"Slides written to {indexPath}"
-
-end
 
 end VersoSlides

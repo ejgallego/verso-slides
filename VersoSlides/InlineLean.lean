@@ -6,6 +6,8 @@ Author: David Thrane Christiansen
 
 module
 
+-- The expanders below refer to Basic declarations inside generated quotations, which Shake does
+-- not record as declaration dependencies.
 meta import VersoSlides.Basic -- shake: keep
 public meta import VersoSlides.SlideCode.Export
 public import VersoManual.InlineLean
@@ -26,9 +28,9 @@ public register_option verso.slides.panel : Bool := {
   descr := "default value for the `panel` flag on Lean code boxes, which determines whether to show the interactive info panel"
 }
 
-namespace VersoSlides
-
 public section
+
+namespace VersoSlides
 
 /--
 An `ArgParse` parser for the `panel` flag shared by all code-box directives. Its default is taken
@@ -419,7 +421,3 @@ meta def name : RoleExpanderOf NameConfig
       throwErrorAt more[0] "Unexpected contents"
     else
       throwError "Unexpected arguments"
-
-end
-
-end VersoSlides

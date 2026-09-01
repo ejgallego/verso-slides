@@ -6,6 +6,8 @@ Author: David Thrane Christiansen
 
 module
 
+-- The expander below refers to Basic declarations inside generated quotations, which Shake does
+-- not record as declaration dependencies.
 meta import VersoSlides.Basic -- shake: keep
 public import Verso.Doc.Elab.Monad
 public meta import Verso.Doc.Elab.Monad
@@ -36,9 +38,9 @@ open Lean Elab
 open Verso Doc Elab
 open Lean.Doc.Syntax
 
-namespace VersoSlides
-
 public section
+
+namespace VersoSlides
 
 /-- A language name parsed from either an identifier or a string literal. -/
 private meta def langName : Verso.ArgParse.ValDesc DocElabM String where
@@ -63,7 +65,5 @@ Uses `reveal.js`'s built-in syntax highlighting for code.
 meta def code : CodeBlockExpanderOf CodeConfig
   | config, str =>
     ``(Verso.Doc.Block.other (BlockExt.otherLanguage $(quote config.language) $(quote str.getString)) #[])
-
-end
 
 end VersoSlides

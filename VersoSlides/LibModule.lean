@@ -6,6 +6,8 @@ Author: David Thrane Christiansen
 
 module
 
+-- The expanders below refer to Basic declarations inside generated quotations, which Shake does
+-- not record as declaration dependencies.
 meta import VersoSlides.Basic -- shake: keep
 public import VersoSlides.ModuleExample
 import VersoSlides.SlideCode
@@ -20,9 +22,9 @@ open Lean
 open SubVerso.Highlighting
 open SubVerso.Module
 
-namespace VersoSlides
-
 public section
+
+namespace VersoSlides
 
 /-- Arguments accepted by `leanLibCode`. -/
 structure LibModuleConfig where
@@ -499,7 +501,3 @@ meta def leanLibCode : CodeBlockExpanderOf LibModuleConfig
            #[Verso.Doc.Block.code $(quote str.getString)])
     | .error msg =>
       throwErrorAt str.raw msg
-
-end
-
-end VersoSlides

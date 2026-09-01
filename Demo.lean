@@ -7,6 +7,8 @@ Author: David Thrane Christiansen
 module
 
 public import VersoSlides
+-- Registers Illuminate syntax and widgets that are consumed through environment extensions;
+-- Shake cannot observe registration-only dependencies.
 import Illuminate -- shake: keep
 public meta import VersoSlides.Animate
 public meta import Illuminate.Diagram.Paper

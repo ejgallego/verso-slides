@@ -6,6 +6,8 @@ Author: David Thrane Christiansen
 
 module
 
+-- The expanders below refer to Basic declarations inside generated quotations, which Shake does
+-- not record as declaration dependencies.
 meta import VersoSlides.Basic -- shake: keep
 public import Verso.Doc.Elab.Monad
 import Illuminate.Widget
@@ -21,9 +23,9 @@ open Verso.Genre.Manual.InlineLean.Scopes (runWithOpenDecls runWithVariables)
 open Verso (withoutAsync)
 open Lean.Doc.Syntax
 
-namespace VersoSlides
-
 public section
+
+namespace VersoSlides
 
 structure DiagramConfig where
   background : Option String := none
@@ -122,7 +124,5 @@ private meta opaque diagramExpanderImpl (config : DiagramConfig) (str : StrLit) 
 @[code_block]
 meta def diagram : CodeBlockExpanderOf DiagramConfig
   | config, str => diagramExpanderImpl config str
-
-end
 
 end VersoSlides
