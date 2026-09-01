@@ -3,9 +3,18 @@ Copyright (c) 2026 Lean FRO LLC. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
-import VersoSlides
-import Verso.Doc.Concrete
-import Illuminate
+
+module
+
+public import VersoSlides
+import Illuminate -- shake: keep
+public meta import VersoSlides.Animate
+public meta import Illuminate.Diagram.Paper
+public meta import Illuminate.Animation.Interpolate
+public meta import Illuminate.Animation.Morph.Evaluate
+public meta import Illuminate.Animation.Morph.Prepare
+public meta import Illuminate.Animation.Easing
+meta import all Init.System.IO
 
 open VersoSlides
 

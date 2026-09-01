@@ -42,8 +42,9 @@ The document title becomes the HTML page title. Each top-level heading
 slide body.
 
 ```
-import VersoSlides
-import Verso.Doc.Concrete
+module
+
+public import VersoSlides
 
 open VersoSlides
 
@@ -57,6 +58,20 @@ Content of the first slide.
 
 Content of the second slide.
 ```
+
+Slide documents use Lean's module system. `VersoSlides` is imported
+publicly because the generated document declaration exposes Verso
+types to modules that import it. Code inside `#doc` is elaborated
+while that declaration is generated, so APIs used by embedded Lean
+code must also be available at the meta phase. For example, a code
+block that calls `IO.println` needs:
+
+```
+meta import all Init.System.IO
+```
+
+Lean will suggest similarly precise `public meta import` declarations
+when a public document embeds values from another library.
 
 The document module must be imported in `Main.lean`, where the
 `slidesMain` function generates the output. Document-level
@@ -690,12 +705,14 @@ carry per-slide attributes (the table above); doc-level config does
 not appear in `%%%` blocks at all.
 
 ```
+module
+
 import VersoSlides
 import MyPresentation
 
 open VersoSlides
 
-def main : IO UInt32 :=
+public def main : IO UInt32 :=
   slidesMain
     (config := { theme := "white", slideNumber := true,
                  transition := "fade", autoSlide := 5000 })
@@ -787,7 +804,7 @@ def customRevealTheme : CssFile where
   filename := "theme/my-reveal-theme.css"
   contents := ⟨include_str "my-reveal-theme.css"⟩
 
-def main : IO UInt32 :=
+public def main : IO UInt32 :=
   slidesMain
     (config := { theme := .custom customRevealTheme })
     (doc := %doc MyPresentation)
@@ -864,7 +881,7 @@ themes use `monokai`, light themes use `github`, and `solarized` uses
 `solarizedLight`. This default can be overridden:
 
 ```
-def main : IO UInt32 :=
+public def main : IO UInt32 :=
   slidesMain
     (config := { theme := "white", highlightTheme := .githubDark })
     (doc := %doc MyPresentation)
@@ -877,7 +894,7 @@ def myHighlight : HighlightTheme where
   filename := "lib/my-hl.css"
   contents := ⟨include_str "my-hl.css"⟩
 
-def main : IO UInt32 :=
+public def main : IO UInt32 :=
   slidesMain
     (config := { highlightTheme := myHighlight })
     (doc := %doc MyPresentation)
@@ -901,6 +918,8 @@ Use `include_str` to embed the stylesheet at compile time so the
 compiled executable stays self-contained:
 
 ```
+module
+
 import VersoSlides
 import MyPresentation
 
@@ -910,7 +929,7 @@ def myExtraCss : CssFile where
   filename := "custom.css"
   contents := ⟨include_str "custom.css"⟩
 
-def main : IO UInt32 :=
+public def main : IO UInt32 :=
   slidesMain
     (config := { extraCss := #[myExtraCss] })
     (doc := %doc MyPresentation)

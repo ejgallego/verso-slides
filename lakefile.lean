@@ -11,6 +11,7 @@ require verso from git "https://github.com/leanprover/verso.git"@"main"
 
 package «verso-slides» where
   version := v!"0.1.0"
+  requiresModuleSystem := true
 
 input_dir vendorAssets where
   path := "vendor"

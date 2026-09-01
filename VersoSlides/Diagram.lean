@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
 
-import VersoSlides.Basic
-import Verso.Doc.ArgParse
-import Verso.Doc.Elab.Monad
-import VersoManual.InlineLean
-import Illuminate
+module
+
+meta import VersoSlides.Basic -- shake: keep
+public import Verso.Doc.Elab.Monad
+import Illuminate.Widget
+meta import Illuminate.Widget
+meta import VersoManual.InlineLean.Scopes
+meta import Verso.WithoutAsync
+public meta import Verso.Doc.Elab.Monad
 
 open Verso ArgParse Doc Elab
 open Lean Elab
@@ -19,22 +23,24 @@ open Lean.Doc.Syntax
 
 namespace VersoSlides
 
-private structure DiagramConfig where
+public section
+
+structure DiagramConfig where
   background : Option String := none
 
 section
 variable [Monad m] [MonadInfoTree m] [MonadLiftT CoreM m] [MonadEnv m] [MonadError m]
 
-private def DiagramConfig.parse : ArgParse m DiagramConfig :=
+private meta def DiagramConfig.parse : ArgParse m DiagramConfig :=
   DiagramConfig.mk <$> .named `background .string true
 
-instance : FromArgs DiagramConfig m where
-  fromArgs := DiagramConfig.parse
+meta instance : FromArgs DiagramConfig m where
+  fromArgs := private DiagramConfig.parse
 end
 
 /-- Extracts the `viewBox` width from an SVG string produced by Illuminate.
     The viewBox format is `"minX minY width height"`. -/
-def svgViewBoxWidth (svg : String) : Float :=
+meta def svgViewBoxWidth (svg : String) : Float :=
   let go : Option Float := do
     let parts := (svg.splitOn "viewBox=\"").toArray
     if h : parts.size > 1 then
@@ -111,10 +117,12 @@ private meta unsafe def diagramExpanderUnsafe (config : DiagramConfig) (str : St
 
 open Lean.Widget Lean.Elab.Term Lean.Meta Illuminate in
 @[implemented_by diagramExpanderUnsafe]
-private opaque diagramExpanderImpl (config : DiagramConfig) (str : StrLit) : DocElabM Term
+private meta opaque diagramExpanderImpl (config : DiagramConfig) (str : StrLit) : DocElabM Term
 
 @[code_block]
-def diagram : CodeBlockExpanderOf DiagramConfig
+meta def diagram : CodeBlockExpanderOf DiagramConfig
   | config, str => diagramExpanderImpl config str
+
+end
 
 end VersoSlides

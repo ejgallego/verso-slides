@@ -4,23 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
 
-import Lean.Elab.Term
+module
 
-import Verso.Code.Highlighted
-import Verso.Code.External
-import Verso.Doc.Elab
-import Verso.Doc.ArgParse
-import Verso.Doc.Helpers
-import Verso.ExpectString
-import Verso.Log
-import SubVerso.Highlighting.Code
-import SubVerso.Module
-
-import VersoSlides.Basic
-import VersoSlides.InlineLean
-import VersoSlides.ModuleExample
+meta import VersoSlides.Basic -- shake: keep
+public import VersoSlides.ModuleExample
 import VersoSlides.SlideCode
-import VersoSlides.SlideCode.Export
+public meta import VersoSlides.ModuleExample
+public meta import Std.Data.Iterators.Combinators.Drop
 
 open Verso.Doc.Elab
 open Verso.ArgParse
@@ -31,6 +21,8 @@ open SubVerso.Highlighting
 open SubVerso.Module
 
 namespace VersoSlides
+
+public section
 
 /-- Arguments accepted by `leanLibCode`. -/
 structure LibModuleConfig where
@@ -56,7 +48,7 @@ section
 
 variable [Monad m] [MonadError m] [MonadOptions m]
 
-instance : FromArgs LibModuleConfig m where
+meta instance : FromArgs LibModuleConfig m where
   fromArgs :=
     LibModuleConfig.mk
       <$> .positional `module .ident
@@ -69,7 +61,7 @@ instance : FromArgs LibModuleConfig m where
 end
 
 /-- Cached extracted module JSON, keyed by fully-qualified module name. -/
-private structure LoadedLibModule where
+private meta structure LoadedLibModule where
   /-- Hash of the JSON file's bytes at load time. -/
   fileHash : UInt64
   items : Array ModuleItem
@@ -79,7 +71,7 @@ Environment extension holding parsed external-library modules for the current Le
 module name; invalidated across sessions when the env resets, and invalidated within a session by a
 file-hash check in `loadLibModule`.
 -/
-private initialize loadedLibModulesExt :
+private meta initialize loadedLibModulesExt :
     EnvExtension (Std.HashMap Name LoadedLibModule) ←
   registerEnvExtension (pure {})
 
@@ -91,7 +83,7 @@ elaboration.
 If `package?` is given, targets the module within that package (`@pkg/+mod:highlighted`); otherwise
 queries across the workspace (`+mod:highlighted`).
 -/
-private def queryFacetBytes (modName : Name) (package? : Option Name) :
+private meta def queryFacetBytes (modName : Name) (package? : Option Name) :
     IO (Option ByteArray) := do
   let tgt :=
     match package? with
@@ -115,7 +107,7 @@ auto-deleted by `withTempFile`.
 doesn't include the toolchain's `src/lean` directory. `LEAN_SRC_PATH` is overridden with the
 toolchain sysroot (via `Lean.findSysroot`) so prelude and stdlib modules are reachable.
 -/
-private def fallbackExtractBytes (modName : Name) : IO (Option ByteArray) := do
+private meta def fallbackExtractBytes (modName : Name) : IO (Option ByteArray) := do
   let exeOut ← IO.Process.output {
     cmd := "lake",
     args := #["query", "--text", "subverso-extract-mod"]
@@ -136,7 +128,7 @@ private def fallbackExtractBytes (modName : Name) : IO (Option ByteArray) := do
     some <$> IO.FS.readBinFile jsonFile
 
 /-- Diagnostic-friendly guidance when neither the facet nor the fallback can find the module. -/
-private def noModuleError (modName : Name) (package? : Option Name) : MessageData :=
+private meta def noModuleError (modName : Name) (package? : Option Name) : MessageData :=
   let qual :=
     match package? with
     | some p => s!"@{p}/+{modName}:highlighted"
@@ -157,7 +149,7 @@ Loads the parsed `ModuleItem`s for `modName`, hitting the env-extension cache wh
 cache has a stale entry (file hash changed mid-session), asks the user to restart rather than
 silently handing out a mix of old and new data.
 -/
-private def loadLibModule [Monad m] [MonadEnv m] [MonadError m] [MonadLiftT IO m]
+private meta def loadLibModule [Monad m] [MonadEnv m] [MonadError m] [MonadLiftT IO m]
     (modName : Name) (package? : Option Name) (blame : Syntax) : m (Array ModuleItem) := do
   let bytes ←
     match ← (queryFacetBytes modName package? : IO _) with
@@ -183,14 +175,14 @@ private def loadLibModule [Monad m] [MonadEnv m] [MonadError m] [MonadLiftT IO m
     m.insert modName { fileHash := currentHash, items := mod.items }
   return mod.items
 
-private inductive Ctx where
+private meta inductive Ctx where
   | tactics (goals : Array (Highlighted.Goal Highlighted)) (s e : Nat)
   | span (info : Array (Highlighted.Span.Kind × Highlighted.MessageContents Highlighted))
 
 /--
 Gets the indicated line range, on the assumption that the code in question starts at line `line`.
 -/
-def getLines (line : Nat) (startLine endLine : Nat) (hl : Highlighted) : Highlighted := Id.run do
+meta def getLines (line : Nat) (startLine endLine : Nat) (hl : Highlighted) : Highlighted := Id.run do
   let mut line := line
   let mut ctx : List (Highlighted × Ctx × List Highlighted) := []
   let mut doc : List Highlighted := [hl]
@@ -254,7 +246,7 @@ or `none` if the item lies entirely outside the range. Items entirely inside
 the range pass through without traversal; only items straddling a boundary
 are walked.
 -/
-private def sliceItem (sl el : Nat) (item : ModuleItem) : Option Highlighted := do
+private meta def sliceItem (sl el : Nat) (item : ModuleItem) : Option Highlighted := do
   let (s, e) ← item.range
   if e.line < sl ∨ s.line > el then none
   else if sl ≤ s.line ∧ e.line ≤ el then some item.code
@@ -273,7 +265,7 @@ enough — concretely, when the Levenshtein distance exceeds
 The returned text contains complete source lines, snapped at both ends and suitable for use directly
 as the body of a quickfix replacement.
 -/
-def findBodyLineRange (body : String) (items : Array ModuleItem) :
+meta def findBodyLineRange (body : String) (items : Array ModuleItem) :
     Option (Nat × Nat × String) := Id.run do
   if body.isEmpty then return none
   let modText : String := items.foldl (init := "") fun s i => s ++ i.code.toString
@@ -339,7 +331,7 @@ def findBodyLineRange (body : String) (items : Array ModuleItem) :
 Picks the highlighted code to include based on the user's config (decl, line range, or all). For
 line ranges, slices each overlapping item to the requested lines via `sliceItem`.
 -/
-private def selectCode (items : Array ModuleItem) (cfg : LibModuleConfig)
+private meta def selectCode (items : Array ModuleItem) (cfg : LibModuleConfig)
     : Except String Highlighted := do
   match cfg.decl, cfg.startLine, cfg.endLine with
   | some _, some _, _ | some _, _, some _ =>
@@ -454,7 +446,7 @@ def bar : Nat := 42
 ```
 -/
 @[code_block]
-def leanLibCode : CodeBlockExpanderOf LibModuleConfig
+meta def leanLibCode : CodeBlockExpanderOf LibModuleConfig
   | cfg, str => do
     let modName := cfg.«module».getId
     let pkgName? := cfg.«package».map (·.getId)
@@ -507,3 +499,7 @@ def leanLibCode : CodeBlockExpanderOf LibModuleConfig
            #[Verso.Doc.Block.code $(quote str.getString)])
     | .error msg =>
       throwErrorAt str.raw msg
+
+end
+
+end VersoSlides

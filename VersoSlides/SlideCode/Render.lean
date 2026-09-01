@@ -3,10 +3,11 @@ Copyright (c) 2026 Lean FRO LLC. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
-module
+module -- shake: keep-all
 public import VersoSlides.SlideCode
 public import Verso.Code.Highlighted
-import Verso.Output.Html
+-- This module constructs `Html` directly.
+public import Verso.Output.Html
 
 set_option doc.verso true
 

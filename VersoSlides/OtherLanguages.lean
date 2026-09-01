@@ -4,8 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
 
-import VersoSlides.Basic
-import Verso.Doc.Elab.Monad
+module
+
+meta import VersoSlides.Basic -- shake: keep
+public import Verso.Doc.Elab.Monad
+public meta import Verso.Doc.Elab.Monad
 
 /-!
 Code block handler for other (non-Lean) languages.
@@ -35,8 +38,10 @@ open Lean.Doc.Syntax
 
 namespace VersoSlides
 
+public section
+
 /-- A language name parsed from either an identifier or a string literal. -/
-private def langName : Verso.ArgParse.ValDesc DocElabM String where
+private meta def langName : Verso.ArgParse.ValDesc DocElabM String where
   description := "a language name"
   signature := { ident := true, string := true, num := false }
   get
@@ -45,18 +50,20 @@ private def langName : Verso.ArgParse.ValDesc DocElabM String where
     | other => throwError "Expected language name (identifier or string), got {repr other}"
 
 /-- Configuration for the `code` block expander: a required language name. -/
-private structure CodeConfig where
+structure CodeConfig where
   language : String
 
-instance : Verso.ArgParse.FromArgs CodeConfig DocElabM where
-  fromArgs := CodeConfig.mk <$> .positional `language langName
+meta instance : Verso.ArgParse.FromArgs CodeConfig DocElabM where
+  fromArgs := private (CodeConfig.mk <$> .positional `language langName)
 
 /--
 Uses `reveal.js`'s built-in syntax highlighting for code.
 -/
 @[code_block]
-def code : CodeBlockExpanderOf CodeConfig
+meta def code : CodeBlockExpanderOf CodeConfig
   | config, str =>
     ``(Verso.Doc.Block.other (BlockExt.otherLanguage $(quote config.language) $(quote str.getString)) #[])
+
+end
 
 end VersoSlides

@@ -4,22 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
 module
-import VersoSlides.Basic
 public meta import VersoSlides.Basic
-import VersoSlides.ImageWidget
 public meta import VersoSlides.ImageWidget
-public meta import VersoSlides.ImgSrc
-import Verso.Doc.Elab
-import Verso.Doc.ArgParse
-public import Verso.Doc.Elab.Monad
-public meta import Verso.Doc.Elab.Block
-public meta import Verso.Doc.Elab.Inline
+import VersoSlides.ImgSrc
+public import Verso.Doc.Elab
+public meta import Verso.Doc.Elab
 
 open Verso Doc Elab ArgParse
 open Lean Elab Widget
 open Lean.Doc.Syntax
 
-register_option verso.slides.warnOnImage : Bool := {
+public register_option verso.slides.warnOnImage : Bool := {
   defValue := true
   descr := "if true, warn when Markdown image syntax ![alt](url) is used instead of the {image} role"
 }
@@ -447,6 +442,8 @@ public meta def image : RoleExpanderOf ImageArgs
 
   ``(Inline.other (VersoSlides.InlineExt.image $(quote imgSrc) $(quote alt) $(quote args.width) $(quote args.height) $(quote args.class)) #[])
 
+attribute [-inline_expander] Lean.Doc.Syntax.image.expand
+
 /--
 Intercepts the Markdown-like `![alt](url)` syntax and warns that the `{image}` role should be used
 instead, since it supports width, height, and class, and uses local path resolution. Controlled by
@@ -454,7 +451,7 @@ the `verso.slides.warnOnImage` option. After warning, delegates to the default h
 -/
 @[inline_expander Lean.Doc.Syntax.image]
 public meta def warnOnMarkdownImage : InlineExpander
-  | `(inline| image( $alt:str ) ( $url )) => do
+  | stx@`(inline| image( $alt:str ) ( $url )) => do
     if (← getOptions).getBool `verso.slides.warnOnImage true then
       let suggestion := "{image " ++ url.getString.quote ++ "}[" ++ alt.getString ++ "]"
       let msg := m!"This image syntax is missing features that are useful for slides, such as width and height."
@@ -463,7 +460,7 @@ public meta def warnOnMarkdownImage : InlineExpander
          m!"It supports width, height, and CSS class, and it copies images to the output directory.").hint
         #[{ suggestion := .string suggestion }]
       logWarningAt alt (msg ++ h)
-    throwUnsupportedSyntax
+    Lean.Doc.Syntax.image.expand stx
   | _ => throwUnsupportedSyntax
 
 /-- Arguments for the `:::table` directive. All features are off by default. -/

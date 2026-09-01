@@ -4,23 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
 
-import Lean.Elab.Term
-import Lean.Elab.Tactic
+module
 
-import Verso.Code.Highlighted
-import Verso.Doc.Elab
-import Verso.Doc.ArgParse
-import Verso.Doc.Suggestion
-import Verso.Doc.Helpers
-import Verso.Log
-import SubVerso.Highlighting.Code
-
-
-import VersoSlides.Basic
-import VersoSlides.InlineLean
+meta import VersoSlides.Basic -- shake: keep
+public import VersoSlides.InlineLean
 import VersoSlides.SlideCode
-import VersoSlides.SlideCode.Export
-import SubVerso.Module
+public meta import VersoSlides.InlineLean
 
 open Verso.Doc.Elab
 open Verso.ArgParse
@@ -29,10 +18,12 @@ open Lean
 
 namespace VersoSlides
 
+public section
+
 /-- Environment variables that should be cleared when running Lake/Lean subprocesses.
 Prevents the parent's build environment from leaking into child processes, which
 can cause spurious rebuilds (especially via `LEAN_GITHASH`). -/
-private def lakeEnvBlacklist : Array (String × Option String) :=
+private meta def lakeEnvBlacklist : Array (String × Option String) :=
   #["LAKE", "LAKE_HOME", "LAKE_PKG_URL_MAP",
     "LEAN_SYSROOT", "LEAN_AR", "LEAN_PATH", "LEAN_SRC_PATH",
     "LEAN_GITHASH",
@@ -51,7 +42,7 @@ section
 
 variable [Monad m] [MonadError m] [MonadOptions m]
 
-instance : FromArgs ModuleConfig m where
+meta instance : FromArgs ModuleConfig m where
   fromArgs := ModuleConfig.mk <$>
     .named' `name true <*>
     .named' `moduleName true <*>
@@ -65,7 +56,7 @@ end
 
 section
 open SubVerso.Highlighting
-partial def getMessages (hl : Highlighted) : Array (Nat × Highlighted.Message) :=
+meta partial def getMessages (hl : Highlighted) : Array (Nat × Highlighted.Message) :=
   let ((), _, out) := go hl (0, #[])
   out
 where
@@ -82,7 +73,7 @@ where
     | .point sev contents =>
       modify fun (l, msgs) => (l, msgs.push (l, ⟨sev, contents⟩))
 
-def dropBlanks (hl : Highlighted) : Highlighted :=
+meta def dropBlanks (hl : Highlighted) : Highlighted :=
   match hl with
   | .text s => .text s.trimAsciiStart.copy
   | .seq xs => Id.run do
@@ -95,7 +86,7 @@ def dropBlanks (hl : Highlighted) : Highlighted :=
 
 end
 
-def logBuild [Monad m] [MonadRef m] [MonadOptions m] [MonadLog m] [AddMessageContext m] (command : String) (out : IO.Process.Output) (blame : Option Syntax := none) : m Unit := do
+meta def logBuild [Monad m] [MonadRef m] [MonadOptions m] [MonadLog m] [AddMessageContext m] (command : String) (out : IO.Process.Output) (blame : Option Syntax := none) : m Unit := do
   let blame ←
     if let some b := blame then pure b else getRef
   let mut buildOut : Array MessageData := #[]
@@ -106,7 +97,7 @@ def logBuild [Monad m] [MonadRef m] [MonadOptions m] [MonadLog m] [AddMessageCon
   unless buildOut.isEmpty do
     logSilentInfoAt blame <| .trace {cls := `build} m!"{command}" buildOut
 
-def lineStx [Monad m] [MonadFileMap m] (l : Nat) : m Syntax := do
+meta def lineStx [Monad m] [MonadFileMap m] (l : Nat) : m Syntax := do
   let text ← getFileMap
   -- 0-indexed vs 1-indexed requires +1 and +2 here
   let r := ⟨text.lineStart (l + 1), text.lineStart (l + 2)⟩
@@ -114,7 +105,7 @@ def lineStx [Monad m] [MonadFileMap m] (l : Nat) : m Syntax := do
 
 open Lean.Doc.Syntax in
 @[code_block]
-def leanModule : CodeBlockExpanderOf ModuleConfig
+meta def leanModule : CodeBlockExpanderOf ModuleConfig
   | { name, moduleName, error, «show», panel, stretch, lakefile }, str => do
     let line := (← getFileMap).utf8PosToLspPos str.raw.getPos! |>.line
     let leanCode := line.fold (fun _ _ s => s.push '\n') "" ++ str.getString ++ "\n"
@@ -226,16 +217,16 @@ structure IdentRefConfig where
 
 section
 variable [Monad m] [MonadError m]
-instance : FromArgs IdentRefConfig m where
+meta instance : FromArgs IdentRefConfig m where
   fromArgs := IdentRefConfig.mk <$> .positional' `name
 end
 
 @[code_block]
-def identRef : CodeBlockExpanderOf IdentRefConfig
+meta def identRef : CodeBlockExpanderOf IdentRefConfig
   | { name := x }, _ => pure x
 
 @[role identRef]
-def identRefRole : RoleExpanderOf IdentRefConfig
+meta def identRefRole : RoleExpanderOf IdentRefConfig
   | { name := x }, _ => pure x
 
 structure ModulesConfig where
@@ -245,12 +236,12 @@ structure ModulesConfig where
 
 section
 variable [Monad m] [MonadError m]
-instance : FromArgs ModulesConfig m where
+meta instance : FromArgs ModulesConfig m where
   fromArgs := ModulesConfig.mk <$> .flag `server true <*> .many (.named' `moduleRoot false) <*> .flag `error false
 end
 
 open Lean.Doc.Syntax in
-partial def getBlocks (block : Syntax) : StateT (NameMap (ModuleConfig × StrLit × Syntax)) DocElabM Syntax := do
+meta partial def getBlocks (block : Syntax) : StateT (NameMap (ModuleConfig × StrLit × Syntax)) DocElabM Syntax := do
   if block.getKind == ``Lean.Doc.Syntax.codeblock then
     if let `(Lean.Doc.Syntax.codeblock|```$x:ident $args* | $s:str ```) := block then
       try
@@ -274,7 +265,7 @@ partial def getBlocks (block : Syntax) : StateT (NameMap (ModuleConfig × StrLit
 
 open Lean.Doc.Syntax in
 open Verso.Doc (oneCodeStr?) in
-partial def getQuotes (stx : Syntax) : StateT (NameMap StrLit) DocElabM Syntax := do
+meta partial def getQuotes (stx : Syntax) : StateT (NameMap StrLit) DocElabM Syntax := do
   if stx.getKind == ``Lean.Doc.Syntax.role then
     if let `(Lean.Doc.Syntax.role|role{$x:ident $args*}[$inls*]) := stx then
       try
@@ -298,7 +289,7 @@ partial def getQuotes (stx : Syntax) : StateT (NameMap StrLit) DocElabM Syntax :
   | _ => return stx
 
 
-def getRoot (mods : NameMap (ModuleConfig × α)) : Option Name :=
+meta def getRoot (mods : NameMap (ModuleConfig × α)) : Option Name :=
   mods.foldl (init := none) fun
     | none, _, ({ moduleName, .. }, _) => moduleName.map (·.getId)
     | some y, _, ({moduleName := some x, ..}, _) => prefix? y x.getId
@@ -311,7 +302,7 @@ where
 
 open SubVerso.Highlighting in
 @[directive]
-def leanModules : DirectiveExpanderOf ModulesConfig
+meta def leanModules : DirectiveExpanderOf ModulesConfig
   | { server, moduleRoots, error }, blocks => do
     let (blocks, codeBlocks) ← blocks.mapM getBlocks {}
     let moduleRoots ←
@@ -498,3 +489,7 @@ where
   mkImports (root : Name) (mods : Array Name) : String :=
     "module\n" ++
     String.join (mods |>.filter (root.isPrefixOf ·) |>.toList |>.map (s!"import {·}\n"))
+
+end
+
+end VersoSlides

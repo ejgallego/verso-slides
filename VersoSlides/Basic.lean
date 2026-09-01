@@ -3,13 +3,13 @@ Copyright (c) 2026 Lean FRO LLC. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
-module
+module -- shake: keep-all
 public import Verso.Doc
 public import Verso.Output.Html
 public import VersoSlides.ImgSrc
+-- `CssFile` is part of this module's public API.
 public import VersoManual.Html.CssFile
 public import VersoSlidesVendored
-import Std.Data.HashMap
 
 open Lean
 open Verso Output

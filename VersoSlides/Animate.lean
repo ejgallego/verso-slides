@@ -4,12 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
 
-import VersoSlides.Basic
+module
+
+meta import VersoSlides.Basic -- shake: keep
 import VersoSlides.Diagram
-import Verso.Doc.ArgParse
-import Verso.Doc.Elab.Monad
-import VersoManual.InlineLean
-import Illuminate
+public meta import VersoSlides.Diagram
+public import Verso.Doc.Elab.Monad
+import Illuminate.Animation.Widget
+public import Illuminate.Animation.Types
+public import Illuminate.Backend.SVG
+meta import VersoManual.InlineLean.Scopes
+meta import Verso.WithoutAsync
 
 open Verso ArgParse Doc Elab
 open Lean Elab
@@ -19,6 +24,8 @@ open Verso (withoutAsync)
 open Lean.Doc.Syntax
 
 namespace VersoSlides
+
+public section
 
 /-- A step in a slide animation. Extends {name}`Illuminate.Step` with an optional
     `reveal.js` fragment index for interleaving with other slide fragments. -/
@@ -52,7 +59,7 @@ def SlideAnimation.compile (sa : SlideAnimation) (fps : Nat := 60) : CompiledSli
     (sa.steps.filterMap fun s =>
       if s.pause then some s.fragmentIndex else none).toArray
 
-private structure AnimateConfig where
+structure AnimateConfig where
   fps : Nat := 60
   background : Option String := none
   autoplay : Bool := false
@@ -60,14 +67,14 @@ private structure AnimateConfig where
 section
 variable [Monad m] [MonadInfoTree m] [MonadLiftT CoreM m] [MonadEnv m] [MonadError m]
 
-private def AnimateConfig.parse : ArgParse m AnimateConfig :=
+private meta def AnimateConfig.parse : ArgParse m AnimateConfig :=
   AnimateConfig.mk <$> .namedD `fps .nat 60 <*> .named `background .string true <*> .flag `autoplay false
 
-instance : FromArgs AnimateConfig m where
-  fromArgs := AnimateConfig.parse
+meta instance : FromArgs AnimateConfig m where
+  fromArgs := private AnimateConfig.parse
 end
 
-private initialize animContainerCounter : IO.Ref Nat ← IO.mkRef 0
+private meta initialize animContainerCounter : IO.Ref Nat ← IO.mkRef 0
 
 open Lean.Widget Lean.Elab.Term Lean.Meta Illuminate in
 private meta unsafe def animateExpanderUnsafe (config : AnimateConfig) (str : StrLit) :
@@ -135,10 +142,12 @@ private meta unsafe def animateExpanderUnsafe (config : AnimateConfig) (str : St
 
 open Lean.Widget Lean.Elab.Term Lean.Meta Illuminate in
 @[implemented_by animateExpanderUnsafe]
-private opaque animateExpanderImpl (config : AnimateConfig) (str : StrLit) : DocElabM Term
+private meta opaque animateExpanderImpl (config : AnimateConfig) (str : StrLit) : DocElabM Term
 
 @[code_block]
-def «animate» : CodeBlockExpanderOf AnimateConfig
+meta def «animate» : CodeBlockExpanderOf AnimateConfig
   | config, str => animateExpanderImpl config str
+
+end
 
 end VersoSlides
