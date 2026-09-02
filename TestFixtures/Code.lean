@@ -8,6 +8,9 @@ module
 
 public import VersoSlides
 import Std.Tactic.BVDecide.Normalize.Prop
+-- Code-panel hovers need docstring metadata, which is not part of the exported module data.
+-- Import the full module at the meta phase so declarations such as `IO.println` retain their docs.
+meta import all Init.System.IO
 
 open VersoSlides
 

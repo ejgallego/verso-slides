@@ -16,6 +16,9 @@ public meta import Illuminate.Animation.Interpolate
 public meta import Illuminate.Animation.Morph.Evaluate
 public meta import Illuminate.Animation.Morph.Prepare
 public meta import Illuminate.Animation.Easing
+-- Code-panel hovers need docstring metadata, which is not part of the exported module data.
+-- Import the full module at the meta phase so declarations such as `IO.println` retain their docs.
+meta import all Init.System.IO
 
 open VersoSlides
 
