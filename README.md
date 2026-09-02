@@ -59,20 +59,6 @@ Content of the first slide.
 Content of the second slide.
 ```
 
-Slide documents use Lean's module system. `VersoSlides` is imported
-publicly because the generated document declaration exposes Verso
-types to modules that import it. Code inside `#doc` is elaborated
-while that declaration is generated, so APIs used by embedded Lean
-code must also be available at the meta phase. For example, a code
-block that calls `IO.println` needs:
-
-```
-meta import all Init.System.IO
-```
-
-Lean will suggest similarly precise `public meta import` declarations
-when a public document embeds values from another library.
-
 The document module must be imported in `Main.lean`, where the
 `slidesMain` function generates the output. Document-level
 configuration (theme, transition style, slide numbering, etc.) is set
