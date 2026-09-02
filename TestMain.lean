@@ -29,6 +29,15 @@ public def main (args : List String) : IO UInt32 := do
       return 1
 
   -- Step 0: Lean-side unit tests that don't require browsers
+  let leanTests := #[
+    ("test-fragmentize", "Running fragmentize unit tests"),
+    ("test-render", "Running rendering unit tests"),
+    ("test-comment-parsers", "Running comment-parser unit tests")
+  ]
+  for (exe, desc) in leanTests do
+    let rc ← runCmd "lake" #["exe", exe] desc
+    if rc != 0 then return rc
+
   let rc ← runCmd "lake" #["exe", "test-config-validation"]
     "Running Config.validateFilenames unit tests"
   if rc != 0 then return rc
