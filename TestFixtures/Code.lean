@@ -8,7 +8,6 @@ module
 
 public import VersoSlides
 import Std.Tactic.BVDecide.Normalize.Prop
-meta import all Init.System.IO
 
 open VersoSlides
 
