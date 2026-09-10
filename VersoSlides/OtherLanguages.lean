@@ -42,10 +42,6 @@ public section
 
 namespace VersoSlides
 
-/--
-Configuration for the registered `code` block expander: a required language name. This structure
-is public because it occurs in the public type of {name}`code`.
--/
 structure CodeConfig where
   language : String
 

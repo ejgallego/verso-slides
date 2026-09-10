@@ -32,19 +32,10 @@ public section
 
 namespace VersoSlides
 
-/--
-Slides-specific code block configuration, extending {name}`LeanBlockConfig` with a panel toggle and
-a vertical-stretch toggle. This structure is public because it occurs in the public type of
-{name}`lean`.
--/
 structure SlidesLeanBlockConfig extends LeanBlockConfig where
   panel : Bool
   stretch : Bool
 
-/--
-Configuration for the registered `name` role. This structure is public because it occurs in the
-public type of {name}`name`.
--/
 structure NameConfig where
   full : Option Name
 
