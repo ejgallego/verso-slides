@@ -951,3 +951,11 @@ plan before touching the filesystem:
   asset both claiming `theme.css`), `slidesMain` raises an
   `IO.userError` and writes nothing. The error names the offending
   filename and both sources so the conflict is easy to fix.
+
+## Import Maintenance
+
+Use `lake shake --keep-public VersoSlides` when minimizing the
+library's imports. This preserves the library's re-exports while
+allowing redundant imports to be removed. Some elaboration-time
+dependencies still need targeted `shake: keep` annotations, explained
+at the corresponding imports.

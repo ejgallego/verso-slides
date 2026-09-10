@@ -6,8 +6,8 @@ Author: David Thrane Christiansen
 
 module
 
--- The expanders below refer to Basic declarations inside generated quotations, which Shake does
--- not record as declaration dependencies.
+-- The expanders below refer to declarations from `VersoSlides.Basic` inside generated
+-- quotations. These references are not currently recorded as dependencies for Shake.
 meta import VersoSlides.Basic -- shake: keep
 public import VersoSlides.ModuleExample
 import VersoSlides.SlideCode

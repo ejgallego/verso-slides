@@ -3,12 +3,9 @@ Copyright (c) 2026 Lean FRO LLC. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
--- `Html` occurs in this module's public API but is also re-exported by another import.
-module -- shake: keep-all
+module
 public import VersoSlides.SlideCode
 public import Verso.Code.Highlighted
--- This module constructs `Html` directly and exposes it in `SlideCode.toHtml`'s return type.
-public import Verso.Output.Html
 
 set_option doc.verso true
 

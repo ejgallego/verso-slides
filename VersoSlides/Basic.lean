@@ -3,13 +3,10 @@ Copyright (c) 2026 Lean FRO LLC. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Author: David Thrane Christiansen
 -/
--- Keep direct public API imports even when another import currently re-exports them transitively.
-module -- shake: keep-all
+module
 public import Verso.Doc
 public import Verso.Output.Html
 public import VersoSlides.ImgSrc
--- `CssFile` is part of this module's public API.
-public import VersoManual.Html.CssFile
 public import VersoSlidesVendored
 
 open Lean
