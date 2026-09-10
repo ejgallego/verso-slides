@@ -414,6 +414,13 @@ compiler and rendered with full syntax highlighting and hover
 documentation. The code is type-checked at build time, so any errors
 are caught before the slides are generated.
 
+When using the module system, building slides from the command line
+requires `import all` of a declaration's defining module to include
+its docstring in hovers. For example, add `import all Init.System.IO`
+to the presentation's imports for the documentation of `IO.println`.
+Without it, the code still compiles, but the generated hover omits the
+docstring.
+
 ````
 ```lean
 def factorial : Nat → Nat
