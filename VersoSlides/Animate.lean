@@ -70,20 +70,22 @@ structure AnimateConfig where
   background : Option String := none
   autoplay : Bool := false
 
+meta section
+
 section
 variable [Monad m] [MonadInfoTree m] [MonadLiftT CoreM m] [MonadEnv m] [MonadError m]
 
-private meta def AnimateConfig.parse : ArgParse m AnimateConfig :=
+private def AnimateConfig.parse : ArgParse m AnimateConfig :=
   AnimateConfig.mk <$> .namedD `fps .nat 60 <*> .named `background .string true <*> .flag `autoplay false
 
-meta instance : FromArgs AnimateConfig m where
+instance : FromArgs AnimateConfig m where
   fromArgs := private AnimateConfig.parse
 end
 
-private meta initialize animContainerCounter : IO.Ref Nat ← IO.mkRef 0
+private initialize animContainerCounter : IO.Ref Nat ← IO.mkRef 0
 
 open Lean.Widget Lean.Elab.Term Lean.Meta Illuminate in
-private meta unsafe def animateExpanderUnsafe (config : AnimateConfig) (str : StrLit) :
+private unsafe def animateExpanderUnsafe (config : AnimateConfig) (str : StrLit) :
     DocElabM Term := withoutAsync do
   let altStr ← parserInputString str
 
@@ -148,10 +150,8 @@ private meta unsafe def animateExpanderUnsafe (config : AnimateConfig) (str : St
 
 open Lean.Widget Lean.Elab.Term Lean.Meta Illuminate in
 @[implemented_by animateExpanderUnsafe]
-private meta opaque animateExpanderImpl (config : AnimateConfig) (str : StrLit) : DocElabM Term
+private opaque animateExpanderImpl (config : AnimateConfig) (str : StrLit) : DocElabM Term
 
 @[code_block]
-meta def «animate» : CodeBlockExpanderOf AnimateConfig
+def «animate» : CodeBlockExpanderOf AnimateConfig
   | config, str => animateExpanderImpl config str
-
-end VersoSlides

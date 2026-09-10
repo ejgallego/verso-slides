@@ -42,15 +42,6 @@ public section
 
 namespace VersoSlides
 
-/-- A language name parsed from either an identifier or a string literal. -/
-private meta def langName : Verso.ArgParse.ValDesc DocElabM String where
-  description := "a language name"
-  signature := { ident := true, string := true, num := false }
-  get
-    | .name x => pure (x.getId.toString (escape := false))
-    | .str s => pure s.getString
-    | other => throwError "Expected language name (identifier or string), got {repr other}"
-
 /--
 Configuration for the registered `code` block expander: a required language name. This structure
 is public because it occurs in the public type of {name}`code`.
@@ -58,15 +49,24 @@ is public because it occurs in the public type of {name}`code`.
 structure CodeConfig where
   language : String
 
-meta instance : Verso.ArgParse.FromArgs CodeConfig DocElabM where
+meta section
+
+/-- A language name parsed from either an identifier or a string literal. -/
+private def langName : Verso.ArgParse.ValDesc DocElabM String where
+  description := "a language name"
+  signature := { ident := true, string := true, num := false }
+  get
+    | .name x => pure (x.getId.toString (escape := false))
+    | .str s => pure s.getString
+    | other => throwError "Expected language name (identifier or string), got {repr other}"
+
+instance : Verso.ArgParse.FromArgs CodeConfig DocElabM where
   fromArgs := private (CodeConfig.mk <$> .positional `language langName)
 
 /--
 Uses `reveal.js`'s built-in syntax highlighting for code.
 -/
 @[code_block]
-meta def code : CodeBlockExpanderOf CodeConfig
+def code : CodeBlockExpanderOf CodeConfig
   | config, str =>
     ``(Verso.Doc.Block.other (BlockExt.otherLanguage $(quote config.language) $(quote str.getString)) #[])
-
-end VersoSlides

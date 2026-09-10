@@ -33,17 +33,35 @@ public section
 namespace VersoSlides
 
 /--
+Slides-specific code block configuration, extending {name}`LeanBlockConfig` with a panel toggle and
+a vertical-stretch toggle. This structure is public because it occurs in the public type of
+{name}`lean`.
+-/
+structure SlidesLeanBlockConfig extends LeanBlockConfig where
+  panel : Bool
+  stretch : Bool
+
+/--
+Configuration for the registered `name` role. This structure is public because it occurs in the
+public type of {name}`name`.
+-/
+structure NameConfig where
+  full : Option Name
+
+meta section
+
+/--
 An `ArgParse` parser for the `panel` flag shared by all code-box directives. Its default is taken
 from the `verso.slides.panel` option (which itself defaults to `true`), so a document can flip the
 default with `set_option verso.slides.panel false` while individual boxes still override it with
 `+panel`/`-panel`.
 -/
-meta def panelFlag [Monad m] [MonadOptions m] : Verso.ArgParse m Bool :=
+def panelFlag [Monad m] [MonadOptions m] : Verso.ArgParse m Bool :=
   .flagM `panel (return (← getOptions).getBool `verso.slides.panel true)
     (doc? := "whether to show the interactive info panel below the code box (defaults to the value of the `verso.slides.panel` option)")
 
 /-- Syntax node kinds whose output should be rendered inline after the command. -/
-private meta def queryCommandKinds : Array SyntaxNodeKind :=
+private def queryCommandKinds : Array SyntaxNodeKind :=
   open Lean.Parser.Command in
   #[``eval, ``check, ``print, ``reduceCmd]
 
@@ -51,14 +69,14 @@ private meta def queryCommandKinds : Array SyntaxNodeKind :=
 Returns `true` if `stx` contains a query command (e.g. `#eval`, `#check`)
 anywhere in its syntax tree, accounting for wrappers like `open ... in`.
 -/
-private meta def isQueryCommand (stx : Syntax) : Bool :=
+private def isQueryCommand (stx : Syntax) : Bool :=
   (stx.find? (queryCommandKinds.contains ·.getKind)).isSome
 
 /-- Token strings for query commands (used to find them in `Highlighted` trees). -/
-private meta def queryCommandTokens : Array String := #["#check", "#eval", "#print", "#reduce"]
+private def queryCommandTokens : Array String := #["#check", "#eval", "#print", "#reduce"]
 
 /-- Returns `true` if `hl` contains a query command keyword token anywhere in its tree. -/
-private meta partial def containsQueryToken : Highlighted → Bool
+private partial def containsQueryToken : Highlighted → Bool
   | .token tok => tok.kind matches .keyword .. && queryCommandTokens.contains tok.content
   | .seq xs => xs.any containsQueryToken
   | .span _ x | .tactics _ _ _ x => containsQueryToken x
@@ -69,7 +87,7 @@ For a query command's highlighted code, find spans that contain a query command
 token and collect their info-severity messages as `point` nodes to append.
 The original tree is left intact (spans keep their info for diagnostic markers).
 -/
-private meta partial def collectQueryOutput : Highlighted → Array Highlighted
+private partial def collectQueryOutput : Highlighted → Array Highlighted
   | .span info x =>
     if containsQueryToken x then
       info.filterMap fun (kind, msg) =>
@@ -80,24 +98,15 @@ private meta partial def collectQueryOutput : Highlighted → Array Highlighted
   | .tactics _ _ _ x => collectQueryOutput x
   | _ => #[]
 
-/--
-Slides-specific code block configuration, extending {name}`LeanBlockConfig` with a panel toggle and
-a vertical-stretch toggle. This structure is public because it occurs in the public type of
-{name}`lean`.
--/
-structure SlidesLeanBlockConfig extends LeanBlockConfig where
-  panel : Bool
-  stretch : Bool
-
 open Verso ArgParse in
-meta instance : FromArgs SlidesLeanBlockConfig DocElabM where
+instance : FromArgs SlidesLeanBlockConfig DocElabM where
   fromArgs := SlidesLeanBlockConfig.mk <$>
     fromArgs <*>
     panelFlag <*>
     .flag `stretch true
 
 /-- Callback for `elabCommands`: produces a `Block.other (BlockExt.slideCode ...)` term. -/
-private meta def toSlidesHighlightedBlock (panel stretch shouldShow : Bool) (hls : Highlighted)
+private def toSlidesHighlightedBlock (panel stretch shouldShow : Bool) (hls : Highlighted)
     (str : StrLit) : DocElabM Term := do
   if !shouldShow then
     return ← ``(Verso.Doc.Block.concat #[])
@@ -116,7 +125,7 @@ private meta def toSlidesHighlightedBlock (panel stretch shouldShow : Bool) (hls
     throwErrorAt str.raw msg
 
 /-- Callback for `elabCommands`: produces an `Inline.other (InlineExt.slideCode ...)` term. -/
-private meta def toSlidesHighlightedInline (shouldShow : Bool) (hls : Highlighted) (str : StrLit) :
+private def toSlidesHighlightedInline (shouldShow : Bool) (hls : Highlighted) (str : StrLit) :
     DocElabM Term := do
   if !shouldShow then
     return ← ``(Verso.Doc.Inline.concat #[])
@@ -129,7 +138,7 @@ private meta def toSlidesHighlightedInline (shouldShow : Bool) (hls : Highlighte
     throwErrorAt str.raw msg
 
 /-- Abbreviate a string to the first line, truncated to `width` characters. -/
-private meta def abbrevFirstLine (width : Nat) (str : String) : String :=
+private def abbrevFirstLine (width : Nat) (str : String) : String :=
   let str := str.trimAsciiStart
   let short := str.take width |>.replace "\n" "⏎"
   if short.toSlice == str then short else short ++ "…"
@@ -138,7 +147,7 @@ private meta def abbrevFirstLine (width : Nat) (str : String) : String :=
 Fork of `Verso.Genre.Manual.InlineLean.elabCommands` that passes `collectFormat := true`
 to `highlightIncludingUnparsed`, enabling format data collection for reflowable rendering.
 -/
-meta def elabCommandsWithFormat (config : LeanBlockConfig) (str : StrLit)
+def elabCommandsWithFormat (config : LeanBlockConfig) (str : StrLit)
     (toHighlightedLeanContent : (shouldShow : Bool) → (hls : Highlighted) → (str: StrLit) → DocElabM Term)
     (minCommands : Option Nat := none)
     (maxCommands : Option Nat := none) :
@@ -271,12 +280,12 @@ where
 
 /-- Elaborated Lean code block for slides (with format data collection). -/
 @[code_block]
-meta def lean : CodeBlockExpanderOf SlidesLeanBlockConfig
+def lean : CodeBlockExpanderOf SlidesLeanBlockConfig
   | config, str => elabCommandsWithFormat config.toLeanBlockConfig str (toSlidesHighlightedBlock config.panel config.stretch)
 
 /-- Inline elaborated Lean command for slides (with format data collection). -/
 @[role]
-meta def leanCommand : RoleExpanderOf LeanBlockConfig
+def leanCommand : RoleExpanderOf LeanBlockConfig
   | config, inls => do
     if let some str ← oneCodeStr? inls then
       elabCommandsWithFormat config str toSlidesHighlightedInline (minCommands := some 1) (maxCommands := some 1)
@@ -285,7 +294,7 @@ meta def leanCommand : RoleExpanderOf LeanBlockConfig
 
 /-- Inline elaborated Lean term for slides (with format data collection). -/
 @[role lean]
-meta def leanInline : RoleExpanderOf LeanInlineConfig
+def leanInline : RoleExpanderOf LeanInlineConfig
   | config, inlines => withoutAsync do
     let #[arg] := inlines
       | throwError "Expected exactly one argument"
@@ -353,18 +362,11 @@ meta def leanInline : RoleExpanderOf LeanInlineConfig
 
     toSlidesHighlightedInline config.show hls term
 
-/--
-Configuration for the registered `name` role. This structure is public because it occurs in the
-public type of {name}`name`.
--/
-structure NameConfig where
-  full : Option Name
-
 section
 open Verso.ArgParse
 variable [Monad m] [MonadError m] [MonadLiftT CoreM m] [MonadLiftT TermElabM m]
 
-private meta def NameConfig.parse : ArgParse m NameConfig :=
+private def NameConfig.parse : ArgParse m NameConfig :=
   NameConfig.mk <$> ((fun _ => none) <$> .done <|> .positional `name ref)
 where
   ref : ValDesc m (Option Name) := {
@@ -381,12 +383,12 @@ where
       | other => throwError "Expected reference name, got {repr other}"
   }
 
-meta instance : FromArgs NameConfig m where
+instance : FromArgs NameConfig m where
   fromArgs := private NameConfig.parse
 end
 
 /-- Create a highlighted token for a resolved constant name. -/
-private meta def constTok [Monad m] [MonadEnv m] [MonadLiftT MetaM m] [MonadLiftT IO m]
+private def constTok [Monad m] [MonadEnv m] [MonadLiftT MetaM m] [MonadLiftT IO m]
     (resolvedName : Name) (str : String) :
     m Highlighted := do
   let docs ← findDocString? (← getEnv) resolvedName
@@ -401,7 +403,7 @@ with signature and docstring hover info.
 Usage: `{name}[List.map]` or `{name List.map'}[map']`
 -/
 @[role]
-meta def name : RoleExpanderOf NameConfig
+def name : RoleExpanderOf NameConfig
   | cfg, #[arg] => do
     let `(inline|code( $nameStx:str )) := arg
       | throwErrorAt arg "Expected code literal with the example name"

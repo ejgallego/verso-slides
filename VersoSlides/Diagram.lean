@@ -34,19 +34,21 @@ it occurs in the public type of {name}`diagram`.
 structure DiagramConfig where
   background : Option String := none
 
+meta section
+
 section
 variable [Monad m] [MonadInfoTree m] [MonadLiftT CoreM m] [MonadEnv m] [MonadError m]
 
-private meta def DiagramConfig.parse : ArgParse m DiagramConfig :=
+private def DiagramConfig.parse : ArgParse m DiagramConfig :=
   DiagramConfig.mk <$> .named `background .string true
 
-meta instance : FromArgs DiagramConfig m where
+instance : FromArgs DiagramConfig m where
   fromArgs := private DiagramConfig.parse
 end
 
 /-- Extracts the `viewBox` width from an SVG string produced by Illuminate.
     The viewBox format is `"minX minY width height"`. -/
-meta def svgViewBoxWidth (svg : String) : Float :=
+def svgViewBoxWidth (svg : String) : Float :=
   let go : Option Float := do
     let parts := (svg.splitOn "viewBox=\"").toArray
     if h : parts.size > 1 then
@@ -66,7 +68,7 @@ meta def svgViewBoxWidth (svg : String) : Float :=
   go.getD 640.0
 
 open Lean.Widget Lean.Elab.Term Lean.Meta Illuminate in
-private meta unsafe def diagramExpanderUnsafe (config : DiagramConfig) (str : StrLit) :
+private unsafe def diagramExpanderUnsafe (config : DiagramConfig) (str : StrLit) :
     DocElabM Term := withoutAsync do
   let altStr ← parserInputString str
 
@@ -123,10 +125,8 @@ private meta unsafe def diagramExpanderUnsafe (config : DiagramConfig) (str : St
 
 open Lean.Widget Lean.Elab.Term Lean.Meta Illuminate in
 @[implemented_by diagramExpanderUnsafe]
-private meta opaque diagramExpanderImpl (config : DiagramConfig) (str : StrLit) : DocElabM Term
+private opaque diagramExpanderImpl (config : DiagramConfig) (str : StrLit) : DocElabM Term
 
 @[code_block]
-meta def diagram : CodeBlockExpanderOf DiagramConfig
+def diagram : CodeBlockExpanderOf DiagramConfig
   | config, str => diagramExpanderImpl config str
-
-end VersoSlides

@@ -46,11 +46,13 @@ structure LibModuleConfig where
   /-- Whether the code box fills the remaining vertical space on the slide. -/
   stretch : Bool := true
 
+meta section
+
 section
 
 variable [Monad m] [MonadError m] [MonadOptions m]
 
-meta instance : FromArgs LibModuleConfig m where
+instance : FromArgs LibModuleConfig m where
   fromArgs :=
     LibModuleConfig.mk
       <$> .positional `module .ident
@@ -63,7 +65,7 @@ meta instance : FromArgs LibModuleConfig m where
 end
 
 /-- Cached extracted module JSON, keyed by fully-qualified module name. -/
-private meta structure LoadedLibModule where
+private structure LoadedLibModule where
   /-- Hash of the JSON file's bytes at load time. -/
   fileHash : UInt64
   items : Array ModuleItem
@@ -73,7 +75,7 @@ Environment extension holding parsed external-library modules for the current Le
 module name; invalidated across sessions when the env resets, and invalidated within a session by a
 file-hash check in `loadLibModule`.
 -/
-private meta initialize loadedLibModulesExt :
+private initialize loadedLibModulesExt :
     EnvExtension (Std.HashMap Name LoadedLibModule) ←
   registerEnvExtension (pure {})
 
@@ -85,7 +87,7 @@ elaboration.
 If `package?` is given, targets the module within that package (`@pkg/+mod:highlighted`); otherwise
 queries across the workspace (`+mod:highlighted`).
 -/
-private meta def queryFacetBytes (modName : Name) (package? : Option Name) :
+private def queryFacetBytes (modName : Name) (package? : Option Name) :
     IO (Option ByteArray) := do
   let tgt :=
     match package? with
@@ -109,7 +111,7 @@ auto-deleted by `withTempFile`.
 doesn't include the toolchain's `src/lean` directory. `LEAN_SRC_PATH` is overridden with the
 toolchain sysroot (via `Lean.findSysroot`) so prelude and stdlib modules are reachable.
 -/
-private meta def fallbackExtractBytes (modName : Name) : IO (Option ByteArray) := do
+private def fallbackExtractBytes (modName : Name) : IO (Option ByteArray) := do
   let exeOut ← IO.Process.output {
     cmd := "lake",
     args := #["query", "--text", "subverso-extract-mod"]
@@ -130,7 +132,7 @@ private meta def fallbackExtractBytes (modName : Name) : IO (Option ByteArray) :
     some <$> IO.FS.readBinFile jsonFile
 
 /-- Diagnostic-friendly guidance when neither the facet nor the fallback can find the module. -/
-private meta def noModuleError (modName : Name) (package? : Option Name) : MessageData :=
+private def noModuleError (modName : Name) (package? : Option Name) : MessageData :=
   let qual :=
     match package? with
     | some p => s!"@{p}/+{modName}:highlighted"
@@ -151,7 +153,7 @@ Loads the parsed `ModuleItem`s for `modName`, hitting the env-extension cache wh
 cache has a stale entry (file hash changed mid-session), asks the user to restart rather than
 silently handing out a mix of old and new data.
 -/
-private meta def loadLibModule [Monad m] [MonadEnv m] [MonadError m] [MonadLiftT IO m]
+private def loadLibModule [Monad m] [MonadEnv m] [MonadError m] [MonadLiftT IO m]
     (modName : Name) (package? : Option Name) (blame : Syntax) : m (Array ModuleItem) := do
   let bytes ←
     match ← (queryFacetBytes modName package? : IO _) with
@@ -177,14 +179,14 @@ private meta def loadLibModule [Monad m] [MonadEnv m] [MonadError m] [MonadLiftT
     m.insert modName { fileHash := currentHash, items := mod.items }
   return mod.items
 
-private meta inductive Ctx where
+private inductive Ctx where
   | tactics (goals : Array (Highlighted.Goal Highlighted)) (s e : Nat)
   | span (info : Array (Highlighted.Span.Kind × Highlighted.MessageContents Highlighted))
 
 /--
 Gets the indicated line range, on the assumption that the code in question starts at line `line`.
 -/
-meta def getLines (line : Nat) (startLine endLine : Nat) (hl : Highlighted) : Highlighted := Id.run do
+def getLines (line : Nat) (startLine endLine : Nat) (hl : Highlighted) : Highlighted := Id.run do
   let mut line := line
   let mut ctx : List (Highlighted × Ctx × List Highlighted) := []
   let mut doc : List Highlighted := [hl]
@@ -248,7 +250,7 @@ or `none` if the item lies entirely outside the range. Items entirely inside
 the range pass through without traversal; only items straddling a boundary
 are walked.
 -/
-private meta def sliceItem (sl el : Nat) (item : ModuleItem) : Option Highlighted := do
+private def sliceItem (sl el : Nat) (item : ModuleItem) : Option Highlighted := do
   let (s, e) ← item.range
   if e.line < sl ∨ s.line > el then none
   else if sl ≤ s.line ∧ e.line ≤ el then some item.code
@@ -267,7 +269,7 @@ enough — concretely, when the Levenshtein distance exceeds
 The returned text contains complete source lines, snapped at both ends and suitable for use directly
 as the body of a quickfix replacement.
 -/
-meta def findBodyLineRange (body : String) (items : Array ModuleItem) :
+def findBodyLineRange (body : String) (items : Array ModuleItem) :
     Option (Nat × Nat × String) := Id.run do
   if body.isEmpty then return none
   let modText : String := items.foldl (init := "") fun s i => s ++ i.code.toString
@@ -333,7 +335,7 @@ meta def findBodyLineRange (body : String) (items : Array ModuleItem) :
 Picks the highlighted code to include based on the user's config (decl, line range, or all). For
 line ranges, slices each overlapping item to the requested lines via `sliceItem`.
 -/
-private meta def selectCode (items : Array ModuleItem) (cfg : LibModuleConfig)
+private def selectCode (items : Array ModuleItem) (cfg : LibModuleConfig)
     : Except String Highlighted := do
   match cfg.decl, cfg.startLine, cfg.endLine with
   | some _, some _, _ | some _, _, some _ =>
@@ -386,7 +388,7 @@ The opening and closing delimiters are sized to be longer than any run of backti
 Returns `none` when the syntax has no source range, or when the opening line at that range does
 not start with a backtick.
 -/
-private meta def editCodeBlock [Monad m] [MonadFileMap m] (stx : Syntax) (newArgs? : Option String) (newContents : String) : m (Option String) := do
+private def editCodeBlock [Monad m] [MonadFileMap m] (stx : Syntax) (newArgs? : Option String) (newContents : String) : m (Option String) := do
   let txt ← getFileMap
   let some rng := stx.getRange?
     | pure none
@@ -448,7 +450,7 @@ def bar : Nat := 42
 ```
 -/
 @[code_block]
-meta def leanLibCode : CodeBlockExpanderOf LibModuleConfig
+def leanLibCode : CodeBlockExpanderOf LibModuleConfig
   | cfg, str => do
     let modName := cfg.«module».getId
     let pkgName? := cfg.«package».map (·.getId)
