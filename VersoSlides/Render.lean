@@ -355,6 +355,8 @@ private def slideCodePanelCss : String := include_str "../web-lib/panel/panel.cs
 
 /-- JS for the pretty-printer (reflowable format rendering). -/
 private def prettyJs : String := include_str "../web-lib/panel/pretty.js"
+private def virPrettyJs : String := include_str "../web-lib/vir-prettym/pretty.js"
+private def virBootstrapJs : String := include_str "../web-lib/vir-prettym/bootstrap.js"
 
 /-- JS for the interactive info panel. -/
 private def slideCodePanelJs : String := include_str "../web-lib/panel/panel.js"
@@ -537,7 +539,8 @@ private def writeBinFileWithDirs (path : System.FilePath) (content : ByteArray) 
   IO.FS.writeBinFile path content
 
 /-- Writes all vendored library assets to the output directory. -/
-def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme) : IO Unit := do
+def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme)
+    (useVir : Bool := false) : IO Unit := do
   let libDir := outputDir / libPrefix
   let revealDir := libDir / "reveal.js"
   -- Reveal.js core
@@ -578,7 +581,7 @@ def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme) : IO Unit 
   writeFileWithDirs (libDir / "panel.css") slideCodePanelCss
   writeFileWithDirs (libDir / "tippy-panel-filter.js") tippyPanelFilterJs
   writeFileWithDirs (libDir / "code-block-bg.js") codeBlockBgJs
-  writeFileWithDirs (libDir / "pretty.js") prettyJs
+  writeFileWithDirs (libDir / "pretty.js") (if useVir then virPrettyJs else prettyJs)
   writeFileWithDirs (libDir / "panel.js") slideCodePanelJs
   writeFileWithDirs (libDir / "lightbox.css") lightboxCss
   writeFileWithDirs (libDir / "lightbox.js") lightboxJs
@@ -760,8 +763,31 @@ def Config.validateFilenames (config : Config) : IO Unit := do
   let assetPlan ← config.collectAssets
   config.validateAssetDirs assetPlan
 
-/-- Generates a {lit}`reveal.js` slide presentation from a Verso document. -/
-def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWithLogger do
+private def parseBuildArgs (config : Config) : List String → IO Config
+  | [] => pure config
+  | "--output" :: path :: rest => parseBuildArgs { config with outputDir := path } rest
+  | "--vir-manifest" :: path :: rest =>
+    parseBuildArgs { config with virManifest := some path } rest
+  | arg :: _ => throw <| IO.userError s!"Unknown or incomplete slides argument: {arg}"
+
+private def configureVirAssets (config : Config) : IO Config := do
+  let some manifest := config.virManifest | return config
+  unless manifest.fileName == some "VIR_WEB_ASSETS.json" && (← manifest.pathExists) do
+    throw <| IO.userError s!"Missing VIR_WEB_ASSETS.json: {manifest}. Build the deck's virWebAssets target first."
+  return { config with
+    extraJs := config.extraJs.push "vir-bootstrap.js"
+    extraAssets := config.extraAssets.push {
+      filename := "vir-bootstrap.js", contents := virBootstrapJs.toUTF8 }
+    extraAssetDirs := config.extraAssetDirs.push {
+      source := manifest.parent.getD ".", destination := "vir" }
+  }
+
+/-- Generates a {lit}`reveal.js` slide presentation from a Verso document.
+Build jobs can pass {lit}`--vir-manifest PATH` and {lit}`--output DIR` through
+{lit}`args`; these override the corresponding {name}`Config` fields. -/
+def slidesMain (config : Config := {}) (doc : Part Slides)
+    (args : List String := []) : IO UInt32 := runWithLogger do
+  let config ← configureVirAssets (← parseBuildArgs config args)
   -- Validate the config and build the deduplicated asset plan up-front so
   -- any filename collision fails before we start writing files.
   let assetPlan ← config.collectAssets
@@ -800,7 +826,7 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
   IO.FS.writeFile docsJsonPath (toString hoverState.dedup.docJson)
 
   -- Write vendored library assets to the output directory
-  writeVendoredAssets dir config.theme
+  writeVendoredAssets dir config.theme config.virManifest.isSome
 
   -- Write the user-supplied custom-theme stylesheet, theme assets, and
   -- extraCss entries. The plan has already been deduplicated by filename

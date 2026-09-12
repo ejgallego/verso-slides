@@ -654,5 +654,13 @@
     }
 
     // ---- Entry point ----
-    Reveal.on("ready", init);
+    Reveal.on("ready", function () {
+        if (window.versoVirReady) {
+            window.versoVirReady.then(init).catch(function (error) {
+                console.error("Could not initialize the VIR panel.", error);
+            });
+        } else {
+            init();
+        }
+    });
 })();
