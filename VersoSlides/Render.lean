@@ -763,11 +763,15 @@ def Config.validateFilenames (config : Config) : IO Unit := do
   let assetPlan ← config.collectAssets
   config.validateAssetDirs assetPlan
 
-private def parseBuildArgs (config : Config) : List String → IO Config
-  | [] => pure config
-  | "--output" :: path :: rest => parseBuildArgs { config with outputDir := path } rest
+private def parseBuildArgs (config : Config) (args : List String)
+    (buildInputs : Option System.FilePath := none) : IO (Config × Option System.FilePath) :=
+  match args with
+  | [] => pure (config, buildInputs)
+  | "--output" :: path :: rest =>
+    parseBuildArgs { config with outputDir := path } rest buildInputs
   | "--vir-manifest" :: path :: rest =>
-    parseBuildArgs { config with virManifest := some path } rest
+    parseBuildArgs { config with virManifest := some path } rest buildInputs
+  | "--build-inputs" :: path :: rest => parseBuildArgs config rest (some path)
   | arg :: _ => throw <| IO.userError s!"Unknown or incomplete slides argument: {arg}"
 
 private def configureVirAssets (config : Config) : IO Config := do
@@ -787,7 +791,8 @@ Build jobs can pass {lit}`--vir-manifest PATH` and {lit}`--output DIR` through
 {lit}`args`; these override the corresponding {name}`Config` fields. -/
 def slidesMain (config : Config := {}) (doc : Part Slides)
     (args : List String := []) : IO UInt32 := runWithLogger do
-  let config ← configureVirAssets (← parseBuildArgs config args)
+  let (config, buildInputs) ← parseBuildArgs config args
+  let config ← configureVirAssets config
   -- Validate the config and build the deduplicated asset plan up-front so
   -- any filename collision fails before we start writing files.
   let assetPlan ← config.collectAssets
@@ -847,6 +852,16 @@ def slidesMain (config : Config := {}) (doc : Part Slides)
     for (resolved, outputName) in traverseState.imageFiles.toList do
       let contents ← IO.FS.readBinFile resolved
       writeBinFileWithDirs (imagesDir / outputName) contents
+
+  -- The Lake site facet records these render-time inputs in its content
+  -- receipt. They are not necessarily reflected in the executable's trace.
+  if let some path := buildInputs then
+    let mut sources := #[]
+    for source in config.extraAssetDirs do
+      sources := sources.push (Lean.Json.str (← IO.FS.realPath source.source).toString)
+    for (source, _) in traverseState.imageFiles.toList do
+      sources := sources.push (Lean.Json.str (← IO.FS.realPath source).toString)
+    writeFileWithDirs path (Lean.Json.arr sources).compress
 
   IO.println s!"Slides written to {indexPath}"
 

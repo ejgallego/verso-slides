@@ -6,13 +6,13 @@ Author: David Thrane Christiansen
 
 module
 
-import VersoSlides
+import VersoSlides.VirMain
 import Demo
 
 open VersoSlides
 
 public def main (args : List String) : IO UInt32 :=
-  slidesMain
+  virSlidesMain
     (config := { theme := "black", slideNumber := true, transition := "slide" })
     (doc := %doc Demo)
     (args := args)
