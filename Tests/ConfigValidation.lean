@@ -126,6 +126,11 @@ public def main : IO UInt32 := do
     expectFail "generated asset directory source must exist"
       { extraAssetDirs := #[{ source := "TestFixtures/not-present",
                               destination := "generated" }] },
+    expectFailMentioning "generated directory cannot replace builtin libraries"
+      { highlightTheme := { ({} : Config).highlightTheme with filename := "highlight.css" },
+        extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "lib" }] }
+      ["lib", "reserved"],
     expectFail "generated asset directory destination is top-level"
       { extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
                               destination := "generated/nested" }] },

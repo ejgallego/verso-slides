@@ -104,8 +104,10 @@ location/layout entirely to VIR.
   dependency's `.lake` paths.
 - The page bootstrap resolves URLs relative to its own script, loads
   the singleton with the SDK's `irPackageSet` semantics, creates one
-  runtime, runs startup, and disposes on `pagehide`. Panels wait for
-  that initialization.
+  runtime and runs startup. A persisted `pagehide` keeps that runtime
+  for back/forward-cache restoration; a non-persisted exit disposes
+  it. Panels wait for initialization, which checks the formatter
+  export and its arity before running startup hooks.
 - JavaScript retains DOM measurement, compact-Format adaptation and
   tagged segment-to-HTML rendering. Lean/VIR performs
   `Std.Format.prettyM` layout. This is not an all-Lean DOM renderer.
@@ -139,5 +141,8 @@ The browser test runs real Wasm/prettyM and the deck-owned function
 under a URL prefix, rejects network requests outside the local server,
 and observes runtime creation/startup/disposal at the SDK boundary
 across reload. Its observation wrapper is test-only; production code
-contains no lifecycle counters. The existing installer tests cover
-unchanged directory-validation edge cases.
+contains no lifecycle counters. Persisted lifecycle events are also
+tested deterministically, alongside actual browser history navigation
+(whose cache eligibility is browser policy) and early
+missing-formatter diagnostics. The installer tests explicitly reject
+replacement of the built-in `lib/` directory.

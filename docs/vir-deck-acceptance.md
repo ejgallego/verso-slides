@@ -1,5 +1,26 @@
 # Bounded consumer acceptance — 2026-09-13
 
+## Review follow-up
+
+Implementation `d5b20bab36efb2ed452cb184c56fe2e9ba4326dc` adds
+explicit protection of the built-in `lib/` directory, retains the
+runtime across persisted page transitions, and checks the root
+formatter export/arity before startup. The matching external Git
+consumer at `_test/external-vir-deck-8i8h72ec` passes the same 11
+build/SDK/output checks using the unchanged producer and archive
+identified below.
+
+All six focused browser tests pass in Chromium/Firefox: real
+formatting and reload, deterministic persisted transitions, early
+missing-formatter errors, and real away/back navigation. The
+actual-history run did not obtain a bfcache hit, so object retention
+is covered deterministically, not claimed as a browser-selected
+cache-hit result. The Lean suite passes including 25 configuration
+cases (one new reserved-directory regression), and panel/VIR JS
+typechecking passes. The original acceptance checkpoint below is
+retained as historical evidence, not silently attributed to the newer
+commit.
+
 Local lane: `feat/reusable-deck-assets`, worktree
 `.worktrees/reusable-deck-assets`. No publication or live pin
 adoption.
