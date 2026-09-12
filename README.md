@@ -34,6 +34,12 @@ directory over HTTP:
 python3 -m http.server -d _slides
 ```
 
+For the opt-in VIR renderer and a downstream deck that contributes its
+own Lean functions to the same runtime, see
+[Building a VIR-backed deck](docs/vir-deck-build.md). That path uses
+`lake build demo-site` (or the downstream `deck-site` target), which
+builds and passes the runtime artifact to the presentation generator.
+
 ## Writing a Presentation
 
 A presentation is a Verso document declared with the `Slides` genre.

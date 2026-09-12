@@ -20,6 +20,7 @@ lake exe test-fixtures-build
 npx --no-install tsc --noEmit -p web-lib/panel/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/widget/jsconfig.json
 npx --no-install tsc --noEmit -p web-lib/math/jsconfig.json
+npx --no-install tsc --noEmit -p web-lib/vir-prettym/jsconfig.json
 
 # Check prettier formatting for all git-tracked files (respects .prettierignore
 # and prettier's own "can this file be formatted?" heuristic).
