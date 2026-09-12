@@ -670,7 +670,7 @@ def Config.collectAssets (config : Config) :
   return seen
 
 private def reservedOutputNames : Array String :=
-  #["index.html", "-verso-docs.json", "verso", "images"]
+  #["index.html", "-verso-docs.json", "verso", "images", libPrefix]
 
 private def validateAssetDirDestination (destination : String) : IO Unit := do
   if destination.isEmpty || destination == "." || destination == ".." ||

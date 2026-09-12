@@ -32,6 +32,7 @@ declare function formatToHtml(
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;
 
 interface VersoVirRuntime {
+    readonly interfaceManifest: { exports: { entry: string; args: unknown[] }[] } | null;
     call(name: string, ...args: unknown[]): unknown;
     runStartupEntries(): unknown;
     dispose(): void;
