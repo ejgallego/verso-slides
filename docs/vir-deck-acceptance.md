@@ -1,5 +1,40 @@
 # Bounded consumer acceptance — 2026-09-13
 
+## Reusable Lake build API
+
+Implementation `716ba652818e208646e59b63674842b3e544c477` supersedes
+the per-deck launcher recipe. `lake exe demo-slides` now builds and
+uses the selected VIR artifact automatically. Downstream executables
+select it with one ``moreLinkObjs := #[`@/LIB:slidesRuntime]`` entry
+and call `virSlidesMain`. The linked host object transports the actual
+manifest location; it contains no second runtime and does not invoke
+Lake from the presentation process.
+
+The reusable package `:slides` facet produces tracked managed sites,
+checks all output contents and records render-time input dependencies.
+The author-facing example no longer declares a facet result type or
+combines/launches build jobs. Custom output is an ordinary executable
+argument, not `-R -K` configuration. See
+[the current author guide](vir-deck-build.md).
+
+Final exact-source external evidence is retained at
+`_test/external-vir-deck-i61nuogj/result.json` and `logs/`. All 15
+checks pass: the prior SDK/path/output checks plus managed site
+generation, unchanged warm build (index modification time preserved),
+repair of damaged/missing/stale files, empty directories and symlinks,
+and regeneration after a render-time source changes. The consumer has
+its own Git dependency clone and custom `talk-build`. Producer/SDK
+identities are unchanged. Matching compilation caches were reused;
+this is not a clean-cache or cache-only claim. The earlier
+`ad8d4c5/uqh77stz` checkpoint preceded directory/symlink receipt
+hardening and is historical only.
+
+Final browser results: six focused Chromium/Firefox tests pass on the
+`i61nuogj` output; the general suite passes 284 tests with six
+external-site tests skipped there and run separately. The Lean suite
+passes (including 25 configuration cases), as do JS typechecking and
+configuration coverage.
+
 ## Review follow-up
 
 Implementation `d5b20bab36efb2ed452cb184c56fe2e9ba4326dc` adds

@@ -70,7 +70,7 @@ def main():
         dest_head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=dest, text=True).strip()
         if source_head == dest_head:
             shutil.copytree(source / ".lake/build", dest / ".lake/build", dirs_exist_ok=True)
-    run("default", "lake", "build", "deck-site")
+    run("default", "lake", "exe", "my-talk")
     returned, _ = run("manifest", "lake", "query", "talk-runtime:virWebAssets")
     manifest = Path(returned)
     manifest = manifest if manifest.is_absolute() else project / manifest
@@ -80,34 +80,59 @@ def main():
     assert data["vir"]["gitCommit"] == "6e68a9e7599ffb82ab198566715d345eb6c6c9ed"
     assert "talk-build" in manifest.parts
     previous = manifest.read_bytes()
-    run("custom", "lake", "-R", "-KdeckOutput=published/custom-prefix", "build", "deck-site")
+    run("custom", "lake", "exe", "my-talk", "--output", "published/custom-prefix")
     assert previous == manifest.read_bytes()
     custom = project / "published/custom-prefix"
     (custom / "keep.txt").write_text("unrelated")
     (custom / "vir/stale.irpkg").write_text("stale")
-    run("replace", "lake", "-KdeckOutput=published/custom-prefix", "build", "deck-site")
+    run("replace", "lake", "exe", "my-talk", "--output", "published/custom-prefix")
     assert (custom / "keep.txt").read_text() == "unrelated"
     assert not (custom / "vir/stale.irpkg").exists()
     assert (project / "_slides/index.html").exists()
     assert not (project / "_slides/keep.txt").exists()
     previous_html = (custom / "index.html").read_bytes()
-    stdout, stderr = run("missing-sdk", "lake", "build", "deck-site", success=False,
+    stdout, stderr = run("missing-sdk", "lake", "exe", "my-talk", success=False,
                         overrides={"VIR_SDK_ARCHIVE": str(work / "missing-sdk.tar.gz")})
     assert "missing-sdk" in stdout + stderr
     assert (custom / "index.html").read_bytes() == previous_html
-    stdout, stderr = run("mismatched-sdk", "lake", "build", "deck-site", success=False,
+    stdout, stderr = run("mismatched-sdk", "lake", "exe", "my-talk", success=False,
                         overrides={"VIR_SDK_EXPECT_COMMIT": "0" * 40})
     assert "mismatch" in (stdout + stderr).lower()
-    run("recover", "lake", "-R", "-KdeckOutput=published/custom-prefix", "build", "deck-site")
+    run("recover", "lake", "exe", "my-talk", "--output", "published/custom-prefix")
+    run("managed", "lake", "build", ":slides")
+    managed = project / "talk-build/slides/my-talk"
+    managed_html = managed / "index.html"
+    warm_mtime = managed_html.stat().st_mtime_ns
+    run("managed-warm", "lake", "build", ":slides")
+    assert managed_html.stat().st_mtime_ns == warm_mtime
+    license_file = managed / "vir/sdk/LICENSE"
+    expected_license = license_file.read_bytes()
+    license_file.write_text("damaged")
+    (managed / "vir/stale.irpkg").write_text("stale")
+    (managed / "vir/stale-empty").mkdir()
+    (managed / "vir/stale-link").symlink_to(project / "assets", target_is_directory=True)
+    (managed / "vir/sdk/NOTICE").unlink()
+    run("managed-repair", "lake", "build", ":slides")
+    assert license_file.read_bytes() == expected_license
+    assert (managed / "vir/sdk/NOTICE").exists()
+    assert not (managed / "vir/stale.irpkg").exists()
+    assert not (managed / "vir/stale-empty").exists()
+    assert not (managed / "vir/stale-link").is_symlink()
+    (project / "assets/note.txt").write_text("changed without recompiling Main")
+    run("managed-source-change", "lake", "build", ":slides")
+    assert (managed / "deck-assets/note.txt").read_text() == "changed without recompiling Main"
     result = {
         "slidesCommit": commit, "virCommit": data["vir"]["gitCommit"],
         "sdkSha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
         "manifest": str(manifest), "siteRoot": str(project / "published"),
+        "managedSite": str(managed),
         "dependencyCacheReuse": True, "cacheOnlyConsumer": False,
         "checks": ["external Git dependency", "typed manifest path", "custom build directory",
                    "default/custom site output", "same artifact across outputs", "stale installed shard",
                    "unrelated file preservation", "independent outputs", "missing SDK",
-                   "mismatched SDK", "recovery"],
+                   "mismatched SDK", "recovery", "managed site facet",
+                   "warm site not rewritten", "damaged/missing/stale output repaired",
+                   "render-time source change tracked"],
     }
     (work / "result.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))

@@ -1,6 +1,6 @@
 module
 
-import VersoSlides
+import VersoSlides.VirMain
 import MyTalk.Slides
 
 open VersoSlides
@@ -16,7 +16,10 @@ private def answerScript : Asset := {
 }
 
 public def main (args : List String) : IO UInt32 :=
-  slidesMain
-    (config := { extraJs := #[answerScript.filename], extraAssets := #[answerScript] })
+  virSlidesMain
+    (config := {
+      extraJs := #[answerScript.filename], extraAssets := #[answerScript]
+      extraAssetDirs := #[{ source := "assets", destination := "deck-assets" }]
+    })
     (doc := %doc MyTalk.Slides)
     (args := args)

@@ -34,11 +34,13 @@ directory over HTTP:
 python3 -m http.server -d _slides
 ```
 
-For the opt-in VIR renderer and a downstream deck that contributes its
-own Lean functions to the same runtime, see
-[Building a VIR-backed deck](docs/vir-deck-build.md). That path uses
-`lake build demo-site` (or the downstream `deck-site` target), which
-builds and passes the runtime artifact to the presentation generator.
+The demo uses VIR for prettyM. Its executable's Lake dependencies acquire
+the matching SDK and build the selected runtime artifact automatically;
+this review branch requires the matching SDK archive described in
+[Building a VIR-backed deck](docs/vir-deck-build.md). That guide also shows
+how a downstream deck adds its own Lean functions to the same runtime.
+`lake build :slides` builds tracked sites under the package build directory;
+`lake exe demo-slides --output public/talk` chooses a custom destination.
 
 ## Writing a Presentation
 

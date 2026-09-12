@@ -1,0 +1,1 @@
+This directory is copied at render time and tracked by the Slides site facet.

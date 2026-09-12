@@ -1,128 +1,144 @@
 # Building a VIR-backed deck
 
-This local integration branch supports Lean 4.34.0-rc2 and the
-reviewed VIR producer `6e68a9e7599ffb82ab198566715d345eb6c6c9ed`. That
-producer is a frozen input, not a published release promise. Acquire
-its matching SDK archive before building; a deck build
-verifies/installs the SDK, never builds it with WASI. Missing or
-mismatched SDK inputs are errors, not a request to rebuild a runtime.
+## Normal commands
 
-During local review, the exact producer commit must also be available
-to Git; the acceptance harness supplies command-local URL mappings to
-independent local dependency clones. No public release or live
-dependency pin is changed here.
+```sh
+lake exe demo-slides
+lake exe demo-slides --output public/talk
+lake build :slides
+```
 
-## Quick start
+The first command builds the executable **and its selected VIR
+artifact**, then renders `_slides/`. The second changes the
+destination without reconfiguring Lake. The third builds a managed
+site at `.lake/build/slides/demo-slides/index.html` (respecting a
+custom `buildDir`). It skips unchanged sites and repairs missing,
+damaged or stale generated assets.
 
-With a matching archive already acquired:
+Serve either output over HTTP, for example:
+
+```sh
+python3 -m http.server -d public
+```
+
+Visit `/talk/`. All browser assets are local; no CDN is required.
+
+### SDK availability on this review branch
+
+This branch uses Lean 4.34.0-rc2 and frozen VIR producer
+`6e68a9e7599ffb82ab198566715d345eb6c6c9ed`. It is not a public release
+promise. For local review, make that exact Git dependency available
+and supply the already-built matching SDK:
 
 ```sh
 export VIR_SDK_ARCHIVE=/absolute/path/to/lean-vir-sdk.tar.gz
-lake build demo-site
-python3 -m http.server -d _slides
 ```
 
-The reviewed archive's SHA-256 is
+Its SHA-256 is
 `75ae0554f0175d9a3dd4f12107b5883d364a72994e24da18192bc5ef55d9db1b`.
-The ordinary `lake exe demo-slides` command still uses the JavaScript
-renderer; the artifact-aware target opts into VIR. Browser modules
-need HTTP, not `file:`. All generated runtime assets are local to the
-site; no CDN is required.
+Lake invokes VIR's existing SDK acquisition/verification; it never
+builds the SDK with WASI. Missing or mismatched inputs remain explicit
+errors. The external acceptance harness uses command-local Git URL
+mappings to independent local clones; a public SDK/dependency
+publication is separate from this build API.
 
-## A separate presentation project
+## The downstream author API
 
-[examples/vir-deck](../examples/vir-deck) is a complete small deck.
-Its in-tree path dependency is only a convenience: in a separate
-repository, replace that `require` with a Git dependency on the exact
-Slides commit being reviewed. The acceptance script below tests that
-Git-dependency shape independently.
-
-The example deliberately uses `talk-build` instead of `.lake/build`
-and defines one `MyTalk.Runtime` module containing the formatter plus
-a deck-owned `answer`. It imports the normal Slides library; it does
-not depend on a nested experiment. The root owns exports/startup and
-is the sole root of one library:
+[examples/vir-deck](../examples/vir-deck) is a complete small project.
+Replace its in-tree Slides path dependency with an exact Git
+dependency when moving it to a separate repository. Its Lakefile needs
+only the usual library/executable declarations and one linked
+artifact:
 
 ```lean
+lean_lib MyTalk
+
 lean_lib «talk-runtime» where
   roots := #[`MyTalk.Runtime]
 
-library_data virWebAssets : System.FilePath
-
-@[default_target] target «deck-site» (pkg) : System.FilePath := do
-  let some lib := pkg.findLeanLib? `«talk-runtime» | error "missing talk-runtime"
-  let assets : Job System.FilePath ← fetch <| lib.facet `virWebAssets
-  let exe ← «my-talk».fetch
-  let output := pkg.dir / ((get_config? deckOutput).getD "_slides")
-  assets.bindM fun manifest => exe.mapM fun executable => do
-    proc { cmd := executable.toString
-           args := #["--vir-manifest", manifest.toString, "--output", output.toString]
-           env := ← getAugmentedEnv }
-    return output / "index.html"
+@[default_target] lean_exe «my-talk» where
+  root := `Main
+  moreLinkObjs := #[`@/«talk-runtime»:slidesRuntime]
 ```
 
-This is an ordinary Lake target, not a new configuration language. The
-`library_data` declaration makes the facet's result type visible to
-this Lakefile; it does not implement the producer. The job waits for
-both assets and the executable, then passes the **actual returned
-manifest path**. A `needs` dependency alone would order the build
-without passing that value.
-
-`Main.lean` forwards its arguments to the generator:
+`Main.lean` imports the VIR-aware entry point and forwards ordinary
+arguments:
 
 ```lean
+import VersoSlides.VirMain
+import MyTalk.Slides
+
+open VersoSlides
+
 public def main (args : List String) : IO UInt32 :=
-  slidesMain (doc := %doc MyTalk.Slides) (args := args)
+  virSlidesMain (doc := %doc MyTalk.Slides) (args := args)
 ```
 
-Build the downstream deck with:
+Then `lake exe my-talk` works normally. There is no per-deck facet
+type declaration, job composition, process-launch code, handwritten
+JSON configuration or manifest argument. Plain `slidesMain` remains
+available for non-VIR decks.
 
-```sh
-lake build deck-site
-lake -R -KdeckOutput=published/my-talk build deck-site
-python3 -m http.server -d published
-```
+For formatting only, select a one-root library rooted at
+`VersoSlides.VirPrettyM`. For a combined application, follow
+`MyTalk.Runtime`: import `VersoSlides.Pretty`,
+`meta import Vir.Attributes`, and explicitly export `formatSegments`
+plus the deck's own functions. The root's formatter has the signature
+`Std.Format → Nat → Nat → Array VersoSlides.Pretty.Segment`. The
+bootstrap checks the export and arity before startup; full
+argument/result decoding remains VIR's responsibility.
 
-Use `-R` when changing `deckOutput`: this Lean/Lake version caches
-configuration elaboration, including `get_config?`. Visit `/my-talk/`
-for the custom output. The default `_slides` output remains separate.
-The target returns the generated `index.html` path and leaves artifact
-location/layout entirely to VIR.
+## What Lake owns
 
-## Responsibility boundary
+The `slidesRuntime` library facet is registered by the Slides
+dependency's Lakefile. This matters on a clean checkout: Lake can
+resolve registered facets without first importing an unbuilt helper
+module into the consumer's Lakefile.
 
-- VIR assembles one dependency-cone package set, SDK and loader,
-  returning `VIR_WEB_ASSETS.json`. SDK acquisition is separate from
-  generating IR assets.
-- The deck's Lake target chooses its application root and final output
-  location. Imported contributions need explicit root-owned wrappers;
-  this does not merge independent programs or heaps.
-- `slidesMain` accepts `Config.virManifest` or `--vir-manifest`,
-  validates the source, and copies the manifest's parent under the
-  site's owned `vir/` directory. Replacement removes stale files only
-  there; unrelated site files survive. No consumer reconstructs a
-  dependency's `.lake` paths.
-- The page bootstrap resolves URLs relative to its own script, loads
-  the singleton with the SDK's `irPackageSet` semantics, creates one
-  runtime and runs startup. A persisted `pagehide` keeps that runtime
-  for back/forward-cache restoration; a non-persisted exit disposes
-  it. Panels wait for initialization, which checks the formatter
-  export and its arity before running startup hooks.
-- JavaScript retains DOM measurement, compact-Format adaptation and
-  tagged segment-to-HTML rendering. Lean/VIR performs
-  `Std.Format.prettyM` layout. This is not an all-Lean DOM renderer.
+The facet fetches VIR's actual `virWebAssets : FilePath` result and
+generates a tiny host-native object containing that path.
+`moreLinkObjs` makes it a normal executable link dependency. It is
+**not** another runtime or a compiled copy of the browser payload.
+`virSlidesMain` reads the linked path; no environment lookup, runtime
+invocation of Lake, or reconstruction of dependency `.lake` paths
+occurs. The producer path is part of the build trace, so a new
+checkout binds its own location. The build executable is
+workspace-bound; the emitted site is relocatable.
 
-The selected root must export `formatSegments` with the same signature
-as `VersoSlides.VirPrettyM.formatSegments`. A deck adding functions
-selects a composite root such as `MyTalk.Runtime`; it does not load
-another runtime. Once `window.versoVirReady` resolves, the deck can
-call its other root exports through the returned runtime. VIR's
-current typed ABI returns Nat values as decimal strings, including
-segment tags. The loader and ABI are versioned together.
+The package `:slides` facet builds each default executable into its
+own managed directory under `<buildDir>/slides/<executable>/`. It
+records the executable/job trace, output contents and render-time
+input contents (copied image files and `extraAssetDirs`). An unchanged
+build does not rerun generation. Changing a render-time source,
+deleting an output or damaging a copied asset triggers regeneration.
+Receipts and input lists are generated metadata beside the site, not
+author-maintained configuration.
+
+Custom final destinations use `lake exe my-talk --output destination`.
+As with any `lake exe` command, the executable runs each time; managed
+incremental output is the role of `lake build :slides`. No
+`-R -KdeckOutput` setting is needed.
+
+## What the application and browser own
+
+The application selects exactly one composite root. Imported
+contributions need explicit wrappers; independent programs/heaps are
+not automatically merged. `slidesMain` installs the producer-returned
+directory into the final site's owned `vir/` directory, replacing
+stale contents while preserving unrelated files.
+
+The singleton bootstrap uses relative URLs and the SDK's
+`irPackageSet` loader, creates one runtime and runs startup. It
+retains that runtime on persisted page transitions and disposes it on
+permanent exit. Panels wait for initialization. Deck code can use the
+runtime returned by `window.versoVirReady` for other exports. Current
+Nat results and segment tags cross the ABI as decimal strings.
+
+JavaScript still owns DOM measurement, compact input adaptation and
+tagged segment-to-HTML rendering. Lean/VIR performs
+`Std.Format.prettyM` layout. This is not an all-Lean DOM renderer.
 
 ## Focused acceptance
-
-From the Slides checkout, after building its dependencies:
 
 ```sh
 python3 scripts/test-external-vir-deck.py --sdk-archive "$VIR_SDK_ARCHIVE"
@@ -130,19 +146,15 @@ uv run --project browser-tests pytest browser-tests/test_external_vir_deck.py \
   --site-dir /absolute/path/from/result/siteRoot --browser=all
 ```
 
-The script retains its independent Git-dependency project, logs and
-`result.json` under `_test`. It tests the returned path, custom build
-directory, default/custom outputs, stale-shard replacement, unrelated
-files and SDK failure/recovery. It copies matching dependency build
-caches to bound cost; this is **not** an empty-cache or cache-only
-compiled-input consumer claim.
+The harness retains an independent Git consumer, logs and
+`result.json` under `_test`. It tests ordinary executable invocation,
+custom build/output paths, managed warm builds and repairs,
+render-time source changes, SDK errors and recovery. Matching
+compilation caches are copied to bound cost: this is not an
+empty-cache or cache-only compiled-input claim.
 
-The browser test runs real Wasm/prettyM and the deck-owned function
-under a URL prefix, rejects network requests outside the local server,
-and observes runtime creation/startup/disposal at the SDK boundary
-across reload. Its observation wrapper is test-only; production code
-contains no lifecycle counters. Persisted lifecycle events are also
-tested deterministically, alongside actual browser history navigation
-(whose cache eligibility is browser policy) and early
-missing-formatter diagnostics. The installer tests explicitly reject
-replacement of the built-in `lib/` directory.
+The browser tests execute real Wasm and both contributions, cover
+styling, reload, early errors and deterministic persisted transitions,
+and exercise actual history navigation. Browser-selected cache
+eligibility is not guaranteed. No production lifecycle counters or
+external browser services are required.
