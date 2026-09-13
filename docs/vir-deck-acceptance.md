@@ -1,5 +1,50 @@
 # Bounded consumer acceptance — 2026-09-13
 
+## Built-in VIR default
+
+Implementation `4880077` makes ordinary `slidesMain` use the
+Slides-owned prettyM artifact. The library carries the Lake
+dependency; downstream decks need no runtime declaration or link
+directive. Custom roots retain the explicit override, and only the
+selected bundle is emitted and instantiated. The built-in artifact is
+also prepared at build time for custom decks; this cached preparation
+does not create a second browser runtime.
+
+The updated external-deck harness tests both forms. This iteration
+used `--working-tree` path dependencies against the implementation
+sources later recorded as `4880077`, not independent Slides Git clones
+or empty caches:
+
+- Default deck: `_test/external-vir-deck-8l6iv12t/result.json` and
+  `logs/`. The returned manifest belongs to the Slides dependency, not
+  the deck's custom `talk-build` directory. The early result's generic
+  “external Git dependency” check label is inaccurate;
+  `slidesWorkingTree: true` records the actual mode.
+- Custom root: `_test/external-vir-deck-7to1wsqu/result.json` and
+  `logs/`. Its manifest still selects `MyTalk.Runtime`; no default
+  program is added to the emitted bundle.
+
+Both pass the 15 build/SDK/output checks, including ordinary
+executable and managed output, warm no-op, output repair, source
+changes and SDK rejection. Two focused default-runtime browser checks
+and six custom-runtime checks pass in Chromium/Firefox: actual styled
+formatting, visible goals and reload; the custom suite additionally
+observes one lifecycle and its own exported result.
+
+The existing fixtures now use the VIR default too: 284 general browser
+tests pass, with eight external-fixture tests skipped there and passed
+separately. All Lean unit checks pass (51 fragmentize, 24 rendering,
+36 comment parsing, 7 prettyM, 25 configuration), plus generated-asset
+installation. The all-in-one `lake test` driver reaches these
+successful checks but cannot complete its browser system-dependency
+installation without sudo. The browser suite was run directly with the
+already-installed browsers; no system packages were changed.
+
+Producer `6e68a9e7`, SDK SHA `75ae0554...` and Lean 4.34.0-rc2 are
+unchanged. This does not adopt or qualify the newer unified VIR
+producer. Implementation and test/docs commits are local only for this
+iteration.
+
 ## Reusable Lake build API
 
 Implementation `716ba652818e208646e59b63674842b3e544c477` supersedes

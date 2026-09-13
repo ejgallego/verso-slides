@@ -1,4 +1,8 @@
-# Building a VIR-backed deck
+# Building a deck
+
+VIR-backed prettyM is the default. An ordinary deck needs no runtime
+library, link directive, special entry point or handwritten artifact
+configuration.
 
 ## Normal commands
 
@@ -8,7 +12,7 @@ lake exe demo-slides --output public/talk
 lake build :slides
 ```
 
-The first command builds the executable **and its selected VIR
+The first command builds the executable **and its built-in VIR
 artifact**, then renders `_slides/`. The second changes the
 destination without reconfiguring Lake. The third builds a managed
 site at `.lake/build/slides/demo-slides/index.html` (respecting a
@@ -44,15 +48,44 @@ publication is separate from this build API.
 
 ## The downstream author API
 
-[examples/vir-deck](../examples/vir-deck) is a complete small project.
-Replace its in-tree Slides path dependency with an exact Git
+[examples/default-deck](../examples/default-deck) is a complete small
+project. Replace its in-tree Slides path dependency with an exact Git
 dependency when moving it to a separate repository. Its Lakefile needs
-only the usual library/executable declarations and one linked
-artifact:
+only the usual library/executable declarations:
 
 ```lean
 lean_lib MyTalk
 
+@[default_target] lean_exe «my-talk» where
+  root := `Main
+```
+
+`Main.lean` uses the ordinary entry point:
+
+```lean
+module
+
+import VersoSlides
+import MyTalk.Slides
+
+open VersoSlides
+
+public def main (args : List String) : IO UInt32 :=
+  slidesMain (doc := %doc MyTalk.Slides) (args := args)
+```
+
+Then `lake exe my-talk` works normally. There is no per-deck facet
+type declaration, job composition, process-launch code, handwritten
+JSON configuration or manifest argument. Omitting a runtime
+declaration selects the built-in VIR formatter; it does not fall back
+to the JavaScript formatter.
+
+### Adding application contributions
+
+For a combined application, [examples/vir-deck](../examples/vir-deck)
+adds a custom root and an explicit override:
+
+```lean
 lean_lib «talk-runtime» where
   roots := #[`MyTalk.Runtime]
 
@@ -61,49 +94,39 @@ lean_lib «talk-runtime» where
   moreLinkObjs := #[`@/«talk-runtime»:slidesRuntime]
 ```
 
-`Main.lean` imports the VIR-aware entry point and forwards ordinary
-arguments:
-
-```lean
-import VersoSlides.VirMain
-import MyTalk.Slides
-
-open VersoSlides
-
-public def main (args : List String) : IO UInt32 :=
-  virSlidesMain (doc := %doc MyTalk.Slides) (args := args)
-```
-
-Then `lake exe my-talk` works normally. There is no per-deck facet
-type declaration, job composition, process-launch code, handwritten
-JSON configuration or manifest argument. Plain `slidesMain` remains
-available for non-VIR decks.
-
-For formatting only, select a one-root library rooted at
-`VersoSlides.VirPrettyM`. For a combined application, follow
-`MyTalk.Runtime`: import `VersoSlides.Pretty`,
-`meta import Vir.Attributes`, and explicitly export `formatSegments`
-plus the deck's own functions. The root's formatter has the signature
+Its Main imports `VersoSlides.VirMain` and calls `virSlidesMain`
+instead of `slidesMain`. Follow `MyTalk.Runtime`: import
+`VersoSlides.Pretty`, `meta import Vir.Attributes`, and explicitly
+export `formatSegments` plus the deck's own functions. The root's
+formatter has the signature
 `Std.Format → Nat → Nat → Array VersoSlides.Pretty.Segment`. The
 bootstrap checks the export and arity before startup; full
 argument/result decoding remains VIR's responsibility.
 
 ## What Lake owns
 
-The `slidesRuntime` library facet is registered by the Slides
-dependency's Lakefile. This matters on a clean checkout: Lake can
-resolve registered facets without first importing an unbuilt helper
-module into the consumer's Lakefile.
+The Slides library links its built-in artifact through
+`defaultSlidesRuntime`. For custom roots, the `slidesRuntime` library
+facet is registered by the same dependency's Lakefile. This matters on
+a clean checkout: Lake can resolve registered facets without first
+importing an unbuilt helper module into the consumer's Lakefile.
 
 The facet fetches VIR's actual `virWebAssets : FilePath` result and
 generates a tiny host-native object containing that path.
 `moreLinkObjs` makes it a normal executable link dependency. It is
 **not** another runtime or a compiled copy of the browser payload.
-`virSlidesMain` reads the linked path; no environment lookup, runtime
-invocation of Lake, or reconstruction of dependency `.lake` paths
-occurs. The producer path is part of the build trace, so a new
-checkout binds its own location. The build executable is
+`slidesMain` reads the built-in path; `virSlidesMain` supplies the
+selected custom path as an override. Neither needs an environment
+lookup, runtime invocation of Lake, or reconstruction of dependency
+`.lake` paths occurs. The producer path is part of the build trace, so
+a new checkout binds its own location. The build executable is
 workspace-bound; the emitted site is relocatable.
+
+Custom decks also prepare the cached built-in artifact through their
+Slides library dependency. Only the selected custom bundle is copied
+into the site; the built-in artifact is not loaded alongside it.
+Avoiding this additional build-time preparation is a possible later
+optimization, not a second runtime.
 
 The package `:slides` facet builds each default executable into its
 own managed directory under `<buildDir>/slides/<executable>/`. It
@@ -121,11 +144,12 @@ incremental output is the role of `lake build :slides`. No
 
 ## What the application and browser own
 
-The application selects exactly one composite root. Imported
-contributions need explicit wrappers; independent programs/heaps are
-not automatically merged. `slidesMain` installs the producer-returned
-directory into the final site's owned `vir/` directory, replacing
-stale contents while preserving unrelated files.
+Slides supplies the default root; an application can override it with
+exactly one composite root. Imported contributions need explicit
+wrappers; independent programs/heaps are not automatically merged.
+`slidesMain` installs the producer-returned directory into the final
+site's owned `vir/` directory, replacing stale contents while
+preserving unrelated files.
 
 The singleton bootstrap uses relative URLs and the SDK's
 `irPackageSet` loader, creates one runtime and runs startup. It

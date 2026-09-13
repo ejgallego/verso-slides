@@ -16,7 +16,7 @@ private def render (source output : System.FilePath) : IO Unit := do
   let rc ← slidesMain {
     outputDir := output
     extraAssets := #[{ filename := "bootstrap.js", contents := "// loader".toUTF8 }]
-    extraAssetDirs := #[{ source, destination := "vir" }]
+    extraAssetDirs := #[{ source, destination := "extra-runtime" }]
   } (%doc TestFixtures.MinimalThemed)
   check (rc == 0) "slidesMain failed"
 
@@ -32,7 +32,8 @@ private def testInstallation (dir : System.FilePath) : IO Unit := do
   IO.FS.writeFile (first / "unrelated.txt") "keep me"
   render source first
   render source second
-  check ((← IO.FS.readBinFile (first / "vir/nested/runtime.wasm")) == bytes)
+  check ((← (first / "vir/VIR_WEB_ASSETS.json").pathExists)) "default VIR artifact missing"
+  check ((← IO.FS.readBinFile (first / "extra-runtime/nested/runtime.wasm")) == bytes)
     "binary asset changed during installation"
   check ((← IO.FS.readFile (first / "bootstrap.js")) == "// loader")
     "embedded bootstrap was not installed"
@@ -41,13 +42,13 @@ private def testInstallation (dir : System.FilePath) : IO Unit := do
   IO.FS.removeFile (source / "old-shard")
   IO.FS.writeFile (source / "new-shard") "new"
   render source first
-  check (!(← (first / "vir/old-shard").pathExists)) "stale shard survived"
-  check ((← IO.FS.readFile (first / "vir/new-shard")) == "new") "new shard missing"
+  check (!(← (first / "extra-runtime/old-shard").pathExists)) "stale shard survived"
+  check ((← IO.FS.readFile (first / "extra-runtime/new-shard")) == "new") "new shard missing"
   check ((← IO.FS.readFile (first / "unrelated.txt")) == "keep me")
     "installation changed unrelated site content"
-  check ((← IO.FS.readFile (second / "vir/old-shard")) == "old")
+  check ((← IO.FS.readFile (second / "extra-runtime/old-shard")) == "old")
     "rendering one deck changed another deck"
-  check (!(← (second / "vir/new-shard").pathExists)) "deck outputs are coupled"
+  check (!(← (second / "extra-runtime/new-shard").pathExists)) "deck outputs are coupled"
 
   -- A missing input must fail before replacing a previously rendered site.
   let previousHtml ← IO.FS.readFile (first / "index.html")
@@ -58,7 +59,7 @@ private def testInstallation (dir : System.FilePath) : IO Unit := do
   check rejected "missing producer output was accepted"
   check ((← IO.FS.readFile (first / "index.html")) == previousHtml)
     "failed validation changed the previous deck"
-  check ((← IO.FS.readFile (first / "vir/new-shard")) == "new")
+  check ((← IO.FS.readFile (first / "extra-runtime/new-shard")) == "new")
     "failed validation changed the installed bundle"
 
   -- A pre-existing destination link is replaced; its target is never removed.
@@ -69,13 +70,13 @@ private def testInstallation (dir : System.FilePath) : IO Unit := do
   IO.FS.writeFile (unrelated / "keep.txt") "keep target"
   let link ← IO.Process.output {
     cmd := "ln", args := #["-s", (← IO.FS.realPath unrelated).toString,
-      (linkedDeck / "vir").toString]
+      (linkedDeck / "extra-runtime").toString]
   }
   check (link.exitCode == 0) s!"ln failed: {link.stderr}"
   render source linkedDeck
   check ((← IO.FS.readFile (unrelated / "keep.txt")) == "keep target")
     "replacing the destination symlink modified its target"
-  check ((← (linkedDeck / "vir").symlinkMetadata).type == .dir)
+  check ((← (linkedDeck / "extra-runtime").symlinkMetadata).type == .dir)
     "destination symlink was not replaced by the bundle"
 
 public def main : IO UInt32 := do

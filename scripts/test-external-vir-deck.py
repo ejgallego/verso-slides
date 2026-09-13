@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a separate deck against a committed Slides checkout and a supplied SDK."""
+"""Build a separate deck against Slides (Git by default) and a supplied SDK."""
 
 import argparse
 import hashlib
@@ -16,12 +16,18 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sdk-archive", type=Path, required=True)
+    parser.add_argument("--default-runtime", action="store_true",
+                        help="test an ordinary slidesMain deck with no runtime declaration")
+    parser.add_argument("--working-tree", action="store_true",
+                        help="use current Slides sources via a path dependency, not a committed clone")
     args = parser.parse_args()
     archive = args.sdk_archive.resolve()
     (ROOT / "_test").mkdir(exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="external-vir-deck-", dir=ROOT / "_test"))
     project = work / "my-talk"
-    shutil.copytree(ROOT / "examples/vir-deck", project)
+    example = "default-deck" if args.default_runtime else "vir-deck"
+    shutil.copytree(ROOT / "examples" / example, project,
+                    ignore=shutil.ignore_patterns(".lake", "talk-build", "_slides", "lake-manifest.json"))
     logs = work / "logs"
     logs.mkdir()
     env = os.environ.copy()
@@ -39,9 +45,10 @@ def main():
         env[f"GIT_CONFIG_VALUE_{i}"] = dep["url"]
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     lakefile = project / "lakefile.lean"
+    source = f'"{ROOT}"' if args.working_tree else f'git "{ROOT}" @ "{commit}"'
     lakefile.write_text(lakefile.read_text().replace(
         'require «verso-slides» from "../.."',
-        f'require «verso-slides» from git "{ROOT}" @ "{commit}"',
+        f'require «verso-slides» from {source}',
     ))
 
     def run(label, *command, overrides=None, success=True):
@@ -62,6 +69,8 @@ def main():
     cached["«verso-slides»"] = ROOT
     actual = json.loads((project / "lake-manifest.json").read_text())["packages"]
     for dep in actual:
+        if dep["type"] != "git":
+            continue
         source = cached.get(dep["name"])
         dest = project / ".lake/packages" / dep["name"].strip("«»")
         if source is None or not (source / ".lake/build").exists():
@@ -71,14 +80,17 @@ def main():
         if source_head == dest_head:
             shutil.copytree(source / ".lake/build", dest / ".lake/build", dirs_exist_ok=True)
     run("default", "lake", "exe", "my-talk")
-    returned, _ = run("manifest", "lake", "query", "talk-runtime:virWebAssets")
+    target = "@verso-slides/vir-prettym:virWebAssets" if args.default_runtime else "talk-runtime:virWebAssets"
+    returned, _ = run("manifest", "lake", "query", target)
     manifest = Path(returned)
     manifest = manifest if manifest.is_absolute() else project / manifest
     data = json.loads(manifest.read_text())
     assert len(data["programs"]) == 1
-    assert data["programs"][0]["module"] == "MyTalk.Runtime"
+    expected_root = "VersoSlides.VirPrettyM" if args.default_runtime else "MyTalk.Runtime"
+    assert data["programs"][0]["module"] == expected_root
     assert data["vir"]["gitCommit"] == "6e68a9e7599ffb82ab198566715d345eb6c6c9ed"
-    assert "talk-build" in manifest.parts
+    if not args.default_runtime:
+        assert "talk-build" in manifest.parts
     previous = manifest.read_bytes()
     run("custom", "lake", "exe", "my-talk", "--output", "published/custom-prefix")
     assert previous == manifest.read_bytes()
@@ -123,11 +135,13 @@ def main():
     assert (managed / "deck-assets/note.txt").read_text() == "changed without recompiling Main"
     result = {
         "slidesCommit": commit, "virCommit": data["vir"]["gitCommit"],
+        "slidesWorkingTree": args.working_tree, "defaultRuntime": args.default_runtime,
         "sdkSha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
         "manifest": str(manifest), "siteRoot": str(project / "published"),
         "managedSite": str(managed),
         "dependencyCacheReuse": True, "cacheOnlyConsumer": False,
-        "checks": ["external Git dependency", "typed manifest path", "custom build directory",
+        "checks": ["external path dependency" if args.working_tree else "external Git dependency",
+                   "typed manifest path", "custom build directory",
                    "default/custom site output", "same artifact across outputs", "stale installed shard",
                    "unrelated file preservation", "independent outputs", "missing SDK",
                    "mismatched SDK", "recovery", "managed site facet",
