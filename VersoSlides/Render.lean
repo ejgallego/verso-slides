@@ -774,11 +774,16 @@ private def parseBuildArgs (config : Config) (args : List String)
   | "--build-inputs" :: path :: rest => parseBuildArgs config rest (some path)
   | arg :: _ => throw <| IO.userError s!"Unknown or incomplete slides argument: {arg}"
 
+/-- Linked by the VersoSlides library's Lake dependency, also in downstream decks. -/
+@[extern "verso_slides_default_runtime_manifest"]
+private opaque defaultRuntimeManifest : Unit → String
+
 private def configureVirAssets (config : Config) : IO Config := do
-  let some manifest := config.virManifest | return config
+  let manifest := config.virManifest.getD (defaultRuntimeManifest ())
   unless manifest.fileName == some "VIR_WEB_ASSETS.json" && (← manifest.pathExists) do
     throw <| IO.userError s!"Missing VIR_WEB_ASSETS.json: {manifest}. Build the deck's virWebAssets target first."
   return { config with
+    virManifest := some manifest
     extraJs := config.extraJs.push "vir-bootstrap.js"
     extraAssets := config.extraAssets.push {
       filename := "vir-bootstrap.js", contents := virBootstrapJs.toUTF8 }

@@ -12,7 +12,8 @@ namespace VersoSlides
 @[extern "verso_slides_runtime_manifest"]
 private opaque runtimeManifest : Unit → String
 
-/-- Presentation entry point with a Lake-linked VIR artifact. The executable
+/-- Optional custom-runtime entry point; ordinary `slidesMain` already supplies
+VIR prettyM. For an application-owned root, the executable
 selects one runtime library through `moreLinkObjs := #[`@/LIB:slidesRuntime]`.
 No build-directory layout or extra command-line handoff is needed. -/
 public def virSlidesMain (config : Config := {}) (doc : Verso.Doc.Part Slides)

@@ -26,30 +26,28 @@ input_dir webLibAssets where
 
 lean_lib VersoSlides where
   needs := #[webLibAssets, `@subverso/«subverso-extract-mod»]
+  moreLinkObjs := #[`@/defaultSlidesRuntime]
 
 lean_lib Demo where
   needs := #[`@verso/+Verso.Code.External:highlighted]
 
 @[default_target] lean_exe «demo-slides» where
   root := `Main
-  moreLinkObjs := #[`@/«vir-prettym»:slidesRuntime]
 
 lean_lib «vir-prettym» where
   roots := #[`VersoSlides.VirPrettyM]
 
 library_data virWebAssets : System.FilePath
 
-/-- Link the producer-returned manifest location into a presentation executable.
-Registered here so downstream Lakefiles can use it before any helper is built. -/
-library_facet slidesRuntime (lib) : System.FilePath := do
+private def linkRuntimeManifest (lib : LeanLib) (symbol : String) : FetchM (Job System.FilePath) := do
   let assets : Job System.FilePath ← fetch <| lib.facet `virWebAssets
-  let source := lib.pkg.buildDir / "slides-runtime" / s!"{lib.name}.c"
+  let source := lib.pkg.buildDir / "slides-runtime" / lib.name.toString / s!"{symbol}.c"
   let sourceJob ← assets.mapM fun manifest => do
     let manifest ← IO.FS.realPath manifest
     addPureTrace manifest.toString "Slides runtime location"
     let bytes := String.intercalate "," <| manifest.toString.toUTF8.toList.map (toString ·.toNat)
     let contents := "#include <lean/lean.h>\n" ++
-      "LEAN_EXPORT lean_obj_res verso_slides_runtime_manifest(lean_obj_arg unit) {\n" ++
+      s!"LEAN_EXPORT lean_obj_res {symbol}(lean_obj_arg unit) \{\n" ++
       "  static const unsigned char path[] = {" ++ bytes ++ ",0};\n" ++
       "  return lean_mk_string((const char *)path);\n}\n"
     addPureTrace contents "Slides linked manifest"
@@ -58,6 +56,16 @@ library_facet slidesRuntime (lib) : System.FilePath := do
       IO.FS.writeFile source contents
     return source
   buildLeanO (source.withExtension "o") sourceJob
+
+/-- The built-in prettyM artifact follows ordinary imports of VersoSlides. -/
+target defaultSlidesRuntime (pkg) : System.FilePath := do
+  let some lib := pkg.findLeanLib? `«vir-prettym» | error "missing built-in prettyM root"
+  linkRuntimeManifest lib "verso_slides_default_runtime_manifest"
+
+/-- Link a custom application's manifest into its presentation executable.
+Registered here so downstream Lakefiles can use it before any helper is built. -/
+library_facet slidesRuntime (lib) : System.FilePath := do
+  linkRuntimeManifest lib "verso_slides_runtime_manifest"
 
 /-- Content receipts cover every generated file, not just index.html. -/
 private def slidesOutputReceipt (dir : System.FilePath) : IO String := do

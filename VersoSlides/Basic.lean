@@ -208,8 +208,9 @@ public structure Config where
   /-- Generated directory trees to install under
   {name (full := Config.outputDir)}`outputDir`. -/
   extraAssetDirs : Array AssetDirectory := #[]
-  /-- Resolved singleton VIR manifest returned by Lake. Its bundle is installed
-  under {lit}`vir/` and supplies the panel's prettyM implementation. -/
+  /-- Optional override of the built-in prettyM artifact with a resolved singleton
+  VIR manifest returned by Lake. Its bundle is installed under {lit}`vir/`.
+  When omitted, Slides supplies its built-in VIR-backed prettyM runtime. -/
   virManifest : Option System.FilePath := none
   /--
   Math prelude evaluated once before any math on the page is rendered.
