@@ -28,58 +28,6 @@
  */
 
 /**
- * Convert the compact format emitted by Verso into VIR's direct object-ABI
- * representation of `Std.Format`. Nat and Int fields cross as decimal strings.
- * @param {*} json
- * @return {*}
- */
-function compactFormatToStdFormat(json) {
-    if (json === null || json === undefined) return { kind: "nil" };
-    if (typeof json === "string") return { kind: "text", value: json };
-    if (json === 1) return { kind: "line" };
-    if (!Array.isArray(json) || json.length === 0) {
-        throw new Error("invalid compact format node");
-    }
-    switch (json[0]) {
-        case 2:
-            return { kind: "align", value: !!json[1] };
-        case 3:
-            return {
-                kind: "nest",
-                fields: { indent: String(json[1]), f: compactFormatToStdFormat(json[2]) },
-            };
-        case 4:
-            return {
-                kind: "append",
-                fields: {
-                    arg1: compactFormatToStdFormat(json[1]),
-                    arg2: compactFormatToStdFormat(json[2]),
-                },
-            };
-        case 5:
-            return {
-                kind: "group",
-                fields: { arg1: compactFormatToStdFormat(json[1]), behavior: "allOrNone" },
-            };
-        case 6:
-            return {
-                kind: "group",
-                fields: { arg1: compactFormatToStdFormat(json[1]), behavior: "fill" },
-            };
-        case 7:
-            return {
-                kind: "tag",
-                fields: {
-                    arg1: String(json[1]),
-                    arg2: compactFormatToStdFormat(json[2]),
-                },
-            };
-        default:
-            throw new Error("unknown compact format node tag " + json[0]);
-    }
-}
-
-/**
  * Create a DOM-based measurer for panel widths. The text itself is monospace,
  * so one measured space converts the CSS-pixel boundary to `prettyM` columns.
  * @param {HTMLElement} panel
@@ -135,9 +83,8 @@ function createDOMMeasurer(panel) {
 function formatToHtml(fmtJson, annotations, pixelWidth, measurer) {
     var spaceWidth = measurer.spaceWidth;
     if (!Number.isFinite(spaceWidth) || spaceWidth <= 0) spaceWidth = 1;
-    var columns = Math.max(1, Math.floor(pixelWidth / spaceWidth));
-    var format = compactFormatToStdFormat(fmtJson);
-    var segments = /** @type {Segment[]} */ (window.versoVirFormatSegments(format, columns, 0));
+    var columns = Math.min(4096, Math.max(1, Math.floor(pixelWidth / spaceWidth)));
+    var segments = /** @type {Segment[]} */ (window.versoVirFormatSegments(fmtJson, columns, 0));
     return segmentsToHtml(segments, annotations || {});
 }
 

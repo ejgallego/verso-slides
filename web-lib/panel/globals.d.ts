@@ -31,15 +31,18 @@ declare function formatToHtml(
 /** pretty.js — create a DOM-based measurer for pixel-accurate text width measurement (global). */
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;
 
-interface VersoVirRuntime {
-    readonly interfaceManifest: { exports: { entry: string; args: unknown[] }[] } | null;
-    call(name: string, ...args: unknown[]): unknown;
-    runStartupEntries(): unknown;
+interface VersoVirProgram {
+    call(role: string, requestJson: string): string;
     dispose(): void;
 }
 
 interface Window {
-    versoVir?: VersoVirRuntime;
-    versoVirReady?: Promise<VersoVirRuntime>;
+    __versoVirResourceUrls: {
+        runtimeModule: string;
+        runtimeManifest: string;
+        programManifest: string;
+    };
+    versoVir?: VersoVirProgram;
+    versoVirReady?: Promise<VersoVirProgram>;
     versoVirFormatSegments: (format: unknown, width: number, indent: number) => unknown;
 }

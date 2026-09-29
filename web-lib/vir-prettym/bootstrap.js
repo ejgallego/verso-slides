@@ -1,54 +1,51 @@
 // @ts-check
 
-/* One application root, one runtime, and one page-owned lifetime. */
+/* One embedded PrettyM program and one page-owned lifetime. */
 (function () {
     "use strict";
-    var script = /** @type {HTMLScriptElement} */ (document.currentScript);
-    var assetsUrl = new URL("./vir/", script.src);
+    var urls = window.__versoVirResourceUrls;
     var disposed = false;
     window.addEventListener("pagehide", function (event) {
-        // A bfcache entry retains this JS heap. Keep its runtime alive so
-        // the restored page and its existing panel callbacks can reuse it.
         if (event.persisted) return;
         disposed = true;
         window.versoVir?.dispose();
     });
 
     window.versoVirReady = (async function () {
-        var loader = await import(new URL("sdk/js/vir-web-assets.js", assetsUrl).href);
-        var factory = await loader.createVirWebAssetsFactory(
-            new URL("VIR_WEB_ASSETS.json", assetsUrl),
-        );
-        var runtime = await factory.createRuntime();
+        var runtimeModuleUrl = new URL(urls.runtimeModule, document.baseURI);
+        var runtimeManifestUrl = new URL(urls.runtimeManifest, document.baseURI);
+        var programManifestUrl = new URL(urls.programManifest, document.baseURI);
+        var loader = await import(runtimeModuleUrl.href);
+        var program = await loader.createProgram({ runtimeManifestUrl, programManifestUrl });
         if (disposed) {
-            runtime.dispose();
-            throw new Error("Page closed before VIR was ready");
-        }
-        var entry = factory.manifest.programs[0].module + ".formatSegments";
-        try {
-            var formatter = runtime.interfaceManifest?.exports.find(function (candidate) {
-                return candidate.entry === entry;
-            });
-            if (!formatter || formatter.args.length !== 3) {
-                throw new Error(
-                    "Slides requires root export " +
-                        entry +
-                        " (Std.Format, Nat, Nat) → Array Segment. " +
-                        "Add an @[vir_export] formatSegments wrapper to the selected application root.",
-                );
-            }
-            runtime.runStartupEntries();
-        } catch (error) {
-            runtime.dispose();
-            throw error;
+            program.dispose();
+            throw new Error("Page closed before PrettyM was ready");
         }
         window.versoVirFormatSegments = function (format, width, indent) {
-            return runtime.call(entry, format, width, indent);
+            var request = JSON.stringify({
+                schemaVersion: 1,
+                widthUnit: "columns",
+                width: width,
+                indent: indent,
+                format: format,
+            });
+            var response = JSON.parse(program.call("prettyM", request));
+            if (response.schemaVersion !== 1) {
+                throw new Error("Unexpected PrettyM response schema");
+            }
+            if (!response.ok) {
+                throw new Error(response.error?.code || "PrettyM call failed");
+            }
+            if (response.widthUnit !== "columns" || !Array.isArray(response.segments)) {
+                throw new Error("PrettyM response has no segments");
+            }
+            return response.segments;
         };
-        window.versoVir = runtime;
-        return runtime;
+        window.versoVir = program;
+        return program;
     })();
     window.versoVirReady.catch(function (error) {
+        if (disposed) return;
         var message = document.createElement("p");
         message.setAttribute("role", "alert");
         message.textContent = "VIR initialization failed: " + String(error);

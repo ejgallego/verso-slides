@@ -32,7 +32,8 @@ private def testInstallation (dir : System.FilePath) : IO Unit := do
   IO.FS.writeFile (first / "unrelated.txt") "keep me"
   render source first
   render source second
-  check ((← (first / "vir/VIR_WEB_ASSETS.json").pathExists)) "default VIR artifact missing"
+  check ((← (first / "lib" / "vir" / virResources.runtime.contentId / "bundle.json").pathExists))
+    "embedded VIR runtime manifest missing"
   check ((← IO.FS.readBinFile (first / "extra-runtime/nested/runtime.wasm")) == bytes)
     "binary asset changed during installation"
   check ((← IO.FS.readFile (first / "bootstrap.js")) == "// loader")

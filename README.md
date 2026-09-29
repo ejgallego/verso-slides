@@ -34,16 +34,13 @@ directory over HTTP:
 python3 -m http.server -d _slides
 ```
 
-Slides uses VIR for prettyM by default, including downstream decks
-using ordinary `slidesMain`. No runtime library or executable link
-directive is required. The Slides library's Lake dependencies acquire
-the matching SDK and build the artifact; this review branch requires
-the matching SDK archive described in
-[Building a VIR-backed deck](docs/vir-deck-build.md). That guide also
-shows how a downstream deck adds its own Lean functions to the same
-runtime. `lake build :slides` builds tracked sites under the package
-build directory; `lake exe demo-slides --output public/talk` chooses a
-custom destination.
+This candidate uses the embedded PrettyM program from VIR #207 by default.
+Downstream decks keep the ordinary `slidesMain` entry point; Lake prepares
+the compiled resource carrier. The exact ABI4 runtime pack must be available
+locally. See [Building a VIR-backed deck](docs/vir-deck-build.md) for the
+pin and current acceptance boundary. `lake build :slides` builds tracked
+sites under the package build directory; `lake exe demo-slides --output
+public/talk` chooses a custom destination.
 
 ## Writing a Presentation
 
@@ -770,9 +767,8 @@ it under `dist/talk/extra-runtime` by passing this configuration to
 The application chooses both paths. The source directory must already
 exist; `slidesMain` copies it and does not run its producer.
 Re-rendering replaces `dist/talk/extra-runtime` while preserving
-unrelated files in `dist/talk`. The `vir/` directory belongs to
-Slides' selected VIR artifact; use `virManifest` to override that
-artifact, not an extra directory at the same path.
+unrelated files in `dist/talk`. Slides reserves `lib/vir/` for the
+validated embedded runtime and PrettyM program resources.
 
 ### Auto-Advance
 

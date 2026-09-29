@@ -1,0 +1,1 @@
+{"schemaVersion":1,"logicalId":"verso-slides/prettyM","module":"VersoSlides.VirPrettyM","exports":[{"role":"prettyM","declaration":"VersoSlides.VirPrettyM.prettyJson","interfaceId":"vir-pretty-canary-columns-v1"}],"supportFiles":[]}

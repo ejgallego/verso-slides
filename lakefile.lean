@@ -7,9 +7,10 @@ import Lake
 
 open System Lake DSL
 
-require verso from git "https://github.com/leanprover/verso.git"@"main"
+require verso from git "https://github.com/leanprover/verso.git"@
+  "cad4b633e75ea769b851f12f9ca3b4f0dfcc625f"
 require lean_vir from git "https://github.com/ejgallego/lean-vir.git" @
-  "6e68a9e7599ffb82ab198566715d345eb6c6c9ed"
+  "970ad3d27b7daf82cd5bfe2e4d53251037cd7b87"
 
 package «verso-slides» where
   version := v!"0.1.0"
@@ -26,7 +27,6 @@ input_dir webLibAssets where
 
 lean_lib VersoSlides where
   needs := #[webLibAssets, `@subverso/«subverso-extract-mod»]
-  moreLinkObjs := #[`@/defaultSlidesRuntime]
 
 lean_lib Demo where
   needs := #[`@verso/+Verso.Code.External:highlighted]
@@ -34,38 +34,17 @@ lean_lib Demo where
 @[default_target] lean_exe «demo-slides» where
   root := `Main
 
-lean_lib «vir-prettym» where
-  roots := #[`VersoSlides.VirPrettyM]
+-- The program and carrier are separate libraries. VIR's facet prepares the
+-- exact pack before Lake compiles the carrier's include_vir_bundle declaration.
+lean_lib VersoSlidesVirPrettyM where
+  roots := #[]
+  globs := #[.one `VersoSlides.VirPrettyM]
 
-library_data virWebAssets : System.FilePath
-
-private def linkRuntimeManifest (lib : LeanLib) (symbol : String) : FetchM (Job System.FilePath) := do
-  let assets : Job System.FilePath ← fetch <| lib.facet `virWebAssets
-  let source := lib.pkg.buildDir / "slides-runtime" / lib.name.toString / s!"{symbol}.c"
-  let sourceJob ← assets.mapM fun manifest => do
-    let manifest ← IO.FS.realPath manifest
-    addPureTrace manifest.toString "Slides runtime location"
-    let bytes := String.intercalate "," <| manifest.toString.toUTF8.toList.map (toString ·.toNat)
-    let contents := "#include <lean/lean.h>\n" ++
-      s!"LEAN_EXPORT lean_obj_res {symbol}(lean_obj_arg unit) \{\n" ++
-      "  static const unsigned char path[] = {" ++ bytes ++ ",0};\n" ++
-      "  return lean_mk_string((const char *)path);\n}\n"
-    addPureTrace contents "Slides linked manifest"
-    buildFileUnlessUpToDate' (text := true) source do
-      createParentDirs source
-      IO.FS.writeFile source contents
-    return source
-  buildLeanO (source.withExtension "o") sourceJob
-
-/-- The built-in prettyM artifact follows ordinary imports of VersoSlides. -/
-target defaultSlidesRuntime (pkg) : System.FilePath := do
-  let some lib := pkg.findLeanLib? `«vir-prettym» | error "missing built-in prettyM root"
-  linkRuntimeManifest lib "verso_slides_default_runtime_manifest"
-
-/-- Link a custom application's manifest into its presentation executable.
-Registered here so downstream Lakefiles can use it before any helper is built. -/
-library_facet slidesRuntime (lib) : System.FilePath := do
-  linkRuntimeManifest lib "verso_slides_runtime_manifest"
+lean_lib VersoSlidesVirPrettyMResources where
+  srcDir := "resources"
+  roots := #[]
+  globs := #[.one `VersoSlides.VirPrettyMResources]
+  needs := #[`@«verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack]
 
 /-- Content receipts cover every generated file, not just index.html. -/
 private def slidesOutputReceipt (dir : System.FilePath) : IO String := do

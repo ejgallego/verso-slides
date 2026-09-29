@@ -8,6 +8,8 @@ module
 public import VersoSlides.Attributes
 public import VersoSlides.SlideCode.Render
 public import VersoSlides.SlideCode.Export
+public import VersoSlides.VirResourceSite
+public import VersoSlides.VirResources
 public import Verso.Doc.Html
 import Verso.Code.Highlighted.WebAssets
 import Illuminate.Animation.Render
@@ -769,34 +771,43 @@ private def parseBuildArgs (config : Config) (args : List String)
   | [] => pure (config, buildInputs)
   | "--output" :: path :: rest =>
     parseBuildArgs { config with outputDir := path } rest buildInputs
-  | "--vir-manifest" :: path :: rest =>
-    parseBuildArgs { config with virManifest := some path } rest buildInputs
+  | "--pixel-pretty" :: rest =>
+    parseBuildArgs { config with virPrettyM := false } rest buildInputs
   | "--build-inputs" :: path :: rest => parseBuildArgs config rest (some path)
   | arg :: _ => throw <| IO.userError s!"Unknown or incomplete slides argument: {arg}"
 
-/-- Linked by the VersoSlides library's Lake dependency, also in downstream decks. -/
-@[extern "verso_slides_default_runtime_manifest"]
-private opaque defaultRuntimeManifest : Unit → String
+/-- Reserve the embedded publisher's whole output namespace before rendering. -/
+def Config.validateVirResourceNamespace (config : Config) : IO Unit := do
+  let plan ← config.collectAssets
+  for (filename, _, _) in plan.toList do
+    if filename == "lib/vir" || filename.startsWith "lib/vir/" ||
+        filename == "lib/.vir-stage" || filename.startsWith "lib/.vir-stage/" then
+      throw <| IO.userError s!"Slides asset {filename} collides with the reserved VIR resource namespace"
 
 private def configureVirAssets (config : Config) : IO Config := do
-  let manifest := config.virManifest.getD (defaultRuntimeManifest ())
-  unless manifest.fileName == some "VIR_WEB_ASSETS.json" && (← manifest.pathExists) do
-    throw <| IO.userError s!"Missing VIR_WEB_ASSETS.json: {manifest}. Build the deck's virWebAssets target first."
+  if !config.virPrettyM then return config
+  let published ← VirResourceSite.describe virResources
+  let some (_, programManifestUrl) := published.programManifestUrls.find?
+      (·.1 == "verso-slides/prettyM")
+    | throw <| IO.userError "PrettyM program manifest is missing"
+  let urls := Lean.Json.mkObj [
+    ("runtimeModule", Lean.Json.str published.runtimeModuleUrl),
+    ("runtimeManifest", Lean.Json.str published.runtimeManifestUrl),
+    ("programManifest", Lean.Json.str programManifestUrl)]
+  let bootstrap := "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++ virBootstrapJs
   return { config with
-    virManifest := some manifest
     extraJs := config.extraJs.push "vir-bootstrap.js"
     extraAssets := config.extraAssets.push {
-      filename := "vir-bootstrap.js", contents := virBootstrapJs.toUTF8 }
-    extraAssetDirs := config.extraAssetDirs.push {
-      source := manifest.parent.getD ".", destination := "vir" }
+      filename := "vir-bootstrap.js", contents := bootstrap.toUTF8 }
   }
 
 /-- Generates a {lit}`reveal.js` slide presentation from a Verso document.
-Build jobs can pass {lit}`--vir-manifest PATH` and {lit}`--output DIR` through
+Build jobs can pass {lit}`--output DIR` and {lit}`--pixel-pretty` through
 {lit}`args`; these override the corresponding {name}`Config` fields. -/
 def slidesMain (config : Config := {}) (doc : Part Slides)
     (args : List String := []) : IO UInt32 := runWithLogger do
   let (config, buildInputs) ← parseBuildArgs config args
+  config.validateVirResourceNamespace
   let config ← configureVirAssets config
   -- Validate the config and build the deduplicated asset plan up-front so
   -- any filename collision fails before we start writing files.
@@ -836,7 +847,7 @@ def slidesMain (config : Config := {}) (doc : Part Slides)
   IO.FS.writeFile docsJsonPath (toString hoverState.dedup.docJson)
 
   -- Write vendored library assets to the output directory
-  writeVendoredAssets dir config.theme config.virManifest.isSome
+  writeVendoredAssets dir config.theme config.virPrettyM
 
   -- Write the user-supplied custom-theme stylesheet, theme assets, and
   -- extraCss entries. The plan has already been deduplicated by filename
@@ -849,6 +860,9 @@ def slidesMain (config : Config := {}) (doc : Part Slides)
   -- Install generated trees after ordinary files. Each destination is owned
   -- by one source directory and replaced as a unit to prevent stale files.
   installAssetDirs dir config.extraAssetDirs
+
+  if config.virPrettyM then
+    let _ ← VirResourceSite.write dir virResources
 
   -- Copy local images to the output directory
   if !traverseState.imageFiles.isEmpty then
