@@ -22,24 +22,7 @@
             throw new Error("Page closed before PrettyM was ready");
         }
         window.versoVirFormatSegments = function (format, width, indent) {
-            var request = JSON.stringify({
-                schemaVersion: 1,
-                widthUnit: "columns",
-                width: width,
-                indent: indent,
-                format: format,
-            });
-            var response = JSON.parse(program.call("prettyM", request));
-            if (response.schemaVersion !== 1) {
-                throw new Error("Unexpected PrettyM response schema");
-            }
-            if (!response.ok) {
-                throw new Error(response.error?.code || "PrettyM call failed");
-            }
-            if (response.widthUnit !== "columns" || !Array.isArray(response.segments)) {
-                throw new Error("PrettyM response has no segments");
-            }
-            return response.segments;
+            return program.call("formatSegments", format, width, indent);
         };
         window.versoVir = program;
         return program;

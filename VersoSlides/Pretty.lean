@@ -51,7 +51,7 @@ private instance : Std.Format.MonadPrettyFormat PrettyM where
       { st with
         segments := st.segments.push {
           text := String.Internal.pushn "\n" ' ' indent
-          tags := #[]
+          tags := st.tagStack
         }
         column := indent }
   currColumn := return (← get).column

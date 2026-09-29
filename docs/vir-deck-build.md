@@ -22,13 +22,18 @@ producer checkout path, generated manifest path, or SDK directory is read by
 the deck executable. The generated site can move under a URL prefix.
 
 The browser bootstrap imports the published runtime module and calls
-`createProgram` with the two published manifests. The panel calls the
-`prettyM` role with the strict `String → String` JSON wrapper. The wrapper
-uses `Std.Format.prettyM` at a column width obtained from the earlier panel
-adapter's DOM measurement. JavaScript still owns measurement, annotations,
-and HTML. The wrapper bounds input, nesting, node count, columns, and the
-serialized response. The legacy JavaScript formatter remains available with
-`--pixel-pretty` or `Config.virPrettyM := false` for comparison.
+`createProgram` with the two published manifests. Its `formatSegments` role
+exports `Std.Format → Nat → Nat → Array Pretty.Segment` through VIR's direct
+host call ABI. The earlier panel adapter converts its compact format tree to
+the host ABI value and obtains a column width from DOM measurement. It passes
+the result to the existing annotation/HTML stage. The extra JSON request and
+response protocol has been removed. The generated slide's existing rich-format
+metadata is still JSON and is parsed by the panel before this call.
+
+`VersoSlides.Pretty.formatSegments` is the single Lean layout implementation;
+`VersoSlides.VirPrettyM.formatSegments` is its exported wrapper. The legacy
+JavaScript formatter remains available with `--pixel-pretty` or
+`Config.virPrettyM := false` for comparison.
 
 The old 4.34.0-rc2 branch `feat/reusable-deck-assets` retains the original
 path-based build and custom-root evidence. This candidate carries its default
@@ -40,11 +45,28 @@ carrier; the old `virSlidesMain` path override does not apply to #207.
 
 This is a source candidate. The earlier 4.35 embedded-resource demo and the
 4.34.0-rc2 deck evidence remain separate qualifications. This candidate
-requires a matching local ABI4 runtime pack before its browser behavior can
-be accepted. A default-panel switch also needs an explicit comparison of the
-column conversion against the pixel formatter across real panel widths.
+requires a matching local ABI4 runtime pack. The direct host ABI call and the
+default-panel width conversion need browser qualification on this exact pair.
 
-With the exact local ABI4 pack seeded in VIR's cache, `lake build
-VersoSlidesVirPrettyM`, `lake build VersoSlides`, and `lake build demo-slides`
-completed on this pin. Site generation and browser behavior have not yet been
-qualified for this candidate.
+### Site acceptance process
+
+1. Record the exact Slides, VIR and Lean revisions and seed only the runtime
+   pack selected by VIR's lock. Build the formatter library, Slides library,
+   and `demo-slides` executable. The application build must obtain its program
+   pack through the owning-library facet without a producer path in the native
+   executable.
+2. Run `lake exe demo-slides --output SITE` and `lake build :slides`. Check that
+   each output has `index.html`, the bootstrap, both content-addressed bundles,
+   valid `bundle.json` envelopes and every declared payload. The bootstrap URLs
+   must resolve after moving the whole site under a nested URL prefix; no local
+   `.lake` or checkout path may appear in the published loader configuration.
+3. Build a minimal independent downstream deck using ordinary `slidesMain`.
+   Repeat the site checks for its output and for a custom output directory.
+4. Check the managed `:slides` lifecycle: an unchanged build retains its
+   output, and a changed input or missing/damaged published file regenerates
+   it. Check reserved `lib/vir` asset collisions before publication and that
+   unrelated output files survive a resource update.
+
+Site acceptance establishes a complete, movable published site. Browser
+acceptance then serves it over HTTP and checks real Wasm calls, panel output,
+navigation, disposal, and pixel-layout comparison.

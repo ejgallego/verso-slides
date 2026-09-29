@@ -32,7 +32,7 @@ declare function formatToHtml(
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;
 
 interface VersoVirProgram {
-    call(role: string, requestJson: string): string;
+    call(role: string, ...args: unknown[]): unknown;
     dispose(): void;
 }
 
