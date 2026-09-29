@@ -1,0 +1,148 @@
+"""Acceptance checks for a published PrettyM demo served under a URL prefix.
+
+Build the demo, pixel reference, and downstream deck under SITE, then pass
+`--vir-site-acceptance --site-dir SITE`. These checks use published files.
+"""
+
+import hashlib
+import json
+import re
+
+from playwright.sync_api import expect
+
+
+def test_published_bundles_and_urls(site_dir):
+    for subdir in ("nested/deck", "downstream/custom"):
+        root = site_dir / subdir
+        assert (root / "index.html").is_file()
+        bootstrap = (root / "vir-bootstrap.js").read_text()
+        match = re.search(r"window\.__versoVirResourceUrls = (\{.*?\});", bootstrap)
+        assert match is not None
+        urls = json.loads(match.group(1))
+        assert all(not url.startswith("/") and ".lake" not in url for url in urls.values())
+        assert all((root / url).is_file() for url in urls.values())
+
+        manifests = list(root.glob("lib/vir/*/bundle.json"))
+        assert len(manifests) == 2
+        assert {json.loads(m.read_text())["descriptor"]["kind"] for m in manifests} == {
+            "runtime", "program"
+        }
+        for manifest in manifests:
+            data = json.loads(manifest.read_text())
+            assert manifest.parent.name == data["contentId"]
+            for entry in data["descriptor"]["files"]:
+                content = (manifest.parent / entry["path"]).read_bytes()
+                assert len(content) == entry["byteLength"]
+                assert hashlib.sha256(content).hexdigest() == entry["sha256"]
+
+    assert (site_dir / "downstream/custom/deck-assets/note.txt").is_file()
+
+
+def open_demo(page, server):
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(f"{server}/nested/deck/index.html")
+    page.wait_for_function("window.Reveal?.isReady() === true")
+    page.wait_for_function("window.versoVir !== undefined", timeout=30000)
+    assert not errors, errors
+    assert page.locator('[role="alert"]').count() == 0
+
+
+def test_published_host_call_and_lifecycle(page, server):
+    open_demo(page, server)
+    assert page.evaluate("""() => window.versoVirFormatSegments(
+        {kind: 'tag', fields: {arg1: '7', arg2: {kind: 'text', value: 'hello'}}},
+        80, 0)""") == [{"text": "hello", "tags": ["7"]}]
+
+    # Back-forward cache pagehide preserves the page-owned program.
+    page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: true}))")
+    assert page.evaluate("""() => window.versoVirFormatSegments(
+        {kind: 'text', value: 'still live'}, 80, 0)""") == [
+        {"text": "still live", "tags": []}
+    ]
+
+    # A terminal pagehide disposes it; a fresh navigation creates a new one.
+    page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: false}))")
+    assert page.evaluate("""() => {
+        try {
+            window.versoVirFormatSegments({kind: 'text', value: 'disposed'}, 80, 0);
+            return false;
+        } catch (_) {
+            return true;
+        }
+    }""")
+    page.reload()
+    page.wait_for_function("window.versoVir !== undefined", timeout=30000)
+    assert page.evaluate("""() => window.versoVirFormatSegments(
+        {kind: 'text', value: 'new page'}, 80, 0)""") == [
+        {"text": "new page", "tags": []}
+    ]
+
+
+def open_proof_panel(page):
+    result = page.evaluate("""() => {
+        const sections = [...document.querySelectorAll('.slides > section')];
+        for (let i = 0; i < sections.length; i++) {
+            if (sections[i].querySelector('.code-with-panel .tactic')) {
+                Reveal.slide(i, 0, 0);
+                return i;
+            }
+        }
+        return -1;
+    }""")
+    assert result >= 0
+    page.wait_for_function("(i) => window.Reveal.getIndices().h === i", arg=result)
+    block = page.locator(".slides > section.present .code-with-panel", has=page.locator(".tactic")).first
+    tactic = block.locator(".tactic:visible").first
+    tactic.click()
+    panel = block.locator(".info-panel")
+    reflowed = panel.locator(".reflowed")
+    expect(reflowed.first).not_to_be_empty()
+    return block, panel, reflowed
+
+
+def test_default_panel_reflows_with_wasm(page, server):
+    open_demo(page, server)
+    block, panel, reflowed = open_proof_panel(page)
+    assert not panel.locator('[role="alert"]').count()
+
+    # The existing ResizeObserver path must perform another Wasm render.
+    panel.evaluate("el => el.firstElementChild.setAttribute('data-reflow-marker', '1')")
+    block.evaluate("""el => {
+        el.style.setProperty('--code-ratio', '0.9fr');
+        el.style.setProperty('--panel-ratio', '0.1fr');
+    }""")
+    expect(panel.locator("[data-reflow-marker]")).to_have_count(0, timeout=5000)
+    expect(reflowed.first).not_to_be_empty()
+
+
+def test_panel_content_matches_pixel_path(page, browser, server):
+    open_demo(page, server)
+    _, panel, _ = open_proof_panel(page)
+    wasm_text = " ".join(panel.inner_text().split())
+    wasm_tokens = panel.locator(".reflowed .token").count()
+    assert wasm_text and wasm_tokens > 0
+
+    pixel_page = browser.new_page(viewport=page.viewport_size)
+    try:
+        pixel_page.goto(f"{server}/pixel/deck/index.html")
+        pixel_page.wait_for_function("window.Reveal?.isReady() === true")
+        _, pixel_panel, _ = open_proof_panel(pixel_page)
+        assert " ".join(pixel_panel.inner_text().split()) == wasm_text
+        assert pixel_panel.locator(".reflowed .token").count() == wasm_tokens
+    finally:
+        pixel_page.close()
+
+
+def test_independent_deck_uses_published_runtime(page, server):
+    page.goto(f"{server}/downstream/custom/index.html")
+    page.wait_for_function("window.versoVir !== undefined", timeout=30000)
+    assert page.locator('[role="alert"]').count() == 0
+    assert page.evaluate("""() => window.versoVirFormatSegments(
+        {kind: 'text', value: 'downstream'}, 40, 0)""") == [
+        {"text": "downstream", "tags": []}
+    ]
+    tactic = page.locator(".slides > section.present .code-with-panel .tactic:visible").first
+    tactic.click()
+    panel = page.locator(".slides > section.present .info-panel").first
+    expect(panel.locator(".reflowed").first).not_to_be_empty()

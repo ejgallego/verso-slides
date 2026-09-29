@@ -43,10 +43,16 @@ carrier; the old `virSlidesMain` path override does not apply to #207.
 
 ## Current acceptance boundary
 
-This is a source candidate. The earlier 4.35 embedded-resource demo and the
-4.34.0-rc2 deck evidence remain separate qualifications. This candidate
-requires a matching local ABI4 runtime pack. The direct host ABI call and the
-default-panel width conversion need browser qualification on this exact pair.
+The exact Lean 4.34 / VIR #207 pair passed local site and browser acceptance.
+The published demo and an independent deck both carried complete, validated
+runtime and program bundles at relative URLs. Chromium and Firefox loaded the
+Wasm program under a nested URL, called `formatSegments`, rendered and resized
+the default panel, and reopened it after page disposal. The panel's text and
+token count matched the old pixel-based path on the same demo slide. This
+comparison checks content and annotations; it does not establish pixel-for-pixel
+geometry equivalence. The earlier 4.35 embedded-resource demo and 4.34.0-rc2
+deck evidence remain separate qualifications. The exact matching ABI4 runtime
+pack must be supplied locally for a fresh build.
 
 ### Site acceptance process
 
@@ -69,4 +75,19 @@ default-panel width conversion need browser qualification on this exact pair.
 
 Site acceptance establishes a complete, movable published site. Browser
 acceptance then serves it over HTTP and checks real Wasm calls, panel output,
-navigation, disposal, and pixel-layout comparison.
+navigation, disposal, and panel-content comparison with the pixel path.
+
+For a repeatable browser run, build these three outputs beneath one directory:
+
+```sh
+SITE=/tmp/verso-vir-site-acceptance
+lake exe demo-slides --output "$SITE/nested/deck"
+lake exe demo-slides --pixel-pretty --output "$SITE/pixel/deck"
+(cd examples/default-deck && lake update && lake exe my-talk --output "$SITE/downstream/custom")
+uv run --project browser-tests pytest browser-tests/test_vir_prettym_site.py \
+  --vir-site-acceptance --site-dir "$SITE" --browser=all -q
+```
+
+The downstream Lake workspace needs the same locally supplied ABI4 runtime
+pack as the root workspace. The acceptance module is skipped by the ordinary
+browser fixture suite unless `--vir-site-acceptance` is given.

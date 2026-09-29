@@ -24,6 +24,11 @@ def find_free_port():
 
 def pytest_addoption(parser):
     parser.addoption(
+        "--vir-site-acceptance",
+        action="store_true",
+        help="Run PrettyM published-site acceptance checks (--site-dir must contain nested/deck, pixel/deck, and downstream/custom)"
+    )
+    parser.addoption(
         "--port",
         action="store",
         default=None,
@@ -53,6 +58,14 @@ def pytest_addoption(parser):
             "'random' flips a coin once per session to pick one browser."
         ),
     )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--vir-site-acceptance"):
+        return
+    for item in items:
+        if item.path.name == "test_vir_prettym_site.py":
+            item.add_marker(pytest.mark.skip(reason="requires --vir-site-acceptance"))
 
 
 def _resolve_browsers(config):

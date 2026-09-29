@@ -35,6 +35,16 @@ def expectFail (desc : String) (cfg : Config) : IO (Except String Unit) := do
   catch _ =>
     return .ok ()
 
+def expectVirNamespaceFail (desc : String) (cfg : Config) : IO (Except String Unit) := do
+  try
+    cfg.validateVirResourceNamespace
+    return .error s!"{desc}: expected reserved namespace failure, got success"
+  catch e =>
+    if ((toString e).splitOn "reserved VIR resource namespace").length > 1 then
+      return .ok ()
+    else
+      return .error s!"{desc}: unexpected error {e}"
+
 /-- String substring check. -/
 private def hasSubstr (haystack needle : String) : Bool :=
   haystack.find? needle |>.isSome
@@ -142,7 +152,11 @@ public def main : IO UInt32 := do
     expectFail "generated directory conflicts with embedded asset"
       { extraAssets := #[dummyAsset "generated/runtime.js"],
         extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
-                              destination := "generated" }] }
+                              destination := "generated" }] },
+    expectVirNamespaceFail "runtime bundle asset cannot claim lib/vir"
+      { extraAssets := #[dummyAsset "lib/vir/runtime.js"] },
+    expectVirNamespaceFail "staging asset cannot claim lib/.vir-stage"
+      { extraAssets := #[dummyAsset "lib/.vir-stage/stale"] }
   ]
   let mut failed := 0
   for run in cases do
