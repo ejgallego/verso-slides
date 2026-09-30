@@ -11,7 +11,18 @@ shared implementation plan at
 | Checkpoint | Slides | VIR | Runtime content ID | Qualification |
 | --- | --- | --- | --- | --- |
 | Historical 4.34 candidate | `d68e701964f7602454019bc026f9fabdf83b9786` | `970ad3d27b7daf82cd5bfe2e4d53251037cd7b87` | `5b58adf465c88e5aa9fac9300d42d7a3b33789557d2323c53e7fb8612741c70e` | Supplied-pack site/browser acceptance; retained in history |
-| Current requested adoption | `9cb9b54270abc7dd737621cde72eaf1d258f5f95` (pin change `f582da67372a150d358f47256fa939aa6f60f2a5`) | `0a9abac0e1245ddb3752a0d4dccef30d28c39621` | `ff7b5a61fd6558e7f4e828e460f3aed033803a84ef599073c6cfe44af85e2ba3` | Seven native checks; 13 site/browser checks; supplied pack |
+| Executed adoption acceptance | `9cb9b54270abc7dd737621cde72eaf1d258f5f95` (pin change `f582da67372a150d358f47256fa939aa6f60f2a5`) | `0a9abac0e1245ddb3752a0d4dccef30d28c39621` | `ff7b5a61fd6558e7f4e828e460f3aed033803a84ef599073c6cfe44af85e2ba3` | Seven native checks; 13 site/browser checks; supplied pack |
+| Final test-only source alignment | Successor pin recorded in this document's commit | `cf816e94d3a5207e3a9d6c1e0c4d312a7845bfb9` | Same `ff7b5a61…` artifact | Reuses the executed acceptance above; no native/browser rerun |
+
+VIR `cf816e94` is the direct successor of `0a9abac0`. Its complete diff is
+three added lines in `tests/packages/lake-facets.sh`, explicitly building the
+standalone generator used only by the test's independent comparison. No
+production blob, runtime/API, compatibility or pack-lock change occurred.
+Source pin, manifests and root/downstream dependency checkouts select this
+successor consistently. The canonical successor handoff and upstream retained
+red/green cold-facet evidence were read; that campaign was not rerun by Slides.
+Fresh successor CI is not claimed. All acceptance/reproducer attribution to
+`0a9abac0` below records where those checks were actually executed.
 
 Both 4.34 checkpoints use Lean revision
 `293d5d0c0c3f3dded4688b3ccd6a33939ac5102b`. The separate historical 4.35 demo

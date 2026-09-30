@@ -1,7 +1,7 @@
 # PrettyM candidate on Lean 4.34
 
 This candidate uses Lean `v4.34.0`, VIR [PR #207](https://github.com/ejgallego/lean-vir/pull/207)
-at `0a9abac0e1245ddb3752a0d4dccef30d28c39621`, and the matching
+at `cf816e94d3a5207e3a9d6c1e0c4d312a7845bfb9`, and the matching
 Verso revision pinned in `lakefile.lean`. PR #207 is based on main with the
 landed ABI4 runtime work. Its runtime lock is available-only:
 the exact verified runtime pack must already be supplied locally.
@@ -44,8 +44,14 @@ carrier; the old `virSlidesMain` path override does not apply to #207.
 ## Current acceptance boundary
 
 The exact Lean 4.34 / VIR `0a9abac0` pair passed supplied-pack local site and
-browser acceptance. The source pin, Lake manifest and root/downstream dependency
-HEADs agree. Resource compatibility is exactly `{leanRevision, virVersion}`.
+browser acceptance in Slides `9cb9b54`. The final dependency pin is its direct
+test-only successor `cf816e94`: the complete diff adds only three lines to
+`tests/packages/lake-facets.sh`, explicitly acquiring its standalone comparison
+tool. Production sources, runtime/API and pack lock are identical, so the
+executed native/browser evidence below is retained without rerunning it.
+The source pin, Lake manifest and root/downstream dependency HEADs agree at
+`cf816e94`. Fresh successor CI remains upstream qualification work.
+Resource compatibility is exactly `{leanRevision, virVersion}`.
 VIR's public acquisition tool validated and installed the supplied pack:
 
 | Artifact | Immutable identity |
