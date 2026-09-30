@@ -63,9 +63,48 @@ the current adoption; the items below are requirements for review, not new APIs.
 | Consumer requirement | Current boundary | Review decision needed |
 | --- | --- | --- |
 | Exact runtime acquisition | Verified supplied pack; available-only lock | VIR release owner supplies a durable anonymous source with the selected identity. Slides qualifies a fresh unseeded build separately. |
-| Check callable interface before formatting | Recipe verifies the role/declaration; `interfaceId` is metadata, not a generated type check | Agree a public way to verify the expected role, interface ID and callable input/output shape before the adapter's first call. Slides will use that agreed surface. |
-| Cancel an obsolete pending load | Slides can invalidate a generation and dispose a late success; current loader has no caller cancellation option | Agree whether/how a caller cancels acquisition, its rejection behavior, and cleanup ownership. Generation checks remain required even with cancellation. |
-| Bounded formatter failure | Current canary returns an array and has no formatter-specific failure result | Agree the production typed result and interface-ID migration if its shape changes. Keep the host ABI; introduce no JSON request/response wrapper. |
+| Check callable interface before formatting | Recipe verifies the role/declaration; current loader has no consumer expectation option | Agreed proposal: optional `expectedInterfaces` role/ID map checked before instantiation. This checks the advertised protocol promise, not independent consumer type-schema equality. Existing ABI validation and exact binding remain; implementation/handoff pending. |
+| Cancel an obsolete pending load | Slides can invalidate a generation and dispose a late success; current loader has no caller cancellation option | Agreed proposal: optional pending-creation `signal`; explicit disposal after resolution. Cancellation alone is `AbortError`; cancellation plus cleanup failure is `AggregateError` retaining both errors. Implementation/handoff pending; generation checks remain required. |
+| Bounded formatter failure | Current canary returns an array and has no formatter-specific failure result | Agreed migration: pure `Except FormatError (Array Pretty.Segment)` under `verso-slides-format-segments-hostabi-v2`, retaining role/declaration and three inputs. Application categories/budgets and exact ABI qualification remain pending. |
+
+### Agreed proposal, pending implementation
+
+Accepted `VIR-SLIDES-RESOURCE-EXPECTED-INTERFACE-PROPOSAL-20260930-001` after
+reviewing its complete retained report. The generic creation proposal adds
+`expectedInterfaces?: Readonly<Record<string, string>>` and `signal?: AbortSignal`
+to the existing two URL inputs. Snapshot validated own map entries before awaits;
+each required role must occur exactly once with its exact interface ID. Extra
+roles are allowed; mismatch is a `program-validation` creation error before
+instantiation, preferably before payload fetch. Existing exact root declaration,
+alias rejection, integrity/compatibility and compiled-ABI admission remain.
+There is no separate consumer type schema: a publisher can mislabel a valid ABI
+with a matching ID. The typed adapter, inspected generated signature and native/
+browser oracle establish our reviewed concrete formatter contract separately.
+This supersedes the earlier request for independent expected-shape equality.
+
+Preserve readonly `Program.status` and explicit idempotent terminal disposal.
+The signal owns pending creation only; final abort check and listener removal
+define handoff without an intervening await. Later abort does not own the result
+or interrupt synchronous calls. Remove timers/listeners on all exits and detach
+references even when cleanup throws. Cancellation alone is `AbortError`;
+cancellation plus cleanup failure is `AggregateError` containing the cancellation
+and untouched cleanup failure. Slides treats the latter as a visible failure,
+not an ignorable routine abort. This supersedes our earlier unconditional outer
+`AbortError` requirement. Acquisition timeout remains a contextual failure;
+creation phase/cause wrapping does not alter call/IO/fatal/quarantine semantics.
+
+The v2 formatter remains pure and uses the existing host ABI. Finite application
+errors, input admission, width policy and construction limits belong to Slides.
+Budget rejection must leave the instance usable. Do not accept both protocol
+IDs, guess the result shape, truncate output or substitute an algorithm. Existing
+v1 source/artifacts remain historical evidence. Compile/inspect the exact v2
+signature and compare native/browser results before calling it qualified.
+
+The proposal is not shipped in pinned `cf816e94` or runtime `ff7b5a61`.
+VIR must supply an immutable implemented source and regenerated matching runtime
+artifact with focused checks before consumer adoption; loader JS changes the
+runtime content identity. Slides v2 separately changes its program identity.
+Coordinator retains implementation sequencing and publication decisions.
 
 Slides proposes the following application limits as a starting point for review,
 using the historical canary's bounds where the units still apply: 10,000 format
@@ -91,10 +130,10 @@ Slides baseline portion of A. B remains the earliest unmet shared checkpoint.
 | --- | --- |
 | 1 Baseline/CI alignment (A) | Slides pin mismatch resolved in `f582da6`; supplied-pack acceptance in `9cb9b54`. VIR's historical source-inventory regression was fixed in `8d1facd`; the exact named Node test passes locally at `0a9abac0` (1 passed). This is not a claim about full public CI. |
 | 2 Mandatory acquisition (B) | Pending VIR durable anonymous source. Explicit supplied-pack acquisition and ordinary root/downstream builds pass. An empty-cache public acquisition probe rejects with `RESOURCE_OFFLINE_MISS` and the exact required content ID; it is not a fresh anonymous deck build. Slides owns downstream qualification after a usable source handoff. |
-| 3 Formatter bounds (B) | Earliest Slides implementation item. Current direct wrapper and recursive converter have no formatter-specific budgets. Historical JSON bounds qualify their old pair only. Prepare small-budget regressions; agree the recoverable typed result before changing its contract. |
+| 3 Formatter bounds (B) | Earliest Slides implementation item. Current direct wrapper and recursive converter have no formatter-specific budgets. Historical JSON bounds qualify their old pair only. Pure Except/v2 migration is agreed; prepare small-budget regressions and settle finite application policy before qualifying the changed signature. |
 | 4 Portable paths (B) | Generic rule belongs to VIR. Current JS `validateDescriptor` accepts `Assets/a.js` and `assets/b.js`; a minimal lexical regression reproduces the missing rejection at `0a9abac0`. Native source has the same gap; native/case-insensitive-platform execution has not been claimed. Slides reserves exact `lib/vir`/`lib/.vir-stage` spellings; its casing rules still need regression/review. |
-| 5 Consumer contract/typed adapter (C) | Pending shared agreement. Current recipe checks declarations; `interfaceId` is not checked against consumer expectations. Ask VIR for its public expected-interface proposal; then integrate a typed Slides adapter and reviewed width/error semantics. |
-| 6 Cancellation/loading UX (C) | Pending agreed caller cancellation API and Slides loading/failure/retry work. Ready-instance disposal, persisted pagehide and fresh reload pass; this does not cover obsolete acquisition cancellation or all pending-completion races. |
+| 5 Consumer contract/typed adapter (C) | Generic role/ID map scope and pure Except/v2 migration agreed; upstream implementation/artifact and typed Slides adapter remain pending. ID equality is not consumer type-schema or semantic proof. Width/error policy and exact v2 native/browser qualification remain Slides work. |
+| 6 Cancellation/loading UX (C) | Pending-creation signal/lifetime and creation-error contract agreed, including cancellation plus cleanup AggregateError. Implementation/artifact and Slides loading/failure/retry remain pending. Ready-instance disposal, persisted pagehide and fresh reload pass; this does not cover obsolete acquisition cancellation or all pending-completion races. |
 | 7 One presentation layer (D) | Pending Slides. Production `--pixel-pretty`/`Config.virPrettyM` selectors and the two JS presentation copies are superseded architecture. Remove them after the bounded typed adapter/lifecycle seam is settled. |
 | 8 Native guarantees (D) | VIR `8d1facd` added inner interface/compiler compatibility checks, included in actual successful program builds. Format-authority/precondition clarification remains VIR review work; do not infer completion from downstream happy-path builds. |
 | 9 Publication/costs (D) | Pending Slides. Source still validates the same resource set through `configureVirAssets`/`describe` and `write`/`describe`/`bundles`. No real-cost claim; next publication patch needs a single validated plan, output/failure regressions and measured validation passes/costs. |
@@ -110,11 +149,12 @@ format a valid value on the same program. Use native Lean as the semantic oracle
 and the actual compact converter/browser path for admission checks. This is
 preparation for Step 3, not completion of the pending distribution gate.
 
-Before changing the exported result, agree a recoverable typed error shape and
-the interface-ID migration with Module. Before integrating Step 5/6, obtain an
-explicit VIR proposal/checkpoint for expected-interface checking and caller-owned
-creation cancellation, with error/cleanup semantics and a matching artifact.
-Step 2 additionally needs a durable anonymous source. No guessed loader options,
+The pure Except result and v2 interface-ID migration are agreed; settle the
+finite Slides error categories/limits and qualify the exact generated ABI before
+adoption. Before integrating Step 5/6, obtain the explicit implemented VIR
+checkpoint for the agreed role/ID map and caller-owned creation cancellation,
+with error/cleanup tests and a matching artifact. Step 2 additionally needs a
+durable anonymous source. No guessed loader options,
 compatibility aliases or alternative production formatter enter these patches.
 
 Publication, merge and cleanup remain outside this adoption. The next explicit
