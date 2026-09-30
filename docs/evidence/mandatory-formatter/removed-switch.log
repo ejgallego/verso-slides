@@ -1,0 +1,3 @@
+$ demo-slides --pixel-pretty --output UNUSED
+uncaught exception: Unknown or incomplete slides argument: --pixel-pretty
+exit: 1

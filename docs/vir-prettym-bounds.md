@@ -148,7 +148,8 @@ The browser imports only emitted ESM/Wasm bytes; no producer test SDK is substit
 Durable anonymous acquisition remains open (`source: "-"`). This supplied-pack
 checkpoint does not qualify distribution, final visual geometry, wider goal
 workloads, dynamic retention/performance, broader product UX,
-publication planning or portable-path rules. The old pixel switch and duplicated
-JS presentation are existing work based on the superseded optional architecture;
-the mandatory-VIR consolidation remains a subsequent Slides slice. Upstream
+publication planning or portable-path rules. Slides `89e0314` removes the old pixel
+switch and duplicated JS formatter, with one mandatory VIR presentation path;
+[fresh consolidation evidence](evidence/mandatory-formatter/README.md) includes
+101 native formatter, 24 rendering, 46 Node and 105 browser checks. Upstream
 publication and final product acceptance remain coordinator-owned sequencing.

@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "result": {
+    "path": "VersoSlides/Render.lean",
+    "version": 1,
+    "diagnostics": {
+      "counts": {
+        "error": 0,
+        "warning": 0,
+        "information": 0,
+        "hint": 0,
+        "unknown": 0,
+        "total": 0
+      }
+    },
+    "readiness": {
+      "saveReady": true,
+      "reason": "ok",
+      "blockingErrorCount": 0,
+      "blockingDiagnostics": [],
+      "blockingMessages": []
+    }
+  },
+  "fileProgress": {
+    "done": true,
+    "updates": 0
+  }
+}

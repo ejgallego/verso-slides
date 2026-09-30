@@ -34,9 +34,11 @@ response protocol has been removed. The generated slide's existing rich-format
 metadata is still JSON and is parsed by the panel before this call.
 
 `VersoSlides.Pretty.formatSegments` is the single Lean layout implementation;
-`VersoSlides.VirPrettyM.formatSegments` is its exported wrapper. The legacy
-JavaScript formatter remains with `--pixel-pretty` or `Config.virPrettyM := false`
-as superseded work to remove in the mandatory-VIR consolidation slice.
+`VersoSlides.VirPrettyM.formatSegments` is its exported wrapper. VIR is mandatory:
+the pixel switch, configuration selector and handwritten JavaScript layout are
+removed at Slides `89e0314`. Panels and lightboxes use one presentation layer in
+`web-lib/panel/pretty.js`, including measurement, annotations, bindings, escaping
+and reflow. [Consolidation evidence](evidence/mandatory-formatter/README.md).
 
 The old 4.34.0-rc2 branch `feat/reusable-deck-assets` retains the original
 path-based build and custom-root evidence. This candidate carries its default
@@ -54,7 +56,7 @@ Slides `481ea5c`; [retained lifecycle evidence](evidence/formatter-lifecycle/REA
 The panel remains interactive during initialization, and successful readiness
 renders its current selection. Failed creation offers **Retry Lean formatting**;
 each attempt owns cancellation and disposal, without replaying runtime calls.
-Anonymous installation and final mandatory presentation consolidation remain open.
+Anonymous installation, publication planning and final product acceptance remain open.
 The historical downstream/pixel evidence
 below is retained; those broader checks were not repeated for this narrow gate.
 
@@ -99,10 +101,9 @@ is a separate pending qualification. The historical `d68e701` / VIR `970ad3d2`
 pair and its old pack remain recorded in history and the
 [production checklist](vir-production-checklist.md).
 
-Production requires mandatory VIR and one JS measurement/presentation layer.
-The pixel switch in this pin-qualification stage supplies temporary comparison
-evidence; its retirement and the typed formatter/lifecycle work follow the
-shared-contract review checkpoint in that checklist.
+The historical pixel comparison remains in history. Current production has one
+VIR formatting path and one JS measurement/presentation layer; complete native
+segments and DOM text/tags/classes/bindings are the current acceptance oracle.
 
 ### Site acceptance process
 
@@ -125,7 +126,7 @@ shared-contract review checkpoint in that checklist.
 
 Site acceptance establishes a complete, movable published site. Browser
 acceptance then serves it over HTTP and checks real Wasm calls, panel output,
-navigation, disposal, and panel-content comparison with the pixel path.
+navigation, disposal, and complete native semantic/annotation comparisons.
 
 For a repeatable browser run, build these outputs beneath one directory:
 
@@ -133,7 +134,6 @@ For a repeatable browser run, build these outputs beneath one directory:
 SITE=/tmp/verso-vir-site-acceptance
 lake exe demo-slides --output "$SITE"
 lake exe demo-slides --output "$SITE/nested/deck"
-lake exe demo-slides --pixel-pretty --output "$SITE/pixel/deck"
 (cd examples/default-deck && lake update && lake exe my-talk --output "$SITE/downstream/custom")
 lake build test-pretty
 .lake/build/bin/test-pretty
@@ -142,6 +142,7 @@ uv run --project browser-tests pytest browser-tests/test_vir_prettym_site.py \
   --vir-site-acceptance --site-dir "$SITE" --browser=all -q
 ```
 
-The downstream Lake workspace needs the same locally supplied ABI4 runtime
+The retired `--pixel-pretty` argument is rejected before publication. The
+downstream Lake workspace needs the same locally supplied ABI4 runtime
 pack as the root workspace. The acceptance module is skipped by the ordinary
 browser fixture suite unless `--vir-site-acceptance` is given.

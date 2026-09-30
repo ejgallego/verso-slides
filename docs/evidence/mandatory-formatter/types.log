@@ -1,0 +1,7 @@
+$ node_modules/.bin/tsc --version
+Version 5.7.2
+exit: 0
+$ node_modules/.bin/tsc -p web-lib/panel/jsconfig.json
+exit: 0
+$ node_modules/.bin/tsc -p web-lib/vir-prettym/jsconfig.json
+exit: 0
