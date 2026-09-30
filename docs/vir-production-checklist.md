@@ -31,7 +31,7 @@ remain unchanged. Its separate evidence/documentation commit changes no producti
 | Cleanup reporting | Slides `c1bcc76c`; 20 Node, 6 focused browser checks and targeted build; [retained evidence](evidence/bootstrap-cleanup/README.md). Module's bounded source/evidence review found no shared-contract blocker; it did not rerun tests. |
 | Loading/failure/explicit retry | Slides `481ea5c`; 35 Node, 16 focused Chromium/Firefox, both typechecks and targeted build; [retained evidence](evidence/formatter-lifecycle/README.md). |
 | Mandatory-VIR consolidation | Slides `89e0314c`; 46 Node, 101 native formatter, 24 native rendering and 105 Chromium/Firefox checks, both typechecks and targeted warm build; [retained evidence](evidence/mandatory-formatter/README.md). Module reviewed `89e0314c` / `e2b34da` with no new renderer blocker and verified all 34 source/evidence ledger hashes; owner-run campaigns were inspected, not rerun. |
-| Loading-notification reentrancy | Slides `19bf157f`; four focused regressions fail against `e2b34da`, then 50 Node / 22 focused Chromium/Firefox checks, both typechecks and targeted warm build pass; [retained evidence](evidence/lifecycle-notification/README.md). |
+| Loading-notification reentrancy | Slides `19bf157f`; four focused regressions fail against `e2b34da`, then 50 Node / 22 focused Chromium/Firefox checks, both typechecks and targeted warm build pass; [retained evidence](evidence/lifecycle-notification/README.md). Module accepted `19bf157f` / `13dc7d0`, independently verified 17 source/evidence hashes and executed its formerly failing controlled VM probe successfully; owner-run campaigns were not rerun. |
 | Upstream exact-head CI | [VIR run 36720794347](https://github.com/ejgallego/lean-vir/actions/runs/36720794347) completed successfully at `47e82e9a`; independently read back during the cleanup slice, not rerun here |
 
 The GitHub run query for Slides `51c6d782` returned zero runs; local checks are
@@ -74,11 +74,12 @@ Four controlled Node negatives and six real-runtime browser notification checks
 cover this correction; prior evidence is retained as historical qualification.
 
 Module's consolidation review targets the earlier `e2b34da` source and reproduces
-the same P2 there. The separately pushed correction is already available at
-`19bf157f`, with immutable red/green evidence at `13dc7d0`. That review does not
-evaluate the correction: item 2 remains pending bounded reviewer acceptance.
-No consolidation redo or broad rerun is required. Publication-plan work follows
-acceptance of the correction.
+the same P2 there. Its subsequent loading-notification acceptance reviews the
+separate `19bf157f` correction and immutable red/green evidence at `13dc7d0`.
+P2 is resolved and consolidation is accepted for its recorded local scope.
+Module's new controlled VM probe is distinct from the owner's retained browser
+checks. No consolidation redo or broad rerun is required. Publication-plan work
+remains a separately sequenced next slice, not authorized by that review.
 
 ## Current consolidation slice
 
@@ -100,11 +101,12 @@ comparison evidence remains in history. No fallback or backend abstraction remai
 | Item | Owner | Current status / next action |
 | --- | --- | --- |
 | 1 Cleanup reporting | Slides | Complete at `c1bcc76c`; bounded upstream review found no shared-contract blocker. |
-| 2 Loading, failure, explicit retry | Slides | Implemented at `481ea5c`, loading-notification ordering corrected and locally qualified at `19bf157f`. Focused lifecycle checks pass; correction is ready for review. |
-| 3 Mandatory-VIR consolidation | Slides | Implemented and locally qualified at `89e0314c`; Module's `e2b34da` review found no new renderer blocker. Complete checkpoint acceptance awaits review of the isolated P2 correction. One shared presentation layer and mandatory formatter remain intact. |
-| 4 Validated publication plan | Slides | Next implementation item after bounded P2 review. Replace repeated full validation with one reusable plan. Preserve namespace/casing constraints; test failure/stale files and measure actual pack/warm-build costs before speculative caching. Current stage/remove/rename writer is single-writer and nontransactional. |
+| 2 Loading, failure, explicit retry | Slides | Implemented at `481ea5c`, loading-notification ordering corrected at `19bf157f`; Module accepted `13dc7d0` and closed P2. |
+| 3 Mandatory-VIR consolidation | Slides | Implemented and locally qualified at `89e0314c`; accepted for recorded local scope after the bounded P2 correction review. One shared presentation layer and mandatory formatter remain intact. Final release gates remain open. |
+| 4 Validated publication plan | Slides | Next separately sequenced implementation item. Replace repeated full validation with one reusable plan. Preserve namespace/casing constraints; test failure/stale files and measure actual pack/warm-build costs before speculative caching. Current stage/remove/rename writer is single-writer and nontransactional. |
 | 5 Durable exact acquisition | VIR Module; Slides acceptance | Release blocker: source remains `-`. VIR supplies durable exact source; Slides qualifies fresh ordinary downstream builds and separate cold/warm offline behavior. No private loader, validator or manual build workaround. |
 | Generic prefix casing / checked-helper clarification | VIR Module | Completed at `bbd3ed30` / `0f720625`; Module reports the successor now public on PR207 with successful exact-head workflows. This is reported upstream evidence, not a fresh Slides CI query. Successor runtime `832ab095` remains unadopted; Slides selects `47e82e9a` / `401b115e`. Producer tests were not rerun by Slides. Publication/durable source remain gated. |
+| Native carrier import simplification | VIR Module; later Slides adoption | Slides explicitly agreed to the proposed single `public import Vir.Resources.Embed`; reply queued to Module as `01a0f44d-0a4c-7210-86a6-3aaa4e63da55`. Source-level contract agreement only. Current carrier and exact pair remain unchanged; producer commit/qualification and consumer adoption are separate. |
 | Final exact-pair acceptance | Slides integration lead | Pending distribution/product seams. Include downstream/nested publication, native/browser semantics and annotations, narrow/Unicode/font/theme/resize geometry, lifecycle/retry, repeated calls and retention/performance. Normalized text does not qualify geometry. |
 
 No upstream API expansion, decision, pin update or runtime pack is required for
@@ -114,6 +116,7 @@ Targeted fresh checks qualify those changes;
 historical full campaigns are not relabelled as fresh results.
 
 Review branch pushes are authorized; PR creation, merge, force-push, branch
-retirement and releases are not. Stop after this lifecycle correction for review.
+retirement and releases are not. This local checkpoint is accepted; stop before
+the separately sequenced publication-plan or adoption slice.
 The [earlier proposal correspondence](history/vir-creation-contract-review.md)
 is retained separately; current work follows the mandatory shared plan.
