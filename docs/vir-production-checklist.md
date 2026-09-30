@@ -1,14 +1,17 @@
 # VIR formatter integration checklist
 
 Slides owns this application checklist. Module owns VIR's resource and execution
-contracts. This plan follows the canonical production direction of 2026-09-30.
+contracts. This checklist follows the canonical production direction and the
+shared implementation plan at
+`/home/egallego/Downloads/vir-verso-slides-shared-implementation-plan.md`
+(SHA-256 `03b35dc3e4218afd7cc7465244da8ad7fc1dd550c1f97c13caa6c25065c4417f`).
 
 ## Immutable adoption checkpoints
 
 | Checkpoint | Slides | VIR | Runtime content ID | Qualification |
 | --- | --- | --- | --- | --- |
 | Historical 4.34 candidate | `d68e701964f7602454019bc026f9fabdf83b9786` | `970ad3d27b7daf82cd5bfe2e4d53251037cd7b87` | `5b58adf465c88e5aa9fac9300d42d7a3b33789557d2323c53e7fb8612741c70e` | Supplied-pack site/browser acceptance; retained in history |
-| Current requested adoption | Descendant of the historical candidate; exact commit in delivery checkpoint | `0a9abac0e1245ddb3752a0d4dccef30d28c39621` | `ff7b5a61fd6558e7f4e828e460f3aed033803a84ef599073c6cfe44af85e2ba3` | Supplied-pack qualification recorded in the build guide |
+| Current requested adoption | `9cb9b54270abc7dd737621cde72eaf1d258f5f95` (pin change `f582da67372a150d358f47256fa939aa6f60f2a5`) | `0a9abac0e1245ddb3752a0d4dccef30d28c39621` | `ff7b5a61fd6558e7f4e828e460f3aed033803a84ef599073c6cfe44af85e2ba3` | Seven native checks; 13 site/browser checks; supplied pack |
 
 Both 4.34 checkpoints use Lean revision
 `293d5d0c0c3f3dded4688b3ccd6a33939ac5102b`. The separate historical 4.35 demo
@@ -69,22 +72,40 @@ obsolete attempts cannot replace the current view or leave a usable stale facade
 
 ## Change and review order
 
-1. Finish the exact supplied-pack adoption and record native/root/nested browser
-   evidence independently of anonymous cold acceptance.
-2. Module and Slides review and agree interface verification, cancellation and
-   the typed formatter result/limits before either repository implements a
-   shared-contract change.
-3. Implement the agreed Slides adapter, bounded Lean formatter and lifecycle in
-   small changes, each with a reproducer or focused regression where behavior changes.
-4. Consolidate the one JS presentation layer and remove the production formatter
-   fallback. Qualify actual panels, Unicode/tags/width boundaries, failure/retry,
-   completion ordering and disposal.
-5. Qualify anonymous cold installation when a release source is supplied, then
-   request the final production review. Publication, merge and cleanup require
-   their own authorization.
+Follow the shared plan's A–E checkpoints; preparation for independent items can
+proceed while an upstream gate is pending. Supplied-pack adoption completes the
+Slides baseline portion of A. B remains the earliest unmet shared checkpoint.
 
-Step 1 is qualified for VIR `0a9abac0` and pack `ff7b5a61`: seven native checks and
-13 site/browser checks pass on Lean 4.34. Step 2 is the next review checkpoint;
-no proposed shared-contract change has been implemented. The canary's direct
-host ABI has no formatter-specific work limits yet. The historical JSON bounds
-acceptance therefore remains evidence for its own historical pair only.
+| Shared-plan step | Actual status and owner |
+| --- | --- |
+| 1 Baseline/CI alignment (A) | Slides pin mismatch resolved in `f582da6`; supplied-pack acceptance in `9cb9b54`. VIR's historical source-inventory regression was fixed in `8d1facd`; the exact named Node test passes locally at `0a9abac0` (1 passed). This is not a claim about full public CI. |
+| 2 Mandatory acquisition (B) | Pending VIR durable anonymous source. Explicit supplied-pack acquisition and ordinary root/downstream builds pass. An empty-cache public acquisition probe rejects with `RESOURCE_OFFLINE_MISS` and the exact required content ID; it is not a fresh anonymous deck build. Slides owns downstream qualification after a usable source handoff. |
+| 3 Formatter bounds (B) | Earliest Slides implementation item. Current direct wrapper and recursive converter have no formatter-specific budgets. Historical JSON bounds qualify their old pair only. Prepare small-budget regressions; agree the recoverable typed result before changing its contract. |
+| 4 Portable paths (B) | Generic rule belongs to VIR. Current JS `validateDescriptor` accepts `Assets/a.js` and `assets/b.js`; a minimal lexical regression reproduces the missing rejection at `0a9abac0`. Native source has the same gap; native/case-insensitive-platform execution has not been claimed. Slides reserves exact `lib/vir`/`lib/.vir-stage` spellings; its casing rules still need regression/review. |
+| 5 Consumer contract/typed adapter (C) | Pending shared agreement. Current recipe checks declarations; `interfaceId` is not checked against consumer expectations. Ask VIR for its public expected-interface proposal; then integrate a typed Slides adapter and reviewed width/error semantics. |
+| 6 Cancellation/loading UX (C) | Pending agreed caller cancellation API and Slides loading/failure/retry work. Ready-instance disposal, persisted pagehide and fresh reload pass; this does not cover obsolete acquisition cancellation or all pending-completion races. |
+| 7 One presentation layer (D) | Pending Slides. Production `--pixel-pretty`/`Config.virPrettyM` selectors and the two JS presentation copies are superseded architecture. Remove them after the bounded typed adapter/lifecycle seam is settled. |
+| 8 Native guarantees (D) | VIR `8d1facd` added inner interface/compiler compatibility checks, included in actual successful program builds. Format-authority/precondition clarification remains VIR review work; do not infer completion from downstream happy-path builds. |
+| 9 Publication/costs (D) | Pending Slides. Source still validates the same resource set through `configureVirAssets`/`describe` and `write`/`describe`/`bundles`. No real-cost claim; next publication patch needs a single validated plan, output/failure regressions and measured validation passes/costs. |
+| 10 Final mandatory qualification (E) | Pending. Current native/root/nested/panel checks credit completed work, with limited pixel-content comparison. They do not qualify final budgets, classes/bindings/layout, cancellation/retry, dynamic retention/performance, or anonymous cold installation. |
+
+## Next Slides patch and handoff
+
+The next minimal application change is a regression set for a small formatter
+policy: node/depth boundaries before ABI conversion, cumulative indentation
+before newline allocation, and output growth before appending. Exercise equality
+to each limit and one unit over using small budgets; after every expected error,
+format a valid value on the same program. Use native Lean as the semantic oracle
+and the actual compact converter/browser path for admission checks. This is
+preparation for Step 3, not completion of the pending distribution gate.
+
+Before changing the exported result, agree a recoverable typed error shape and
+the interface-ID migration with Module. Before integrating Step 5/6, obtain an
+explicit VIR proposal/checkpoint for expected-interface checking and caller-owned
+creation cancellation, with error/cleanup semantics and a matching artifact.
+Step 2 additionally needs a durable anonymous source. No guessed loader options,
+compatibility aliases or alternative production formatter enter these patches.
+
+Publication, merge and cleanup remain outside this adoption. The next explicit
+handoff carries the exact local head, completed evidence, the remaining lexical
+path reproducer, and these contract/source requests to the existing Module owner.
