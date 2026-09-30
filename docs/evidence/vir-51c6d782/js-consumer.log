@@ -1,0 +1,19 @@
+✔ inclusive small input budgets and one over (1.853392ms)
+✔ strict constructors, exact numeric scalars, Unicode and cyclic input (0.691122ms)
+✔ admission rejects before ABI calls; finite v2 failures leave adapter usable (0.965459ms)
+✔ pending creation receives independent expectedExports/signal; pagehide aborts without a facade (4.494378ms)
+✔ late success after before import is disposed once and never handed off (2.75424ms)
+✔ late success after during creation is disposed once and never handed off (1.325718ms)
+✔ obsolete cancellation reports own raw cleanup evidence (undefined) (1.432679ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (1.186165ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (1.32187ms)
+✔ resolved lifetime preserves bfcache and disposes on terminal pagehide (1.462105ms)
+✔ reviewed v2 reference matches the validated generated root ABI (16.623392ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 112.314269

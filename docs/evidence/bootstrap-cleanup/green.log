@@ -1,0 +1,28 @@
+✔ inclusive small input budgets and one over (2.623766ms)
+✔ strict constructors, exact numeric scalars, Unicode and cyclic input (1.067819ms)
+✔ admission rejects before ABI calls; finite v2 failures leave adapter usable (0.785427ms)
+✔ pending creation receives independent expectedExports/signal; pagehide aborts without a facade (5.758745ms)
+✔ late success after before import is disposed once and never handed off (1.684549ms)
+✔ late success after during creation is disposed once and never handed off (1.649423ms)
+✔ obsolete cancellation reports own raw cleanup evidence (undefined) (1.529628ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (1.178117ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (0.963462ms)
+✔ resolved lifetime preserves bfcache and disposes on terminal pagehide (1.117132ms)
+✔ late disposal throwing Error retains/reports evidence without an unhandled rejection (39.167038ms)
+✔ late disposal throwing null retains/reports evidence without an unhandled rejection (49.17591ms)
+✔ late disposal throwing undefined retains/reports evidence without an unhandled rejection (45.200891ms)
+✔ late disposal diagnostics tolerate a throwing reporting sink (39.322251ms)
+✔ arbitrary creation rejection (null) reports without coercion or a secondary unhandled rejection (52.433969ms)
+✔ arbitrary creation rejection (undefined) reports without coercion or a secondary unhandled rejection (51.705358ms)
+✔ arbitrary creation rejection (primitive) reports without coercion or a secondary unhandled rejection (49.359845ms)
+✔ arbitrary creation rejection (proxy) reports without coercion or a secondary unhandled rejection (49.478649ms)
+✔ arbitrary creation rejection (sink) reports without coercion or a secondary unhandled rejection (50.130215ms)
+✔ primary creation wrapper/context and untouched raw cause are logged (1.655344ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 533.320999

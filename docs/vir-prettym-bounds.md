@@ -94,8 +94,9 @@ even for obsolete creation. This slice does not yet implement visible retry UX.
 | Program content ID | `97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58` |
 
 The source pin, root manifest and dependency checkout agree. The subsequent
-maintainer-authorized PR207 update publishes this same immutable source; fresh
-upstream CI is pending, without an API/artifact change or rerun. No separately
+maintainer-authorized PR207 update publishes this same immutable source; [VIR CI run 36720794347](https://github.com/ejgallego/lean-vir/actions/runs/36720794347)
+subsequently passed at this exact head; later readback is retained in
+`docs/evidence/bootstrap-cleanup/vir-run.json`. This status update changes no API/artifact. No separately
 installed SDK archive was consumed: native program tools come from the exact
 pinned source, and the browser SDK is the supplied pack's ESM module identified
 above. Producer-retained Wasm provenance records WASI SDK 33 / clang 22.1.0,
@@ -104,9 +105,12 @@ Slides reused these exact Wasm bytes and did not compile Wasm sources.
 
 ## Executed consumer evidence
 
-Retained evidence directory: `/tmp/verso-prettym-strict-adoption`.
-`identities.json` records source/artifact/test hashes; native and browser corpora,
-root/nested published sites and command logs are retained there.
+This section records execution at Slides `51c6d782`; it is historical
+qualification, not a rerun after the [focused cleanup fix](evidence/bootstrap-cleanup/README.md).
+[Retained evidence](evidence/vir-51c6d782/README.md) includes native/Node/browser
+logs and `identities.json` source/artifact/test hashes. Larger generated corpora
+and root/nested sites remain locally under `/tmp/verso-prettym-strict-adoption`;
+the tracked tests and recorded source revisions reproduce them with the supplied pack.
 
 - Targeted `lake build test-pretty demo-slides`: pass, 748 jobs. Ordinary carrier
   preparation and root/nested rendering passed. This is local targeted build

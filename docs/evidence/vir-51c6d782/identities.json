@@ -1,0 +1,97 @@
+{
+  "slidesBase": "5e3c5207d0437ccf971e44cb26015ce812a68a18",
+  "historicalHeads": {
+    "feat/vir-embedded-client": "a5b42f8c69ff102c4934de39c17b9d9ff7696ba4",
+    "feat/reusable-deck-assets": "cf9ba9cc0f3c28ba42d3f22403790d262eaf142f"
+  },
+  "virSource": "47e82e9a483e727431bb004fb64ce76ada739ba9",
+  "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+  "sdk": {
+    "source": "exact pinned VIR native tooling; no separate SDK archive",
+    "browserModuleSha256": "08e542ef60d71b9308b1e12ba3f4438fef24b7634e1aab1f380a93833e1469a0",
+    "nativeAbi": 4,
+    "interfaceFormat": 9,
+    "irFormat": 11,
+    "virVersion": 1
+  },
+  "runtimeContentId": "401b115ed3f4770b11e5b64d6066cbebb5b41beb468c3f9908603b89690776ba",
+  "suppliedPackSha256": "1d6192985fedd8d4c85c3db3c625857c2191832a3f02c72d818f47562e3daaf7",
+  "wasmSha256": "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4",
+  "programContentId": "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58",
+  "referenceSha256": "19803f20b296671a4b8b8626d69e80d4c8720fb764fd7576b711fde4f95d222c",
+  "evidence": {
+    "browser-bootstrap.log": "f8148e058ba400567405ed09d043d4e914acdc0debce001eb7f554496b715562",
+    "browser-final.log": "2f00ffa2be04014440cb4deca3a51a5cdeac72fe7427467c4cc2780cb76879e5",
+    "browser-strengthening.log": "8a847c9842293fc58bc3a5c28359d3862327c998ea1ce9cce6d21d51d4cbe92d",
+    "browser.log": "2d45b5ea1b460a7a37ca36b5fc85b8d4ecbc9a7d8ef6be8f99fc320ec78f3663",
+    "build.log": "d3ad7499011f18c25f52ce9ce1fe7f51ab0dbf8a21abadd7158bc3e6b84e52a6",
+    "js-consumer.log": "6ff6e1e99690f59266384754da65462cc727162d1ca3cc0bba8f4ffdabd41d67",
+    "js-input.log": "7f926a70f1a58b8eb7050ab77b7cedaddeb6e4d4326ff1fdb37eb6abbb9ff197",
+    "native.log": "baad16892d441f96674be110a3337aa813d90c3d8c943a141446aa5db841ceda",
+    "site-nested.log": "10f582a0401c85751be64d37cc7ce729b30d7e54e153443bf3542f5c61242477",
+    "site-root.log": "dee88a5c300c62e7f124628b6f2db836c597fb5d572a6cc71842b2d4b98b5041",
+    "typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/verso-prettym-strict-adoption/site/native-corpus.json": "7487d16bbfb92447a1966d1b795ebbfcf2070be66c31d6c3b07863d3c09ad541",
+    "/tmp/verso-prettym-strict-adoption/site/bounds-corpus.json": "ac88d25ee2e109cd428b2cffcb9e1cf3718a2ea1b8ace6f916af0083e2a6bbe7",
+    "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-candidate/.lake/build/vir/resources/programs/VersoSlidesVirPrettyMResources.virres": "c48f6857c125340a748c983635abe52e8e603fc62fc59ef5cc41746f86b953da",
+    "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-candidate/.lake/packages/lean_vir/.lake/build/bin/vir_resource_pack": "7370a480007408b67f77f2eb75211de6d13d3b5896ffebac2e73120e6056c4f8",
+    "browser-checkpoint.log": "04061b9256a241d5c86023c51cbd7a58a64cff8e9ddbebbdff023623b40a9611",
+    "vir_program": "e04493b7a8e36d2af8bffc7870654524421befc978da6641f5338fac4dce5e25",
+    "vir_resource_program": "1d62294038304128c0c8590d4bcc2214d6350fee7fe4a18ab414c63f7735772d"
+  },
+  "commands": [
+    "vir_resource_pack acquire PROFILE 401b115ed3f4770b11e5b64d6066cbebb5b41beb468c3f9908603b89690776ba SUPPLIED_PACK CACHE STAGE (public acquisition; exact profile and supplied pack retained in handoff)",
+    "lake build test-pretty demo-slides",
+    ".lake/build/bin/test-pretty",
+    ".lake/build/bin/demo-slides --output /tmp/verso-prettym-strict-adoption/site",
+    ".lake/build/bin/demo-slides --output /tmp/verso-prettym-strict-adoption/site/nested/deck",
+    ".lake/build/bin/test-pretty --host-abi-corpus",
+    ".lake/build/bin/test-pretty --bounds-corpus",
+    "VIR_ACCEPTANCE_SITE=/tmp/verso-prettym-strict-adoption/site node --test Tests/pretty-input.test.cjs Tests/vir-bootstrap.test.cjs Tests/vir-reference.test.mjs",
+    "tsc -p web-lib/vir-prettym/jsconfig.json",
+    "tsc -p web-lib/panel/jsconfig.json",
+    "uv run --project browser-tests pytest browser-tests/test_vir_prettym_creation.py browser-tests/test_vir_prettym_bounds.py browser-tests/test_vir_prettym_site.py --vir-site-acceptance --site-dir /tmp/verso-prettym-strict-adoption/site --browser=all -k \"creation or bounds or same_wrapper_native_corpus or published_host_call_and_lifecycle or default_panel_reflows_with_wasm\" -q",
+    "uv run --project browser-tests pytest browser-tests/test_vir_prettym_creation.py --vir-site-acceptance --site-dir /tmp/verso-prettym-strict-adoption/site --browser=all -k published_bootstrap_pagehide -q"
+  ],
+  "slidesHead": "51c6d782285845c4c9dee5f2f1852051cdaffede",
+  "executed": {
+    "targetedLakeBuild": "pass (748 jobs)",
+    "native": 101,
+    "node": 11,
+    "browserCheckpoint": {
+      "passed": 30,
+      "deselected": 5,
+      "browsers": [
+        "Chromium",
+        "Firefox"
+      ]
+    },
+    "typecheck": [
+      "web-lib/vir-prettym/jsconfig.json",
+      "web-lib/panel/jsconfig.json"
+    ]
+  },
+  "sourceFiles": {
+    "Tests/Pretty.lean": "faad1a272c09f030e0d90f821fb138929161735356a2ac85470d98ad7075f27e",
+    "Tests/pretty-input.test.cjs": "1b6801356d4fe505707b17e03d9c4e620fad7059ff785990b763887de20400b7",
+    "Tests/vir-bootstrap.test.cjs": "6ee005804dabe2cadfe87d3e7b2f75594c389a18f1f75c6b16e990eb5ad0a1ab",
+    "Tests/vir-reference.test.mjs": "0b673f0a4123724999eee2164bfd512852e582ad9aee905f051488e1b0b30da9",
+    "VersoSlides/Pretty.lean": "4c4fb572157271115055d933a15b7a696d6b4abe3398e60e266c70e2d33b57bb",
+    "VersoSlides/Render.lean": "2208b3fbd8ee1f13ed2f43c287ae204a0340d44799c7891156aa7ad0c09be509",
+    "VersoSlides/VirPrettyM.lean": "85d6f113e6db1cb985d976e59ea0e853ff35596e5bf48e6ee320e803fb721363",
+    "browser-tests/conftest.py": "34bb90a5045b6e884c271357ce14441c0dbc04123f02ae95b1846d0563162275",
+    "browser-tests/test_vir_prettym_bounds.py": "84fd61cea7ffd97a4908508ff59459bd2b57b205be279dd6465b8759e9740ba6",
+    "browser-tests/test_vir_prettym_creation.py": "d2db8d45d161a614b0ebe6c3d4dae705ec6c48e7adcafdd0e2d60074c1c61a88",
+    "browser-tests/test_vir_prettym_site.py": "6e2330f314f607a3b5463ccb42d269e1253f6b27e511037d36c90428c8952439",
+    "docs/vir-deck-build.md": "a2615cb4c254403a866b0ecd9966fe3731df788f739371192540ef3c9a03c424",
+    "docs/vir-prettym-bounds.md": "644a02d6455472ae5c75248601010ba3e7c41a603b9161373f0985ac5401905b",
+    "docs/vir-production-checklist.md": "4953991e792098212766b9a6785f9ff2647d6ad2007c482b78f6aa14017f601f",
+    "lake-manifest.json": "4adf3e8b6e3b347b6ccb994cb1def848e1cdaf577e690ea2476c94b606657d61",
+    "lakefile.lean": "03f3f28377c846ce247107755f52c032ec86dda9fbe21b1f9c937184036f5ffd",
+    "vir-resources/VersoSlidesVirPrettyMResources.json": "6c8741048740ff554abed92d682a72866d8f9434782e1ad4398cfbf768eac06e",
+    "web-lib/panel/globals.d.ts": "fcaf12b5bbc2a3731dea8f47cd766a3762d3a448e8f4995d0e1b3ea72b5cce8b",
+    "web-lib/vir-prettym/bootstrap.js": "dbf1db48f9894c8dd9e0daf9ec688a98c9350bec2d7c2c820d347d7fa2507e18",
+    "web-lib/vir-prettym/format-segments-v2.contract.json": "19803f20b296671a4b8b8626d69e80d4c8720fb764fd7576b711fde4f95d222c",
+    "web-lib/vir-prettym/pretty.js": "8a7e9a5129ae06841b4209a9e596d0e1990366bfe9d169f9a6d031a5764c922a"
+  }
+}

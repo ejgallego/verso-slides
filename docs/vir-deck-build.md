@@ -4,7 +4,7 @@ This candidate uses Lean `v4.34.0`, VIR [PR #207](https://github.com/ejgallego/l
 at the authorized local successor `47e82e9a483e727431bb004fb64ce76ada739ba9`,
 and the matching
 Verso revision pinned in `lakefile.lean`. The exact successor and pack were supplied explicitly for this checkpoint;
-PR #207 now publishes the same `47e82e9a` head. Fresh upstream CI is pending. PR #207 is based on main with the
+PR #207 now publishes the same `47e82e9a` head. [VIR CI run 36720794347](https://github.com/ejgallego/lean-vir/actions/runs/36720794347) passed at this exact head; later readback is retained in `docs/evidence/bootstrap-cleanup/vir-run.json`. PR #207 is based on main with the
 landed ABI4 runtime work. Its runtime lock is available-only:
 the exact verified runtime pack must already be supplied locally.
 

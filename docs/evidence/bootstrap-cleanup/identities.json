@@ -1,0 +1,58 @@
+{
+  "baselineSlides": "51c6d782285845c4c9dee5f2f1852051cdaffede",
+  "vir": "47e82e9a483e727431bb004fb64ce76ada739ba9",
+  "recordedUtc": "2026-09-30T16:50:12.666751+00:00",
+  "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+  "virVersion": 1,
+  "runtimeContentId": "401b115ed3f4770b11e5b64d6066cbebb5b41beb468c3f9908603b89690776ba",
+  "programContentId": "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58",
+  "artifactSource": "supplied pack; runtime lock source remains -",
+  "productionSource": {
+    "web-lib/vir-prettym/bootstrap.js": "4be01d2d5c3517b79b55621c5ab17671df4b40848d4325880a675dc2816813e2",
+    "Tests/vir-bootstrap.test.cjs": "f0cdae5a97e608f7f8f292e2d08348c6917df635e101a34915a7ec9336f6f2f6",
+    "web-lib/vir-prettym/format-segments-v2.contract.json": "19803f20b296671a4b8b8626d69e80d4c8720fb764fd7576b711fde4f95d222c"
+  },
+  "publishedBootstrapSha256": "d99276fdf86dedd3623d167b9fa9381a7268010a7ce99be48e21eab364aa3b41",
+  "priorPublishedBootstrapSha256": "2314da223c518aefc7085fb58ba39e002355f24f0a2648192e69ac5f4d8ce812",
+  "runtimeProgramInventoriesByteIdenticalToPriorSite": true,
+  "runtimeJsSha256": "08e542ef60d71b9308b1e12ba3f4438fef24b7634e1aab1f380a93833e1469a0",
+  "wasmSha256": "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4",
+  "evidence": {
+    "browser.log": "45a7434540f07a1a055a34142de0dfa445264e1299ae4d8b683b1175fd4d34aa",
+    "build.log": "6af42f9a9bfbbe6f016c81b3353b3568fe0fb3d55221877f690c19d7024403af",
+    "green.log": "243b97438d7e0c532bcf804c46573ca646743d96e24a19c8b150fc3a316a53b0",
+    "red.log": "a00bde45803de281461ceef74cafaf93f42349ce6915c51658caa16b755ecc6d",
+    "slides-baseline-runs.json": "4a8b2ee73ac4496487e10f6f7ad4ed3612ddb95b153f783104ba7b9c56a0ae34",
+    "vir-run.json": "c51896809a3a237482435ad7ab026eb3139c93db4b666e2dc83e348f9283252a"
+  },
+  "red": {
+    "passed": 7,
+    "failed": 3,
+    "source": "unmodified 51c6d782 bootstrap plus new controlled regression"
+  },
+  "green": {
+    "passed": 20,
+    "failed": 0,
+    "node": "17 bootstrap + 3 compact admission"
+  },
+  "browser": {
+    "passed": 6,
+    "deselected": 24,
+    "browsers": [
+      "Chromium",
+      "Firefox"
+    ]
+  },
+  "typecheck": {
+    "formatter": 0,
+    "panel": 0
+  },
+  "notRerun": [
+    "101 native checks",
+    "independent ABI-reference Node test",
+    "30-check full consumer browser inventory",
+    "downstream/cold/offline/retention/performance acceptance"
+  ],
+  "nodeVersion": "v24.21.0",
+  "typeScriptVersion": "5.7.2"
+}
