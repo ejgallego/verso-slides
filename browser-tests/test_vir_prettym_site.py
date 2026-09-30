@@ -1,6 +1,6 @@
 """Acceptance checks for a published PrettyM demo served under a URL prefix.
 
-Build root/nested demos, the pixel reference, downstream deck and test-only
+Build root/nested demos, a downstream deck and test-only
 native-corpus.json under SITE, then pass `--vir-site-acceptance --site-dir SITE`.
 These checks execute only published browser files.
 """
@@ -132,24 +132,6 @@ def test_default_panel_reflows_with_wasm(page, server):
     }""")
     expect(panel.locator("[data-reflow-marker]")).to_have_count(0, timeout=5000)
     expect(reflowed.first).not_to_be_empty()
-
-
-def test_panel_content_matches_pixel_path(page, browser, server):
-    open_demo(page, server)
-    _, panel, _ = open_proof_panel(page)
-    wasm_text = " ".join(panel.inner_text().split())
-    wasm_tokens = panel.locator(".reflowed .token").count()
-    assert wasm_text and wasm_tokens > 0
-
-    pixel_page = browser.new_page(viewport=page.viewport_size)
-    try:
-        pixel_page.goto(f"{server}/pixel/deck/index.html")
-        pixel_page.wait_for_function("window.Reveal?.isReady() === true")
-        _, pixel_panel, _ = open_proof_panel(pixel_page)
-        assert " ".join(pixel_panel.inner_text().split()) == wasm_text
-        assert pixel_panel.locator(".reflowed .token").count() == wasm_tokens
-    finally:
-        pixel_page.close()
 
 
 def test_independent_deck_uses_published_runtime(page, server):

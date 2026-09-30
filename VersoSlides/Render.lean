@@ -355,9 +355,8 @@ private def jsBool (b : Bool) : String := if b then "true" else "false"
 /-- CSS for the interactive info panel layout. -/
 private def slideCodePanelCss : String := include_str "../web-lib/panel/panel.css"
 
-/-- JS for the pretty-printer (reflowable format rendering). -/
+/-- Browser measurement and presentation around the embedded Lean formatter. -/
 private def prettyJs : String := include_str "../web-lib/panel/pretty.js"
-private def virPrettyJs : String := include_str "../web-lib/vir-prettym/pretty.js"
 private def virBootstrapJs : String := include_str "../web-lib/vir-prettym/bootstrap.js"
 private def virExpectedExports : String :=
   include_str "../web-lib/vir-prettym/format-segments-v2.contract.json"
@@ -543,8 +542,7 @@ private def writeBinFileWithDirs (path : System.FilePath) (content : ByteArray) 
   IO.FS.writeBinFile path content
 
 /-- Writes all vendored library assets to the output directory. -/
-def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme)
-    (useVir : Bool := false) : IO Unit := do
+def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme) : IO Unit := do
   let libDir := outputDir / libPrefix
   let revealDir := libDir / "reveal.js"
   -- Reveal.js core
@@ -585,7 +583,7 @@ def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme)
   writeFileWithDirs (libDir / "panel.css") slideCodePanelCss
   writeFileWithDirs (libDir / "tippy-panel-filter.js") tippyPanelFilterJs
   writeFileWithDirs (libDir / "code-block-bg.js") codeBlockBgJs
-  writeFileWithDirs (libDir / "pretty.js") (if useVir then virPrettyJs else prettyJs)
+  writeFileWithDirs (libDir / "pretty.js") prettyJs
   writeFileWithDirs (libDir / "panel.js") slideCodePanelJs
   writeFileWithDirs (libDir / "lightbox.css") lightboxCss
   writeFileWithDirs (libDir / "lightbox.js") lightboxJs
@@ -773,8 +771,6 @@ private def parseBuildArgs (config : Config) (args : List String)
   | [] => pure (config, buildInputs)
   | "--output" :: path :: rest =>
     parseBuildArgs { config with outputDir := path } rest buildInputs
-  | "--pixel-pretty" :: rest =>
-    parseBuildArgs { config with virPrettyM := false } rest buildInputs
   | "--build-inputs" :: path :: rest => parseBuildArgs config rest (some path)
   | arg :: _ => throw <| IO.userError s!"Unknown or incomplete slides argument: {arg}"
 
@@ -787,7 +783,6 @@ def Config.validateVirResourceNamespace (config : Config) : IO Unit := do
       throw <| IO.userError s!"Slides asset {filename} collides with the reserved VIR resource namespace"
 
 private def configureVirAssets (config : Config) : IO Config := do
-  if !config.virPrettyM then return config
   let published ← VirResourceSite.describe virResources
   let some (_, programManifestUrl) := published.programManifestUrls.find?
       (·.1 == "verso-slides/prettyM")
@@ -805,8 +800,8 @@ private def configureVirAssets (config : Config) : IO Config := do
   }
 
 /-- Generates a {lit}`reveal.js` slide presentation from a Verso document.
-Build jobs can pass {lit}`--output DIR` and {lit}`--pixel-pretty` through
-{lit}`args`; these override the corresponding {name}`Config` fields. -/
+Build jobs can pass {lit}`--output DIR` through {lit}`args` to override
+{name}`Config.outputDir`. Lean formatting through VIR is mandatory. -/
 def slidesMain (config : Config := {}) (doc : Part Slides)
     (args : List String := []) : IO UInt32 := runWithLogger do
   let (config, buildInputs) ← parseBuildArgs config args
@@ -850,7 +845,7 @@ def slidesMain (config : Config := {}) (doc : Part Slides)
   IO.FS.writeFile docsJsonPath (toString hoverState.dedup.docJson)
 
   -- Write vendored library assets to the output directory
-  writeVendoredAssets dir config.theme config.virPrettyM
+  writeVendoredAssets dir config.theme
 
   -- Write the user-supplied custom-theme stylesheet, theme assets, and
   -- extraCss entries. The plan has already been deduplicated by filename
@@ -864,8 +859,7 @@ def slidesMain (config : Config := {}) (doc : Part Slides)
   -- by one source directory and replaced as a unit to prevent stale files.
   installAssetDirs dir config.extraAssetDirs
 
-  if config.virPrettyM then
-    let _ ← VirResourceSite.write dir virResources
+  let _ ← VirResourceSite.write dir virResources
 
   -- Copy local images to the output directory
   if !traverseState.imageFiles.isEmpty then

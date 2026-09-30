@@ -208,9 +208,6 @@ public structure Config where
   /-- Generated directory trees to install under
   {name (full := Config.outputDir)}`outputDir`. -/
   extraAssetDirs : Array AssetDirectory := #[]
-  /-- Use the embedded PrettyM program for the info panel. Set this to false
-  to retain the JavaScript formatter for pixel-based comparison. -/
-  virPrettyM : Bool := true
   /--
   Math prelude evaluated once before any math on the page is rendered.
   Typical contents are {lit}`\def` / {lit}`\newcommand` / {lit}`\gdef`

@@ -44,6 +44,11 @@
                 redrawFocusOutline(/** @type {PanelBlock} */ (el));
             });
         });
+        document.fonts.addEventListener("loadingdone", function () {
+            document.querySelectorAll(".info-panel").forEach(function (panel) {
+                reflowPanel(/** @type {InfoPanel} */ (panel));
+            });
+        });
     }
 
     // ---- Per-block setup ----
@@ -93,7 +98,7 @@
             if (!tok) return;
             var binding = tok.getAttribute("data-binding");
             if (!binding) return;
-            var sel = '.token[data-binding="' + binding + '"]';
+            var sel = bindingSelector(binding);
             codeEl.querySelectorAll(sel).forEach(function (t) {
                 t.classList.add("binding-hl");
             });
@@ -405,21 +410,6 @@
 
     // ---- Panel update ----
 
-    function formattingPending() {
-        return window.versoVirState !== undefined && window.versoVirState !== "ready";
-    }
-
-    /** @param {InfoPanel} panel */
-    function appendFormattingStatus(panel) {
-        var message = document.createElement("p");
-        message.className = "vir-panel-status";
-        message.setAttribute("role", "status");
-        message.textContent = window.versoVirState === "loading" ? "Loading Lean formatting…" :
-            window.versoVirState === "failed" ? "Lean formatting is unavailable. Use Retry Lean formatting to try again." :
-            "Lean formatting has been closed.";
-        panel.appendChild(message);
-    }
-
     /**
      * @param {InfoPanel} panel
      * @param {Element} el
@@ -452,26 +442,16 @@
             var ts = el.querySelector(":scope > .tactic-state");
             if (ts) {
                 var richFmt = ts.getAttribute("data-rich-format");
-                if (richFmt && typeof goalsToHtml === "function") {
-                    if (formattingPending()) {
+                if (richFmt) {
+                    if (!formatterIsReady()) {
                         panel.innerHTML = "";
-                        appendFormattingStatus(panel);
+                        showFormattingStatus(panel);
                         return;
                     }
                     panel._richFormatSource = ts;
-                    try {
-                        var goalsData = JSON.parse(richFmt);
-                        var result = goalsToHtml(goalsData);
-                        // Pass 1: insert structural HTML so table layout computes cell widths
-                        panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                        // Pass 2: measure actual .type cell widths and format expressions
-                        var measurer = getPanelMeasurer(panel);
-                        fillReflowedSpans(panel, result.formats, measurer);
-                        html = null; // already set innerHTML
-                    } catch (e) {
-                        html = '<span class="hl lean">' + ts.innerHTML + "</span>";
-                        panel._richFormatSource = null;
-                    }
+                    try { renderRichFormat(panel, ts); }
+                    catch (error) { showFormattingFailure(panel, error); }
+                    html = null; // already set innerHTML
                 } else {
                     html = '<span class="hl lean">' + ts.innerHTML + "</span>";
                 }
@@ -489,24 +469,14 @@
 
         // Check for reflowable signature format data in hover content
         var sigCode = panel.querySelector("code[data-rich-format]");
-        if (sigCode && typeof formatToHtml === "function") {
-            if (formattingPending()) {
-                appendFormattingStatus(panel);
+        if (sigCode) {
+            panel._richFormatSource = sigCode;
+            if (!formatterIsReady()) {
+                sigCode.textContent = "";
+                showFormattingStatus(/** @type {HTMLElement} */ (sigCode));
             } else {
-                try {
-                    var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
-                    panel._richFormatSource = sigCode;
-                    var measurer = getPanelMeasurer(panel);
-                    var width =
-                        panel.clientWidth -
-                        parseFloat(getComputedStyle(panel).paddingLeft || "0") -
-                        parseFloat(getComputedStyle(panel).paddingRight || "0");
-                    var rendered = formatToHtml(fmtData.fmt, fmtData.annotations, width, measurer);
-                    sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
-                } catch (e) {
-                    // Fall back to plain text signature on error
-                    panel._richFormatSource = null;
-                }
+                try { renderRichFormat(panel, sigCode); }
+                catch (error) { showFormattingFailure(/** @type {HTMLElement} */ (sigCode), error); }
             }
         }
 
@@ -520,45 +490,17 @@
     }
 
     /**
-     * Create a DOM measurer for text and element width measurement.
-     * @param {HTMLElement} panel
-     * @return {DOMMeasurer}
-     */
-    function getPanelMeasurer(panel) {
-        return createDOMMeasurer(panel);
-    }
-
-    /**
      * Reflow the panel's rich format content at current width.
      * @param {InfoPanel} panel
      */
     function reflowPanel(panel) {
-        if (formattingPending()) return;
+        if (!formatterIsReady()) return;
         var source = panel._richFormatSource;
         if (!source) return;
-        var richFmt = source.getAttribute("data-rich-format");
-        if (!richFmt) return;
-        try {
-            var parsed = JSON.parse(richFmt);
-            // Detect whether this is goal data (array) or signature format data (has "fmt" key)
-            if (Array.isArray(parsed) && typeof goalsToHtml === "function") {
-                var result = goalsToHtml(parsed);
-                panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                var measurer = getPanelMeasurer(panel);
-                fillReflowedSpans(panel, result.formats, measurer);
-            } else if (parsed.fmt && typeof formatToHtml === "function") {
-                var measurer = getPanelMeasurer(panel);
-                var width =
-                    panel.clientWidth -
-                    parseFloat(getComputedStyle(panel).paddingLeft || "0") -
-                    parseFloat(getComputedStyle(panel).paddingRight || "0");
-                source.innerHTML =
-                    '<span class="reflowed">' +
-                    formatToHtml(parsed.fmt, parsed.annotations, width, measurer) +
-                    "</span>";
-            }
-        } catch (e) {
-            // Fall back to pre-rendered HTML on error
+        try { renderRichFormat(panel, source); }
+        catch (error) {
+            showFormattingFailure(source.tagName === "CODE" ?
+                /** @type {HTMLElement} */ (source) : panel, error);
         }
     }
 

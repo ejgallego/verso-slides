@@ -26,7 +26,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--vir-site-acceptance",
         action="store_true",
-        help="Run PrettyM site acceptance (--site-dir needs root/nested demos, pixel/deck, downstream/custom, and native-corpus.json)"
+        help="Run PrettyM site acceptance (--site-dir needs root/nested demos, downstream/custom, and native-corpus.json)"
     )
     parser.addoption(
         "--port",
@@ -64,7 +64,7 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--vir-site-acceptance"):
         return
     for item in items:
-        if item.path.name in ("test_vir_prettym_site.py", "test_vir_prettym_bounds.py", "test_vir_prettym_creation.py", "test_vir_prettym_lifecycle.py"):
+        if item.path.name in ("test_vir_prettym_site.py", "test_vir_prettym_bounds.py", "test_vir_prettym_creation.py", "test_vir_prettym_lifecycle.py", "test_vir_prettym_presentation.py"):
             item.add_marker(pytest.mark.skip(reason="requires --vir-site-acceptance"))
 
 

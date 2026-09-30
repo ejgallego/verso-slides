@@ -28,8 +28,14 @@ declare function formatToHtml(
     measurer: DOMMeasurer,
 ): string;
 
-/** pretty.js — create a DOM-based measurer for pixel-accurate text width measurement (global). */
+/** pretty.js — measure panel widths and monospace columns in CSS pixels (global). */
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;
+
+declare function renderRichFormat(container: HTMLElement, source: Element): void;
+declare function showFormattingStatus(container: HTMLElement): void;
+declare function showFormattingFailure(container: HTMLElement, error: unknown): void;
+declare function formatterIsReady(): boolean;
+declare function bindingSelector(binding: string): string;
 
 interface VersoVirProgram {
     readonly status: "active" | "failed" | "disposed";

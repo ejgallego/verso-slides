@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const context = vm.createContext({});
-vm.runInContext(fs.readFileSync(path.join(__dirname, '../web-lib/vir-prettym/pretty.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../web-lib/panel/pretty.js'), 'utf8'), context);
 const convert = context.compactFormatToStdFormat;
 const limits = context.VIR_FORMAT_LIMITS;
 const reject = (format, code, policy = limits, indent = 0) =>

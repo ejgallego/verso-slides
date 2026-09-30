@@ -3,6 +3,42 @@
 from playwright.sync_api import expect, Page
 from conftest import goto_slide_by_title
 
+from test_vir_prettym_lifecycle import observe
+
+
+class TestLightboxSharedFormatter:
+    def test_pending_signature_reflows_after_current_readiness(self, code_url: str, page: Page):
+        errors = observe(page, "hold")
+        slide = goto_slide_by_title(page, code_url, "Inline Lean")
+        page.wait_for_function("window.lifecycleProbe.wasmRequests === 1")
+        slide.locator("code.hl.lean.inline [data-verso-hover]").first.click()
+        inner = page.locator(".lean-hover-inner")
+        source = inner.locator("code[data-rich-format]").first
+        expect(source.get_by_role("status")).to_have_text("Loading Lean formatting…")
+        page.evaluate("window.lifecycleProbe.release()")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        expect(source.locator(".reflowed")).not_to_be_empty()
+        expect(source.get_by_role("status")).to_have_count(0)
+        expect(inner.locator('[style*="visibility: hidden"]')).to_have_count(0)
+        assert page.evaluate("window.lifecycleProbe.unhandled") == []
+        assert errors == []
+
+    def test_signature_reflows_with_shared_measurement_on_resize(self, code_url: str, page: Page):
+        errors = []
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        slide = goto_slide_by_title(page, code_url, "Inline Lean")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        slide.locator("code.hl.lean.inline [data-verso-hover]").first.click()
+        inner = page.locator(".lean-hover-inner")
+        source = inner.locator("code[data-rich-format]").first
+        expect(source.locator(".reflowed")).not_to_be_empty()
+        source.evaluate("el => el.firstElementChild.dataset.resizeMarker = 'old'")
+        page.set_viewport_size({"width": 800, "height": 600})
+        expect(source.locator('[data-resize-marker]')).to_have_count(0)
+        expect(source.locator(".reflowed")).not_to_be_empty()
+        expect(inner.locator('[style*="visibility: hidden"]')).to_have_count(0)
+        assert errors == []
+
 
 class TestLightboxOpen:
     def test_click_inline_token_opens_lightbox(self, code_url: str, page: Page):
