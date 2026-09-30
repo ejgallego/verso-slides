@@ -64,7 +64,7 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--vir-site-acceptance"):
         return
     for item in items:
-        if item.path.name in ("test_vir_prettym_site.py", "test_vir_prettym_bounds.py", "test_vir_prettym_creation.py"):
+        if item.path.name in ("test_vir_prettym_site.py", "test_vir_prettym_bounds.py", "test_vir_prettym_creation.py", "test_vir_prettym_lifecycle.py"):
             item.add_marker(pytest.mark.skip(reason="requires --vir-site-acceptance"))
 
 

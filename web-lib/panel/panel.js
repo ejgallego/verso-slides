@@ -26,6 +26,16 @@
 
         document.querySelectorAll(".code-with-panel").forEach(setupBlock);
 
+        window.addEventListener("verso-vir-statechange", function () {
+            // Render what is selected now, rather than retaining a request from
+            // an earlier attempt or selection.
+            document.querySelectorAll(".code-with-panel").forEach(function (el) {
+                var block = /** @type {PanelBlock} */ (el);
+                var panel = /** @type {InfoPanel | null} */ (block.querySelector(".info-panel"));
+                if (panel && block._activeSource) updatePanel(panel, block._activeSource, block);
+            });
+        });
+
         Reveal.on("fragmentshown", onFragmentShown);
         Reveal.on("fragmenthidden", onFragmentHidden);
         Reveal.on("slidechanged", onSlideChanged);
@@ -395,6 +405,21 @@
 
     // ---- Panel update ----
 
+    function formattingPending() {
+        return window.versoVirState !== undefined && window.versoVirState !== "ready";
+    }
+
+    /** @param {InfoPanel} panel */
+    function appendFormattingStatus(panel) {
+        var message = document.createElement("p");
+        message.className = "vir-panel-status";
+        message.setAttribute("role", "status");
+        message.textContent = window.versoVirState === "loading" ? "Loading Lean formatting…" :
+            window.versoVirState === "failed" ? "Lean formatting is unavailable. Use Retry Lean formatting to try again." :
+            "Lean formatting has been closed.";
+        panel.appendChild(message);
+    }
+
     /**
      * @param {InfoPanel} panel
      * @param {Element} el
@@ -428,6 +453,11 @@
             if (ts) {
                 var richFmt = ts.getAttribute("data-rich-format");
                 if (richFmt && typeof goalsToHtml === "function") {
+                    if (formattingPending()) {
+                        panel.innerHTML = "";
+                        appendFormattingStatus(panel);
+                        return;
+                    }
                     panel._richFormatSource = ts;
                     try {
                         var goalsData = JSON.parse(richFmt);
@@ -460,19 +490,23 @@
         // Check for reflowable signature format data in hover content
         var sigCode = panel.querySelector("code[data-rich-format]");
         if (sigCode && typeof formatToHtml === "function") {
-            try {
-                var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
-                panel._richFormatSource = sigCode;
-                var measurer = getPanelMeasurer(panel);
-                var width =
-                    panel.clientWidth -
-                    parseFloat(getComputedStyle(panel).paddingLeft || "0") -
-                    parseFloat(getComputedStyle(panel).paddingRight || "0");
-                var rendered = formatToHtml(fmtData.fmt, fmtData.annotations, width, measurer);
-                sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
-            } catch (e) {
-                // Fall back to plain text signature on error
-                panel._richFormatSource = null;
+            if (formattingPending()) {
+                appendFormattingStatus(panel);
+            } else {
+                try {
+                    var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
+                    panel._richFormatSource = sigCode;
+                    var measurer = getPanelMeasurer(panel);
+                    var width =
+                        panel.clientWidth -
+                        parseFloat(getComputedStyle(panel).paddingLeft || "0") -
+                        parseFloat(getComputedStyle(panel).paddingRight || "0");
+                    var rendered = formatToHtml(fmtData.fmt, fmtData.annotations, width, measurer);
+                    sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
+                } catch (e) {
+                    // Fall back to plain text signature on error
+                    panel._richFormatSource = null;
+                }
             }
         }
 
@@ -499,6 +533,7 @@
      * @param {InfoPanel} panel
      */
     function reflowPanel(panel) {
+        if (formattingPending()) return;
         var source = panel._richFormatSource;
         if (!source) return;
         var richFmt = source.getAttribute("data-rich-format");
@@ -608,6 +643,7 @@
             drawElementOutline(codeEl, null, "panel-outline-focus");
         }
         block._activeSource = null;
+        panel._richFormatSource = null;
         panel.innerHTML = "";
     }
 
@@ -654,13 +690,5 @@
     }
 
     // ---- Entry point ----
-    Reveal.on("ready", function () {
-        if (window.versoVirReady) {
-            window.versoVirReady.then(init).catch(function (error) {
-                console.error("Could not initialize the VIR panel.", error);
-            });
-        } else {
-            init();
-        }
-    });
+    Reveal.on("ready", init);
 })();

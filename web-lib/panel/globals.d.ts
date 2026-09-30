@@ -60,6 +60,10 @@ interface Window {
     };
     versoVir?: VersoVirProgram;
     versoVirReady?: Promise<VersoVirProgram>;
+    /** State of the current page-owned creation attempt. */
+    versoVirState?: "loading" | "ready" | "failed" | "disposed";
+    /** Create a fresh attempt; no formatting calls are replayed. */
+    versoVirRetry: () => Promise<VersoVirProgram>;
     /** Slides v2 facade: bounded compact input, typed segments, recoverable errors. */
-    versoVirFormatSegments: (format: unknown, width: number, indent: number) => PrettySegment[];
+    versoVirFormatSegments?: (format: unknown, width: number, indent: number) => PrettySegment[];
 }
