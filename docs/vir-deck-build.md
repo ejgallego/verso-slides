@@ -1,9 +1,9 @@
 # PrettyM candidate on Lean 4.34
 
 This candidate uses Lean `v4.34.0`, VIR [PR #207](https://github.com/ejgallego/lean-vir/pull/207)
-at `970ad3d27b7daf82cd5bfe2e4d53251037cd7b87`, and the matching
-Verso revision pinned in `lakefile.lean`. PR #207 is a draft stacked on
-the ABI4 runtime work in PR #204. Its runtime lock is available-only:
+at `0a9abac0e1245ddb3752a0d4dccef30d28c39621`, and the matching
+Verso revision pinned in `lakefile.lean`. PR #207 is based on main with the
+landed ABI4 runtime work. Its runtime lock is available-only:
 the exact verified runtime pack must already be supplied locally.
 
 ## Build and render a deck
@@ -43,7 +43,26 @@ carrier; the old `virSlidesMain` path override does not apply to #207.
 
 ## Current acceptance boundary
 
-The exact Lean 4.34 / VIR #207 pair passed local site and browser acceptance.
+The exact Lean 4.34 / VIR `0a9abac0` pair passed supplied-pack local site and
+browser acceptance. The source pin, Lake manifest and root/downstream dependency
+HEADs agree. Resource compatibility is exactly `{leanRevision, virVersion}`.
+VIR's public acquisition tool validated and installed the supplied pack:
+
+| Artifact | Immutable identity |
+| --- | --- |
+| Lean revision | `293d5d0c0c3f3dded4688b3ccd6a33939ac5102b` |
+| VIR version | `1` |
+| Runtime content ID | `ff7b5a61fd6558e7f4e828e460f3aed033803a84ef599073c6cfe44af85e2ba3` |
+| Runtime pack SHA-256 | `ebaf2aef57fd0ab9315477544fee9d3775eebdf52bbaf06aa749fbde93bb2d47` |
+| Published Wasm SHA-256 | `e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4` |
+| Program content ID | `0a2c42819737c359f9a72e3bbe4e7fd890db6f96891be171c92fa095057d4ae2` |
+
+Executed checks: ordinary `demo-slides`/carrier and managed `:slides` builds,
+the seven original native semantic checks through the exported wrapper,
+and 13 published-site/browser checks in Chromium and Firefox. The
+test-only native oracle emits the exact exported wrapper's segment results for
+the existing seven formats; the browser replays the real compact converter at
+root and nested URLs and compares complete segment arrays and tag stacks.
 The published demo and an independent deck both carried complete, validated
 runtime and program bundles at relative URLs. Chromium and Firefox loaded the
 Wasm program under a nested URL, called `formatSegments`, rendered and resized
@@ -52,7 +71,15 @@ token count matched the old pixel-based path on the same demo slide. This
 comparison checks content and annotations; it does not establish pixel-for-pixel
 geometry equivalence. The earlier 4.35 embedded-resource demo and 4.34.0-rc2
 deck evidence remain separate qualifications. The exact matching ABI4 runtime
-pack must be supplied locally for a fresh build.
+pack must be supplied locally for a fresh build. Anonymous cold installation
+is a separate pending qualification. The historical `d68e701` / VIR `970ad3d2`
+pair and its old pack remain recorded in history and the
+[production checklist](vir-production-checklist.md).
+
+Production requires mandatory VIR and one JS measurement/presentation layer.
+The pixel switch in this pin-qualification stage supplies temporary comparison
+evidence; its retirement and the typed formatter/lifecycle work follow the
+shared-contract review checkpoint in that checklist.
 
 ### Site acceptance process
 
@@ -77,13 +104,17 @@ Site acceptance establishes a complete, movable published site. Browser
 acceptance then serves it over HTTP and checks real Wasm calls, panel output,
 navigation, disposal, and panel-content comparison with the pixel path.
 
-For a repeatable browser run, build these three outputs beneath one directory:
+For a repeatable browser run, build these outputs beneath one directory:
 
 ```sh
 SITE=/tmp/verso-vir-site-acceptance
+lake exe demo-slides --output "$SITE"
 lake exe demo-slides --output "$SITE/nested/deck"
 lake exe demo-slides --pixel-pretty --output "$SITE/pixel/deck"
 (cd examples/default-deck && lake update && lake exe my-talk --output "$SITE/downstream/custom")
+lake build test-pretty
+.lake/build/bin/test-pretty
+.lake/build/bin/test-pretty --host-abi-corpus > "$SITE/native-corpus.json"
 uv run --project browser-tests pytest browser-tests/test_vir_prettym_site.py \
   --vir-site-acceptance --site-dir "$SITE" --browser=all -q
 ```

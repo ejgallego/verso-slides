@@ -1,18 +1,20 @@
 """Acceptance checks for a published PrettyM demo served under a URL prefix.
 
-Build the demo, pixel reference, and downstream deck under SITE, then pass
-`--vir-site-acceptance --site-dir SITE`. These checks use published files.
+Build root/nested demos, the pixel reference, downstream deck and test-only
+native-corpus.json under SITE, then pass `--vir-site-acceptance --site-dir SITE`.
+These checks execute only published browser files.
 """
 
 import hashlib
 import json
 import re
 
+import pytest
 from playwright.sync_api import expect
 
 
 def test_published_bundles_and_urls(site_dir):
-    for subdir in ("nested/deck", "downstream/custom"):
+    for subdir in ("", "nested/deck", "downstream/custom"):
         root = site_dir / subdir
         assert (root / "index.html").is_file()
         bootstrap = (root / "vir-bootstrap.js").read_text()
@@ -27,25 +29,41 @@ def test_published_bundles_and_urls(site_dir):
         assert {json.loads(m.read_text())["descriptor"]["kind"] for m in manifests} == {
             "runtime", "program"
         }
+        compatibilities = []
         for manifest in manifests:
             data = json.loads(manifest.read_text())
             assert manifest.parent.name == data["contentId"]
+            compatibility = data["descriptor"]["compatibility"]
+            assert set(compatibility) == {"leanRevision", "virVersion"}
+            compatibilities.append(compatibility)
             for entry in data["descriptor"]["files"]:
                 content = (manifest.parent / entry["path"]).read_bytes()
                 assert len(content) == entry["byteLength"]
                 assert hashlib.sha256(content).hexdigest() == entry["sha256"]
+        assert compatibilities[0] == compatibilities[1]
 
     assert (site_dir / "downstream/custom/deck-assets/note.txt").is_file()
 
 
-def open_demo(page, server):
+def open_demo(page, server, route="nested/deck"):
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
-    page.goto(f"{server}/nested/deck/index.html")
+    page.goto(f"{server}/{route + '/' if route else ''}index.html")
     page.wait_for_function("window.Reveal?.isReady() === true")
     page.wait_for_function("window.versoVir !== undefined", timeout=30000)
     assert not errors, errors
     assert page.locator('[role="alert"]').count() == 0
+
+
+@pytest.mark.parametrize("route", ["", "nested/deck"], ids=["root", "nested"])
+def test_same_wrapper_native_corpus(page, server, site_dir, route):
+    open_demo(page, server, route)
+    corpus = json.loads((site_dir / "native-corpus.json").read_text())
+    assert len(corpus) == 7
+    for case in corpus:
+        actual = page.evaluate("""c => window.versoVirFormatSegments(
+            compactFormatToStdFormat(c.format), c.width, c.indent)""", case)
+        assert actual == case["segments"], case["name"]
 
 
 def test_published_host_call_and_lifecycle(page, server):

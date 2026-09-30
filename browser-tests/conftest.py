@@ -26,7 +26,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--vir-site-acceptance",
         action="store_true",
-        help="Run PrettyM published-site acceptance checks (--site-dir must contain nested/deck, pixel/deck, and downstream/custom)"
+        help="Run PrettyM site acceptance (--site-dir needs root/nested demos, pixel/deck, downstream/custom, and native-corpus.json)"
     )
     parser.addoption(
         "--port",

@@ -5,7 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 module
 
-import VersoSlides.Pretty
+import VersoSlides.VirPrettyM
 
 open Std
 open VersoSlides.Pretty
@@ -35,6 +35,37 @@ private def taggedDoc : Format :=
 private def nestedTaggedDoc : Format :=
   Format.tag 7 ("outer" ++ Format.tag 8 "inner" ++ "tail")
 
+-- Test-only serialization of the existing formats. The oracle calls the exact
+-- exported wrapper; the browser exercises the real compact-format converter.
+private def compactFormat : Format → Lean.Json
+  | .nil => .null
+  | .text text => .str text
+  | .line => Lean.toJson (1 : Nat)
+  | .align force => .arr #[Lean.toJson (2 : Nat), Lean.toJson force]
+  | .nest indent child => .arr #[Lean.toJson (3 : Nat), Lean.toJson indent, compactFormat child]
+  | .append left right => .arr #[Lean.toJson (4 : Nat), compactFormat left, compactFormat right]
+  | .group child behavior => .arr #[
+      Lean.toJson (if behavior == .fill then (6 : Nat) else 5), compactFormat child]
+  | .tag tag child => .arr #[Lean.toJson (7 : Nat), Lean.toJson tag, compactFormat child]
+
+private def corpusCases : Array (String × Format × Nat) :=
+  #[("wide group", groupedLineDoc, 80), ("narrow group", groupedLineDoc, 8),
+     ("hard newline", hardLineDoc, 80), ("nested align", nestedDoc, 5),
+     ("fill paragraph", paragraphDoc, 16), ("tagged segment", taggedDoc, 80),
+     ("nested tag stack", nestedTaggedDoc, 80)]
+
+private def nativeCorpus : Lean.Json := .arr <| corpusCases.map
+    fun (name, format, width) => Lean.Json.mkObj [
+      ("name", .str name), ("format", compactFormat format),
+      ("width", Lean.toJson width), ("indent", Lean.toJson (0 : Nat)),
+      ("segments", .arr <| (VersoSlides.VirPrettyM.formatSegments format width 0).map
+        fun segment => Lean.Json.mkObj [
+          ("text", .str segment.text),
+          ("tags", .arr <| segment.tags.map fun tag => .str (toString tag))])]
+
+private def oraclePlain (format : Format) (width : Nat) : String :=
+  String.join <| (VersoSlides.VirPrettyM.formatSegments format width 0).toList.map (·.text)
+
 structure TestState where
   passed : Nat := 0
   failed : Nat := 0
@@ -61,20 +92,26 @@ private def testEq [BEq α] [Repr α] (name : String) (actual expected : α) : T
       errors := s.errors.push
         s!"FAIL: {name}\n  expected: {reprStr expected}\n  actual:   {reprStr actual}" }
 
-def main : IO UInt32 := do
+def main (args : List String) : IO UInt32 := do
+  if args == ["--host-abi-corpus"] then
+    IO.println nativeCorpus.compress
+    return 0
+  if !args.isEmpty then
+    IO.eprintln "usage: test-pretty [--host-abi-corpus]"
+    return 1
   let ((), state) ← tests.run {}
   state.report
 where
   tests : TestM Unit := do
-    testEq "wide group" (formatPlain groupedLineDoc 80) "hello world"
-    testEq "narrow group" (formatPlain groupedLineDoc 8) "hello\nworld"
-    testEq "hard newline" (formatPlain hardLineDoc 80) "αβ\nγ"
-    testEq "nested align" (formatPlain nestedDoc 5) ". a\n  b"
-    testEq "fill paragraph" (formatPlain paragraphDoc 16)
+    testEq "wide group" (oraclePlain groupedLineDoc 80) "hello world"
+    testEq "narrow group" (oraclePlain groupedLineDoc 8) "hello\nworld"
+    testEq "hard newline" (oraclePlain hardLineDoc 80) "αβ\nγ"
+    testEq "nested align" (oraclePlain nestedDoc 5) ". a\n  b"
+    testEq "fill paragraph" (oraclePlain paragraphDoc 16)
       "lean ir runs\nformat.pretty\ninside wasm"
-    testEq "tagged segment" (formatSegments taggedDoc 80)
+    testEq "tagged segment" (VersoSlides.VirPrettyM.formatSegments taggedDoc 80 0)
       #[{ text := "hello", tags := #[7] }]
-    testEq "nested tag stack" (formatSegments nestedTaggedDoc 80)
+    testEq "nested tag stack" (VersoSlides.VirPrettyM.formatSegments nestedTaggedDoc 80 0)
       #[
         { text := "outer", tags := #[7] },
         { text := "inner", tags := #[7, 8] },
@@ -83,5 +120,5 @@ where
 
 end Tests.Pretty
 
-public def main : IO UInt32 :=
-  Tests.Pretty.main
+public def main (args : List String) : IO UInt32 :=
+  Tests.Pretty.main args
