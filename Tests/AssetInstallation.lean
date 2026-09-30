@@ -63,6 +63,19 @@ private def testInstallation (dir : System.FilePath) : IO Unit := do
   check ((← IO.FS.readFile (first / "extra-runtime/new-shard")) == "new")
     "failed validation changed the installed bundle"
 
+  -- Reserved resources cannot be shadowed through portable directory casing.
+  for filename in #["Lib/ViR/runtime.js", "LIB/.VIR-STAGE/stale", "LIB\\VIR\\runtime.js"] do
+    let rejected ← try
+      let _ ← slidesMain {
+        outputDir := first
+        extraAssets := #[{ filename, contents := "collision".toUTF8 }] }
+        (%doc TestFixtures.MinimalThemed)
+      pure false
+    catch _ => pure true
+    check rejected s!"reserved namespace was accepted: {filename}"
+    check ((← IO.FS.readFile (first / "index.html")) == previousHtml)
+      "namespace rejection changed existing HTML"
+
   -- A pre-existing destination link is replaced; its target is never removed.
   let linkedDeck := dir / "linked-deck"
   let unrelated := dir / "unrelated-directory"

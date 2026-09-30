@@ -156,7 +156,17 @@ public def main : IO UInt32 := do
     expectVirNamespaceFail "runtime bundle asset cannot claim lib/vir"
       { extraAssets := #[dummyAsset "lib/vir/runtime.js"] },
     expectVirNamespaceFail "staging asset cannot claim lib/.vir-stage"
-      { extraAssets := #[dummyAsset "lib/.vir-stage/stale"] }
+      { extraAssets := #[dummyAsset "lib/.vir-stage/stale"] },
+    expectVirNamespaceFail "reserved resource namespace ignores casing"
+      { extraAssets := #[dummyAsset "Lib/ViR/runtime.js"] },
+    expectVirNamespaceFail "reserved staging namespace ignores casing"
+      { extraAssets := #[dummyAsset "LIB/.VIR-STAGE/stale"] },
+    expectVirNamespaceFail "file cannot replace resource library parent"
+      { extraAssets := #[dummyAsset "Lib"] },
+    expectVirNamespaceFail "reserved namespace recognizes portable separators"
+      { extraAssets := #[dummyAsset "LIB\\VIR\\runtime.js"] },
+    expectFail "generated directory cannot replace library parent through casing"
+      { extraAssetDirs := #[{ source := "TestFixtures/theme-assets", destination := "LIB" }] }
   ]
   let mut failed := 0
   for run in cases do

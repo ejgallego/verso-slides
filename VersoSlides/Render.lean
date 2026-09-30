@@ -676,10 +676,10 @@ private def reservedOutputNames : Array String :=
 
 private def validateAssetDirDestination (destination : String) : IO Unit := do
   if destination.isEmpty || destination == "." || destination == ".." ||
-      destination.startsWith ".verso-asset-" ||
+      destination.toLower.startsWith ".verso-asset-" ||
       destination.any fun c => c == '/' || c == '\\' then
     throw <| IO.userError s!"Invalid extraAssetDirs destination: \"{destination}\". Expected one top-level directory name."
-  if reservedOutputNames.contains destination then
+  if reservedOutputNames.contains destination.toLower then
     throw <| IO.userError s!"extraAssetDirs destination \"{destination}\" is reserved by Verso Slides."
 
 private partial def validateAssetDirTree (path : System.FilePath) : IO Unit := do
@@ -774,16 +774,20 @@ private def parseBuildArgs (config : Config) (args : List String)
   | "--build-inputs" :: path :: rest => parseBuildArgs config rest (some path)
   | arg :: _ => throw <| IO.userError s!"Unknown or incomplete slides argument: {arg}"
 
-/-- Reserve the embedded publisher's whole output namespace before rendering. -/
-def Config.validateVirResourceNamespace (config : Config) : IO Unit := do
-  let plan ← config.collectAssets
+private def validateVirAssetNamespace
+    (plan : Std.HashMap String (String × AssetPayload)) : IO Unit := do
   for (filename, _, _) in plan.toList do
-    if filename == "lib/vir" || filename.startsWith "lib/vir/" ||
-        filename == "lib/.vir-stage" || filename.startsWith "lib/.vir-stage/" then
+    let folded := (filename.replace "\\" "/").toLower
+    if folded == "lib" || folded == "lib/vir" || folded.startsWith "lib/vir/" ||
+        folded == "lib/.vir-stage" || folded.startsWith "lib/.vir-stage/" then
       throw <| IO.userError s!"Slides asset {filename} collides with the reserved VIR resource namespace"
 
-private def configureVirAssets (config : Config) : IO Config := do
-  let published ← VirResourceSite.describe virResources
+/-- Reserve the embedded publisher's namespace, including portable casing, before rendering. -/
+def Config.validateVirResourceNamespace (config : Config) : IO Unit := do
+  validateVirAssetNamespace (← config.collectAssets)
+
+private def configureVirAssets (config : Config)
+    (published : VirResourceSite.PublishedResources) : IO Config := do
   let some (_, programManifestUrl) := published.programManifestUrls.find?
       (·.1 == "verso-slides/prettyM")
     | throw <| IO.userError "PrettyM program manifest is missing"
@@ -805,11 +809,12 @@ Build jobs can pass {lit}`--output DIR` through {lit}`args` to override
 def slidesMain (config : Config := {}) (doc : Part Slides)
     (args : List String := []) : IO UInt32 := runWithLogger do
   let (config, buildInputs) ← parseBuildArgs config args
-  config.validateVirResourceNamespace
-  let config ← configureVirAssets config
+  let resourcePlan ← VirResourceSite.prepare virResources
+  let config ← configureVirAssets config resourcePlan.published
   -- Validate the config and build the deduplicated asset plan up-front so
   -- any filename collision fails before we start writing files.
   let assetPlan ← config.collectAssets
+  validateVirAssetNamespace assetPlan
   config.validateAssetDirs assetPlan
 
   -- Run the traversal pass (collects CSS blocks, etc.)
@@ -859,7 +864,7 @@ def slidesMain (config : Config := {}) (doc : Part Slides)
   -- by one source directory and replaced as a unit to prevent stale files.
   installAssetDirs dir config.extraAssetDirs
 
-  let _ ← VirResourceSite.write dir virResources
+  let _ ← VirResourceSite.write dir resourcePlan
 
   -- Copy local images to the output directory
   if !traverseState.imageFiles.isEmpty then
