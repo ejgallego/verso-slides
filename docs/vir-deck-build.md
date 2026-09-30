@@ -1,8 +1,10 @@
 # PrettyM candidate on Lean 4.34
 
 This candidate uses Lean `v4.34.0`, VIR [PR #207](https://github.com/ejgallego/lean-vir/pull/207)
-at `cf816e94d3a5207e3a9d6c1e0c4d312a7845bfb9`, and the matching
-Verso revision pinned in `lakefile.lean`. PR #207 is based on main with the
+at the authorized local successor `47e82e9a483e727431bb004fb64ce76ada739ba9`,
+and the matching
+Verso revision pinned in `lakefile.lean`. The exact successor and pack were supplied explicitly for this checkpoint;
+PR #207 now publishes the same `47e82e9a` head. Fresh upstream CI is pending. PR #207 is based on main with the
 landed ABI4 runtime work. Its runtime lock is available-only:
 the exact verified runtime pack must already be supplied locally.
 
@@ -22,9 +24,10 @@ producer checkout path, generated manifest path, or SDK directory is read by
 the deck executable. The generated site can move under a URL prefix.
 
 The browser bootstrap imports the published runtime module and calls
-`createProgram` with the two published manifests. Its `formatSegments` role
-exports `Std.Format → Nat → Nat → Array Pretty.Segment` through VIR's direct
-host call ABI. The earlier panel adapter converts its compact format tree to
+`createProgram` with the two published manifests, the independently embedded
+`expectedExports` v2 reference and a pending-creation `signal`. Its `formatSegments`
+role exports `Std.Format → Nat → Nat → Except FormatError (Array Pretty.Segment)`
+through VIR's direct host call ABI. The bounded panel adapter converts its compact format tree to
 the host ABI value and obtains a column width from DOM measurement. It passes
 the result to the existing annotation/HTML stage. The extra JSON request and
 response protocol has been removed. The generated slide's existing rich-format
@@ -32,8 +35,8 @@ metadata is still JSON and is parsed by the panel before this call.
 
 `VersoSlides.Pretty.formatSegments` is the single Lean layout implementation;
 `VersoSlides.VirPrettyM.formatSegments` is its exported wrapper. The legacy
-JavaScript formatter remains available with `--pixel-pretty` or
-`Config.virPrettyM := false` for comparison.
+JavaScript formatter remains with `--pixel-pretty` or `Config.virPrettyM := false`
+as superseded work to remove in the mandatory-VIR consolidation slice.
 
 The old 4.34.0-rc2 branch `feat/reusable-deck-assets` retains the original
 path-based build and custom-root evidence. This candidate carries its default
@@ -41,16 +44,25 @@ panel integration, asset handling, and managed `:slides` site facet forward.
 Application-owned program composition needs a separate resource recipe and
 carrier; the old `virSlidesMain` path override does not apply to #207.
 
-## Current acceptance boundary
+## Current strict-creation checkpoint
+
+[Exact-pair evidence and bounds](vir-prettym-bounds.md) records qualification of
+local VIR `47e82e9a` / runtime `401b115e` / Slides v2 program `97b280b7`.
+The exact supplied pack must be seeded with VIR's public acquisition tool before
+an ordinary build. Anonymous installation, visible retry UX and final mandatory
+presentation consolidation remain open. The historical downstream/pixel evidence
+below is retained; those broader checks were not repeated for this narrow gate.
+
+## Historical acceptance boundary
 
 The exact Lean 4.34 / VIR `0a9abac0` pair passed supplied-pack local site and
-browser acceptance in Slides `9cb9b54`. The final dependency pin is its direct
+browser acceptance in Slides `9cb9b54`. That checkpoint's aligned dependency pin was its direct
 test-only successor `cf816e94`: the complete diff adds only three lines to
 `tests/packages/lake-facets.sh`, explicitly acquiring its standalone comparison
 tool. Production sources, runtime/API and pack lock are identical, so the
 executed native/browser evidence below is retained without rerunning it.
-The source pin, Lake manifest and root/downstream dependency HEADs agree at
-`cf816e94`. Fresh successor CI remains upstream qualification work.
+At that checkpoint, the source pin, Lake manifest and root/downstream
+dependency HEADs agreed at `cf816e94`. Fresh successor CI remains upstream qualification work.
 Resource compatibility is exactly `{leanRevision, virVersion}`.
 VIR's public acquisition tool validated and installed the supplied pack:
 

@@ -359,6 +359,8 @@ private def slideCodePanelCss : String := include_str "../web-lib/panel/panel.cs
 private def prettyJs : String := include_str "../web-lib/panel/pretty.js"
 private def virPrettyJs : String := include_str "../web-lib/vir-prettym/pretty.js"
 private def virBootstrapJs : String := include_str "../web-lib/vir-prettym/bootstrap.js"
+private def virExpectedExports : String :=
+  include_str "../web-lib/vir-prettym/format-segments-v2.contract.json"
 
 /-- JS for the interactive info panel. -/
 private def slideCodePanelJs : String := include_str "../web-lib/panel/panel.js"
@@ -794,7 +796,8 @@ private def configureVirAssets (config : Config) : IO Config := do
     ("runtimeModule", Lean.Json.str published.runtimeModuleUrl),
     ("runtimeManifest", Lean.Json.str published.runtimeManifestUrl),
     ("programManifest", Lean.Json.str programManifestUrl)]
-  let bootstrap := "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++ virBootstrapJs
+  let bootstrap := "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++
+    "window.__versoVirExpectedExports = " ++ virExpectedExports ++ ";\n" ++ virBootstrapJs
   return { config with
     extraJs := config.extraJs.push "vir-bootstrap.js"
     extraAssets := config.extraAssets.push {

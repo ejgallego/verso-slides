@@ -12,22 +12,22 @@ shared implementation plan at
 | --- | --- | --- | --- | --- |
 | Historical 4.34 candidate | `d68e701964f7602454019bc026f9fabdf83b9786` | `970ad3d27b7daf82cd5bfe2e4d53251037cd7b87` | `5b58adf465c88e5aa9fac9300d42d7a3b33789557d2323c53e7fb8612741c70e` | Supplied-pack site/browser acceptance; retained in history |
 | Executed adoption acceptance | `9cb9b54270abc7dd737621cde72eaf1d258f5f95` (pin change `f582da67372a150d358f47256fa939aa6f60f2a5`) | `0a9abac0e1245ddb3752a0d4dccef30d28c39621` | `ff7b5a61fd6558e7f4e828e460f3aed033803a84ef599073c6cfe44af85e2ba3` | Seven native checks; 13 site/browser checks; supplied pack |
-| Final test-only source alignment | Successor pin recorded in this document's commit | `cf816e94d3a5207e3a9d6c1e0c4d312a7845bfb9` | Same `ff7b5a61…` artifact | Reuses the executed acceptance above; no native/browser rerun |
+| Final test-only source alignment | `05570da` | `cf816e94d3a5207e3a9d6c1e0c4d312a7845bfb9` | Same `ff7b5a61…` artifact | Reuses the executed acceptance above; no native/browser rerun |
 
 VIR `cf816e94` is the direct successor of `0a9abac0`. Its complete diff is
 three added lines in `tests/packages/lake-facets.sh`, explicitly building the
 standalone generator used only by the test's independent comparison. No
 production blob, runtime/API, compatibility or pack-lock change occurred.
-Source pin, manifests and root/downstream dependency checkouts select this
-successor consistently. The canonical successor handoff and upstream retained
+At that checkpoint, source pin, manifests and root/downstream dependency
+checkouts selected that successor consistently. The canonical successor handoff and upstream retained
 red/green cold-facet evidence were read; that campaign was not rerun by Slides.
 Fresh successor CI is not claimed. All acceptance/reproducer attribution to
 `0a9abac0` below records where those checks were actually executed.
 
 Both 4.34 checkpoints use Lean revision
 `293d5d0c0c3f3dded4688b3ccd6a33939ac5102b`. The separate historical 4.35 demo
-retains its own revision, runtime and evidence. Runtime acquisition for the
-current pin still selects available-only source `-`; anonymous cold installation
+retains its own revision, runtime and evidence. Runtime acquisition for both the historical and strict
+creation pins selects available-only source `-`; anonymous cold installation
 has its own release gate.
 
 ## Required production shape
@@ -43,8 +43,8 @@ has its own release gate.
 - [ ] Consolidate DOM measurement, annotation/HTML presentation and interaction
   into one browser layer. Keep one typed formatter adapter and no optional
   formatter backend abstraction.
-- [ ] Bound input conversion and Lean layout work, and define width, indentation
-  and error behavior before changing the formatter call contract.
+- [x] Bound input conversion and Lean layout work; qualify pure Except/v2 and
+  width/indentation/error policy. See [bounds and evidence](vir-prettym-bounds.md).
 - [ ] Own loading, visible failure, explicit retry, pending-load invalidation,
   disposal and stale-completion suppression in Slides.
 - [ ] Plan publication before writes, preserve the reserved resource namespace,
@@ -52,13 +52,31 @@ has its own release gate.
 - [ ] Complete semantic, negative, lifecycle and visual acceptance for the
   production adapter, including independent downstream examples.
 
-## Shared-contract review checkpoint
+## Current strict-creation consumer checkpoint
+
+Explicit adoption `VIR-SLIDES-STRICT-CREATION-ADOPTION-20260930-001` selects local
+VIR `47e82e9a483e727431bb004fb64ce76ada739ba9` and supplied pack `401b115e`.
+The dirty work on Slides `5e3c5207` is preserved as the bounded pure Except/v2
+implementation. The published bootstrap supplies an independent complete ABI
+reference and pending-creation signal; exact consumer qualification is recorded
+in [bounds and evidence](vir-prettym-bounds.md).
+
+The root pin, manifest and dependency checkout agree. The maintainer-authorized PR207 update publishes the same `47e82e9a` source;
+fresh upstream CI is pending. No source/artifact change or repeated qualification
+was needed for publication. The old optional
+pixel selector/duplicate presentation remain applicable findings. Supplied-pack
+checks do not close anonymous acquisition, final UX or mandatory consolidation.
+
+The correspondence below records the contract decisions preceding implementation.
+Current completed status supersedes its historical pending-implementation labels.
+
+## Shared-contract review correspondence
 
 The existing agreed canary exports role `formatSegments`, interface ID
 `verso-slides-format-segments-hostabi-v1`, and
 `Std.Format → Nat → Nat → Array Pretty.Segment`. The resource compatibility
-record is exactly `{leanRevision, virVersion}`. These are the contracts used by
-the current adoption; the items below are requirements for review, not new APIs.
+record is exactly `{leanRevision, virVersion}`. These were the contracts used by
+the historical `0a9abac0` adoption; the items below are requirements for review, not new APIs.
 
 | Consumer requirement | Current boundary | Review decision needed |
 | --- | --- | --- |
@@ -67,7 +85,7 @@ the current adoption; the items below are requirements for review, not new APIs.
 | Cancel an obsolete pending load | Slides can invalidate a generation and dispose a late success; current loader has no caller cancellation option | Revised agreed proposal: optional pending-creation `signal`; explicit disposal after resolution. Primary cancellation remains `AbortError` even when cleanup throws, with own readonly `cleanupError` retaining secondary evidence. Implementation/handoff pending; generation checks remain required. |
 | Bounded formatter failure | Current canary returns an array and has no formatter-specific failure result | Agreed migration: pure `Except FormatError (Array Pretty.Segment)` under `verso-slides-format-segments-hostabi-v2`, retaining role/declaration and three inputs. Application categories/budgets and exact ABI qualification remain pending. |
 
-### Agreed proposal, pending implementation
+### Agreed creation contract (now implemented and consumed)
 
 Accepted the revised `build/SLIDES-STRICT-CONTRACT-PROPOSAL-20260930.md` from
 VIR's resource-abi4 worktree (SHA-256
@@ -124,9 +142,9 @@ IDs, guess the result shape, truncate output or substitute an algorithm. Existin
 v1 source/artifacts remain historical evidence. Compile/inspect the exact v2
 signature and compare native/browser results before calling it qualified.
 
-The proposal is not shipped in pinned `cf816e94` or runtime `ff7b5a61`.
-VIR must supply an immutable implemented source and regenerated matching runtime
-artifact with focused checks before consumer adoption; loader JS changes the
+The proposal was absent from `cf816e94` / `ff7b5a61`; VIR supplied exact
+`47e82e9a` / `401b115e` with focused checks and coordinator-authorized adoption.
+The consumer checkpoint above now exercises it; loader JS changes the
 runtime content identity. Slides v2 separately changes its program identity.
 Coordinator retains implementation sequencing and publication decisions.
 
@@ -137,8 +155,10 @@ of input/output text. Segment count and total tag entries need their own bounds
 because the direct result has no serialized JSON-size envelope. Compact numeric
 fields must be exact before conversion to decimal ABI scalars. Define zero-width,
 negative nesting, Unicode column measurement and oversized-result behavior in
-the typed adapter and Lean tests. These proposals are not implemented by the pin
-update, and the old JSON-protocol boundary negatives do not qualify this canary.
+the typed adapter and Lean tests. The initial proposals were not implemented by that pin
+update; the fixed policy now bounds input to 64 KiB, text nodes to 16 KiB,
+output to 1 MiB, segments to 10,000 and aggregate tag entries to 65,536. The old JSON-protocol boundary negatives
+qualify their historical pair only.
 
 Retry creates a fresh program after explicit user action and disposes the prior
 instance. It does not replay a failed formatting call automatically. Failed or
@@ -154,33 +174,27 @@ Slides baseline portion of A. B remains the earliest unmet shared checkpoint.
 | --- | --- |
 | 1 Baseline/CI alignment (A) | Slides pin mismatch resolved in `f582da6`; supplied-pack acceptance in `9cb9b54`. VIR's historical source-inventory regression was fixed in `8d1facd`; the exact named Node test passes locally at `0a9abac0` (1 passed). This is not a claim about full public CI. |
 | 2 Mandatory acquisition (B) | Pending VIR durable anonymous source. Explicit supplied-pack acquisition and ordinary root/downstream builds pass. An empty-cache public acquisition probe rejects with `RESOURCE_OFFLINE_MISS` and the exact required content ID; it is not a fresh anonymous deck build. Slides owns downstream qualification after a usable source handoff. |
-| 3 Formatter bounds (B) | Earliest Slides implementation item. Current direct wrapper and recursive converter have no formatter-specific budgets. Historical JSON bounds qualify their old pair only. Pure Except/v2 migration is agreed; prepare small-budget regressions and settle finite application policy before qualifying the changed signature. |
+| 3 Formatter bounds (B) | Implemented and locally qualified: iterative compact admission, independent Lean preflight/output reservations, finite errors and pure Except/v2. 101 native checks plus browser same-wrapper bounds/recovery. Broader realistic goal sizing/performance remains open. |
 | 4 Portable paths (B) | Generic rule belongs to VIR. Current JS `validateDescriptor` accepts `Assets/a.js` and `assets/b.js`; a minimal lexical regression reproduces the missing rejection at `0a9abac0`. Native source has the same gap; native/case-insensitive-platform execution has not been claimed. Slides reserves exact `lib/vir`/`lib/.vir-stage` spellings; its casing rules still need regression/review. |
-| 5 Consumer contract/typed adapter (C) | Revised expectedExports declaration/ID/actual-ABI contract and pure Except/v2 migration agreed; upstream implementation/artifact, Slides independent reference and typed adapter remain pending. ABI equality is not semantic proof. Width/error policy and exact v2 native/browser qualification remain Slides work. |
-| 6 Cancellation/loading UX (C) | Pending-creation signal/lifetime and revised primary-error/own cleanupError contract agreed. Implementation/artifact and Slides loading/failure/retry remain pending. Ready-instance disposal, persisted pagehide and fresh reload pass; this does not cover obsolete acquisition cancellation or all pending-completion races. |
+| 5 Consumer contract/typed adapter (C) | Exact `47e82e9a` / `401b115e` adopted; Slides independent existing-format ABI reference embedded and checked by the loader. Typed bounded v2 adapter and native/browser oracle qualified. ABI equality is supported separately by semantic corpus evidence. |
+| 6 Cancellation/loading UX (C) | Pending signal consumed on terminal pagehide; strict rejection, acquisition/real-instance cancellation, late completion and raw secondary cleanup reporting qualified. No stale facade on actual bootstrap cancellation. Visible loading/failure/retry UX and broader overlapping UI attempts remain pending. |
 | 7 One presentation layer (D) | Pending Slides. Production `--pixel-pretty`/`Config.virPrettyM` selectors and the two JS presentation copies are superseded architecture. Remove them after the bounded typed adapter/lifecycle seam is settled. |
 | 8 Native guarantees (D) | VIR `8d1facd` added inner interface/compiler compatibility checks, included in actual successful program builds. Format-authority/precondition clarification remains VIR review work; do not infer completion from downstream happy-path builds. |
 | 9 Publication/costs (D) | Pending Slides. Source still validates the same resource set through `configureVirAssets`/`describe` and `write`/`describe`/`bundles`. No real-cost claim; next publication patch needs a single validated plan, output/failure regressions and measured validation passes/costs. |
-| 10 Final mandatory qualification (E) | Pending. Current native/root/nested/panel checks credit completed work, with limited pixel-content comparison. They do not qualify final budgets, classes/bindings/layout, cancellation/retry, dynamic retention/performance, or anonymous cold installation. |
+| 10 Final mandatory qualification (E) | Pending. Current native/root/nested/panel checks credit completed work, with limited pixel-content comparison. The current narrow gate qualifies fixed budgets and pending creation cancellation; final classes/bindings/visual layout, retry, dynamic retention/performance and anonymous cold installation remain open. |
 
 ## Next Slides patch and handoff
 
-The next minimal application change is a regression set for a small formatter
-policy: node/depth boundaries before ABI conversion, cumulative indentation
-before newline allocation, and output growth before appending. Exercise equality
-to each limit and one unit over using small budgets; after every expected error,
-format a valid value on the same program. Use native Lean as the semantic oracle
-and the actual compact converter/browser path for admission checks. This is
-preparation for Step 3, not completion of the pending distribution gate.
+The bounded v2 slice and authorized strict-creation consumer gate are complete
+locally; exact identities, executed tests and remaining limits are retained in
+[bounds and evidence](vir-prettym-bounds.md). Return this checkpoint to the
+integration coordinator before upstream publication. No VIR source change or
+new shared API decision is required by this slice.
 
-The pure Except result and v2 interface-ID migration are agreed; settle the
-finite Slides error categories/limits and qualify the exact generated ABI before
-adoption. Before integrating Step 5/6, obtain the explicit implemented VIR
-checkpoint for the agreed expectedExports checks and caller-owned creation cancellation,
-with error/cleanup tests and a matching artifact. Step 2 additionally needs a
-durable anonymous source. No guessed loader options,
-compatibility aliases or alternative production formatter enter these patches.
-
-Publication, merge and cleanup remain outside this adoption. The next explicit
-handoff carries the exact local head, completed evidence, the remaining lexical
-path reproducer, and these contract/source requests to the existing Module owner.
+The next Slides product seam is explicit loading/failure/retry ownership on the
+agreed API, followed by retiring the superseded pixel selector and consolidating
+measurement/presentation. Anonymous acquisition remains the earliest shared
+release gate and needs a durable-source handoff from VIR. Portable paths,
+publication planning, final visual/retention/performance and independent downstream
+qualification remain open. No publication, merge or branch cleanup is authorized
+by this checkpoint.

@@ -32,11 +32,27 @@ declare function formatToHtml(
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;
 
 interface VersoVirProgram {
+    readonly status: "active" | "failed" | "disposed";
     call(role: string, ...args: unknown[]): unknown;
     dispose(): void;
 }
 
+interface PrettySegment {
+    text: string;
+    tags: string[];
+}
+
+type PrettyFormatResult =
+    | { kind: "ok"; value: PrettySegment[] }
+    | { kind: "error"; value: string };
+
 interface Window {
+    /** Independent, reviewed existing VIR interface representation; embedded at build time. */
+    __versoVirExpectedExports: Readonly<Record<string, {
+        declaration: string;
+        interfaceId: string;
+        signature: { args: unknown[]; result: unknown; effect: "pure" };
+    }>>;
     __versoVirResourceUrls: {
         runtimeModule: string;
         runtimeManifest: string;
@@ -44,5 +60,6 @@ interface Window {
     };
     versoVir?: VersoVirProgram;
     versoVirReady?: Promise<VersoVirProgram>;
-    versoVirFormatSegments: (format: unknown, width: number, indent: number) => unknown;
+    /** Slides v2 facade: bounded compact input, typed segments, recoverable errors. */
+    versoVirFormatSegments: (format: unknown, width: number, indent: number) => PrettySegment[];
 }

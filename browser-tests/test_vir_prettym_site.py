@@ -62,20 +62,20 @@ def test_same_wrapper_native_corpus(page, server, site_dir, route):
     assert len(corpus) == 7
     for case in corpus:
         actual = page.evaluate("""c => window.versoVirFormatSegments(
-            compactFormatToStdFormat(c.format), c.width, c.indent)""", case)
-        assert actual == case["segments"], case["name"]
+            c.format, c.width, c.indent)""", case)
+        assert actual == case["result"]["segments"], case["name"]
 
 
 def test_published_host_call_and_lifecycle(page, server):
     open_demo(page, server)
     assert page.evaluate("""() => window.versoVirFormatSegments(
-        {kind: 'tag', fields: {arg1: '7', arg2: {kind: 'text', value: 'hello'}}},
+        [7, '7', 'hello'],
         80, 0)""") == [{"text": "hello", "tags": ["7"]}]
 
     # Back-forward cache pagehide preserves the page-owned program.
     page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: true}))")
     assert page.evaluate("""() => window.versoVirFormatSegments(
-        {kind: 'text', value: 'still live'}, 80, 0)""") == [
+        'still live', 80, 0)""") == [
         {"text": "still live", "tags": []}
     ]
 
@@ -83,7 +83,7 @@ def test_published_host_call_and_lifecycle(page, server):
     page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: false}))")
     assert page.evaluate("""() => {
         try {
-            window.versoVirFormatSegments({kind: 'text', value: 'disposed'}, 80, 0);
+            window.versoVirFormatSegments('disposed', 80, 0);
             return false;
         } catch (_) {
             return true;
@@ -92,7 +92,7 @@ def test_published_host_call_and_lifecycle(page, server):
     page.reload()
     page.wait_for_function("window.versoVir !== undefined", timeout=30000)
     assert page.evaluate("""() => window.versoVirFormatSegments(
-        {kind: 'text', value: 'new page'}, 80, 0)""") == [
+        'new page', 80, 0)""") == [
         {"text": "new page", "tags": []}
     ]
 
@@ -157,7 +157,7 @@ def test_independent_deck_uses_published_runtime(page, server):
     page.wait_for_function("window.versoVir !== undefined", timeout=30000)
     assert page.locator('[role="alert"]').count() == 0
     assert page.evaluate("""() => window.versoVirFormatSegments(
-        {kind: 'text', value: 'downstream'}, 40, 0)""") == [
+        'downstream', 40, 0)""") == [
         {"text": "downstream", "tags": []}
     ]
     tactic = page.locator(".slides > section.present .code-with-panel .tactic:visible").first
