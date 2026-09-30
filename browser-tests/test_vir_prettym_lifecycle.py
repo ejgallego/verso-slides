@@ -3,6 +3,7 @@
 Only the first Wasm fetch is held/failed. Acquisition, validation, instantiation,
 formatting and disposal still run through the published VIR loader.
 """
+import pytest
 from playwright.sync_api import expect
 
 from test_vir_prettym_site import open_demo, open_proof_panel
@@ -72,6 +73,40 @@ def assert_no_unhandled(page, errors):
     page.evaluate("() => new Promise(resolve => setTimeout(resolve, 0))")
     assert page.evaluate("window.lifecycleProbe?.unhandled || []") == []
     assert errors == []
+
+
+@pytest.mark.parametrize("action", ["retry", "terminal", "persisted"])
+def test_loading_notification_publishes_current_promise_before_reentrant_action(page, server, action):
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.add_init_script("""(() => {
+        const action = ACTION;
+        const probe = window.lifecycleProbe = {unhandled: [], notified: false};
+        window.addEventListener('unhandledrejection', e => probe.unhandled.push(String(e.reason)));
+        window.addEventListener('verso-vir-statechange', () => {
+            if (window.versoVirState !== 'loading' || probe.notified) return;
+            probe.notified = true;
+            probe.initial = window.versoVirReady;
+            if (action === 'retry') probe.retry = window.versoVirRetry();
+            else window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: action === 'persisted'}));
+        });
+    })()""".replace("ACTION", repr(action)))
+    page.goto(f"{server}/nested/deck/index.html")
+    state = "disposed" if action == "terminal" else "ready"
+    page.wait_for_function(f"window.Reveal?.isReady() === true && window.versoVirState === '{state}'", timeout=30000)
+    assert page.evaluate("typeof window.lifecycleProbe.initial?.then === 'function'")
+    assert page.evaluate("window.versoVirReady === (window.lifecycleProbe.retry || window.lifecycleProbe.initial)")
+    result = page.evaluate("""async () => {
+        const outcome = async promise => {
+            try { await promise; return 'ready'; } catch (e) { return e.name; }
+        };
+        return [await outcome(window.versoVirReady), await outcome(window.lifecycleProbe.initial)];
+    }""")
+    assert result == (["ready", "AbortError"] if action == "retry" else
+                      ["AbortError", "AbortError"] if action == "terminal" else ["ready", "ready"])
+    assert page.evaluate("window.versoVir?.status || 'absent'") == ("absent" if action == "terminal" else "active")
+    expect(page.locator(".vir-formatter-status")).to_have_count(0)
+    assert_no_unhandled(page, errors)
 
 
 def test_slow_creation_keeps_navigation_and_latest_selection_usable(page, server):

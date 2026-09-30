@@ -97,7 +97,6 @@
         releaseCurrent();
         var attempt = {pending: new AbortController(), program: /** @type {VersoVirProgram | undefined} */ (undefined)};
         current = attempt;
-        setState("loading");
         var ready = (async function () {
             var runtimeModuleUrl = new URL(urls.runtimeModule, document.baseURI);
             var runtimeManifestUrl = new URL(urls.runtimeManifest, document.baseURI);
@@ -130,6 +129,10 @@
             reportFailure(error);
             if (current === attempt) setState("failed");
         });
+        // Listeners can synchronously retry or close the page. Publish and
+        // observe this attempt before notification; do not overwrite a nested
+        // attempt's promise when its notification returns.
+        setState("loading");
         return ready;
     }
 

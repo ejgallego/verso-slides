@@ -36,6 +36,7 @@ function fixture(config = {}) {
     addEventListener(name, callback) { assert.equal(name, 'pagehide'); hide = callback; },
     dispatchEvent(event) {
       assert.equal(event.type, 'verso-vir-statechange'); states.push(this.versoVirState);
+      config.onState?.(this, hide);
     },
   };
   const context = vm.createContext({window, URL, AbortController, Event,
@@ -142,15 +143,79 @@ async function retryReportingProbe(kind) {
     unhandled: unhandled.map(error => error?.name ?? typeof error)};
 }
 
+async function notificationProbe(kind) {
+  const unhandled = [];
+  process.on('unhandledRejection', error => unhandled.push(error));
+  let armed = kind !== 'creation-retry', notified, nested, obsoleteDisposals = 0;
+  const f = fixture({onState(window, hide) {
+    if (!armed || window.versoVirState !== 'loading') return;
+    armed = false;
+    notified = window.versoVirReady;
+    if (kind.endsWith('retry')) nested = window.versoVirRetry();
+    else hide({persisted: kind === 'persisted'});
+  }});
+  let original;
+  if (kind === 'creation-retry') {
+    original = f.window.versoVirReady;
+    f.loading.resolve(f.loader); await f.started.promise;
+    armed = true;
+    f.window.versoVirRetry();
+  } else f.loading.resolve(f.loader);
+  const published = f.window.versoVirReady;
+  if (kind !== 'terminal') {
+    const index = kind === 'creation-retry' ? 1 : 0;
+    await f.waitForCall(index);
+    f.calls[index].completion.resolve(f.program);
+    if (original) f.creation.resolve({dispose() { obsoleteDisposals++; }});
+  }
+  const results = await Promise.allSettled([published, nested, notified, original]);
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+  return {
+    notifiedPromise: notified !== undefined && typeof notified.then === 'function',
+    publishedIsCurrent: published === (nested || notified),
+    publishedOutcome: results[0].status,
+    notifiedOutcome: results[2].status,
+    notifiedError: results[2].reason?.name ?? null,
+    state: f.window.versoVirState,
+    facade: f.window.versoVir === f.program,
+    calls: f.calls.length,
+    activeSignal: f.calls.at(-1)?.options.signal.aborted ?? null,
+    disposals: f.disposals(),
+    obsoleteDisposals,
+    unhandled: unhandled.map(error => error?.name ?? typeof error),
+  };
+}
+
 if (process.argv[2]?.endsWith('-probe')) {
   const probe = process.argv[2] === '--late-dispose-probe' ?
     lateDisposalProbe(process.argv[3], process.argv[4] === 'throw-reporting') :
+    process.argv[2] === '--notification-probe' ? notificationProbe(process.argv[3]) :
     process.argv[2] === '--retry-reporting-probe' ? retryReportingProbe(process.argv[3]) : rejectionReportingProbe(process.argv[3]);
   probe.then(
     result => process.stdout.write(JSON.stringify(result) + '\n'),
     error => { console.error(error); process.exitCode = 1; },
   );
 } else {
+
+for (const kind of ['import-retry', 'creation-retry', 'terminal', 'persisted']) {
+  test(`loading notification ${kind} preserves the observed current promise without unhandled errors`, () => {
+    const env = {...process.env}; delete env.NODE_TEST_CONTEXT;
+    const child = spawnSync(process.execPath, [__filename, '--notification-probe', kind], {encoding: 'utf8', env});
+    assert.equal(child.status, 0, child.stderr);
+    const terminal = kind === 'terminal', retry = kind.endsWith('retry');
+    assert.deepEqual(JSON.parse(child.stdout), {
+      notifiedPromise: true, publishedIsCurrent: true,
+      publishedOutcome: terminal ? 'rejected' : 'fulfilled',
+      notifiedOutcome: terminal || retry ? 'rejected' : 'fulfilled',
+      notifiedError: terminal || retry ? 'AbortError' : null,
+      state: terminal ? 'disposed' : 'ready', facade: !terminal,
+      calls: terminal ? 0 : kind === 'creation-retry' ? 2 : 1,
+      activeSignal: terminal ? null : false, disposals: 0,
+      obsoleteDisposals: kind === 'creation-retry' ? 1 : 0, unhandled: [],
+    });
+  });
+}
 
 test('pending creation receives independent expectedExports/signal; pagehide aborts without a facade', async () => {
   const f = fixture(); f.loading.resolve(f.loader); await f.started.promise;
