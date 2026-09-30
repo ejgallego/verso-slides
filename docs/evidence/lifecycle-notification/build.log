@@ -1,0 +1,38 @@
+✔ [618/700] Built VersoSlides.ImgSrc (343ms)
+✔ [689/700] Built VersoSlides.VirResourceSite (434ms)
+✔ [690/700] Built VersoSlides.SlideCode.CommentParsers (870ms)
+✔ [691/700] Built VersoSlides.Pretty (926ms)
+ℹ [692/700] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [693/700] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (1.1s)
+info: stdout:
+wrote /tmp/tmp.XXsONSBJ/program.irpkg-set.json
+wrote /tmp/tmp.XXsONSBJ/program.irpkg
+wrote /tmp/tmp.XXsONSBJ/report.md
+package set members: 8
+package format: 11
+declarations: 135 (110 Lean IR, 25 native externs)
+interface exports: 1
+✔ [694/710] Built VersoSlides.SlideCode (1.7s)
+ℹ [695/710] Built «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack (64ms)
+info: stdout:
+97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58
+✔ [707/743] Built VersoSlides.Basic (2.6s)
+✔ [709/743] Built VersoSlides.ImageWidget (664ms)
+✔ [711/743] Built VersoSlides.SlideCode.Export (968ms)
+✔ [713/743] Built VersoSlides.Attributes (799ms)
+✔ [714/743] Built VersoSlides.SlideCode.Render (1.1s)
+✔ [717/743] Built VersoSlides.VirPrettyMResources (1.3s)
+✔ [719/743] Built VersoSlides.OtherLanguages (1.1s)
+✔ [721/743] Built VersoSlides.VirResources (226ms)
+✔ [723/743] Built VersoSlides.Diagram (1.3s)
+✔ [725/743] Built VersoSlides.Animate (1.4s)
+✔ [727/743] Built VersoSlides.Directives (2.7s)
+✔ [729/743] Built VersoSlides.InlineLean (2.7s)
+✔ [731/743] Built VersoSlides.Render (2.7s)
+✔ [732/743] Built VersoSlides.ModuleExample (2.7s)
+✔ [734/743] Built VersoSlides.Render:c.o (3.3s)
+✔ [735/743] Built VersoSlides.LibModule (2.8s)
+✔ [737/743] Built VersoSlides (587ms)
+✔ [743/743] Built «demo-slides»:exe (717ms)
+Build completed successfully (743 jobs).

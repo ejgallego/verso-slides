@@ -1,0 +1,164 @@
+✖ loading notification import-retry preserves the observed current promise without unhandled errors (60.225681ms)
+✖ loading notification creation-retry preserves the observed current promise without unhandled errors (36.909723ms)
+✖ loading notification terminal preserves the observed current promise without unhandled errors (43.045936ms)
+✖ loading notification persisted preserves the observed current promise without unhandled errors (49.140019ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 278.667207
+
+✖ failing tests:
+
+test at Tests/vir-bootstrap.test.cjs:202:3
+✖ loading notification import-retry preserves the observed current promise without unhandled errors (60.225681ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      activeSignal: false,
+      calls: 1,
+      disposals: 0,
+      facade: true,
+  +   notifiedError: null,
+  +   notifiedOutcome: 'fulfilled',
+  +   notifiedPromise: false,
+  -   notifiedError: 'AbortError',
+  -   notifiedOutcome: 'rejected',
+  -   notifiedPromise: true,
+      obsoleteDisposals: 0,
+  +   publishedIsCurrent: false,
+  +   publishedOutcome: 'rejected',
+  -   publishedIsCurrent: true,
+  -   publishedOutcome: 'fulfilled',
+      state: 'ready',
+      unhandled: []
+    }
+
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:207:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { notifiedPromise: false, publishedIsCurrent: false, publishedOutcome: 'rejected', notifiedOutcome: 'fulfilled', notifiedError: null, state: 'ready', facade: true, calls: 1, activeSignal: false, disposals: 0, obsoleteDisposals: 0, unhandled: [] },
+    expected: { notifiedPromise: true, publishedIsCurrent: true, publishedOutcome: 'fulfilled', notifiedOutcome: 'rejected', notifiedError: 'AbortError', state: 'ready', facade: true, calls: 1, activeSignal: false, disposals: 0, obsoleteDisposals: 0, unhandled: [] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at Tests/vir-bootstrap.test.cjs:202:3
+✖ loading notification creation-retry preserves the observed current promise without unhandled errors (36.909723ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+
+    {
+      activeSignal: false,
+      calls: 2,
+      disposals: 0,
+      facade: true,
+  ...
+      obsoleteDisposals: 1,
+  +   publishedIsCurrent: false,
+  +   publishedOutcome: 'rejected',
+  -   publishedIsCurrent: true,
+  -   publishedOutcome: 'fulfilled',
+      state: 'ready',
+      unhandled: []
+    }
+
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:207:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { notifiedPromise: true, publishedIsCurrent: false, publishedOutcome: 'rejected', notifiedOutcome: 'rejected', notifiedError: 'AbortError', state: 'ready', facade: true, calls: 2, activeSignal: false, disposals: 0, obsoleteDisposals: 1, unhandled: [] },
+    expected: { notifiedPromise: true, publishedIsCurrent: true, publishedOutcome: 'fulfilled', notifiedOutcome: 'rejected', notifiedError: 'AbortError', state: 'ready', facade: true, calls: 2, activeSignal: false, disposals: 0, obsoleteDisposals: 1, unhandled: [] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at Tests/vir-bootstrap.test.cjs:202:3
+✖ loading notification terminal preserves the observed current promise without unhandled errors (43.045936ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      activeSignal: null,
+      calls: 0,
+      disposals: 0,
+      facade: false,
+  +   notifiedError: null,
+  +   notifiedOutcome: 'fulfilled',
+  +   notifiedPromise: false,
+  -   notifiedError: 'AbortError',
+  -   notifiedOutcome: 'rejected',
+  -   notifiedPromise: true,
+      obsoleteDisposals: 0,
+  +   publishedIsCurrent: false,
+  -   publishedIsCurrent: true,
+      publishedOutcome: 'rejected',
+      state: 'disposed',
+      unhandled: []
+    }
+
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:207:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { notifiedPromise: false, publishedIsCurrent: false, publishedOutcome: 'rejected', notifiedOutcome: 'fulfilled', notifiedError: null, state: 'disposed', facade: false, calls: 0, activeSignal: null, disposals: 0, obsoleteDisposals: 0, unhandled: [] },
+    expected: { notifiedPromise: true, publishedIsCurrent: true, publishedOutcome: 'rejected', notifiedOutcome: 'rejected', notifiedError: 'AbortError', state: 'disposed', facade: false, calls: 0, activeSignal: null, disposals: 0, obsoleteDisposals: 0, unhandled: [] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at Tests/vir-bootstrap.test.cjs:202:3
+✖ loading notification persisted preserves the observed current promise without unhandled errors (49.140019ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      activeSignal: false,
+      calls: 1,
+      disposals: 0,
+      facade: true,
+      notifiedError: null,
+      notifiedOutcome: 'fulfilled',
+  +   notifiedPromise: false,
+  -   notifiedPromise: true,
+      obsoleteDisposals: 0,
+  +   publishedIsCurrent: false,
+  -   publishedIsCurrent: true,
+      publishedOutcome: 'fulfilled',
+      state: 'ready',
+      unhandled: []
+    }
+
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:207:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { notifiedPromise: false, publishedIsCurrent: false, publishedOutcome: 'fulfilled', notifiedOutcome: 'fulfilled', notifiedError: null, state: 'ready', facade: true, calls: 1, activeSignal: false, disposals: 0, obsoleteDisposals: 0, unhandled: [] },
+    expected: { notifiedPromise: true, publishedIsCurrent: true, publishedOutcome: 'fulfilled', notifiedOutcome: 'fulfilled', notifiedError: null, state: 'ready', facade: true, calls: 1, activeSignal: false, disposals: 0, obsoleteDisposals: 0, unhandled: [] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
