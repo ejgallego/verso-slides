@@ -30,7 +30,7 @@ remain unchanged. Its separate evidence/documentation commit changes no producti
 | Bounded pure Except/v2 and strict creation | Slides `51c6d782` / VIR `47e82e9a`; 101 native, 11 Node and 30 focused Chromium/Firefox checks; [retained summary/logs](evidence/vir-51c6d782/README.md) |
 | Cleanup reporting | Slides `c1bcc76c`; 20 Node, 6 focused browser checks and targeted build; [retained evidence](evidence/bootstrap-cleanup/README.md). Module's bounded source/evidence review found no shared-contract blocker; it did not rerun tests. |
 | Loading/failure/explicit retry | Slides `481ea5c`; 35 Node, 16 focused Chromium/Firefox, both typechecks and targeted build; [retained evidence](evidence/formatter-lifecycle/README.md). |
-| Mandatory-VIR consolidation | Slides `89e0314c`; 46 Node, 101 native formatter, 24 native rendering and 105 Chromium/Firefox checks, both typechecks and targeted warm build; [retained evidence](evidence/mandatory-formatter/README.md). Ready for review. |
+| Mandatory-VIR consolidation | Slides `89e0314c`; 46 Node, 101 native formatter, 24 native rendering and 105 Chromium/Firefox checks, both typechecks and targeted warm build; [retained evidence](evidence/mandatory-formatter/README.md). Module reviewed `89e0314c` / `e2b34da` with no new renderer blocker and verified all 34 source/evidence ledger hashes; owner-run campaigns were inspected, not rerun. |
 | Loading-notification reentrancy | Slides `19bf157f`; four focused regressions fail against `e2b34da`, then 50 Node / 22 focused Chromium/Firefox checks, both typechecks and targeted warm build pass; [retained evidence](evidence/lifecycle-notification/README.md). |
 | Upstream exact-head CI | [VIR run 36720794347](https://github.com/ejgallego/lean-vir/actions/runs/36720794347) completed successfully at `47e82e9a`; independently read back during the cleanup slice, not rerun here |
 
@@ -73,6 +73,13 @@ the current promise before notifying synchronous retry/pagehide listeners.
 Four controlled Node negatives and six real-runtime browser notification checks
 cover this correction; prior evidence is retained as historical qualification.
 
+Module's consolidation review targets the earlier `e2b34da` source and reproduces
+the same P2 there. The separately pushed correction is already available at
+`19bf157f`, with immutable red/green evidence at `13dc7d0`. That review does not
+evaluate the correction: item 2 remains pending bounded reviewer acceptance.
+No consolidation redo or broad rerun is required. Publication-plan work follows
+acceptance of the correction.
+
 ## Current consolidation slice
 
 Normal production has one VIR formatting path: `--pixel-pretty`,
@@ -94,8 +101,8 @@ comparison evidence remains in history. No fallback or backend abstraction remai
 | --- | --- | --- |
 | 1 Cleanup reporting | Slides | Complete at `c1bcc76c`; bounded upstream review found no shared-contract blocker. |
 | 2 Loading, failure, explicit retry | Slides | Implemented at `481ea5c`, loading-notification ordering corrected and locally qualified at `19bf157f`. Focused lifecycle checks pass; correction is ready for review. |
-| 3 Mandatory-VIR consolidation | Slides | Implemented and locally qualified at `89e0314c`; stop for review. One shared presentation layer and mandatory formatter, with no production selection switch or handwritten JS layout. |
-| 4 Validated publication plan | Slides | Next unmet application item. Replace repeated full validation with one reusable plan. Preserve namespace/casing constraints; test failure/stale files and measure actual pack/warm-build costs before speculative caching. Current stage/remove/rename writer is single-writer and nontransactional. |
+| 3 Mandatory-VIR consolidation | Slides | Implemented and locally qualified at `89e0314c`; Module's `e2b34da` review found no new renderer blocker. Complete checkpoint acceptance awaits review of the isolated P2 correction. One shared presentation layer and mandatory formatter remain intact. |
+| 4 Validated publication plan | Slides | Next implementation item after bounded P2 review. Replace repeated full validation with one reusable plan. Preserve namespace/casing constraints; test failure/stale files and measure actual pack/warm-build costs before speculative caching. Current stage/remove/rename writer is single-writer and nontransactional. |
 | 5 Durable exact acquisition | VIR Module; Slides acceptance | Release blocker: source remains `-`. VIR supplies durable exact source; Slides qualifies fresh ordinary downstream builds and separate cold/warm offline behavior. No private loader, validator or manual build workaround. |
 | Generic prefix casing / checked-helper clarification | VIR Module | Completed at `bbd3ed30` / `0f720625`; Module reports the successor now public on PR207 with successful exact-head workflows. This is reported upstream evidence, not a fresh Slides CI query. Successor runtime `832ab095` remains unadopted; Slides selects `47e82e9a` / `401b115e`. Producer tests were not rerun by Slides. Publication/durable source remain gated. |
 | Final exact-pair acceptance | Slides integration lead | Pending distribution/product seams. Include downstream/nested publication, native/browser semantics and annotations, narrow/Unicode/font/theme/resize geometry, lifecycle/retry, repeated calls and retention/performance. Normalized text does not qualify geometry. |
