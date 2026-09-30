@@ -77,7 +77,10 @@ pending `AbortSignal`. Terminal `pagehide` aborts creation or explicitly dispose
 a ready program. Persisted `pagehide` keeps it active. Late success is guarded
 before installing either facade. An own secondary `cleanupError` is reported
 without inspecting or stringifying its raw value, including `undefined`/`null`,
-even for obsolete creation. This slice does not yet implement visible retry UX.
+even for obsolete creation. Slides `481ea5c` subsequently adds page-owned loading,
+failure and explicit retry: each attempt owns cancellation/disposal, and stale
+completion cannot install a facade or change the current view. See the
+[separate lifecycle evidence](evidence/formatter-lifecycle/README.md).
 
 ## Exact artifact pair
 
@@ -106,7 +109,8 @@ Slides reused these exact Wasm bytes and did not compile Wasm sources.
 ## Executed consumer evidence
 
 This section records execution at Slides `51c6d782`; it is historical
-qualification, not a rerun after the [focused cleanup fix](evidence/bootstrap-cleanup/README.md).
+qualification, not a rerun after the [focused cleanup fix](evidence/bootstrap-cleanup/README.md)
+or [loading/retry slice](evidence/formatter-lifecycle/README.md).
 [Retained evidence](evidence/vir-51c6d782/README.md) includes native/Node/browser
 logs and `identities.json` source/artifact/test hashes. Larger generated corpora
 and root/nested sites remain locally under `/tmp/verso-prettym-strict-adoption`;
@@ -143,7 +147,7 @@ The browser imports only emitted ESM/Wasm bytes; no producer test SDK is substit
 
 Durable anonymous acquisition remains open (`source: "-"`). This supplied-pack
 checkpoint does not qualify distribution, final visual geometry, wider goal
-workloads, dynamic retention/performance, complete loading/failure/retry UX,
+workloads, dynamic retention/performance, broader product UX,
 publication planning or portable-path rules. The old pixel switch and duplicated
 JS presentation are existing work based on the superseded optional architecture;
 the mandatory-VIR consolidation remains a subsequent Slides slice. Upstream

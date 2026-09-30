@@ -49,8 +49,13 @@ carrier; the old `virSlidesMain` path override does not apply to #207.
 [Exact-pair evidence and bounds](vir-prettym-bounds.md) records qualification of
 local VIR `47e82e9a` / runtime `401b115e` / Slides v2 program `97b280b7`.
 The exact supplied pack must be seeded with VIR's public acquisition tool before
-an ordinary build. Anonymous installation, visible retry UX and final mandatory
-presentation consolidation remain open. The historical downstream/pixel evidence
+an ordinary build. Loading/failure and explicit retry are locally qualified at
+Slides `481ea5c`; [retained lifecycle evidence](evidence/formatter-lifecycle/README.md).
+The panel remains interactive during initialization, and successful readiness
+renders its current selection. Failed creation offers **Retry Lean formatting**;
+each attempt owns cancellation and disposal, without replaying runtime calls.
+Anonymous installation and final mandatory presentation consolidation remain open.
+The historical downstream/pixel evidence
 below is retained; those broader checks were not repeated for this narrow gate.
 
 ## Historical acceptance boundary

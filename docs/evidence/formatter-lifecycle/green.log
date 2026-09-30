@@ -1,0 +1,43 @@
+✔ inclusive small input budgets and one over (2.908184ms)
+✔ strict constructors, exact numeric scalars, Unicode and cyclic input (1.607911ms)
+✔ admission rejects before ABI calls; finite v2 failures leave adapter usable (0.83527ms)
+✔ pending creation receives independent expectedExports/signal; pagehide aborts without a facade (3.436427ms)
+✔ cancellation before import finishes skips creation and cannot publish a facade (0.927372ms)
+✔ retry before module acquisition completes only starts the latest creation (0.885023ms)
+✔ late success during creation is disposed once and never handed off (1.901363ms)
+✔ slow initialization shows loading without publishing a facade (4.010065ms)
+✔ failure keeps raw diagnostics and explicit button retry owns a fresh program (1.581191ms)
+✔ overlapping attempts (old first) never install an obsolete success (1.078858ms)
+✔ overlapping attempts (new first) never install an obsolete success (0.957839ms)
+✔ obsolete rejection cannot replace a newer ready view with a failure (0.834868ms)
+✔ ready retry and terminal pagehide contain raw disposal failure (object) (0.874112ms)
+✔ ready retry and terminal pagehide contain raw disposal failure (object) (0.627559ms)
+✔ ready retry and terminal pagehide contain raw disposal failure (undefined) (0.651925ms)
+✔ late obsolete retry success reports raw cleanup failure (object) (0.849727ms)
+✔ late obsolete retry success reports raw cleanup failure (object) (0.613863ms)
+✔ late obsolete retry success reports raw cleanup failure (undefined) (0.619664ms)
+✔ ignored retry rejection/ready cleanup (Error) and throwing diagnostics produce no unhandled errors (37.075049ms)
+✔ ignored retry rejection/ready cleanup (null) and throwing diagnostics produce no unhandled errors (39.264944ms)
+✔ ignored retry rejection/ready cleanup (undefined) and throwing diagnostics produce no unhandled errors (52.336884ms)
+✔ obsolete cancellation reports own raw cleanup evidence (undefined) (1.207539ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (0.644691ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (0.669748ms)
+✔ resolved lifetime preserves bfcache and disposes on terminal pagehide (0.692481ms)
+✔ late disposal throwing Error retains/reports evidence without an unhandled rejection (55.675658ms)
+✔ late disposal throwing null retains/reports evidence without an unhandled rejection (50.587217ms)
+✔ late disposal throwing undefined retains/reports evidence without an unhandled rejection (35.853835ms)
+✔ late disposal diagnostics tolerate a throwing reporting sink (49.95542ms)
+✔ arbitrary creation rejection (null) reports without coercion or a secondary unhandled rejection (37.020067ms)
+✔ arbitrary creation rejection (undefined) reports without coercion or a secondary unhandled rejection (50.72713ms)
+✔ arbitrary creation rejection (primitive) reports without coercion or a secondary unhandled rejection (36.035075ms)
+✔ arbitrary creation rejection (proxy) reports without coercion or a secondary unhandled rejection (50.192816ms)
+✔ arbitrary creation rejection (sink) reports without coercion or a secondary unhandled rejection (48.167491ms)
+✔ primary creation wrapper/context and untouched raw cause are logged (1.67154ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 664.040844

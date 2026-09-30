@@ -1,0 +1,66 @@
+{
+  "slides": "481ea5cfffef0e125579c1daee6725c75023f372",
+  "slidesParent": "c1bcc76c8cec8fe6aae5be633ac10ce1983656b2",
+  "vir": "47e82e9a483e727431bb004fb64ce76ada739ba9",
+  "recordedUtc": "2026-09-30T18:47:09.433896+00:00",
+  "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+  "virVersion": 1,
+  "runtimeContentId": "401b115ed3f4770b11e5b64d6066cbebb5b41beb468c3f9908603b89690776ba",
+  "programContentId": "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58",
+  "runtimeLock": {
+    "schemaVersion": 1,
+    "contentId": "401b115ed3f4770b11e5b64d6066cbebb5b41beb468c3f9908603b89690776ba",
+    "source": "-"
+  },
+  "artifactSource": "supplied pack; no anonymous/cold/offline qualification",
+  "sourceSha256": {
+    "web-lib/vir-prettym/bootstrap.js": "f10744d60e14987842c8877b6304659aebaa5ee6568982f06ad21732b2ce2904",
+    "web-lib/panel/panel.js": "560f6167a440a48179257b9898d8a2deb2bfbcf3d284b7b738e7914dbd1354e7",
+    "web-lib/panel/panel.css": "5967987dec4cae481739790b194398f2edd725e6592dd28148eab3d54f6637ff",
+    "web-lib/panel/globals.d.ts": "73d047598a3be320b0697f4a915e26f5e435c2f82809baf77fd8a99e5e687df0",
+    "Tests/vir-bootstrap.test.cjs": "9422c0963aecc5387e56c27e35d6f7a7fcdee837875693e716882bcf6fa1b334",
+    "browser-tests/test_vir_prettym_lifecycle.py": "40274a42af1ca14cac8c3b43944b87558d3e093eb2e4a49915f32fc87933a33b",
+    "browser-tests/conftest.py": "e9777d330792597a0c77159e9c853feec5b5169c978ead0c375c963c91996a3f",
+    "web-lib/vir-prettym/format-segments-v2.contract.json": "19803f20b296671a4b8b8626d69e80d4c8720fb764fd7576b711fde4f95d222c"
+  },
+  "publishedSha256": {
+    "vir-bootstrap.js": "a3b63b43ef9b7378c403d6acbc27b446886527d268b9b47176aa89140f534043",
+    "lib/panel.js": "560f6167a440a48179257b9898d8a2deb2bfbcf3d284b7b738e7914dbd1354e7",
+    "lib/panel.css": "5967987dec4cae481739790b194398f2edd725e6592dd28148eab3d54f6637ff"
+  },
+  "runtimeJsSha256": "08e542ef60d71b9308b1e12ba3f4438fef24b7634e1aab1f380a93833e1469a0",
+  "wasmSha256": "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4",
+  "inventoriesByteIdenticalToC1Site": true,
+  "inventoryFilesComparedAcrossRootAndNested": 34,
+  "evidenceSha256": {
+    "render-nested.log": "788c052763beee5a2dfd48780517e46aecc32c051045443ef1781393fc90c3bd",
+    "green.log": "ec81d740f00d25dedcc1ef36e623eec00ccaaf6b9636d091c93a7706d1368f28",
+    "browser.log": "6ccda612d85675fd2973a5701606be9494e4a87bcc60e5e386e1e808f35ea91e",
+    "types.log": "0b58fa6f6ca7562b72eff02d4cdb6e59d5586af401472b6d7b5fa8c82a5d3e6d",
+    "render-root.log": "ad7bbe922e1acb128b6281e96cc607151cf5992c3b0e860fa73e0977b1951b8e",
+    "red.log": "0eabaf8c128708c63f066f70352c9190892ea4d263c07eadad31896473115deb",
+    "README.md": "e38e60a8ed5c60bc17c9a9e42c251db077cd154d454e40bd13668f0662122994",
+    "build.log": "a08b2b5bda20b2e97c9b02bbd2ae7f1266aa4c96d6bc603be122af0f6073a246"
+  },
+  "localResults": {
+    "node": {
+      "passed": 35,
+      "failed": 0
+    },
+    "baselineRed": {
+      "passed": 0,
+      "failed": 5
+    },
+    "browser": {
+      "passed": 16,
+      "deselected": 24
+    },
+    "formatterTypecheckExit": 0,
+    "panelTypecheckExit": 0,
+    "targetedDemoBuildExit": 0,
+    "rootRenderExit": 0,
+    "nestedRenderExit": 0
+  },
+  "ci": "not queried or claimed for this Slides revision; prior VIR 47e82 CI is historical",
+  "runtimePackSha256": "1d6192985fedd8d4c85c3db3c625857c2191832a3f02c72d818f47562e3daaf7"
+}
