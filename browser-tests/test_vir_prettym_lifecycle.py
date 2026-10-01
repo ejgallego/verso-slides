@@ -180,7 +180,7 @@ def test_malformed_compact_input_keeps_the_single_real_program(page, server):
     result = page.evaluate("""() => {
         const program = window.versoVir, ready = window.versoVirReady;
         let rejection;
-        try { window.versoVirFormatSegments([3, 1.5, 'x'], 80, 0); }
+        try { window.versoVirFormatSegments([3, 1, 'x', 'extra'], 80, 0); }
         catch (error) { rejection = error.code; }
         return {rejection, valid: window.versoVirFormatSegments('same program', 4097, 0),
             same: window.versoVir === program && window.versoVirReady === ready,
@@ -192,18 +192,19 @@ def test_malformed_compact_input_keeps_the_single_real_program(page, server):
     assert_no_unhandled(page, errors)
 
 
-def test_unexpected_dispatch_failure_closes_owned_program_without_recreation(page, server):
+@pytest.mark.parametrize("terminal", [False, True], ids=["active", "disposed"])
+def test_dispatch_error_uses_owned_program_status_without_recreation(page, server, terminal):
     errors = open_pending(page, server)
     page.evaluate("window.lifecycleProbe.release()")
     page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
-    # Controlled application dispatch failure with a real loader-owned program.
-    # This tests Slides policy, not production Wasm quarantine/trap semantics.
-    result = page.evaluate("""() => {
+    # Controlled application dispatch error, optionally after disposing the real
+    # loader-owned program. This is not a production Wasm trap/quarantine test.
+    result = page.evaluate("""terminal => {
         const probe = window.lifecycleProbe, owned = window.versoVir, facade = window.versoVirFormatSegments;
         const adapter = formatCompactSegments, ready = window.versoVirReady;
         const failure = new WebAssembly.RuntimeError('controlled dispatch failure');
         let calls = 0, sameError;
-        formatCompactSegments = () => { calls++; throw failure; };
+        formatCompactSegments = () => { calls++; if (terminal) owned.dispose(); throw failure; };
         try { facade('current', 80, 0); } catch (error) { sameError = error === failure; }
         finally { formatCompactSegments = adapter; }
         let unavailable = false;
@@ -213,10 +214,14 @@ def test_unexpected_dispatch_failure_closes_owned_program_without_recreation(pag
             noFacade: window.versoVir === undefined && window.versoVirFormatSegments === undefined,
             noRetry: window.versoVirRetry === undefined,
             diagnostic: probe.diagnostics.some(args => args[0] === 'VIR formatting failed' && args[1] === failure)};
-    }""")
-    assert result == {"sameError": True, "calls": 1, "unavailable": True, "status": "disposed",
-                      "sameReady": True, "noFacade": True, "noRetry": True, "diagnostic": True}
-    expect(page.locator(".vir-formatter-status [role=alert]")).to_have_text("Lean formatting is unavailable.")
+    }""", terminal)
+    assert result == {"sameError": True, "calls": 1, "unavailable": terminal,
+                      "status": "disposed" if terminal else "active",
+                      "sameReady": True, "noFacade": terminal, "noRetry": True, "diagnostic": True}
+    if terminal:
+        expect(page.locator(".vir-formatter-status [role=alert]")).to_have_text("Lean formatting is unavailable.")
+    else:
+        expect(page.locator(".vir-formatter-status [role=alert]")).to_have_count(0)
     expect(page.locator(".vir-formatter-status button")).to_have_count(0)
     page.set_viewport_size({"width": 900, "height": 600})
     page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide'))")
