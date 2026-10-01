@@ -615,12 +615,6 @@ private def AssetPayload.kind : AssetPayload → String
   | .text _ => "text"
   | .binary _ => "binary"
 
-private def validateAssetFilename (source filename : String) : IO Unit := do
-  let parts := filename.splitToList fun c => c == '/' || c == '\\'
-  if filename.isEmpty || (System.FilePath.mk filename).isAbsolute ||
-      parts.any fun part => part.isEmpty || part == "." || part == ".." then
-    throw <| IO.userError s!"Invalid output filename \"{filename}\" from {source}: expected a relative path without empty, `.` or `..` components."
-
 /--
 Records a file entry at {lit}`filename`, treating it as already-present
 when the previous entry at the same filename has identical contents (so
@@ -632,7 +626,6 @@ sources and their content kinds.
 private def recordAsset (seen : Std.HashMap String (String × AssetPayload))
     (filename source : String) (payload : AssetPayload) :
     IO (Std.HashMap String (String × AssetPayload)) := do
-  validateAssetFilename source filename
   match seen.get? filename with
   | none => return seen.insert filename (source, payload)
   | some (prevSource, prev) =>
@@ -668,17 +661,32 @@ def Config.collectAssets (config : Config) :
       "extraCss" (.text css.contents.css)
   return seen
 
-private def validateVirAssetNamespace
+-- Resolve lexical aliases only for comparing destinations with our owned
+-- directories. General configured-filename policy belongs to a separate patch.
+private def foldedAssetPath (path : System.FilePath) : String := Id.run do
+  let mut parts : List String := []
+  for part in path.toString.splitToList (fun c => c == '/' || c == '\\') do
+    if part == ".." then parts := parts.tail
+    else if !part.isEmpty && part != "." then parts := part.toLower :: parts
+  return String.intercalate "/" parts.reverse
+
+private def validateVirAssetNamespace (outputDir : System.FilePath)
     (plan : Std.HashMap String (String × AssetPayload)) : IO Unit := do
+  let output := (← IO.currentDir) / outputDir
+  let library := foldedAssetPath (output / "lib")
+  let resources := library ++ "/vir"
+  let stage := library ++ "/.vir-stage"
+  let bootstrap := foldedAssetPath (output / "vir-bootstrap.js")
   for (filename, _, _) in plan.toList do
-    let folded := (filename.replace "\\" "/").toLower
-    if folded == "lib" || folded == "lib/vir" || folded.startsWith "lib/vir/" ||
-        folded == "lib/.vir-stage" || folded.startsWith "lib/.vir-stage/" then
+    let folded := foldedAssetPath (output / filename.replace "\\" "/")
+    if folded == library || folded == resources || folded.startsWith (resources ++ "/") ||
+        folded == stage || folded.startsWith (stage ++ "/") ||
+        (folded == bootstrap && filename != "vir-bootstrap.js") then
       throw <| IO.userError s!"Slides asset {filename} collides with the reserved VIR resource namespace"
 
 /-- Validate configured filenames and reserve the embedded publisher's namespace. -/
 def Config.validateFilenames (config : Config) : IO Unit := do
-  validateVirAssetNamespace (← config.collectAssets)
+  validateVirAssetNamespace config.outputDir (← config.collectAssets)
 
 private def virBootstrap (published : VirResourceSite.PublishedResources) : IO String := do
   let some (_, programManifestUrl) := published.programManifestUrls.find?
@@ -700,7 +708,7 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
   -- filename conflicts are rejected before any publication writes.
   let assetPlan ← recordAsset (← config.collectAssets) "vir-bootstrap.js"
     "VIR bootstrap" (.text bootstrap)
-  validateVirAssetNamespace assetPlan
+  validateVirAssetNamespace config.outputDir assetPlan
 
   -- Run the traversal pass (collects CSS blocks, etc.)
   let (doc, traverseState) ← (Slides.traverse doc : TraverseM (Part Slides)) () {}

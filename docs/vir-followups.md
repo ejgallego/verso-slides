@@ -21,19 +21,39 @@ not a calendar reminder, and does not authorize a new PR or merge.
 | Native/browser tests and small downstream example | Validate the replacement, lifecycle, annotations and owning-library build integration. |
 | Toolchain/dependency alignment and Demo external-source line correction | Build compatibility for the selected Lean 4.34/VIR pair. |
 
-## Remaining separation before final landing review
+## Completed separation
 
-- **General asset-path hardening:** `validateAssetFilename` in
-  `VersoSlides/Render.lean` and the two generic traversal/empty-component cases
-  in `Tests/ConfigValidation.lean` change behavior beyond VIR assets. Prepare
-  these as an independent asset-validation patch. The first landing must retain
-  protection of `lib/vir` and `lib/.vir-stage`, including casing, separators and
-  path aliases; do not simply delete validation and reopen that boundary.
-  Extraction has not been applied to the qualified source.
-- **Unused public convenience API:** `Pretty.formatPlain` has no callers in
-  the candidate. Omit it in final scope cleanup rather than introduce a public
-  plain-text feature in the first landing. This cleanup has not been applied;
-  retain the current exact program identity until affected bytes are checked.
+- **General asset-path hardening:** `validateAssetFilename` and its two existing
+  generic traversal/empty-component cases were moved to the independent branch
+  `fix/asset-filename-validation`, commit `bc453b5`, on base `a51f7e5`.
+  [Review the separate patch](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...fix/asset-filename-validation).
+  It contains only those two files and no formatter dependency. Tests on this
+  extracted branch have not been run; review/landing remain deferred.
+  The formatter candidate now checks destinations only against the VIR-owned
+  resource/staging directories, their library parent and bootstrap aliases.
+  Lexical resolution accounts for output directory, absolute paths, `.`, `..`,
+  repeated separators and casing. It does not validate general asset filenames
+  or resolve arbitrary filesystem symlinks.
+- **Unused public convenience API:** `Pretty.formatPlain` was removed. The
+  exported segment ABI and bounds remain unchanged. A warm owning-library build
+  regenerated the program pack, which stayed byte-identical to the qualified
+  pack; the runtime pack also stayed byte-identical.
+
+### Local build evidence for this cleanup
+
+`lake build demo-slides test-config-validation` passed (748 jobs) after the
+formatter/path changes; the final bootstrap-alias extension was compiled in a
+subsequent build. These compile the configuration test executable without
+executing its cases. No native, Node or browser test suite ran for this cleanup,
+and no CI result is claimed. Earlier browser evidence retains its original
+executed source; it does not qualify the revised namespace guard.
+
+Program pack: 122,442 bytes, SHA-256
+`c48f6857c125340a748c983635abe52e8e603fc62fc59ef5cc41746f86b953da`;
+content ID remains `97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58`.
+Runtime pack: 1,120,731 bytes, SHA-256
+`d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1`;
+content ID remains `832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d`.
 
 Long execution inventories are review evidence, not additional application
 features. Preserve their immutable source references when arranging the final
@@ -63,5 +83,5 @@ does not turn the recorded 480px-and-wider geometry checkpoint into mobile
 acceptance. Fresh downstream acquisition with artifact caches enabled is still
 a first-landing qualification task, separate from the accepted `--no-cache` gate.
 
-This audit changes documentation only: no production edits, dependency changes,
-new tests, or claims of fresh execution.
+The original `84137ec` audit changed documentation only. This successor applies
+the two scope cleanups without a dependency, formatter ABI or artifact change.

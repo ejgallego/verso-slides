@@ -145,9 +145,4 @@ public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0) :
     Except FormatError (Array Segment) :=
   formatSegmentsWithLimits limits f width indent
 
-/-- Render a `Std.Format` to plain text. Useful for tests and non-DOM clients. -/
-public def formatPlain (f : Std.Format) (width : Nat) (indent : Nat := 0) :
-    Except FormatError String := do
-  return String.join <| (← formatSegments f width indent).toList.map fun segment => segment.text
-
 end VersoSlides.Pretty

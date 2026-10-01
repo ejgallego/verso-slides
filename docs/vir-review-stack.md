@@ -28,12 +28,14 @@ and CLI output support remain there for independent future PRs. Detailed
 historical logs/correspondence remain there rather than enlarging this landing.
 
 The [current scope audit and deferred work queue](vir-followups.md) records the
-remaining general asset-validation extraction and unused helper cleanup. The
+completed general asset-validation extraction and unused helper removal. The
 generic mobile panel lifecycle fix is scheduled after this first patch lands.
 
-Lean formatting/bounds, the exported wrapper, typed adapter, complete independent
-ABI reference, browser lifecycle/presentation, resource publisher and exact
-runtime/program identities are byte-identical to `c17c584`. The source-only
+Lean formatting/bounds (with the unused `formatPlain` helper subsequently
+removed), the exported wrapper, typed adapter, complete independent ABI
+reference, browser lifecycle/presentation and resource publisher retain their
+reviewed behavior. Runtime/program pack bytes and identities remain unchanged
+from `c17c584`. The source-only
 VIR pin successor at `2461cfa` selects the public runtime lock. The renderer,
 Lake setup, example and associated tests/docs are deliberately reduced. Earlier
 execution evidence keeps its original source references and is not a fresh
