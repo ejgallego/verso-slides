@@ -1,0 +1,4 @@
+info: toolchain not updated; already up-to-date
+info: lean_vir: checking out revision 'af3052cac2740f41bd701de3646df348b7e2dbb3'
+warning: subverso: ignoring missing manifest:
+  <candidate>/examples/default-deck/.lake/packages/subverso/lake-manifest.json

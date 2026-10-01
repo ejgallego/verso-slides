@@ -6,6 +6,12 @@ its bounded formatter with the explicitly authorized VIR
 It follows `VIR-SLIDES-STRICT-CREATION-ADOPTION-20260930-001`.
 The historical `cf816e94` / `ff7b5a61` and 4.35 qualifications remain in history.
 
+This page retains the `51c6d782` / `47e82e9a` bounds checkpoint. Current adoption
+is [Slides `ea079cd` / VIR `af3052c` / supplied runtime `832ab095`](evidence/publication-adoption/README.md),
+with unchanged program `97b280b7`, Wasm, pure ABI and formatter policy. The two
+native corpus oracles remain byte-identical; that focused adoption does not
+claim a rerun of this page's full bounds campaign.
+
 ## Formatter contract
 
 Role `formatSegments`, declaration `VersoSlides.VirPrettyM.formatSegments`,
@@ -82,7 +88,7 @@ failure and explicit retry: each attempt owns cancellation/disposal, and stale
 completion cannot install a facade or change the current view. See the
 [separate lifecycle evidence](evidence/formatter-lifecycle/README.md).
 
-## Exact artifact pair
+## Historical bounds-checkpoint artifact pair
 
 | Identity | Value |
 | --- | --- |
@@ -147,8 +153,11 @@ The browser imports only emitted ESM/Wasm bytes; no producer test SDK is substit
 
 Durable anonymous acquisition remains open (`source: "-"`). This supplied-pack
 checkpoint does not qualify distribution, final visual geometry, wider goal
-workloads, dynamic retention/performance, broader product UX,
-publication planning or portable-path rules. Slides `89e0314` removes the old pixel
+workloads, dynamic retention/performance or broader product UX. Publication
+planning and the adopted portable directory-casing rules now have separate
+[focused local qualification](evidence/publication-adoption/README.md) at
+Slides `ea079cd` / VIR `af3052c`; this does not replace the historical bounds
+campaign above. Slides `89e0314` removes the old pixel
 switch and duplicated JS formatter, with one mandatory VIR presentation path;
 [fresh consolidation evidence](evidence/mandatory-formatter/README.md) includes
 101 native formatter, 24 rendering, 46 Node and 105 browser checks. Upstream

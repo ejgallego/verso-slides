@@ -1,0 +1,52 @@
+{
+  "baselinePublication": {
+    "command": [
+      ".lake/build/bin/demo-slides",
+      "--output",
+      "<qualification>/baseline-site"
+    ],
+    "runs": [
+      {
+        "seconds": 0.261900256969966,
+        "exit": 0
+      },
+      {
+        "seconds": 0.3883434559684247,
+        "exit": 0
+      },
+      {
+        "seconds": 0.24128317297436297,
+        "exit": 0
+      },
+      {
+        "seconds": 0.23365944693796337,
+        "exit": 0
+      },
+      {
+        "seconds": 0.262881503906101,
+        "exit": 0
+      }
+    ]
+  },
+  "baselineWarmBuild": {
+    "command": [
+      "lake",
+      "build",
+      "demo-slides"
+    ],
+    "runs": [
+      {
+        "seconds": 1.028769687982276,
+        "exit": 0
+      },
+      {
+        "seconds": 1.1618399780709296,
+        "exit": 0
+      },
+      {
+        "seconds": 1.4172528719063848,
+        "exit": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "planPublication": {
+    "command": [
+      ".lake/build/bin/demo-slides",
+      "--output",
+      "<qualification>/plan-site"
+    ],
+    "runs": [
+      {
+        "seconds": 0.17212522902991623,
+        "exit": 0
+      },
+      {
+        "seconds": 0.17286548193078488,
+        "exit": 0
+      },
+      {
+        "seconds": 0.15302458696532995,
+        "exit": 0
+      },
+      {
+        "seconds": 0.17254649207461625,
+        "exit": 0
+      },
+      {
+        "seconds": 0.15401919896248728,
+        "exit": 0
+      }
+    ]
+  },
+  "planWarmBuild": {
+    "command": [
+      "lake",
+      "build",
+      "demo-slides"
+    ],
+    "runs": [
+      {
+        "seconds": 1.003450793097727,
+        "exit": 0
+      },
+      {
+        "seconds": 1.1602530099917203,
+        "exit": 0
+      },
+      {
+        "seconds": 1.3311087900074199,
+        "exit": 0
+      }
+    ]
+  }
+}

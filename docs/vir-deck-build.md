@@ -1,11 +1,12 @@
 # PrettyM candidate on Lean 4.34
 
 This candidate uses Lean `v4.34.0`, VIR [PR #207](https://github.com/ejgallego/lean-vir/pull/207)
-at the authorized local successor `47e82e9a483e727431bb004fb64ce76ada739ba9`,
+at the authorized public successor `af3052cac2740f41bd701de3646df348b7e2dbb3`,
 and the matching
-Verso revision pinned in `lakefile.lean`. The exact successor and pack were supplied explicitly for this checkpoint;
-PR #207 now publishes the same `47e82e9a` head. [VIR CI run 36720794347](https://github.com/ejgallego/lean-vir/actions/runs/36720794347) passed at this exact head; later readback is retained in `docs/evidence/bootstrap-cleanup/vir-run.json`. PR #207 is based on main with the
-landed ABI4 runtime work. Its runtime lock is available-only:
+Verso revision pinned in `lakefile.lean`. The exact successor and matching
+`832ab095` pack were handed off explicitly. This slice records local consumer
+acceptance, not a fresh CI result; earlier exact-head CI stays historical.
+PR #207 is based on main with the landed ABI4 runtime work. Its runtime lock is supplied-only:
 the exact verified runtime pack must already be supplied locally.
 
 ## Build and render a deck
@@ -22,6 +23,12 @@ facet. The carrier embeds its bytes, and the native renderer publishes the
 validated runtime and program bundles under `lib/vir/<contentId>/`. No
 producer checkout path, generated manifest path, or SDK directory is read by
 the deck executable. The generated site can move under a URL prefix.
+
+The carrier uses `public import Vir.Resources.Embed`. The renderer prepares one
+validated publication plan, then reuses its URLs, manifests and owned bytes for
+bootstrap construction and writing. Publication requires one writer; staging
+failures preserve installed resources, but failure between removal and final
+rename can leave resources absent. Other site files are written separately.
 
 The browser bootstrap imports the published runtime module and calls
 `createProgram` with the two published manifests, the independently embedded
@@ -48,17 +55,22 @@ carrier; the old `virSlidesMain` path override does not apply to #207.
 
 ## Current strict-creation checkpoint
 
-[Exact-pair evidence and bounds](vir-prettym-bounds.md) records qualification of
-local VIR `47e82e9a` / runtime `401b115e` / Slides v2 program `97b280b7`.
+[Current exact-pair evidence](evidence/publication-adoption/README.md) records
+Slides `ea079cd` / VIR `af3052c` / runtime `832ab095` / unchanged program `97b280b7`.
+[Formatter bounds](vir-prettym-bounds.md) and previous `47e82e9a` / `401b115e`
+qualification remain retained.
 The exact supplied pack must be seeded with VIR's public acquisition tool before
 an ordinary build. Loading/failure and explicit retry are locally qualified at
 Slides `481ea5c`; [retained lifecycle evidence](evidence/formatter-lifecycle/README.md).
 The panel remains interactive during initialization, and successful readiness
 renders its current selection. Failed creation offers **Retry Lean formatting**;
 each attempt owns cancellation and disposal, without replaying runtime calls.
-Anonymous installation, publication planning and final product acceptance remain open.
+Publication planning is locally qualified; anonymous installation and final
+geometry/performance/product acceptance remain open.
 The historical downstream/pixel evidence
-below is retained; those broader checks were not repeated for this narrow gate.
+below is retained. Focused root/nested/downstream, strict creation and lifecycle
+checks were freshly executed for `af3052c` / `832ab095`; historical broader
+campaigns are not relabelled as this pair's execution.
 
 ## Historical acceptance boundary
 
