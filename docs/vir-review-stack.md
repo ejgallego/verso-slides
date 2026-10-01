@@ -70,6 +70,20 @@ the three original commits. [Fresh execution evidence](evidence/asset-simplifica
 covers the new output path. Publication retains stale files and can leave partial
 output on failure, as the existing asset writer does.
 
+## One-shot client followup
+
+`4821ba8e45c511bea94111881191899693371361` implements the maintainer's smaller
+first-client lifetime: one initialization per document, no retry control, public
+retry entry or replacement attempts. Expected input/Lean errors keep the same
+healthy program usable; unexpected failure closes formatting without recreation
+or replay. Pending cancellation, late completion disposal, persisted pagehide
+and raw cleanup diagnostics remain document-owned.
+
+[Focused current evidence](evidence/one-shot/README.md) replaces retry/replacement
+coverage with the surviving application contract. Generic loader lifecycle
+matrix tests are left to VIR. Asset publication, dependency pins, direct ABI and
+runtime/program identities are unchanged from the preceding checkpoint.
+
 The [deferred work queue](vir-followups.md) schedules the generic mobile panel
 lifecycle correction after the first Slides patch lands. Its reproduced product
 limitation remains documented. Output CLI, directory assets and managed builds

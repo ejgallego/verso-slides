@@ -1,0 +1,56 @@
+✔ [688/700] Built VersoSlides.ImgSrc (431ms)
+✔ [689/700] Built VersoSlides.VirResourceSite (400ms)
+✔ [690/700] Built VersoSlides.SlideCode.CommentParsers (1.2s)
+✔ [691/700] Built VersoSlides.Pretty (1.2s)
+ℹ [692/700] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+✔ [693/700] Built VersoSlides.Basic (2.0s)
+ℹ [694/700] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (986ms)
+info: stdout:
+wrote /tmp/tmp.XXwtvSnB/program.irpkg-set.json
+wrote /tmp/tmp.XXwtvSnB/program.irpkg
+wrote /tmp/tmp.XXwtvSnB/report.md
+package set members: 8
+package format: 11
+declarations: 135 (110 Lean IR, 25 native externs)
+interface exports: 1
+ℹ [695/713] Built «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack (59ms)
+info: stdout:
+97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58
+✔ [709/763] Built VersoSlides.SlideCode (1.7s)
+✔ [711/763] Built VersoSlides.Attributes (776ms)
+✔ [713/763] Built VersoSlides.ImageWidget (674ms)
+✔ [715/763] Built VersoSlides.VirPrettyMResources (1.1s)
+✔ [716/763] Built VersoSlides.OtherLanguages (1.1s)
+✔ [719/763] Built VersoSlides.SlideCode.Export (965ms)
+✔ [721/763] Built VersoSlides.SlideCode.Render (1.1s)
+✔ [722/763] Built VersoSlides.Diagram (1.3s)
+✔ [725/763] Built VersoSlides.VirResources (433ms)
+✔ [727/763] Built VersoSlides.Animate (1.4s)
+✔ [729/763] Built VersoSlides.Directives (2.7s)
+✔ [731/763] Built VersoSlides.InlineLean (2.3s)
+✔ [733/763] Built VersoSlides.Render (2.5s)
+✔ [736/763] Built VersoSlides.ModuleExample (3.3s)
+✔ [738/763] Built VersoSlides.Render:c.o (3.2s)
+✔ [739/763] Built «test-vir-publication»:exe (615ms)
+✔ [740/763] Built VersoSlides.LibModule (2.0s)
+✔ [742/763] Built VersoSlides (678ms)
+⚠ [749/763] Replayed TestFixtures.Code
+warning: TestFixtures/Code.lean:73:0: Line 73 is too long (65 columns exceeds 60).
+
+Note: Example code is shown on mobile devices and other narrow contexts. Long lines are likely to be truncated in the rendered output.
+
+Hint: The limit of this linter can be changed with the option `verso.code.warnLineLength`. This linter can be disabled by setting this option to 0.
+warning: TestFixtures/Code.lean:74:0: Line 74 is too long (61 columns exceeds 60).
+
+Note: Example code is shown on mobile devices and other narrow contexts. Long lines are likely to be truncated in the rendered output.
+
+Hint: The limit of this linter can be changed with the option `verso.code.warnLineLength`. This linter can be disabled by setting this option to 0.
+warning: TestFixtures/Code.lean:114:0: Line 114 is too long (61 columns exceeds 60).
+
+Note: Example code is shown on mobile devices and other narrow contexts. Long lines are likely to be truncated in the rendered output.
+
+Hint: The limit of this linter can be changed with the option `verso.code.warnLineLength`. This linter can be disabled by setting this option to 0.
+✔ [762/763] Built «demo-slides»:exe (759ms)
+✔ [763/763] Built «test-fixtures-build»:exe (767ms)
+Build completed successfully (763 jobs).

@@ -1,0 +1,104 @@
+{
+  "vir": "590be72bd91519c7beb89e105dfba498a4aff140",
+  "lean": "4.34.0",
+  "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+  "runtime": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+  "program": "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58",
+  "executedSlides": "4821ba8e45c511bea94111881191899693371361",
+  "base": "26a2d06e706c8ac0b4c2f191faa8e0e85c881afa",
+  "nodeChecks": 42,
+  "browserChecks": 32,
+  "publicationTest": "passed",
+  "buildJobs": 763,
+  "artifactSource": "https://github.com/ejgallego/lean-vir/releases/download/resource-832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d.virres",
+  "packs": [
+    {
+      "name": "runtime-stage",
+      "bytes": 1120731,
+      "sha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1"
+    },
+    {
+      "name": "program-stage",
+      "bytes": 122442,
+      "sha256": "c48f6857c125340a748c983635abe52e8e603fc62fc59ef5cc41746f86b953da"
+    }
+  ],
+  "reusedEvidence": {
+    "source": "cfe1f9f2c7b9d7ffe9174daf879bff8f327d2a71",
+    "nativeChecks": 101,
+    "configChecks": 46,
+    "boundsAndPublicAcquisitionOffline": "unchanged Lean/ABI and exact production runtime/program bytes",
+    "corpora": [
+      {
+        "name": "native-corpus.json",
+        "sha256": "7487d16bbfb92447a1966d1b795ebbfcf2070be66c31d6c3b07863d3c09ad541"
+      },
+      {
+        "name": "bounds-corpus.json",
+        "sha256": "ac88d25ee2e109cd428b2cffcb9e1cf3718a2ea1b8ace6f916af0083e2a6bbe7"
+      },
+      {
+        "name": "geometry-corpus.json",
+        "sha256": "6bdc87880d5cefa9c4ae6f5a78d9f5779c1b215a209af210f3c48c7f38dabd1c"
+      }
+    ]
+  },
+  "browserSeconds": 13.459,
+  "commands": {
+    "node": [
+      "node",
+      "--test",
+      "Tests/vir-bootstrap.test.cjs",
+      "Tests/pretty-input.test.cjs",
+      "Tests/pretty-presentation.test.cjs"
+    ],
+    "build": [
+      "lake",
+      "build",
+      "demo-slides",
+      "test-fixtures-build",
+      "test-vir-publication"
+    ],
+    "publication": [
+      ".lake/build/bin/test-vir-publication"
+    ],
+    "browser": [
+      "python",
+      "-m",
+      "pytest",
+      "-n",
+      "2",
+      "--browser=all",
+      "--vir-site-acceptance",
+      "--site-dir",
+      "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-first-landing/.qualification-one-shot-20261001/site",
+      "--junitxml=.qualification-one-shot-20261001/browser.xml",
+      "browser-tests/test_vir_prettym_lifecycle.py",
+      "browser-tests/test_vir_prettym_creation.py",
+      "browser-tests/test_vir_prettym_presentation.py",
+      "browser-tests/test_vir_prettym_geometry.py::test_repeated_formatting_and_reflow_retention"
+    ]
+  },
+  "browserEnvironment": "existing matching locked Python3.10.19/Playwright1.58.0 environment; venv/bin on PATH",
+  "limitations": [
+    "controlled browser dispatch failure, not real Wasm fatal/quarantine reproduction",
+    "no broad bounds/native/browser campaign or complete geometry matrix rerun",
+    "no fresh public acquisition/offline rerun; unchanged exact pair evidence reused",
+    "no new CI inspection or execution",
+    "mobile product gate remains open and scheduled after first landing"
+  ],
+  "withdrawn": {
+    "nodeExclusiveRetryCases": 12,
+    "browserGenericCreationMatrixCases": 16,
+    "browserExclusiveRetryCases": [
+      "loading notification retry",
+      "ready-instance replacement"
+    ],
+    "rewritten": [
+      "creation failure now final",
+      "pending replacement becomes document termination",
+      "ready disposal becomes terminal pagehide"
+    ],
+    "retentionRemoved": "eight in-page recreation cycles"
+  }
+}

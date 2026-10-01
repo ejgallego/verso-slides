@@ -1,0 +1,196 @@
+[
+  {
+    "site": ".qualification-one-shot-20261001/site",
+    "urls": {
+      "programManifest": "lib/vir/97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58/bundle.json",
+      "runtimeManifest": "lib/vir/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/bundle.json",
+      "runtimeModule": "lib/vir/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/runtime.js"
+    },
+    "bundles": [
+      {
+        "contentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+        "manifestSha256": "637f94bc170e972abcc59d5ddfbce108925a3e962155c7df318477282f5775f6",
+        "payloads": [
+          {
+            "path": "LICENSE",
+            "bytes": 10318,
+            "sha256": "6f306db6390c163410b41f6517867b756207212736b31e50b2639710ccd706d8"
+          },
+          {
+            "path": "NOTICE",
+            "bytes": 725,
+            "sha256": "ec9f9f0edffd4204177a59e36ae91454029334b410f2b87f4477bad349da23c2"
+          },
+          {
+            "path": "lean-LICENSE",
+            "bytes": 9160,
+            "sha256": "8b28515ffffc5c0fe2807d8ae3735b00b324d9b7ce807dd63ff6ac8922fbce7e"
+          },
+          {
+            "path": "lean-LICENSES",
+            "bytes": 81854,
+            "sha256": "00cce2ac071f63d470a287438a7c6bbc4334706be244384e9af4fc9ead11cdce"
+          },
+          {
+            "path": "runtime.js",
+            "bytes": 244489,
+            "sha256": "b9fa28797af2787b4bae53a4d4a6a440b718512b54553717c65630b239b5829a"
+          },
+          {
+            "path": "runtime.wasm",
+            "bytes": 773031,
+            "sha256": "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4"
+          }
+        ]
+      },
+      {
+        "contentId": "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58",
+        "manifestSha256": "9cdc35248f41eb3459f079cfae11ce9bae545d858260a66f8a827aa8360be5dc",
+        "payloads": [
+          {
+            "path": "parts/0.irpkg",
+            "bytes": 4564,
+            "sha256": "8bf61879d6daaef50b498a5dc80f2fc09d0411a3ba0a4bdfc54c7b00bfa2139c"
+          },
+          {
+            "path": "parts/1.irpkg",
+            "bytes": 6415,
+            "sha256": "3e75dd47590afdbfa3c64e69ac614b70e02381f306e34933e2eb87f23f12f3b3"
+          },
+          {
+            "path": "parts/2.irpkg",
+            "bytes": 900,
+            "sha256": "07eb3ea68d1df4d730c71c0583e2ec5be195fa0cffab315522af653193c45e28"
+          },
+          {
+            "path": "parts/3.irpkg",
+            "bytes": 5934,
+            "sha256": "f2d4a88ae7fcefaf94871367cd7e8c059799160abcd731b12d853cd1a26e67eb"
+          },
+          {
+            "path": "parts/4.irpkg",
+            "bytes": 11228,
+            "sha256": "40a5e18ea3bfb1abf4e7cc36947f48e129991f4fdbe7dc6621ff0094720663a2"
+          },
+          {
+            "path": "parts/5.irpkg",
+            "bytes": 592,
+            "sha256": "f5cada4007e3477e906843cbbaa3c362013700fe31c2583343e0c9bbfea272c9"
+          },
+          {
+            "path": "parts/6.irpkg",
+            "bytes": 82231,
+            "sha256": "4dce6d630e3b761c185acb48a510fac28bae9be1cd2335638e214d6dd283d269"
+          },
+          {
+            "path": "program.irpkg",
+            "bytes": 7247,
+            "sha256": "00f0486b6c423b09847c071a24a2c87e76a23c768f79ea04757fd814573b01db"
+          },
+          {
+            "path": "program.irpkg-set.json",
+            "bytes": 1418,
+            "sha256": "d609bf2fb2c96bbcc4db793bb430cce9eda4b28cbbd82fb74c666bee73ae3386"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "site": ".qualification-one-shot-20261001/site/nested/deck",
+    "urls": {
+      "programManifest": "lib/vir/97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58/bundle.json",
+      "runtimeManifest": "lib/vir/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/bundle.json",
+      "runtimeModule": "lib/vir/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/runtime.js"
+    },
+    "bundles": [
+      {
+        "contentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+        "manifestSha256": "637f94bc170e972abcc59d5ddfbce108925a3e962155c7df318477282f5775f6",
+        "payloads": [
+          {
+            "path": "LICENSE",
+            "bytes": 10318,
+            "sha256": "6f306db6390c163410b41f6517867b756207212736b31e50b2639710ccd706d8"
+          },
+          {
+            "path": "NOTICE",
+            "bytes": 725,
+            "sha256": "ec9f9f0edffd4204177a59e36ae91454029334b410f2b87f4477bad349da23c2"
+          },
+          {
+            "path": "lean-LICENSE",
+            "bytes": 9160,
+            "sha256": "8b28515ffffc5c0fe2807d8ae3735b00b324d9b7ce807dd63ff6ac8922fbce7e"
+          },
+          {
+            "path": "lean-LICENSES",
+            "bytes": 81854,
+            "sha256": "00cce2ac071f63d470a287438a7c6bbc4334706be244384e9af4fc9ead11cdce"
+          },
+          {
+            "path": "runtime.js",
+            "bytes": 244489,
+            "sha256": "b9fa28797af2787b4bae53a4d4a6a440b718512b54553717c65630b239b5829a"
+          },
+          {
+            "path": "runtime.wasm",
+            "bytes": 773031,
+            "sha256": "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4"
+          }
+        ]
+      },
+      {
+        "contentId": "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58",
+        "manifestSha256": "9cdc35248f41eb3459f079cfae11ce9bae545d858260a66f8a827aa8360be5dc",
+        "payloads": [
+          {
+            "path": "parts/0.irpkg",
+            "bytes": 4564,
+            "sha256": "8bf61879d6daaef50b498a5dc80f2fc09d0411a3ba0a4bdfc54c7b00bfa2139c"
+          },
+          {
+            "path": "parts/1.irpkg",
+            "bytes": 6415,
+            "sha256": "3e75dd47590afdbfa3c64e69ac614b70e02381f306e34933e2eb87f23f12f3b3"
+          },
+          {
+            "path": "parts/2.irpkg",
+            "bytes": 900,
+            "sha256": "07eb3ea68d1df4d730c71c0583e2ec5be195fa0cffab315522af653193c45e28"
+          },
+          {
+            "path": "parts/3.irpkg",
+            "bytes": 5934,
+            "sha256": "f2d4a88ae7fcefaf94871367cd7e8c059799160abcd731b12d853cd1a26e67eb"
+          },
+          {
+            "path": "parts/4.irpkg",
+            "bytes": 11228,
+            "sha256": "40a5e18ea3bfb1abf4e7cc36947f48e129991f4fdbe7dc6621ff0094720663a2"
+          },
+          {
+            "path": "parts/5.irpkg",
+            "bytes": 592,
+            "sha256": "f5cada4007e3477e906843cbbaa3c362013700fe31c2583343e0c9bbfea272c9"
+          },
+          {
+            "path": "parts/6.irpkg",
+            "bytes": 82231,
+            "sha256": "4dce6d630e3b761c185acb48a510fac28bae9be1cd2335638e214d6dd283d269"
+          },
+          {
+            "path": "program.irpkg",
+            "bytes": 7247,
+            "sha256": "00f0486b6c423b09847c071a24a2c87e76a23c768f79ea04757fd814573b01db"
+          },
+          {
+            "path": "program.irpkg-set.json",
+            "bytes": 1418,
+            "sha256": "d609bf2fb2c96bbcc4db793bb430cce9eda4b28cbbd82fb74c666bee73ae3386"
+          }
+        ]
+      }
+    ]
+  }
+]
