@@ -43,6 +43,23 @@ before allocation. Limits are 10,000 nodes, depth 128, 64 KiB aggregate input,
 16 KiB per text node, 4,096 hard newlines/columns/absolute indentation,
 1 MiB output text, 10,000 segments and 65,536 output tag entries.
 
+### Why input checks were added
+
+The former JavaScript formatter had no explicit resource budgets. It recursively
+decoded the compact tree and allocated spaces with `String.repeat`; failure
+depended on JavaScript stack/allocation limits. The replacement adds a deliberate
+bounded error contract rather than preserving that unbounded behavior.
+
+JavaScript admission protects conversion and VIR marshalling, which happen
+before the Lean function runs. Lean's `checkInput` protects layout and direct
+native callers. A tiny tree with a huge `nest` followed by `align` can allocate
+padding inside `Std.Format.prettyM` before `pushOutput` receives it; an output
+size check alone therefore cannot protect that allocation. Preflight bounds
+input size/depth and cumulative indentation; output reservations bound the
+result. These checks cost an extra traversal. Within the limits they do not
+change layout decisions; larger requests are rejected with `FormatError` and
+leave the same healthy program usable.
+
 One program is initialized per document. Loading/failure leaves static slides
 usable. Expected format errors preserve the instance; unexpected failures close
 formatting. There is no retry or replacement. Terminal pagehide cancels pending

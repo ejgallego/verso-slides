@@ -48,10 +48,23 @@ deriving Repr, Inhabited
 
 public def limits : Limits := {}
 
--- A fuelled worklist checks the complete input before prettyM starts. Bounding
--- every cumulative signed nest also bounds prettyM's internal align allocation,
--- which happens before it calls pushOutput. Negative indentation keeps Lean's
--- toNat/clamping semantics; its magnitude is bounded too.
+/-
+This is an application resource budget, not a second layout algorithm. The old
+JavaScript implementation recursively decoded formats and allocated indentation
+with String.repeat; it had no explicit node, depth, text or output budgets.
+
+The browser now admits compact input before recursive ABI conversion, but this
+Lean entry point can also be called directly. Check the typed input here before
+running prettyM, independently of that browser admission. In particular, a small
+`nest`/`align` tree can request a huge string: prettyM constructs align padding
+before calling our pushOutput, so checking only the output callback is too late.
+Bounding every cumulative signed nest bounds that allocation. Negative nests
+keep Lean's toNat/clamping semantics; their magnitude is bounded too.
+
+The fuelled worklist bounds input traversal. Requests outside the policy return
+FormatError before layout; requests inside it use Std.Format.prettyM unchanged.
+reserveOutput separately bounds emitted text, segments and repeated tag entries.
+-/
 private def checkInput (lim : Limits) :
     Nat → List (Format × Nat × Int) → Nat → Nat → Except FormatError Unit
   | _, [], _, _ => .ok ()
