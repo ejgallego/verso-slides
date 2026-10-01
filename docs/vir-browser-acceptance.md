@@ -76,9 +76,11 @@ added to this first landing.
 
 - Slides: bounded semantic/font/geometry/retention checkpoint executed and ready
   for review; retain the minimal landing and earlier accepted acquisition evidence.
-- Slides: prepare the generic mobile panel lifecycle correction separately,
-  including listener/observer cleanup and a real completion/interaction regression.
-  Overall browser/product acceptance remains open until that case is addressed.
+- Slides: the maintainer scheduled the separate generic mobile panel lifecycle
+  correction **after the first Slides patch lands**, including listener/observer
+  cleanup and a real completion/interaction regression. The mobile product
+  limitation remains recorded; no correction is part of the formatter landing.
+  See the [scope audit and deferred work queue](vir-followups.md).
 - Downstream qualification with enabled artifact caches remains separate from
   the accepted `--no-cache` cold gate. Longer retention and broader font/geometry
   coverage are not established by these bounded measurements.

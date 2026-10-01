@@ -27,6 +27,10 @@ candidate at `3f7dbc93` remain unchanged. Deferred directory assets, managed bui
 and CLI output support remain there for independent future PRs. Detailed
 historical logs/correspondence remain there rather than enlarging this landing.
 
+The [current scope audit and deferred work queue](vir-followups.md) records the
+remaining general asset-validation extraction and unused helper cleanup. The
+generic mobile panel lifecycle fix is scheduled after this first patch lands.
+
 Lean formatting/bounds, the exported wrapper, typed adapter, complete independent
 ABI reference, browser lifecycle/presentation, resource publisher and exact
 runtime/program identities are byte-identical to `c17c584`. The source-only
