@@ -7,7 +7,7 @@ import pytest
 
 from test_vir_prettym_site import open_demo
 
-RUNTIME = "401b115ed3f4770b11e5b64d6066cbebb5b41beb468c3f9908603b89690776ba"
+RUNTIME = "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d"
 PROGRAM = "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58"
 
 
@@ -25,7 +25,7 @@ def test_exact_pair_published_bytes_and_reference(site_dir):
             payload = (root / "lib/vir" / RUNTIME / info["path"]).read_bytes()
             assert len(payload) == info["byteLength"]
             assert hashlib.sha256(payload).hexdigest() == info["sha256"]
-        assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.js").read_bytes()).hexdigest() == "08e542ef60d71b9308b1e12ba3f4438fef24b7634e1aab1f380a93833e1469a0"
+        assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.js").read_bytes()).hexdigest() == "b9fa28797af2787b4bae53a4d4a6a440b718512b54553717c65630b239b5829a"
         assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.wasm").read_bytes()).hexdigest() == "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4"
         bootstrap = (root / "vir-bootstrap.js").read_text()
         embedded = bootstrap.split("window.__versoVirExpectedExports = ", 1)[1].split(";\n", 1)[0]
@@ -42,6 +42,43 @@ SETUP = """async () => {
         expectedExports: window.__versoVirExpectedExports,
     };
 """
+
+
+def test_successor_rejects_shared_directory_casing_before_payload_or_instance(page, server):
+    open_demo(page, server)
+    result = page.evaluate(SETUP + """
+    const fetchOriginal = window.fetch, original = WebAssembly.Instance;
+    let payloadRequests = 0, instances = 0;
+    window.fetch = async (url, init) => {
+        if (!String(url).endsWith('/bundle.json')) payloadRequests++;
+        const response = await fetchOriginal(url, init);
+        if (String(url) !== String(options.runtimeManifestUrl)) return response;
+        const manifest = await response.json();
+        for (const [role, directory] of [['runtimeModule', 'Assets'], ['wasm', 'assets']]) {
+            const entry = manifest.descriptor.fileEntries.find(e => e.role === role);
+            const file = manifest.descriptor.files.find(f => f.path === entry.path);
+            file.path = directory + '/' + file.path.split('/').at(-1);
+            entry.path = file.path;
+        }
+        return new Response(JSON.stringify(manifest), {headers: {'Content-Type': 'application/json'}});
+    };
+    WebAssembly.Instance = new Proxy(original, {construct(target, args) {
+        instances++; return Reflect.construct(target, args);
+    }});
+    let failure;
+    try {
+        const program = await createProgram(options); program.dispose();
+    } catch (error) {
+        failure = {phase: error.phase, diagnostic: error.cause?.message, payloadRequests, instances};
+    } finally { window.fetch = fetchOriginal; WebAssembly.Instance = original; }
+    const fresh = await createProgram(options);
+    try {
+        if (formatCompactSegments(fresh, 'recovered', 0, 0)[0].text !== 'recovered') throw Error('recovery');
+    } finally { fresh.dispose(); }
+    return failure;
+}""")
+    assert result == {"phase": "integrity", "diagnostic": "DIRECTORY_CASE_CONFLICT",
+                      "payloadRequests": 0, "instances": 0}
 
 
 def test_expected_identity_and_actual_signature_reject_before_instantiation(page, server):

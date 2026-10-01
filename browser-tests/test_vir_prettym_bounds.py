@@ -13,7 +13,7 @@ def test_v2_program_and_runtime_identity(site_dir):
         bundles = [json.loads(p.read_text()) for p in (site_dir / route).glob("lib/vir/*/bundle.json")]
         runtime = next(b for b in bundles if b["descriptor"]["kind"] == "runtime")
         program = next(b for b in bundles if b["descriptor"]["kind"] == "program")
-        assert runtime["contentId"] == "401b115ed3f4770b11e5b64d6066cbebb5b41beb468c3f9908603b89690776ba"
+        assert runtime["contentId"] == "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d"
         assert program["contentId"] != "0a2c42819737c359f9a72e3bbe4e7fd890db6f96891be171c92fa095057d4ae2"
         assert program["descriptor"]["exports"] == [{
             "role": "formatSegments",

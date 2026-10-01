@@ -94,6 +94,20 @@ private def tests (dir : System.FilePath) : IO Unit := do
     write missing invalid
   check (!(← missing.pathExists)) "invalid plan performed output writes"
 
+  -- The selected successor's generic admission rejects conflicting shared
+  -- directory spelling before the application can prepare a publication plan.
+  let mixed := sampleBundle .runtime "synthetic/mixed"
+    #[{ path := "Assets/runtime.js", bytes := "// runtime".toUTF8 },
+      { path := "assets/runtime.wasm", bytes := ⟨#[0, 255, 97]⟩ }]
+    #[{ role := "runtimeModule", path := "Assets/runtime.js" },
+      { role := "wasm", path := "assets/runtime.wasm" }]
+  let error ← try
+    let _ ← prepare { resources with runtime := mixed }
+    pure ""
+  catch error => pure error.toString
+  check ((error.splitOn "DIRECTORY_CASE_CONFLICT").length > 1)
+    "shared directory casing was not rejected by generic admission"
+
   -- Check all output path types before mutating an existing site or stale stage.
   IO.FS.writeFile (first / "lib/.vir-stage") "not a directory"
   expectFailure (write first plan)
