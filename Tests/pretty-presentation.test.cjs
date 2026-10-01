@@ -122,3 +122,24 @@ test('formatting failure reports raw evidence and deliberate presentation', () =
     assert.equal(container.children.at(-1).textContent, 'This Lean expression could not be formatted.');
   }
 });
+
+
+test('compact adapter passes scalar values and dimensions unchanged to VIR', () => {
+  const {context} = fixture();
+  const calls = [];
+  const program = {call(role, ...args) {
+    calls.push({role, args}); return {kind: 'ok', value: []};
+  }};
+  for (const scalar of [7, -2, 1.5, NaN, 9007199254740993n, '9007199254740993', ' 007 ']) {
+    const fmt = [3, scalar, [7, scalar, 'x']];
+    context.formatCompactSegments(program, fmt, scalar, scalar);
+    const call = calls.at(-1);
+    assert.equal(call.role, 'formatSegments');
+    assert.equal(call.args[0].fields.indent, scalar);
+    assert.equal(call.args[0].fields.f.fields.arg1, scalar);
+    assert.equal(call.args[1], scalar);
+    assert.equal(call.args[2], scalar);
+  }
+  assert.equal(context.formatScalar, undefined);
+  assert.equal(context.checkFormatDimensions, undefined);
+});

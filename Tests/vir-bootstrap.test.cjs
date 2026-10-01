@@ -244,7 +244,7 @@ test('malformed compact input leaves the same program usable', async () => {
   const f = fixture();
   f.loading.resolve(f.loader); await f.started.promise;
   f.creation.resolve(f.program); await f.window.versoVirReady;
-  assert.throws(() => f.window.versoVirFormatSegments([3, 1.5, 'x'], 80, 0), e => e.code === 'invalidInput');
+  assert.throws(() => f.window.versoVirFormatSegments([3, 1, 'x', 'extra'], 80, 0), e => e.code === 'invalidInput');
   assert.equal(f.formatCalls.length, 0);
   assert.equal(f.window.versoVirFormatSegments('valid', 4097, 0)[0].text, 'formatted');
   assert.equal(f.window.versoVir, f.program);
@@ -253,6 +253,29 @@ test('malformed compact input leaves the same program usable', async () => {
   assert.equal(f.disposals(), 0);
   assert.equal(f.calls.length, 1);
 });
+
+for (const raw of [new Error('argument rejected'), null, undefined]) {
+  test(`active program survives request rejection (${typeof raw}) with raw diagnostics`, async () => {
+    let rejected = false;
+    const f = fixture({call() {
+      if (!rejected) { rejected = true; throw raw; }
+      return {kind: 'ok', value: [{text: 'recovered', tags: []}]};
+    }});
+    f.loading.resolve(f.loader); await f.started.promise;
+    f.creation.resolve(f.program); await f.window.versoVirReady;
+    const facade = f.window.versoVirFormatSegments;
+    assert.throws(() => facade([3, 1.5, 'x'], 80, 0), error => error === raw);
+    assert.equal(f.diagnostics.find(args => args[0] === 'VIR formatting failed')[1], raw);
+    assert.equal(f.window.versoVir, f.program);
+    assert.equal(f.window.versoVirState, 'ready');
+    assert.equal(f.program.status, 'active');
+    assert.equal(f.window.versoVirFormatSegments, facade);
+    assert.equal(f.disposals(), 0);
+    assert.equal(facade('valid', 80, 0)[0].text, 'recovered');
+    assert.equal(f.calls.length, 1);
+    f.hide(false); assert.equal(f.disposals(), 1);
+  });
+}
 
 for (const raw of [new Error('runtime failed'), null, undefined]) {
   test(`unexpected runtime failure (${typeof raw}) closes formatting without recreation or replay`, async () => {

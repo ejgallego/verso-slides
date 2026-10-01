@@ -103,10 +103,11 @@
             if (!active) throw new Error("Lean formatting is unavailable");
             try { return formatCompactSegments(active, format, width, indent); }
             catch (error) {
-                // Bounded expression errors keep the healthy instance.
-                // Any unexpected failure closes formatting for this document.
-                if (!(error instanceof PrettyFormatError) || active.status !== "active") {
-                    reportDiagnostic("VIR formatting failed", error);
+                // VIR owns scalar validation. A rejected request can leave the
+                // instance active; preserve it and the raw error for the caller.
+                // Failed/disposed instances are terminal for this document.
+                reportDiagnostic("VIR formatting failed", error);
+                if (active.status !== "active") {
                     releaseProgram();
                     if (!disposed) setState("failed");
                 }

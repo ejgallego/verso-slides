@@ -15,40 +15,12 @@ class PrettyFormatError extends Error {
     }
 }
 
-/** Exact decimal scalars; reject lossy numbers before string conversion.
- * @param {*} value @param {boolean} signed @return {string}
- */
-function formatScalar(value, signed) {
-    if (typeof value === "number") {
-        if (!Number.isSafeInteger(value) || (!signed && value < 0)) {
-            throw new PrettyFormatError("invalidInput");
-        }
-        return String(value);
-    }
-    if (typeof value !== "string" ||
-        !(signed ? /^(0|-?[1-9][0-9]*)$/ : /^(0|[1-9][0-9]*)$/).test(value)) {
-        throw new PrettyFormatError("invalidInput");
-    }
-    return value;
-}
-
-/** @param {number} width @param {number} indent */
-function checkFormatDimensions(width, indent) {
-    if (!Number.isSafeInteger(width) || width < 0) {
-        throw new PrettyFormatError("width");
-    }
-    if (!Number.isSafeInteger(indent) || indent < 0) {
-        throw new PrettyFormatError("indentation");
-    }
-}
-
 /** Typed v2 boundary for the compact format emitted by Verso.
  * @param {VersoVirProgram} program @param {*} format
  * @param {number} width @param {number} indent
  * @return {PrettySegment[]}
  */
 function formatCompactSegments(program, format, width, indent) {
-    checkFormatDimensions(width, indent);
     var admitted = compactFormatToStdFormat(format);
     var result = /** @type {PrettyFormatResult} */ (program.call("formatSegments", admitted, width, indent));
     if (result.kind === "error") throw new PrettyFormatError(result.value);
@@ -77,8 +49,8 @@ function formatCompactSegments(program, format, width, indent) {
  */
 
 /** Convert Verso's compact format to VIR's Std.Format representation.
- * Nat/Int fields use exact decimal strings. This checks constructor/scalar
- * representation only; application resource budgets are a separate followup.
+ * Preserve numeric fields for VIR to validate/marshal as Nat or Int.
+ * Slides checks its compact constructor shape; resource budgets are deferred.
  * @param {*} json @return {*}
  */
 function compactFormatToStdFormat(json) {
@@ -96,7 +68,7 @@ function compactFormatToStdFormat(json) {
             if (json.length !== 3) throw new PrettyFormatError("invalidInput");
             return {
                 kind: "nest",
-                fields: { indent: formatScalar(json[1], true), f: compactFormatToStdFormat(json[2]) },
+                fields: { indent: json[1], f: compactFormatToStdFormat(json[2]) },
             };
         case 4:
             if (json.length !== 3) throw new PrettyFormatError("invalidInput");
@@ -124,7 +96,7 @@ function compactFormatToStdFormat(json) {
             return {
                 kind: "tag",
                 fields: {
-                    arg1: formatScalar(json[1], false),
+                    arg1: json[1],
                     arg2: compactFormatToStdFormat(json[2]),
                 },
             };

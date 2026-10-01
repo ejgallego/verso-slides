@@ -129,3 +129,37 @@ def test_panel_font_metric_change_reflows_current_format(page, server):
     expect(panel.locator('[data-font-marker]')).to_have_count(0)
     expect(panel.locator('.reflowed').first).not_to_be_empty()
     expect(panel.locator('[style*="visibility: hidden"]')).to_have_count(0)
+
+
+def test_vir_numeric_admission_keeps_the_same_program_usable(page, server):
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.add_init_script("window.numericUnhandled = []; window.addEventListener('unhandledrejection', e => window.numericUnhandled.push(String(e.reason)))")
+    open_demo(page, server)
+    result = page.evaluate("""() => {
+        const program = window.versoVir, facade = window.versoVirFormatSegments;
+        const rejected = [];
+        for (const [format, width, indent] of [
+            [[3, 1.5, 'x'], 80, 0], [[7, -1, 'x'], 80, 0],
+            [[7, Number.MAX_SAFE_INTEGER + 1, 'x'], 80, 0],
+            ['x', 1.5, 0], ['x', -1, 0], ['x', NaN, 0], ['x', 80, -1],
+        ]) {
+            let error;
+            try { facade(format, width, indent); } catch (cause) { error = cause; }
+            rejected.push(!!error && program.status === 'active' && window.versoVir === program);
+        }
+        const numeric = facade([3, -2, [7, 7, 'x']], 80, 0);
+        const exact = facade([7, '9007199254740993', 'y'], 80, 0);
+        const big = facade([7, 9007199254740993n, 'z'], 80, 0);
+        return {rejected, numeric, exact, big, recovered: facade('valid', 80, 0),
+            same: window.versoVir === program && window.versoVirFormatSegments === facade,
+            state: window.versoVirState};
+    }""")
+    assert result == {"rejected": [True] * 7,
+        "numeric": [{"text": "x", "tags": ["7"]}],
+        "exact": [{"text": "y", "tags": ["9007199254740993"]}],
+        "big": [{"text": "z", "tags": ["9007199254740993"]}],
+        "recovered": [{"text": "valid", "tags": []}], "same": True, "state": "ready"}
+    page.evaluate("() => new Promise(resolve => setTimeout(resolve, 0))")
+    assert page.evaluate("window.numericUnhandled") == []
+    assert errors == []

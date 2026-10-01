@@ -38,15 +38,18 @@ Std.Format → Nat → Nat → Except FormatError (Array Pretty.Segment)
 ```
 
 VIR marshals using generated Lean metadata. The adapter converts Verso's
-compact representation and checks constructor/scalar shape. The Lean wrapper
+compact representation and checks constructor shape. Numeric fields pass through
+unchanged: VIR validates and marshals numbers, BigInts and decimal strings.
+The Lean wrapper
 runs `Std.Format.prettyM` directly, preserving the former trusted-input model.
 Explicit resource budgets and their exclusive tests are deferred to a
 [separate later PR](vir-followups.md). The existing `Except` result shape is
-retained while the array-result simplification is coordinated with VIR.
+retained for the first landing; the agreed pure-array v3 migration is separate.
 
 One program is initialized per document. Loading/failure leaves static slides
-usable. Expected format errors preserve the instance; unexpected failures close
-formatting. There is no retry or replacement. Terminal pagehide cancels pending
+usable. A rejected request preserves an active instance and its raw diagnostics; a
+failed/disposed instance closes formatting. There is no retry or replacement.
+Terminal pagehide cancels pending
 creation or disposes the program; persisted pagehide preserves it.
 
 ## Tests
