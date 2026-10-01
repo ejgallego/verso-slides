@@ -1,0 +1,48 @@
+downstream-cold-1.log
+uncaught exception: RESOURCE_DOWNLOAD_FAILED: curl: (22) The requested URL returned error: 500
+
+downstream-native-cold-offline.log
+uncaught exception: RESOURCE_OFFLINE_MISS: required bundle 832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d; cache /home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/.qualification-public-runtime-20261001/downstream-empty-offline/cache.virres
+
+downstream-ordinary-cold-offline.log
+uncaught exception: RESOURCE_DOWNLOAD_FAILED: OFFLINE_TRANSPORT_DENIED: https://github.com/ejgallego/lean-vir/releases/download/resource-832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d.virres
+
+downstream-restored-warm-offline.log
+Slides written to _slides/index.html
+
+downstream-retry-0.log
+Build completed successfully (745 jobs).
+
+downstream-retry-1.log
+Slides written to _slides/index.html
+
+downstream-warm-offline.log
+Slides written to _slides/index.html
+
+relocated-missing-image.log
+uncaught exception: no such file or directory (error code: 2)
+  file: demo-images/demo-image.svg
+
+relocated-render.log
+Slides written to _slides/index.html
+
+root-cold-1.log
+uncaught exception: RESOURCE_DOWNLOAD_FAILED: curl: (22) The requested URL returned error: 500
+
+root-native-cold-offline.log
+uncaught exception: RESOURCE_OFFLINE_MISS: required bundle 832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d; cache /home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/.qualification-public-runtime-20261001/root-empty-offline/cache.virres
+
+root-ordinary-cold-offline.log
+uncaught exception: RESOURCE_DOWNLOAD_FAILED: OFFLINE_TRANSPORT_DENIED: https://github.com/ejgallego/lean-vir/releases/download/resource-832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d.virres
+
+root-restored-warm-offline.log
+Slides written to _slides/index.html
+
+root-retry-0.log
+Build completed successfully (745 jobs).
+
+root-retry-1.log
+Slides written to _slides/index.html
+
+root-warm-offline.log
+Slides written to _slides/index.html

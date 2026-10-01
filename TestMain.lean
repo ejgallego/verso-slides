@@ -32,7 +32,9 @@ public def main (args : List String) : IO UInt32 := do
   let leanTests := #[
     ("test-fragmentize", "Running fragmentize unit tests"),
     ("test-render", "Running rendering unit tests"),
-    ("test-comment-parsers", "Running comment-parser unit tests")
+    ("test-comment-parsers", "Running comment-parser unit tests"),
+    ("test-pretty", "Running prettyM segment tests"),
+    ("test-vir-publication", "Running VIR publication tests")
   ]
   for (exe, desc) in leanTests do
     let rc ← runCmd "lake" #["exe", exe] desc

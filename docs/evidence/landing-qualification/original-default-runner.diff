@@ -1,0 +1,29 @@
+--- ordinary-downstream.py
++++ ordinary-downstream.py
+@@ -13,8 +13,6 @@
+ checkout = Path(sys.argv[1]).resolve()
+ revision = sys.argv[2]
+ scratch = Path(sys.argv[3]).resolve()
+-mode = sys.argv[4] if len(sys.argv) > 4 else "enabled"
+-assert mode in ("default", "enabled")
+ scratch.mkdir()  # Refuse to reuse an earlier acquisition/build.
+ source = scratch / "source"
+ source.mkdir()
+@@ -42,8 +40,6 @@
+            SLIDES_QUAL_TRANSPORT_LOG=str(scratch / "transport.jsonl"),
+            SLIDES_QUAL_NETWORK="online")
+ env["PATH"] = str(observer) + os.pathsep + env["PATH"]
+-if mode == "enabled":
+-    env["LAKE_ARTIFACT_CACHE"] = "true"
+ results = {
+     "slides": subprocess.check_output(["git", "rev-parse", revision], cwd=checkout, text=True).strip(),
+     "initial": {"sourceLakeAbsent": not (source / ".lake").exists(),
+@@ -51,7 +47,7 @@
+                 "stageAbsent": not any(source.rglob("*.virres")),
+                 "artifactCacheEmpty": not any(cache.iterdir())},
+     "cachePolicy": {"flags": "default; no --no-cache", "lakeCacheDir": "fresh owned directory",
+-                    "userConfig": "empty isolated config", "artifactCacheOverride": env.get("LAKE_ARTIFACT_CACHE"),
++                    "userConfig": "empty isolated config", "artifactCacheOverride": None,
+                     "runtimeSeeding": False},
+     "steps": [],
+ }
