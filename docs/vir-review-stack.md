@@ -84,6 +84,20 @@ coverage with the surviving application contract. Generic loader lifecycle
 matrix tests are left to VIR. Asset publication, dependency pins, direct ABI and
 runtime/program identities are unchanged from the preceding checkpoint.
 
+## Generated interface followup
+
+`679ca44ad12079a2fbd6f3f70882f0ad4ea3f7e3` removes the frozen ABI JSON,
+`expectedExports` consumer wiring and its exclusive comparison test. VIR uses
+the generated Lean callable metadata through its existing creation API. The
+maintainer superseded the earlier independent-reference requirement; historical
+strict-reference results remain evidence of the former policy. The small
+resource recipe, typed application adapter and bounds remain.
+
+[Focused execution evidence](evidence/generated-interface/README.md) covers the
+actual published formatting path: 42 Node and 32 Chromium/Firefox checks,
+native build and publication checks. Dependency and resource identities remain
+unchanged. No new type generator, shared API or broad qualification is added.
+
 The [deferred work queue](vir-followups.md) schedules the generic mobile panel
 lifecycle correction after the first Slides patch lands. Its reproduced product
 limitation remains documented. Output CLI, directory assets and managed builds
