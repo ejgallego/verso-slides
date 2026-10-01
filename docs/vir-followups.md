@@ -39,14 +39,16 @@ not a calendar reminder, and does not authorize a new PR or merge.
   regenerated the program pack, which stayed byte-identical to the qualified
   pack; the runtime pack also stayed byte-identical.
 
-### Local build evidence for this cleanup
+### Scope cleanup and subsequent qualification
 
 `lake build demo-slides test-config-validation` passed (748 jobs) after the
 formatter/path changes; the final bootstrap-alias extension was compiled in a
-subsequent build. These compile the configuration test executable without
-executing its cases. No native, Node or browser test suite ran for this cleanup,
-and no CI result is claimed. Earlier browser evidence retains its original
-executed source; it does not qualify the revised namespace guard.
+subsequent build. That original cleanup compiled tests without running them.
+The subsequent [landing qualification](evidence/landing-qualification/README.md)
+executed all 54 namespace/configuration cases, including three renderer
+rejections before output writes, and two fresh ordinary downstream builds with
+default and explicitly enabled artifact caching. No new browser or CI result
+is claimed. Earlier browser evidence retains its original executed source.
 
 Program pack: 122,442 bytes, SHA-256
 `c48f6857c125340a748c983635abe52e8e603fc62fc59ef5cc41746f86b953da`;
@@ -80,8 +82,9 @@ implementation/removal/tests stack.
 
 The mobile issue remains an open product limitation. Deferring its correction
 does not turn the recorded 480px-and-wider geometry checkpoint into mobile
-acceptance. Fresh downstream acquisition with artifact caches enabled is still
-a first-landing qualification task, separate from the accepted `--no-cache` gate.
+acceptance. Fresh downstream acquisition with default and explicitly enabled
+artifact caching now passes, separately from the earlier accepted `--no-cache`
+gate. Both retain their exact source and artifact evidence.
 
 The original `84137ec` audit changed documentation only. This successor applies
 the two scope cleanups without a dependency, formatter ABI or artifact change.

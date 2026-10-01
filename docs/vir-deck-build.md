@@ -83,5 +83,9 @@ remain on the development branch. This reduced renderer is a new source checkpoi
 those executions are not a fresh campaign against it. See
 [the review guide](vir-review-stack.md) for scope and local compilation feedback.
 
+The final [namespace and ordinary downstream qualification](evidence/landing-qualification/README.md)
+passes 54 focused cases and fresh default/explicitly enabled cache builds. Runtime
+and program identities are unchanged; no additional browser or CI run is claimed.
+
 Managed incremental site builds, render-time input receipts, generic directory
 assets and output command-line options are deferred to separate patches.

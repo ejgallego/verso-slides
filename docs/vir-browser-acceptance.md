@@ -81,7 +81,8 @@ added to this first landing.
   cleanup and a real completion/interaction regression. The mobile product
   limitation remains recorded; no correction is part of the formatter landing.
   See the [scope audit and deferred work queue](vir-followups.md).
-- Downstream qualification with enabled artifact caches remains separate from
+- [Fresh downstream qualification](evidence/landing-qualification/README.md)
+  passes with default and explicitly enabled artifact caching, separately from
   the accepted `--no-cache` cold gate. Longer retention and broader font/geometry
   coverage are not established by these bounded measurements.
 - VIR: no new shared contract, artifact choice or producer action required.
