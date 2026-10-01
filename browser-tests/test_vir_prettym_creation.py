@@ -3,7 +3,7 @@ import hashlib
 import json
 
 RUNTIME = "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d"
-PROGRAM = "f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede"
+PROGRAM = "6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995"
 
 
 def test_exact_pair_published_bytes(site_dir):

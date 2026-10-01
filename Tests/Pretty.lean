@@ -12,12 +12,6 @@ open VersoSlides.Pretty
 
 namespace Tests.Pretty
 
-private instance [BEq ε] [BEq α] : BEq (Except ε α) where
-  beq a b := match a, b with
-    | .ok a, .ok b => a == b
-    | .error a, .error b => a == b
-    | _, _ => false
-
 private def groupedLineDoc : Format :=
   Format.group ("hello" ++ Format.line ++ "world")
 
@@ -55,7 +49,7 @@ private def compactFormat : Format → Lean.Json
   | .tag tag child => .arr #[Lean.toJson (7 : Nat), .str (toString tag), compactFormat child]
 
 private def corpusCases : Array (String × Format × Nat) :=
-  #[("wide group", groupedLineDoc, 80), ("narrow group", groupedLineDoc, 8),
+  #[("empty", .nil, 80), ("wide group", groupedLineDoc, 80), ("narrow group", groupedLineDoc, 8),
      ("hard newline", hardLineDoc, 80), ("nested align", nestedDoc, 5),
      ("fill paragraph", paragraphDoc, 16), ("tagged segment", taggedDoc, 80),
      ("nested tag stack", nestedTaggedDoc, 80)]
@@ -65,12 +59,8 @@ private def segmentsJson (segments : Array Segment) : Lean.Json := .arr <| segme
     ("text", .str segment.text),
     ("tags", .arr <| segment.tags.map fun tag => .str (toString tag))]
 
-private def errorName (e : FormatError) : String :=
-  (reprStr e).splitOn "." |>.getLast!
-
-private def resultJson : Except FormatError (Array Segment) → Lean.Json
-  | .ok segments => Lean.Json.mkObj [("segments", segmentsJson segments)]
-  | .error e => Lean.Json.mkObj [("error", .str (errorName e))]
+private def resultJson (segments : Array Segment) : Lean.Json :=
+  Lean.Json.mkObj [("segments", segmentsJson segments)]
 
 private def nativeCorpus : Lean.Json := .arr <| corpusCases.map
     fun (name, format, width) => Lean.Json.mkObj [
@@ -89,8 +79,8 @@ private def geometryCorpus : Lean.Json := .arr <| (List.range 128).toArray.flatM
     ("width", Lean.toJson (n + 1)), ("indent", Lean.toJson (0 : Nat)),
     ("result", resultJson <| VersoSlides.VirPrettyM.formatSegments format (n + 1) 0)]
 
-private def oraclePlain (format : Format) (width : Nat) : Except FormatError String := do
-  return String.join <| (← VersoSlides.VirPrettyM.formatSegments format width 0).toList.map (·.text)
+private def oraclePlain (format : Format) (width : Nat) : String :=
+  String.join <| (VersoSlides.VirPrettyM.formatSegments format width 0).toList.map (·.text)
 
 structure TestState where
   passed : Nat := 0
@@ -132,20 +122,21 @@ def main (args : List String) : IO UInt32 := do
   state.report
 where
   tests : TestM Unit := do
-    testEq "wide group" (oraclePlain groupedLineDoc 80) (.ok "hello world")
-    testEq "narrow group" (oraclePlain groupedLineDoc 8) (.ok "hello\nworld")
-    testEq "hard newline" (oraclePlain hardLineDoc 80) (.ok "αβ\nγ")
-    testEq "nested align" (oraclePlain nestedDoc 5) (.ok ". a\n  b")
+    testEq "empty array" (VersoSlides.VirPrettyM.formatSegments .nil 80 0) #[]
+    testEq "wide group" (oraclePlain groupedLineDoc 80) "hello world"
+    testEq "narrow group" (oraclePlain groupedLineDoc 8) "hello\nworld"
+    testEq "hard newline" (oraclePlain hardLineDoc 80) "αβ\nγ"
+    testEq "nested align" (oraclePlain nestedDoc 5) ". a\n  b"
     testEq "fill paragraph" (oraclePlain paragraphDoc 16)
-      (.ok "lean ir runs\nformat.pretty\ninside wasm")
+      "lean ir runs\nformat.pretty\ninside wasm"
     testEq "tagged segment" (VersoSlides.VirPrettyM.formatSegments taggedDoc 80 0)
-      (.ok #[{ text := "hello", tags := #[7] }])
+      #[{ text := "hello", tags := #[7] }]
     testEq "nested tag stack" (VersoSlides.VirPrettyM.formatSegments nestedTaggedDoc 80 0)
-      (.ok #[
+      #[
         { text := "outer", tags := #[7] },
         { text := "inner", tags := #[7, 8] },
         { text := "tail", tags := #[7] }
-      ])
+      ]
 
 end Tests.Pretty
 

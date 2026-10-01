@@ -42,7 +42,7 @@ function checkFormatDimensions(width, indent) {
     }
 }
 
-/** Typed v2 boundary for the compact format emitted by Verso.
+/** Typed v3 boundary for the compact format emitted by Verso.
  * @param {VersoVirProgram} program @param {*} format
  * @param {number} width @param {number} indent
  * @return {PrettySegment[]}
@@ -50,12 +50,9 @@ function checkFormatDimensions(width, indent) {
 function formatCompactSegments(program, format, width, indent) {
     checkFormatDimensions(width, indent);
     var admitted = compactFormatToStdFormat(format);
-    var result = /** @type {PrettyFormatResult} */ (program.call("formatSegments", admitted, width, indent));
-    if (result.kind === "error") throw new PrettyFormatError(result.value);
-    if (result.kind !== "ok" || !Array.isArray(result.value)) {
-        throw new Error("Invalid PrettyM v2 result");
-    }
-    return result.value;
+    var segments = /** @type {PrettySegment[]} */ (program.call("formatSegments", admitted, width, indent));
+    if (!Array.isArray(segments)) throw new Error("Invalid PrettyM array result");
+    return segments;
 }
 
 /**

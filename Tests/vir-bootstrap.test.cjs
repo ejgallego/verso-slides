@@ -27,7 +27,7 @@ function fixture(config = {}) {
   let hide, options, disposed = 0;
   const program = {status: 'active', call(role, ...args) {
     formatCalls.push({role, args});
-    return config.call ? config.call(program, ...args) : {kind: 'ok', value: [{text: 'formatted', tags: []}]};
+    return config.call ? config.call(program, ...args) : [{text: 'formatted', tags: []}];
   }, dispose() {
     disposed++; program.status = 'disposed';
     if (Object.hasOwn(config, 'cleanup')) throw config.cleanup;

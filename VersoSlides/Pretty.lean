@@ -25,12 +25,6 @@ public structure Segment where
   tags : Array Nat
 deriving Repr, BEq, Inhabited
 
-/-- Recoverable application failures; none of these invalidates a VIR program. -/
-public inductive FormatError where
-  | invalidInput | inputNodes | inputDepth | inputBytes | textBytes | hardLines
-  | tagValue | width | indentation | outputBytes | outputSegments | outputTags
-deriving Repr, BEq, Inhabited
-
 private structure PrettyState where
   segments : Array Segment := #[]
   column : Nat := 0
@@ -66,11 +60,10 @@ private instance : Std.Format.MonadPrettyFormat PrettyM where
   endTags count :=
     modify fun st => { st with tagStack := popTags st.tagStack count }
 
-/-- Render Lean layout and active tags. Resource budgets are deferred to a later PR.
-The existing result type is retained until the coordinated array-result cleanup. -/
+/-- Render Lean layout and active tags. Resource budgets are deferred to a later PR. -/
 public def formatSegments (f : Std.Format) (width : Nat) (indent : Nat := 0) :
-    Except FormatError (Array Segment) :=
+    Array Segment :=
   let act : PrettyM Unit := Std.Format.prettyM f width indent
-  .ok (act.run {}).2.segments
+  (act.run {}).2.segments
 
 end VersoSlides.Pretty

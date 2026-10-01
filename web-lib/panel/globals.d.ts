@@ -48,10 +48,6 @@ interface PrettySegment {
     tags: string[];
 }
 
-type PrettyFormatResult =
-    | { kind: "ok"; value: PrettySegment[] }
-    | { kind: "error"; value: string };
-
 interface Window {
     __versoVirResourceUrls: {
         runtimeModule: string;

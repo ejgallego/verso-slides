@@ -31,18 +31,18 @@ rerun after correcting the destination or use a fresh output directory.
 
 ## Formatter and lifetime
 
-The `formatSegments` role calls `VersoSlides.VirPrettyM.formatSegments`:
+The `formatSegments` role calls `VersoSlides.VirPrettyM.formatSegments` with
+interface ID `verso-slides-format-segments-hostabi-v3`:
 
 ```text
-Std.Format → Nat → Nat → Except FormatError (Array Pretty.Segment)
+Std.Format → Nat → Nat → Array Pretty.Segment
 ```
 
 VIR marshals using generated Lean metadata. The adapter converts Verso's
 compact representation and checks constructor/scalar shape. The Lean wrapper
 runs `Std.Format.prettyM` directly, preserving the former trusted-input model.
 Explicit resource budgets and their exclusive tests are deferred to a
-[separate later PR](vir-followups.md). The existing `Except` result shape is
-retained while the array-result simplification is coordinated with VIR.
+[separate later PR](vir-followups.md). The result is a plain array; there is no native error sum or dual protocol.
 
 One program is initialized per document. Loading/failure leaves static slides
 usable. Expected format errors preserve the instance; unexpected failures close

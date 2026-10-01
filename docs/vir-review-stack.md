@@ -14,21 +14,15 @@ formatter. Intermediate commits have not been separately qualified.
 
 The resource-budget policy has been removed from the first landing and queued
 in [the followups](vir-followups.md). The wrapper calls Std.Format.prettyM
-directly, retaining the existing Except/v2 result shape for this checkpoint.
-The array-result cleanup is a separate coordination item. The previous bounded
+directly and returns an array under the agreed v3 interface. The former native
+error type and JavaScript error-sum handling are removed. The previous bounded
 program and its evidence remain on the archival branch, not this landing diff.
 
 ## Qualification
 
-Executed source: `141161a5910bc6a3d895dc87a7136c1d31e8c898`.
-Seven native semantic checks, 39 Node checks, the warm native build/publication
-tests and 32 focused Chromium/Firefox checks passed. Fresh root/nested output
-matched four manifests and 28 payloads. The final production files and executable
-tests are byte-identical to that source; commit grouping and documentation differ.
-Intermediate commits have not been separately qualified.
-[Archived commands/results](https://github.com/ejgallego/verso-slides/blob/e6b5315/docs/evidence/budget-deferral/README.md).
-Historical 101-check bounds results are coverage of the deferred implementation.
-Raw logs remain outside this landing diff.
+The v3 result migration regenerates the program pack. Fresh native/browser
+qualification is required; the older v2 results remain historical. Raw logs
+stay outside this landing diff.
 
 VIR remains `590be72bd91519c7beb89e105dfba498a4aff140`, Lean 4.34.0.
 Runtime content ID:
@@ -36,9 +30,9 @@ Runtime content ID:
 Runtime pack SHA-256:
 `d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1`.
 Program content ID:
-`f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede`.
+`6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995`.
 Program pack SHA-256:
-`85dd8d25261b5da8e807b4d373dd5db885a5b24480c24d1310525895ad308c3f`.
+`cde0b85f98fc98e9281efbe5b834317f3df63833be851b424b934e2ebc84dace`.
 
 No new cold-install or CI result is claimed. Historical qualification remains
 scoped to its recorded source. Generic mobile

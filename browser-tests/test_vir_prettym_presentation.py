@@ -24,12 +24,13 @@ def test_complete_native_segments_tags_classes_and_bindings_in_dom(page, server,
     open_demo(page, server)
     corpus = json.loads((site_dir / "native-corpus.json").read_text())
     actual = page.evaluate("""cases => cases.map(c => {
+        const direct = window.versoVir.call("formatSegments", compactFormatToStdFormat(c.format), c.width, c.indent);
         const segments = window.versoVirFormatSegments(c.format, c.width, c.indent);
         const annotations = {'7': {cssClass: 'const', binding: 'outer'},
             '8': {cssClass: 'var', binding: 'inner'}};
         const template = document.createElement('template');
         template.innerHTML = formatToHtml(c.format, annotations, c.width * 10, {spaceWidth: 10});
-        return {segments, text: template.content.textContent,
+        return {segments, direct, isArray: Array.isArray(direct), text: template.content.textContent,
             tagged: [...template.content.querySelectorAll('[data-format-tags]')].map(el => ({
                 text: el.textContent, tags: el.dataset.formatTags.split(' '),
                 classes: [...el.classList], binding: el.getAttribute('data-binding'),
@@ -37,6 +38,8 @@ def test_complete_native_segments_tags_classes_and_bindings_in_dom(page, server,
     })""", corpus)
     for case, dom in zip(corpus, actual):
         expected = case["result"]["segments"]
+        assert dom["isArray"] is True, case["name"]
+        assert dom["direct"] == expected, case["name"]
         assert dom["segments"] == expected, case["name"]
         assert dom["text"] == "".join(s["text"] for s in expected), case["name"]
         tagged = []
