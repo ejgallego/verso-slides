@@ -11,7 +11,8 @@ import Demo
 
 open VersoSlides
 
-public def main : IO UInt32 :=
+public def main (args : List String) : IO UInt32 :=
   slidesMain
     (config := { theme := "black", slideNumber := true, transition := "slide" })
     (doc := %doc Demo)
+    (args := args)
