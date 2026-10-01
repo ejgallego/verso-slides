@@ -1,0 +1,77 @@
+{
+  "contentId": "6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995",
+  "packSha256": "cde0b85f98fc98e9281efbe5b834317f3df63833be851b424b934e2ebc84dace",
+  "packBytes": 77910,
+  "descriptor": {
+    "compatibility": {
+      "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+      "virVersion": 1
+    },
+    "exports": [
+      {
+        "declaration": "VersoSlides.VirPrettyM.formatSegments",
+        "interfaceId": "verso-slides-format-segments-hostabi-v3",
+        "role": "formatSegments"
+      }
+    ],
+    "fileEntries": [
+      {
+        "path": "program.irpkg-set.json",
+        "role": "programSet"
+      }
+    ],
+    "files": [
+      {
+        "byteLength": 670,
+        "mediaType": "application/vnd.lean-vir.ir-package",
+        "path": "parts/0.irpkg",
+        "sha256": "b2ccf89ee4778f1880f3f30a796cb7c1956fccff0f06c47b674c06297ac013c2"
+      },
+      {
+        "byteLength": 1976,
+        "mediaType": "application/vnd.lean-vir.ir-package",
+        "path": "parts/1.irpkg",
+        "sha256": "359f8fc1c73ad5951db2f2ca7840ef7ac6b82442914b7bfaf0b77c6c2b12ffeb"
+      },
+      {
+        "byteLength": 900,
+        "mediaType": "application/vnd.lean-vir.ir-package",
+        "path": "parts/2.irpkg",
+        "sha256": "07eb3ea68d1df4d730c71c0583e2ec5be195fa0cffab315522af653193c45e28"
+      },
+      {
+        "byteLength": 5934,
+        "mediaType": "application/vnd.lean-vir.ir-package",
+        "path": "parts/3.irpkg",
+        "sha256": "5c2d76ebca92de975ca6ed39e7c240d3a7b8c79a41c714ebf6659fa60eb42826"
+      },
+      {
+        "byteLength": 11228,
+        "mediaType": "application/vnd.lean-vir.ir-package",
+        "path": "parts/4.irpkg",
+        "sha256": "c188d5e9c5cd46cad47950c7f929c55d6f1d85b64870afe56e2b615693401e13"
+      },
+      {
+        "byteLength": 48707,
+        "mediaType": "application/vnd.lean-vir.ir-package",
+        "path": "parts/5.irpkg",
+        "sha256": "3a8cc6ffb0b1fad2e757e507ae4dc2deec71e2850155aaf7c5505a0b65dc9cfe"
+      },
+      {
+        "byteLength": 5512,
+        "mediaType": "application/vnd.lean-vir.ir-package",
+        "path": "program.irpkg",
+        "sha256": "2a659dcda6a67180ae97554b4bae4d3e3203568167e3612efcfe79a1097e1078"
+      },
+      {
+        "byteLength": 1239,
+        "mediaType": "application/json",
+        "path": "program.irpkg-set.json",
+        "sha256": "e5831d6d823874149b82bae2c61522e65ce26d010beeb16afc69c3c241a75dbf"
+      }
+    ],
+    "kind": "program",
+    "logicalId": "verso-slides/prettyM",
+    "schemaVersion": 1
+  }
+}

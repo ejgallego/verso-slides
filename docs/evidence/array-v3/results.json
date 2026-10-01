@@ -1,0 +1,69 @@
+{
+  "source": "bf9bf7f32176030e6e9e295dd9959a850d6c5cb7",
+  "vir": "590be72bd91519c7beb89e105dfba498a4aff140",
+  "lean": "4.34.0",
+  "interfaceId": "verso-slides-format-segments-hostabi-v3",
+  "signature": "Std.Format \u2192 Nat \u2192 Nat \u2192 Array VersoSlides.Pretty.Segment",
+  "runtimeContentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+  "runtimePackSha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1",
+  "programContentId": "6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995",
+  "programPackSha256": "cde0b85f98fc98e9281efbe5b834317f3df63833be851b424b934e2ebc84dace",
+  "programPackBytes": 77910,
+  "nodePassed": 39,
+  "nativePassed": 8,
+  "browserPassed": 32,
+  "nativeBuildJobs": 753,
+  "publication": "passed",
+  "manifestChecks": 4,
+  "payloadChecks": 28,
+  "logs": {
+    "node.log": {
+      "sha256": "f254885cbcad291d9bd1634cdc39a5412d7e6e603ac96c1e741a101c0e350a74",
+      "bytes": 3742
+    },
+    "build.log": {
+      "sha256": "e83472868626ee811aa29e6f59d37c0f495f2b69fffe377bd935d4b51dd996ef",
+      "bytes": 2454
+    },
+    "native.log": {
+      "sha256": "55bf84c641e2d52c045a5df3fe979eca90a076d93a0b54f543dfb053da2203d4",
+      "bytes": 20
+    },
+    "publication.log": {
+      "sha256": "4e6192ce005a630bd7619a110fa0644ca8c967855421d0f496a3678f418c3dad",
+      "bytes": 251
+    },
+    "render.log": {
+      "sha256": "5eb688d199d9b7e8b15e54973cdcb56d9822944f69651b34aa92ada4c3d1a4e6",
+      "bytes": 37
+    },
+    "browser.log": {
+      "sha256": "9014b284a7aaadcf668b4b15fa3da0a68832232e10ef793a4daa7d8dfc95afba",
+      "bytes": 666
+    },
+    "browser.xml": {
+      "sha256": "ca0b982e57365e6553af3ef322bc9e09b1f633d41ede795b4f092f0700520fdf",
+      "bytes": 6127
+    },
+    "generated-interface.json": {
+      "sha256": "450ee2de6b4ce2194fe761bf872cefb3cc3193462cdf78bfb833486603927d63",
+      "bytes": 9626
+    },
+    "program-identity.json": {
+      "sha256": "d7f51ea8b084742abee642b1da8cc15155227a677a3ebfecad861be997bd1e24",
+      "bytes": 2533
+    },
+    "inventory.json": {
+      "sha256": "347b0f981174a615659a5724343c1039fd1ea99625e2c69dea0d6fe44ae38fe7",
+      "bytes": 1247
+    },
+    "native-corpus.json": {
+      "sha256": "6ab31d5760987f8848958694996e54cf1e674fb4288c0f54139dd9531b741210",
+      "bytes": 1634
+    },
+    "geometry-corpus.json": {
+      "sha256": "6bdc87880d5cefa9c4ae6f5a78d9f5779c1b215a209af210f3c48c7f38dabd1c",
+      "bytes": 133304
+    }
+  }
+}

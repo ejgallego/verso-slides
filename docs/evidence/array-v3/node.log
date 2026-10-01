@@ -1,0 +1,47 @@
+✔ plain text and hard lines survive HTML escaping exactly (2.351338ms)
+✔ full exact tag stacks survive; nearest registered annotation owns presentation (1.555189ms)
+✔ annotation classes and binding attributes cannot introduce HTML attributes (0.708504ms)
+✔ goal structure shares indexed formats and escapes names/prefixes (0.878935ms)
+✔ pixel-to-column conversion calls only the typed VIR facade without changing text (0.9878ms)
+✔ one DOM measurer accounts for Reveal scaling and releases its probe (0.678798ms)
+✔ shared signature rendering always releases measurement (success) (0.712551ms)
+✔ shared signature rendering always releases measurement (failure) (0.622433ms)
+✔ shared goal rendering always releases measurement (success) (0.701581ms)
+✔ shared goal rendering always releases measurement (failure) (0.731387ms)
+✔ formatting failure reports raw evidence and deliberate presentation (0.620378ms)
+✔ loading notification terminal preserves the observed current promise without unhandled errors (39.699039ms)
+✔ loading notification persisted preserves the observed current promise without unhandled errors (50.714712ms)
+✔ pending creation receives resource URLs/signal; pagehide aborts without a facade (4.241558ms)
+✔ cancellation before import finishes skips creation and cannot publish a facade (5.153605ms)
+✔ late success during creation is disposed once and never handed off (1.298585ms)
+✔ slow initialization shows loading without publishing a facade (0.905615ms)
+✔ creation failure reports once without a retry control or another creation (4.179671ms)
+✔ malformed compact input leaves the same program usable (1.117304ms)
+✔ unexpected runtime failure (object) closes formatting without recreation or replay (0.872753ms)
+✔ unexpected runtime failure (object) closes formatting without recreation or replay (0.735896ms)
+✔ unexpected runtime failure (undefined) closes formatting without recreation or replay (0.641248ms)
+✔ terminal document cleanup reports raw disposal failure (object) once (0.858777ms)
+✔ terminal document cleanup reports raw disposal failure (object) once (0.646397ms)
+✔ terminal document cleanup reports raw disposal failure (undefined) once (0.571817ms)
+✔ obsolete cancellation reports own raw cleanup evidence (undefined) (0.726569ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (1.344922ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (0.612514ms)
+✔ resolved lifetime preserves bfcache and disposes on terminal pagehide (0.552671ms)
+✔ late disposal throwing Error retains/reports evidence without an unhandled rejection (50.97866ms)
+✔ late disposal throwing null retains/reports evidence without an unhandled rejection (33.290731ms)
+✔ late disposal throwing undefined retains/reports evidence without an unhandled rejection (56.781748ms)
+✔ late disposal diagnostics tolerate a throwing reporting sink (54.164609ms)
+✔ arbitrary creation rejection (null) reports without coercion or a secondary unhandled rejection (51.506534ms)
+✔ arbitrary creation rejection (undefined) reports without coercion or a secondary unhandled rejection (34.938443ms)
+✔ arbitrary creation rejection (primitive) reports without coercion or a secondary unhandled rejection (33.287675ms)
+✔ arbitrary creation rejection (proxy) reports without coercion or a secondary unhandled rejection (32.862986ms)
+✔ arbitrary creation rejection (sink) reports without coercion or a secondary unhandled rejection (50.913608ms)
+✔ primary creation wrapper/context and untouched raw cause are logged (1.885401ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 586.514748

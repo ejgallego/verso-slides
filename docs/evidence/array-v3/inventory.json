@@ -1,0 +1,34 @@
+{
+  "source": "bf9bf7f32176030e6e9e295dd9959a850d6c5cb7",
+  "vir": "590be72bd91519c7beb89e105dfba498a4aff140",
+  "runtimePackSha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1",
+  "runtimePackBytes": 1120731,
+  "manifests": [
+    {
+      "route": "root",
+      "contentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+      "manifestSha256": "637f94bc170e972abcc59d5ddfbce108925a3e962155c7df318477282f5775f6",
+      "files": 6
+    },
+    {
+      "route": "root",
+      "contentId": "6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995",
+      "manifestSha256": "2b28a6f037e3d7f894c78e2df92954d95f4a755fc952238365838e0a3b42101c",
+      "files": 8
+    },
+    {
+      "route": "nested/deck",
+      "contentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+      "manifestSha256": "637f94bc170e972abcc59d5ddfbce108925a3e962155c7df318477282f5775f6",
+      "files": 6
+    },
+    {
+      "route": "nested/deck",
+      "contentId": "6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995",
+      "manifestSha256": "2b28a6f037e3d7f894c78e2df92954d95f4a755fc952238365838e0a3b42101c",
+      "files": 8
+    }
+  ],
+  "checkedManifests": 4,
+  "checkedPayloads": 28
+}
