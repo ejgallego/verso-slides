@@ -62,12 +62,25 @@ nested-hosting acceptance.
 
 [Commands, results, diagnostic excerpts and replay sources](evidence/public-runtime/results.json)
 are retained alongside [replay instructions](evidence/public-runtime/README.md).
-No current CI status was queried. Upstream's reported build qualification is
-separate from these locally executed consumer results.
+Slides did not query CI during execution. Upstream's reported build qualification
+is separate from these locally executed consumer results.
+
+## Independent acceptance
+
+Module accepted `06eb2c1` in `VIR-SLIDES-PUBLIC-RUNTIME-ACCEPTED-20261001-001`.
+Its read-only review independently matched 20 raw logs, seven replay sources,
+four acquired packs and six envelopes/45 payloads. No shared-contract or producer
+blocker remains. This closes the recorded `--no-cache` consumer acquisition gate;
+a downstream build with enabled artifact caches was not qualified here.
+
+That review also reports VIR CI `36855806170` and candidate `36855806167` as
+successful at exact `87d7646d`. These are the reviewer's CI observations, not local
+test executions or a Slides CI claim. No tests were rerun for this status update.
 
 ## Owners and next actions
 
-- Slides: public acquisition and offline deck gate complete; preserve the minimal
+- Slides: public acquisition and offline deck gate accepted at its explicit
+  `--no-cache` scope; preserve the minimal
   API/build scope and historical evidence.
 - VIR: exact public lock/source supplied; no new consumer API/artifact request.
 - Slides: fresh browser acceptance of the reduced renderer, geometry, font/theme/
