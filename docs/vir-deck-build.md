@@ -65,14 +65,16 @@ preserves the instance. Cancellation does not preempt synchronous Lean execution
 
 ## Exact artifacts and qualification
 
-VIR pin: `af3052cac2740f41bd701de3646df348b7e2dbb3`, Lean 4.34.0.
+VIR pin: `87d7646d1ceb99c94efc92000370b814f83219d2`, Lean 4.34.0.
 Runtime content ID: `832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d`.
-Supplied pack SHA-256: `d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1`.
+Runtime pack SHA-256: `d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1`.
 Program content ID: `97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58`.
 
-The runtime lock source remains `"-"`; the exact matching pack must be supplied
-locally. Ordinary resource preparation remains library-owned. Anonymous durable
-installation and final geometry/retention/product acceptance are separate gates.
+The runtime lock names the public [exact release pack](https://github.com/ejgallego/lean-vir/releases/download/resource-832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d.virres).
+Ordinary resource preparation remains library-owned and verifies content identity;
+there is no implicit Wasm source build or formatter fallback. The historical
+supplied-pack checkpoint stays separate from [public-source qualification](vir-public-runtime.md).
+Final geometry/retention/product acceptance remains open.
 
 [Accepted historical execution and immutable logs](https://github.com/ejgallego/verso-slides/blob/3f7dbc93f10f1ed2ef88ee65dda9019b5c298233/docs/evidence/publication-adoption/README.md)
 remain on the development branch. This reduced renderer is a new source checkpoint;

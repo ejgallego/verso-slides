@@ -1,0 +1,8 @@
+#!/usr/bin/python3
+import os,sys,json,time
+from pathlib import Path
+args=sys.argv[1:]
+with open(os.environ['SLIDES_QUAL_TRANSPORT_LOG'],'a') as f:f.write(json.dumps({'tool':'curl','args':args,'mode':os.environ.get('SLIDES_QUAL_NETWORK','online'),'time':time.time()})+'\n')
+if os.environ.get('SLIDES_QUAL_NETWORK')=='offline':
+ print('OFFLINE_TRANSPORT_DENIED: '+next((args[i+1] for i,a in enumerate(args[:-1]) if a=='--url'),'curl'),file=sys.stderr);sys.exit(99)
+os.execv('/usr/bin/curl',['/usr/bin/curl']+args)

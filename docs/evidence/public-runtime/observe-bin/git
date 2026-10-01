@@ -1,0 +1,7 @@
+#!/usr/bin/python3
+import os,sys,json
+args=sys.argv[1:]
+if os.environ.get('SLIDES_QUAL_NETWORK')=='offline' and any(a in ['clone','fetch','pull','push','ls-remote'] for a in args):
+ with open(os.environ['SLIDES_QUAL_TRANSPORT_LOG'],'a') as f:f.write(json.dumps({'tool':'git','args':args,'mode':'offline'})+'\n')
+ print('OFFLINE_GIT_TRANSPORT_DENIED',file=sys.stderr);sys.exit(99)
+os.execv('/usr/bin/git',['/usr/bin/git']+args)
