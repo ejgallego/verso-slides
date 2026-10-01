@@ -27,7 +27,7 @@ def test_exact_pair_published_bytes_and_reference(site_dir):
             assert hashlib.sha256(payload).hexdigest() == info["sha256"]
         assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.js").read_bytes()).hexdigest() == "b9fa28797af2787b4bae53a4d4a6a440b718512b54553717c65630b239b5829a"
         assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.wasm").read_bytes()).hexdigest() == "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4"
-        bootstrap = (root / "vir-bootstrap.js").read_text()
+        bootstrap = (root / "index.html").read_text()
         embedded = bootstrap.split("window.__versoVirExpectedExports = ", 1)[1].split(";\n", 1)[0]
         assert json.loads(embedded) == reference
 

@@ -13,7 +13,8 @@ def test_published_formatter_has_one_mandatory_path(site_dir):
         assert "program.call(\"formatSegments\"" in pretty
         for old in ("function deserializeFormat", "function spaceUptoLine", "function be("):
             assert old not in pretty
-        assert (root / "vir-bootstrap.js").is_file()
+        assert not (root / "vir-bootstrap.js").exists()
+        assert (root / "index.html").read_text().count("window.__versoVirResourceUrls = ") == 1
         assert len(list(root.glob("lib/vir/*/bundle.json"))) == 2
 
 

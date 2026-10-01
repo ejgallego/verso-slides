@@ -440,8 +440,8 @@ private def jsString (s : String) : String := Id.run do
         else c.toString
   return out ++ "\""
 
-/-- Renders the full standalone HTML page. -/
-def renderFullHtml (config : Config) (title : String) (slidesBody : Html) (customCss : Array String := #[]) : Html :=
+private def renderFullHtmlWithBootstrap (config : Config) (title : String)
+    (slidesBody : Html) (customCss : Array String) (bootstrap : String) : Html :=
   let extraCssLinks := config.extraCss.map fun css =>
     {{ <link rel="stylesheet" href={{css.filename}} /> }}
   let extraJsScripts := config.extraJs.map fun url =>
@@ -522,11 +522,18 @@ def renderFullHtml (config : Config) (title : String) (slidesBody : Html) (custo
       <script src={{s!"{libPrefix}/highlighting.js"}}></script>
       <script src={{s!"{libPrefix}/code-block-bg.js"}}></script>
       <script src={{s!"{libPrefix}/pretty.js"}}></script>
+      {{ if bootstrap.isEmpty then Html.empty else
+        {{ <script>{{Html.text false bootstrap}}</script> }} }}
       <script src={{s!"{libPrefix}/panel.js"}}></script>
       <script src={{s!"{libPrefix}/lightbox.js"}}></script>
       <script src={{s!"{libPrefix}/illuminate-reveal.js"}}></script>
     </body>
   </html> }}
+
+/-- Renders the full standalone HTML page. -/
+def renderFullHtml (config : Config) (title : String) (slidesBody : Html)
+    (customCss : Array String := #[]) : Html :=
+  renderFullHtmlWithBootstrap config title slidesBody customCss ""
 
 
 /-- Writes a file, creating parent directories as needed. -/
@@ -675,40 +682,30 @@ private def validateVirAssetNamespace (outputDir : System.FilePath)
   let output := (← IO.currentDir) / outputDir
   let library := foldedAssetPath (output / "lib")
   let resources := library ++ "/vir"
-  let stage := library ++ "/.vir-stage"
-  let bootstrap := foldedAssetPath (output / "vir-bootstrap.js")
   for (filename, _, _) in plan.toList do
     let folded := foldedAssetPath (output / filename.replace "\\" "/")
-    if folded == library || folded == resources || folded.startsWith (resources ++ "/") ||
-        folded == stage || folded.startsWith (stage ++ "/") ||
-        (folded == bootstrap && filename != "vir-bootstrap.js") then
+    if folded == library || folded == resources || folded.startsWith (resources ++ "/") then
       throw <| IO.userError s!"Slides asset {filename} collides with the reserved VIR resource namespace"
 
 /-- Validate configured filenames and reserve the embedded publisher's namespace. -/
 def Config.validateFilenames (config : Config) : IO Unit := do
   validateVirAssetNamespace config.outputDir (← config.collectAssets)
 
-private def virBootstrap (published : VirResourceSite.PublishedResources) : IO String := do
-  let some (_, programManifestUrl) := published.programManifestUrls.find?
-      (·.1 == "verso-slides/prettyM")
-    | throw <| IO.userError "PrettyM program manifest is missing"
+private def virBootstrap (plan : VirResourceSite.PublicationPlan) : String := Id.run do
   let urls := Lean.Json.mkObj [
-    ("runtimeModule", Lean.Json.str published.runtimeModuleUrl),
-    ("runtimeManifest", Lean.Json.str published.runtimeManifestUrl),
-    ("programManifest", Lean.Json.str programManifestUrl)]
+    ("runtimeModule", Lean.Json.str plan.runtimeModuleUrl),
+    ("runtimeManifest", Lean.Json.str plan.runtimeManifestUrl),
+    ("programManifest", Lean.Json.str plan.programManifestUrl)]
   return "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++
     "window.__versoVirExpectedExports = " ++ virExpectedExports ++ ";\n" ++ virBootstrapJs
 
 /-- Generates a {lit}`reveal.js` slide presentation with mandatory Lean formatting through VIR. -/
 def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWithLogger do
   let resourcePlan ← VirResourceSite.prepare virResources
-  let bootstrap ← virBootstrap resourcePlan.published
-  let config := { config with extraJs := config.extraJs.push "vir-bootstrap.js" }
-  -- Merge internal bootstrap bytes with the existing configured assets so
-  -- filename conflicts are rejected before any publication writes.
-  let assetPlan ← recordAsset (← config.collectAssets) "vir-bootstrap.js"
-    "VIR bootstrap" (.text bootstrap)
+  let mut assetPlan ← config.collectAssets
   validateVirAssetNamespace config.outputDir assetPlan
+  for file in resourcePlan.files do
+    assetPlan ← recordAsset assetPlan file.path "VIR resources" (.binary file.bytes)
 
   -- Run the traversal pass (collects CSS blocks, etc.)
   let (doc, traverseState) ← (Slides.traverse doc : TraverseM (Part Slides)) () {}
@@ -729,7 +726,8 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
 
   -- Produce full HTML document
   let title := inlinesToPlainText doc.title
-  let fullHtml := renderFullHtml config title slidesHtml traverseState.cssBlocks
+  let fullHtml := renderFullHtmlWithBootstrap config title slidesHtml traverseState.cssBlocks
+    (virBootstrap resourcePlan)
 
   -- Write output
   let dir := config.outputDir
@@ -752,8 +750,6 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
     match payload with
     | .text body => writeFileWithDirs (dir / filename) body
     | .binary bytes => writeBinFileWithDirs (dir / filename) bytes
-
-  let _ ← VirResourceSite.write dir resourcePlan
 
   -- Copy local images to the output directory
   if !traverseState.imageFiles.isEmpty then

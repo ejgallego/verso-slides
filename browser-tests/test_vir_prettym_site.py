@@ -17,7 +17,9 @@ def test_published_bundles_and_urls(site_dir):
     for subdir in ("", "nested/deck", "downstream/custom"):
         root = site_dir / subdir
         assert (root / "index.html").is_file()
-        bootstrap = (root / "vir-bootstrap.js").read_text()
+        bootstrap = (root / "index.html").read_text()
+        assert not (root / "vir-bootstrap.js").exists()
+        assert bootstrap.count("window.__versoVirResourceUrls = ") == 1
         match = re.search(r"window\.__versoVirResourceUrls = (\{.*?\});", bootstrap)
         assert match is not None
         urls = json.loads(match.group(1))
