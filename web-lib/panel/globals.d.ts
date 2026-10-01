@@ -62,6 +62,6 @@ interface Window {
     versoVirReady?: Promise<VersoVirProgram>;
     /** State of this document's one-shot formatter initialization. */
     versoVirState?: "loading" | "ready" | "failed" | "disposed";
-    /** Slides v2 facade: bounded compact input, typed segments, recoverable errors. */
+    /** Slides facade: compact input converted to typed Lean segments. */
     versoVirFormatSegments?: (format: unknown, width: number, indent: number) => PrettySegment[];
 }

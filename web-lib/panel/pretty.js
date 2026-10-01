@@ -6,25 +6,16 @@
 
 "use strict";
 
-// Must agree with VersoSlides.Pretty.limits. Input admission runs before any
-// recursive ABI conversion; Lean independently checks it before layout.
-var VIR_FORMAT_LIMITS = Object.freeze({
-    maxNodes: 10000, maxDepth: 128, maxInputBytes: 65536,
-    maxTextBytes: 16384, maxHardLines: 4096,
-    maxColumns: 4096, maxIndent: 4096,
-    maxOutputBytes: 1048576, maxSegments: 10000, maxTagEntries: 65536,
-});
-
 class PrettyFormatError extends Error {
     /** @param {string} code */
     constructor(code) {
-        super("PrettyM limit or input error: " + code);
+        super("PrettyM input error: " + code);
         this.name = "PrettyFormatError";
         this.code = code;
     }
 }
 
-/** Exact bounded decimal scalars; reject lossy numbers before string conversion.
+/** Exact decimal scalars; reject lossy numbers before string conversion.
  * @param {*} value @param {boolean} signed @return {string}
  */
 function formatScalar(value, signed) {
@@ -34,7 +25,7 @@ function formatScalar(value, signed) {
         }
         return String(value);
     }
-    if (typeof value !== "string" || value.length > 21 ||
+    if (typeof value !== "string" ||
         !(signed ? /^(0|-?[1-9][0-9]*)$/ : /^(0|[1-9][0-9]*)$/).test(value)) {
         throw new PrettyFormatError("invalidInput");
     }
@@ -43,22 +34,22 @@ function formatScalar(value, signed) {
 
 /** @param {number} width @param {number} indent */
 function checkFormatDimensions(width, indent) {
-    if (!Number.isSafeInteger(width) || width < 0 || width > VIR_FORMAT_LIMITS.maxColumns) {
+    if (!Number.isSafeInteger(width) || width < 0) {
         throw new PrettyFormatError("width");
     }
-    if (!Number.isSafeInteger(indent) || indent < 0 || indent > VIR_FORMAT_LIMITS.maxIndent) {
+    if (!Number.isSafeInteger(indent) || indent < 0) {
         throw new PrettyFormatError("indentation");
     }
 }
 
-/** Typed v2 boundary. Admission completes before the first ABI call.
+/** Typed v2 boundary for the compact format emitted by Verso.
  * @param {VersoVirProgram} program @param {*} format
  * @param {number} width @param {number} indent
  * @return {PrettySegment[]}
  */
 function formatCompactSegments(program, format, width, indent) {
     checkFormatDimensions(width, indent);
-    var admitted = compactFormatToStdFormat(format, indent);
+    var admitted = compactFormatToStdFormat(format);
     var result = /** @type {PrettyFormatResult} */ (program.call("formatSegments", admitted, width, indent));
     if (result.kind === "error") throw new PrettyFormatError(result.value);
     if (result.kind !== "ok" || !Array.isArray(result.value)) {
@@ -85,89 +76,12 @@ function formatCompactSegments(program, format, width, indent) {
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
  */
 
-/**
- * Convert the compact format emitted by Verso into VIR's direct object-ABI
- * representation of `Std.Format`. Nat and Int fields cross as decimal strings.
- * @param {*} json
- * @param {number} [indent]
- * @param {typeof VIR_FORMAT_LIMITS} [limits] Small test policies use the same admission code.
- * @return {*}
+/** Convert Verso's compact format to VIR's Std.Format representation.
+ * Nat/Int fields use exact decimal strings. This checks constructor/scalar
+ * representation only; application resource budgets are a separate followup.
+ * @param {*} json @return {*}
  */
-function compactFormatToStdFormat(json, indent = 0, limits = VIR_FORMAT_LIMITS) {
-    var pending = [{ node: json, depth: 1, indent: indent }];
-    var nodes = 0, bytes = 0, hardLines = 0;
-    while (pending.length) {
-        // Nonempty stack: pop always supplies the next admission item.
-        var item = /** @type {{node: *, depth: number, indent: number}} */ (pending.pop());
-        if (++nodes > limits.maxNodes) throw new PrettyFormatError("inputNodes");
-        if (item.depth > limits.maxDepth) throw new PrettyFormatError("inputDepth");
-        if (!Number.isSafeInteger(item.indent) || Math.abs(item.indent) > limits.maxIndent) {
-            throw new PrettyFormatError("indentation");
-        }
-        var node = item.node;
-        if (node === null || node === 1) continue;
-        if (typeof node === "string") {
-            if (node.length > limits.maxTextBytes) throw new PrettyFormatError("textBytes");
-            var textBytes = 0, textLines = 0;
-            for (var i = 0; i < node.length; i++) {
-                var c = node.charCodeAt(i);
-                if (c === 10) textLines++;
-                if (c < 0x80) textBytes++;
-                else if (c < 0x800) textBytes += 2;
-                else if (c >= 0xd800 && c <= 0xdbff) {
-                    var lo = node.charCodeAt(++i);
-                    if (!(lo >= 0xdc00 && lo <= 0xdfff)) throw new PrettyFormatError("invalidInput");
-                    textBytes += 4;
-                } else {
-                    if (c >= 0xdc00 && c <= 0xdfff) throw new PrettyFormatError("invalidInput");
-                    textBytes += 3;
-                }
-                if (textBytes > limits.maxTextBytes) throw new PrettyFormatError("textBytes");
-            }
-            bytes += textBytes;
-            if (bytes > limits.maxInputBytes) throw new PrettyFormatError("inputBytes");
-            hardLines += textLines;
-            if (hardLines > limits.maxHardLines) throw new PrettyFormatError("hardLines");
-            continue;
-        }
-        if (!Array.isArray(node)) throw new PrettyFormatError("invalidInput");
-        /** @param {*} value @param {number} [nesting] */
-        var child = (value, nesting = item.indent) => ({
-            node: value, depth: item.depth + 1, indent: nesting,
-        });
-        switch (node[0]) {
-            case 2:
-                if (node.length !== 2 || typeof node[1] !== "boolean") throw new PrettyFormatError("invalidInput");
-                break;
-            case 3: {
-                if (node.length !== 3) throw new PrettyFormatError("invalidInput");
-                var nest = BigInt(formatScalar(node[1], true));
-                // Bound the cumulative value, not each delta: a negative nest
-                // followed by a positive one may legitimately cancel.
-                pending.push(child(node[2], Number(BigInt(item.indent) + nest)));
-                break;
-            }
-            case 4:
-                if (node.length !== 3) throw new PrettyFormatError("invalidInput");
-                pending.push(child(node[2]), child(node[1]));
-                break;
-            case 5: case 6:
-                if (node.length !== 2) throw new PrettyFormatError("invalidInput");
-                pending.push(child(node[1]));
-                break;
-            case 7:
-                if (node.length !== 3) throw new PrettyFormatError("invalidInput");
-                if (formatScalar(node[1], false).length > 20) throw new PrettyFormatError("tagValue");
-                pending.push(child(node[2]));
-                break;
-            default: throw new PrettyFormatError("invalidInput");
-        }
-    }
-    return compactFormatToStdFormatUnchecked(json);
-}
-
-/** @param {*} json @return {*} Only called after complete bounded admission. */
-function compactFormatToStdFormatUnchecked(json) {
+function compactFormatToStdFormat(json) {
     if (json === null) return { kind: "nil" };
     if (typeof json === "string") return { kind: "text", value: json };
     if (json === 1) return { kind: "line" };
@@ -176,36 +90,42 @@ function compactFormatToStdFormatUnchecked(json) {
     }
     switch (json[0]) {
         case 2:
+            if (json.length !== 2 || typeof json[1] !== "boolean") throw new PrettyFormatError("invalidInput");
             return { kind: "align", value: !!json[1] };
         case 3:
+            if (json.length !== 3) throw new PrettyFormatError("invalidInput");
             return {
                 kind: "nest",
-                fields: { indent: formatScalar(json[1], true), f: compactFormatToStdFormatUnchecked(json[2]) },
+                fields: { indent: formatScalar(json[1], true), f: compactFormatToStdFormat(json[2]) },
             };
         case 4:
+            if (json.length !== 3) throw new PrettyFormatError("invalidInput");
             return {
                 kind: "append",
                 fields: {
-                    arg1: compactFormatToStdFormatUnchecked(json[1]),
-                    arg2: compactFormatToStdFormatUnchecked(json[2]),
+                    arg1: compactFormatToStdFormat(json[1]),
+                    arg2: compactFormatToStdFormat(json[2]),
                 },
             };
         case 5:
+            if (json.length !== 2) throw new PrettyFormatError("invalidInput");
             return {
                 kind: "group",
-                fields: { arg1: compactFormatToStdFormatUnchecked(json[1]), behavior: "allOrNone" },
+                fields: { arg1: compactFormatToStdFormat(json[1]), behavior: "allOrNone" },
             };
         case 6:
+            if (json.length !== 2) throw new PrettyFormatError("invalidInput");
             return {
                 kind: "group",
-                fields: { arg1: compactFormatToStdFormatUnchecked(json[1]), behavior: "fill" },
+                fields: { arg1: compactFormatToStdFormat(json[1]), behavior: "fill" },
             };
         case 7:
+            if (json.length !== 3) throw new PrettyFormatError("invalidInput");
             return {
                 kind: "tag",
                 fields: {
                     arg1: formatScalar(json[1], false),
-                    arg2: compactFormatToStdFormatUnchecked(json[2]),
+                    arg2: compactFormatToStdFormat(json[2]),
                 },
             };
         default:

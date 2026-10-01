@@ -3,7 +3,7 @@
 Branch: `feat/vir-prettym-three-patch`.
 Base: `a51f7e581893042eb317edf50216060a26f38ac3`.
 
-1. `561df0d`: Lean segment formatter, bounds, VIR dependency/resource wiring,
+1. `561df0d`: Lean segment formatter, VIR dependency/resource wiring,
    one-shot bootstrap and typed JavaScript call adapter.
 2. `4e9d8cc`: delete the handwritten JavaScript layout implementation and route
    both panels and lightboxes through shared Lean-backed presentation.
@@ -12,19 +12,17 @@ Base: `a51f7e581893042eb317edf50216060a26f38ac3`.
 The first commit is an intermediate migration step; the final tree has one
 formatter. Intermediate commits have not been separately qualified.
 
-Production files and executable tests match
-`cb9a8f8815cb4c0bb6c12fd52458cdd332e817cc` from the existing review branch.
-Only documentation and commit grouping differ. Raw qualification outputs and
-historical correspondence are outside this landing diff and remain in Git
-history; they are not required by builds or tests.
+The resource-budget policy has been removed from the first landing and queued
+in [the followups](vir-followups.md). The wrapper calls Std.Format.prettyM
+directly, retaining the existing Except/v2 result shape for this checkpoint.
+The array-result cleanup is a separate coordination item. The previous bounded
+program and its evidence remain on the archival branch, not this landing diff.
 
-## Executed results reused without rerunning
+## Qualification
 
-The executed source was `679ca44ad12079a2fbd6f3f70882f0ad4ea3f7e3`:
-42 Node checks and 32 focused Chromium/Firefox checks passed, as did the warm
-native build and publication tests. Root/nested publication matched four
-manifests and 30 payloads. This regrouping preserves those production bytes.
-[Immutable results and commands](https://github.com/ejgallego/verso-slides/blob/cb9a8f8815cb4c0bb6c12fd52458cdd332e817cc/docs/evidence/generated-interface/README.md).
+The policy removal regenerates the program pack and requires fresh focused
+native/browser checks. Historical 101-check bounds results do not qualify this
+unbounded implementation. Raw logs are kept outside the landing diff.
 
 VIR remains `590be72bd91519c7beb89e105dfba498a4aff140`, Lean 4.34.0.
 Runtime content ID:
@@ -32,11 +30,11 @@ Runtime content ID:
 Runtime pack SHA-256:
 `d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1`.
 Program content ID:
-`97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58`.
+`f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede`.
 Program pack SHA-256:
-`c48f6857c125340a748c983635abe52e8e603fc62fc59ef5cc41746f86b953da`.
+`85dd8d25261b5da8e807b4d373dd5db885a5b24480c24d1310525895ad308c3f`.
 
-No new native/browser/cold-install campaign or CI result is claimed.
-Historical qualification remains scoped to its recorded source. Generic mobile
+No new cold-install or CI result is claimed. Historical qualification remains
+scoped to its recorded source. Generic mobile
 panel restoration, general asset filename validation, output CLI, directory
 assets and managed builds remain separate followups after the first patch lands.

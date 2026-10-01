@@ -240,18 +240,13 @@ test('creation failure reports once without a retry control or another creation'
   assert.deepEqual(f.states, ['loading', 'failed']);
 });
 
-test('input and Lean Except errors leave the same program usable', async () => {
-  let rejectExpression = true;
-  const f = fixture({call() {
-    if (rejectExpression) { rejectExpression = false; return {kind: 'error', value: 'outputBytes'}; }
-    return {kind: 'ok', value: [{text: 'valid', tags: []}]};
-  }});
+test('malformed compact input leaves the same program usable', async () => {
+  const f = fixture();
   f.loading.resolve(f.loader); await f.started.promise;
   f.creation.resolve(f.program); await f.window.versoVirReady;
-  assert.throws(() => f.window.versoVirFormatSegments('x', 4097, 0), e => e.code === 'width');
+  assert.throws(() => f.window.versoVirFormatSegments([3, 1.5, 'x'], 80, 0), e => e.code === 'invalidInput');
   assert.equal(f.formatCalls.length, 0);
-  assert.throws(() => f.window.versoVirFormatSegments('x', 80, 0), e => e.code === 'outputBytes');
-  assert.equal(f.window.versoVirFormatSegments('valid', 80, 0)[0].text, 'valid');
+  assert.equal(f.window.versoVirFormatSegments('valid', 4097, 0)[0].text, 'formatted');
   assert.equal(f.window.versoVir, f.program);
   assert.equal(f.program.status, 'active');
   assert.equal(f.window.versoVirState, 'ready');

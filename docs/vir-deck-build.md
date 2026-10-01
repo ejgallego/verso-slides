@@ -37,11 +37,12 @@ The `formatSegments` role calls `VersoSlides.VirPrettyM.formatSegments`:
 Std.Format → Nat → Nat → Except FormatError (Array Pretty.Segment)
 ```
 
-VIR marshals using generated Lean metadata. JavaScript checks the compact input
-before recursive conversion; Lean checks it before layout and reserves output
-before allocation. Limits are 10,000 nodes, depth 128, 64 KiB aggregate input,
-16 KiB per text node, 4,096 hard newlines/columns/absolute indentation,
-1 MiB output text, 10,000 segments and 65,536 output tag entries.
+VIR marshals using generated Lean metadata. The adapter converts Verso's
+compact representation and checks constructor/scalar shape. The Lean wrapper
+runs `Std.Format.prettyM` directly, preserving the former trusted-input model.
+Explicit resource budgets and their exclusive tests are deferred to a
+[separate later PR](vir-followups.md). The existing `Except` result shape is
+retained while the array-result simplification is coordinated with VIR.
 
 One program is initialized per document. Loading/failure leaves static slides
 usable. Expected format errors preserve the instance; unexpected failures close
@@ -54,13 +55,13 @@ Native tests are in `Tests/Pretty.lean` and `Tests/VirPublication.lean`. Node
 checks cover admission, presentation and document lifetime:
 
 ```sh
-node --test Tests/pretty-input.test.cjs Tests/pretty-presentation.test.cjs Tests/vir-bootstrap.test.cjs
+node --test Tests/pretty-presentation.test.cjs Tests/vir-bootstrap.test.cjs
 ```
 
 Focused Playwright tests are `browser-tests/test_vir_prettym_*.py`.
 They compare full segments/tags against the native corpus and exercise DOM
 bindings, escaping, lifecycle, geometry and reflow. Native corpus output is
-available from `lake exe test-pretty --host-abi-corpus`, `--bounds-corpus` and
+available from `lake exe test-pretty --host-abi-corpus` and
 `--geometry-corpus`; see the tests' fixture requirements.
 
 The [review notes](vir-review-stack.md) identify the executed source and retained

@@ -173,24 +173,21 @@ def test_document_termination_cancels_pending_creation_without_late_install(page
     assert_no_unhandled(page, errors)
 
 
-def test_bounded_expression_errors_keep_the_single_real_program(page, server, site_dir):
+def test_malformed_compact_input_keeps_the_single_real_program(page, server):
     errors = open_pending(page, server)
     page.evaluate("window.lifecycleProbe.release()")
     page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
-    corpus = json.loads((site_dir / "bounds-corpus.json").read_text())
-    for case in [c for c in corpus if c["name"] in ("width over", "output bytes over")]:
-        result = page.evaluate("""c => {
-            const program = window.versoVir, ready = window.versoVirReady;
-            let rejection;
-            try { window.versoVirFormatSegments(c.format, c.width, c.indent); }
-            catch (error) { rejection = {name: error.name, code: error.code}; }
-            const valid = window.versoVirFormatSegments('same program', 80, 0);
-            return {rejection, valid, same: window.versoVir === program && window.versoVirReady === ready,
-                status: program.status, state: window.versoVirState};
-        }""", case)
-        assert result == {"rejection": {"name": "PrettyFormatError", "code": case["result"]["error"]},
-                          "valid": [{"text": "same program", "tags": []}], "same": True,
-                          "status": "active", "state": "ready"}
+    result = page.evaluate("""() => {
+        const program = window.versoVir, ready = window.versoVirReady;
+        let rejection;
+        try { window.versoVirFormatSegments([3, 1.5, 'x'], 80, 0); }
+        catch (error) { rejection = error.code; }
+        return {rejection, valid: window.versoVirFormatSegments('same program', 4097, 0),
+            same: window.versoVir === program && window.versoVirReady === ready,
+            status: program.status, state: window.versoVirState};
+    }""")
+    assert result == {"rejection": "invalidInput", "valid": [{"text": "same program", "tags": []}],
+                      "same": True, "status": "active", "state": "ready"}
     assert page.evaluate("window.lifecycleProbe.wasmRequests === 1 && window.lifecycleProbe.instances === 1 && window.versoVirRetry === undefined")
     assert_no_unhandled(page, errors)
 
