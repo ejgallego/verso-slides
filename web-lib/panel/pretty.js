@@ -8,6 +8,112 @@
 
 "use strict";
 
+class PrettyFormatError extends Error {
+    /** @param {string} code */
+    constructor(code) {
+        super("PrettyM input error: " + code);
+        this.name = "PrettyFormatError";
+        this.code = code;
+    }
+}
+
+/** Exact decimal scalars; reject lossy numbers before string conversion.
+ * @param {*} value @param {boolean} signed @return {string}
+ */
+function formatScalar(value, signed) {
+    if (typeof value === "number") {
+        if (!Number.isSafeInteger(value) || (!signed && value < 0)) {
+            throw new PrettyFormatError("invalidInput");
+        }
+        return String(value);
+    }
+    if (typeof value !== "string" ||
+        !(signed ? /^(0|-?[1-9][0-9]*)$/ : /^(0|[1-9][0-9]*)$/).test(value)) {
+        throw new PrettyFormatError("invalidInput");
+    }
+    return value;
+}
+
+/** @param {number} width @param {number} indent */
+function checkFormatDimensions(width, indent) {
+    if (!Number.isSafeInteger(width) || width < 0) {
+        throw new PrettyFormatError("width");
+    }
+    if (!Number.isSafeInteger(indent) || indent < 0) {
+        throw new PrettyFormatError("indentation");
+    }
+}
+
+/** Typed v3 boundary for the compact format emitted by Verso.
+ * @param {VersoVirProgram} program @param {*} format
+ * @param {number} width @param {number} indent
+ * @return {PrettySegment[]}
+ */
+function formatCompactSegments(program, format, width, indent) {
+    checkFormatDimensions(width, indent);
+    var admitted = compactFormatToStdFormat(format);
+    var segments = /** @type {PrettySegment[]} */ (program.call("formatSegments", admitted, width, indent));
+    if (!Array.isArray(segments)) throw new Error("Invalid PrettyM array result");
+    return segments;
+}
+
+/** Convert Verso's compact format to VIR's Std.Format representation.
+ * Nat/Int fields use exact decimal strings. This checks constructor/scalar
+ * representation only; application resource budgets are a separate followup.
+ * @param {*} json @return {*}
+ */
+function compactFormatToStdFormat(json) {
+    if (json === null) return { kind: "nil" };
+    if (typeof json === "string") return { kind: "text", value: json };
+    if (json === 1) return { kind: "line" };
+    if (!Array.isArray(json) || json.length === 0) {
+        throw new PrettyFormatError("invalidInput");
+    }
+    switch (json[0]) {
+        case 2:
+            if (json.length !== 2 || typeof json[1] !== "boolean") throw new PrettyFormatError("invalidInput");
+            return { kind: "align", value: !!json[1] };
+        case 3:
+            if (json.length !== 3) throw new PrettyFormatError("invalidInput");
+            return {
+                kind: "nest",
+                fields: { indent: formatScalar(json[1], true), f: compactFormatToStdFormat(json[2]) },
+            };
+        case 4:
+            if (json.length !== 3) throw new PrettyFormatError("invalidInput");
+            return {
+                kind: "append",
+                fields: {
+                    arg1: compactFormatToStdFormat(json[1]),
+                    arg2: compactFormatToStdFormat(json[2]),
+                },
+            };
+        case 5:
+            if (json.length !== 2) throw new PrettyFormatError("invalidInput");
+            return {
+                kind: "group",
+                fields: { arg1: compactFormatToStdFormat(json[1]), behavior: "allOrNone" },
+            };
+        case 6:
+            if (json.length !== 2) throw new PrettyFormatError("invalidInput");
+            return {
+                kind: "group",
+                fields: { arg1: compactFormatToStdFormat(json[1]), behavior: "fill" },
+            };
+        case 7:
+            if (json.length !== 3) throw new PrettyFormatError("invalidInput");
+            return {
+                kind: "tag",
+                fields: {
+                    arg1: formatScalar(json[1], false),
+                    arg2: compactFormatToStdFormat(json[2]),
+                },
+            };
+        default:
+            throw new PrettyFormatError("invalidInput");
+    }
+}
+
 /**
  * @typedef {{ type: string, [key: string]: * }} FormatNode
  *
