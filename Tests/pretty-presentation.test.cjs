@@ -1,0 +1,124 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+function fixture() {
+  const calls = [], diagnostics = [];
+  function element() {
+    return {children: [], attributes: {}, style: {}, textContent: '', innerHTML: '',
+      setAttribute(name, value) { this.attributes[name] = value; },
+      appendChild(el) { this.children.push(el); return el; },
+      removeChild(el) { this.children.splice(this.children.indexOf(el), 1); },
+      getBoundingClientRect() { return {width: 20}; },
+    };
+  }
+  const window = {versoVirState: 'ready', versoVirFormatSegments(format, width, indent) {
+    calls.push({format, width, indent}); return [{text: 'native\n  output', tags: []}];
+  }};
+  const context = vm.createContext({window,
+    document: {createElement: element}, getComputedStyle: () => ({paddingLeft: '10px', paddingRight: '10px'}),
+    console: {error(...args) { diagnostics.push(args); }},
+  });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../web-lib/panel/pretty.js'), 'utf8'), context);
+  const container = {...element(), clientWidth: 100, getBoundingClientRect: () => ({width: 200}), querySelectorAll: () => []};
+  return {context, window, calls, diagnostics, container, element};
+}
+
+test('plain text and hard lines survive HTML escaping exactly', () => {
+  const {context} = fixture();
+  assert.equal(context.segmentsToHtml([{text: '<&>"\n  😀', tags: []}], {}), '&lt;&amp;&gt;&quot;\n  😀');
+  for (const old of ['deserializeFormat', 'spaceUptoLine', 'spaceUptoLineGroups', 'pushGroup', 'be']) {
+    assert.equal(context[old], undefined);
+  }
+});
+
+test('full exact tag stacks survive; nearest registered annotation owns presentation', () => {
+  const {context} = fixture();
+  const tags = ['7', '9007199254740993', '99999999999999999999'];
+  const annotations = {'7': {cssClass: 'const', binding: 'outer'},
+    '9007199254740993': {cssClass: 'var', binding: 'inner'}};
+  assert.equal(context.segmentsToHtml([{text: 'x', tags}], annotations),
+    '<span class="var token" data-binding="inner" data-format-tags="7 9007199254740993 99999999999999999999">x</span>');
+  assert.equal(context.segmentsToHtml([{text: 'x', tags}], {}),
+    '<span data-format-tags="7 9007199254740993 99999999999999999999">x</span>');
+});
+
+test('annotation classes and binding attributes cannot introduce HTML attributes', () => {
+  const {context} = fixture();
+  assert.equal(context.segmentsToHtml([{text: '<script>', tags: ['1']}], {
+    '1': {cssClass: 'var" onclick="bad<&', binding: 'x" data-evil="y<&'},
+  }), '<span class="var&quot; onclick=&quot;bad&lt;&amp; token" data-binding="x&quot; data-evil=&quot;y&lt;&amp;" data-format-tags="1">&lt;script&gt;</span>');
+});
+
+test('goal structure shares indexed formats and escapes names/prefixes', () => {
+  const {context} = fixture();
+  const result = context.goalsToHtml([{name: '<g>', hypotheses: [{names: ['a"', 'b&'],
+    ppType: JSON.stringify({fmt: 'Nat', annotations: {}})}], goalPrefix: '<⊢ ',
+    ppConclusion: {fmt: 'α\nβ', annotations: {}}}]);
+  assert.equal(result.formats.length, 2);
+  assert.equal(result.formats[0].fmt, 'Nat');
+  assert.equal(result.formats[1].fmt, 'α\nβ');
+  assert.ok(result.html.includes('class="goal-name">&lt;g&gt;'));
+  assert.ok(result.html.includes('class="name">a&quot; b&amp;'));
+  assert.ok(result.html.includes('class="goal-vdash">&lt;⊢ '));
+  assert.ok(result.html.includes('data-fmt-idx="0"'));
+  assert.ok(result.html.includes('data-fmt-idx="1"'));
+});
+
+test('pixel-to-column conversion calls only the typed VIR facade without changing text', () => {
+  const {context, calls} = fixture();
+  const format = [5, [4, 'a', 1]];
+  assert.equal(context.formatToHtml(format, {}, 11.9, {spaceWidth: 2}), 'native\n  output');
+  assert.equal(calls[0].format, format);
+  assert.equal(calls[0].width, 5);
+  assert.equal(calls[0].indent, 0);
+  for (const [width, space] of [[NaN, 2], [-1, 2], [5, 0], [5, Infinity]]) {
+    assert.throws(() => context.formatToHtml(format, {}, width, {spaceWidth: space}), e => e.code === 'measurement');
+  }
+  assert.equal(calls.length, 1);
+});
+
+test('one DOM measurer accounts for Reveal scaling and releases its probe', () => {
+  const {context, container} = fixture();
+  const measurer = context.createDOMMeasurer(container);
+  assert.equal(measurer.spaceWidth, 10);
+  assert.equal(measurer.measureElWidth({getBoundingClientRect: () => ({width: 80})}), 40);
+  assert.equal(container.children.length, 1);
+  measurer.cleanup(); assert.equal(container.children.length, 0);
+});
+
+for (const kind of ['signature', 'goal']) {
+  for (const fails of [false, true]) {
+    test(`shared ${kind} rendering always releases measurement (${fails ? 'failure' : 'success'})`, () => {
+      const {context, window, container, element, calls} = fixture();
+      const raw = {unchanged: 'native error'};
+      if (fails) window.versoVirFormatSegments = () => { throw raw; };
+      const source = element();
+      const data = kind === 'signature' ? {fmt: 'sig', annotations: {}} :
+        [{hypotheses: [], goalPrefix: '⊢ ', ppConclusion: {fmt: 'goal', annotations: {}}}];
+      source.getAttribute = () => JSON.stringify(data);
+      const span = {getAttribute: () => '0', closest: () => ({getBoundingClientRect: () => ({width: 80})})};
+      container.querySelectorAll = () => [span];
+      if (fails) assert.throws(() => context.renderRichFormat(container, source), e => e === raw);
+      else {
+        context.renderRichFormat(container, source);
+        assert.equal(calls[0].width, kind === 'signature' ? 8 : 4);
+        assert.equal(kind === 'signature' ? source.innerHTML : span.innerHTML,
+          kind === 'signature' ? '<span class="reflowed">native\n  output</span>' : 'native\n  output');
+      }
+      assert.equal(container.children.length, 0);
+    });
+  }
+}
+
+test('formatting failure reports raw evidence and deliberate presentation', () => {
+  const {context, container, diagnostics} = fixture();
+  for (const raw of [null, undefined, {raw: 'cause'}]) {
+    context.showFormattingFailure(container, raw);
+    assert.equal(diagnostics.at(-1)[1], raw);
+    assert.equal(container.children.at(-1).attributes.role, 'alert');
+    assert.equal(container.children.at(-1).textContent, 'This Lean expression could not be formatted.');
+  }
+});
