@@ -62,7 +62,16 @@
         Reveal.on("slidechanged", closeLightbox);
 
         // Rescale lightbox content when viewport changes
-        Reveal.on("resize", applyScale);
+        Reveal.on("resize", function () {
+            applyScale();
+            if (currentInner) reflowLightboxSignatures(currentInner);
+        });
+        window.addEventListener("verso-vir-statechange", function () {
+            if (currentInner) reflowLightboxSignatures(currentInner);
+        });
+        document.fonts.addEventListener("loadingdone", function () {
+            if (currentInner) reflowLightboxSignatures(currentInner);
+        });
 
         // Close on Escape — use capture phase to intercept before reveal.js
         document.addEventListener(
@@ -186,7 +195,7 @@
             if (!tok) return;
             var binding = tok.getAttribute("data-binding");
             if (!binding) return;
-            var sel = '.token[data-binding="' + binding + '"]';
+            var sel = bindingSelector(binding);
             inner.querySelectorAll(sel).forEach(function (t) {
                 t.classList.add("binding-hl");
             });
@@ -205,22 +214,15 @@
      * @param {HTMLElement} container
      */
     function reflowLightboxSignatures(container) {
-        var sigCode = container.querySelector("code[data-rich-format]");
-        if (!sigCode || typeof formatToHtml !== "function") return;
-        try {
-            var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
-            var measurer = createDOMMeasurer(container);
-            var width =
-                container.clientWidth -
-                parseFloat(getComputedStyle(container).paddingLeft || "0") -
-                parseFloat(getComputedStyle(container).paddingRight || "0");
-            if (width <= 0) width = 600; // fallback
-            var rendered = formatToHtml(fmtData.fmt, fmtData.annotations, width, measurer);
-            sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
-            measurer.cleanup();
-        } catch (e) {
-            // Fall back to plain text signature
-        }
+        container.querySelectorAll("code[data-rich-format]").forEach(function (source) {
+            if (!formatterIsReady()) {
+                source.textContent = "";
+                showFormattingStatus(/** @type {HTMLElement} */ (source));
+            } else {
+                try { renderRichFormat(container, source); }
+                catch (error) { showFormattingFailure(/** @type {HTMLElement} */ (source), error); }
+            }
+        });
     }
 
     /** Close the lightbox overlay if open. */
