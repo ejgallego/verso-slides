@@ -1,0 +1,83 @@
+# Lean formatting through VIR
+
+Lean owns formatting behavior. VIR executes the formatter. JavaScript owns DOM
+measurement, annotations, presentation and interaction. Production has one
+formatting path; there is no JavaScript layout implementation or fallback.
+
+## Build and use
+
+```sh
+lake build
+lake exe demo-slides
+python3 -m http.server --directory _slides
+```
+
+A downstream presentation calls the existing `slidesMain (config := ...) (doc := ...)`.
+Set the existing `Config.outputDir` field to choose an output directory.
+The example in `examples/default-deck` requires no application resource setup.
+
+Lake prepares `VersoSlidesVirPrettyMResources:virResourcePack` before compiling
+its `include_vir_bundle` carrier. The independent formatter library prevents a
+program/carrier dependency cycle. The native renderer uses embedded bundle
+values and does not discover a producer path or invoke a nested build.
+
+The renderer prepares one validated publication plan, publishes complete runtime
+and program bundles under `lib/vir/<contentId>/`, and emits a small internal
+bootstrap with site-relative URLs. Configured assets cannot replace the reserved
+resource/staging namespaces, including casing and separator aliases. The ordinary
+asset API and `slidesMain` signature are unchanged.
+
+Publication requires one writer. Staging failure preserves installed resources;
+failure between removing the installed directory and renaming the stage can
+leave resources absent. Other site files are written separately. This is not
+transactional whole-site deployment.
+
+## Formatter contract
+
+Role: `formatSegments`; declaration: `VersoSlides.VirPrettyM.formatSegments`;
+interface: `verso-slides-format-segments-hostabi-v2`.
+
+```text
+Std.Format → Nat → Nat → Except FormatError (Array Pretty.Segment)
+```
+
+The independent complete ABI reference is embedded at build time. The runtime
+checks it during creation. JavaScript admits the compact input iteratively before
+ABI conversion; Lean independently checks input and reserves output before
+allocation. Recoverable rejection leaves the program usable, with no truncation.
+
+| Bound | Limit |
+| --- | --- |
+| Input nodes / depth | 10,000 / 128 |
+| Aggregate input text / individual text | 64 KiB / 16 KiB |
+| Hard newlines | 4,096 |
+| Width / absolute cumulative indentation | 4,096 columns |
+| Output text / segments / aggregate tag entries | 1 MiB / 10,000 / 65,536 |
+
+Tags use bounded exact decimal values. Newline segments preserve active tags.
+Pixels are converted to columns using DOM measurement; complete tag associations,
+CSS classes, bindings, escaping and reflow share one presentation layer.
+
+Static presentation/navigation remains usable during loading or failure. Retry
+owns a fresh creation attempt. Pending cancellation, stale completion checks,
+resolved disposal and raw cleanup diagnostics stay explicit. Persisted pagehide
+preserves the instance. Cancellation does not preempt synchronous Lean execution.
+
+## Exact artifacts and qualification
+
+VIR pin: `af3052cac2740f41bd701de3646df348b7e2dbb3`, Lean 4.34.0.
+Runtime content ID: `832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d`.
+Supplied pack SHA-256: `d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1`.
+Program content ID: `97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58`.
+
+The runtime lock source remains `"-"`; the exact matching pack must be supplied
+locally. Ordinary resource preparation remains library-owned. Anonymous durable
+installation and final geometry/retention/product acceptance are separate gates.
+
+[Accepted historical execution and immutable logs](https://github.com/ejgallego/verso-slides/blob/3f7dbc93f10f1ed2ef88ee65dda9019b5c298233/docs/evidence/publication-adoption/README.md)
+remain on the development branch. This reduced renderer is a new source checkpoint;
+those executions are not a fresh campaign against it. See
+[the review guide](vir-review-stack.md) for scope and local compilation feedback.
+
+Managed incremental site builds, render-time input receipts, generic directory
+assets and output command-line options are deferred to separate patches.

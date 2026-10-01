@@ -35,6 +35,16 @@ def expectFail (desc : String) (cfg : Config) : IO (Except String Unit) := do
   catch _ =>
     return .ok ()
 
+def expectVirNamespaceFail (desc : String) (cfg : Config) : IO (Except String Unit) := do
+  try
+    cfg.validateFilenames
+    return .error s!"{desc}: expected reserved namespace failure, got success"
+  catch e =>
+    if ((toString e).splitOn "reserved VIR resource namespace").length > 1 then
+      return .ok ()
+    else
+      return .error s!"{desc}: unexpected error {e}"
+
 /-- String substring check. -/
 private def hasSubstr (haystack needle : String) : Bool :=
   haystack.find? needle |>.isSome
@@ -115,7 +125,23 @@ public def main : IO UInt32 := do
     expectFail "asset clashes with extraCss even when both are text"
       { theme := .custom (dummyBundle (dummyCss "theme.css")
                            #[dummyAsset "shared.css"]),
-        extraCss := #[dummyCss "shared.css"] }
+        extraCss := #[dummyCss "shared.css"] },
+    expectFail "configured asset cannot escape output directory"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "../runtime.js"]) },
+    expectFail "configured asset path has no empty components"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "generated//runtime.js"]) },
+    expectVirNamespaceFail "runtime bundle asset cannot claim lib/vir"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "lib/vir/runtime.js"]) },
+    expectVirNamespaceFail "staging asset cannot claim lib/.vir-stage"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "lib/.vir-stage/stale"]) },
+    expectVirNamespaceFail "reserved resource namespace ignores casing"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "Lib/ViR/runtime.js"]) },
+    expectVirNamespaceFail "reserved staging namespace ignores casing"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "LIB/.VIR-STAGE/stale"]) },
+    expectVirNamespaceFail "file cannot replace resource library parent"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "Lib"]) },
+    expectVirNamespaceFail "reserved namespace recognizes portable separators"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "LIB\\VIR\\runtime.js"]) }
   ]
   let mut failed := 0
   for run in cases do

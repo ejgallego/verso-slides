@@ -691,7 +691,7 @@ private def virBootstrap (published : VirResourceSite.PublishedResources) : IO S
   return "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++
     "window.__versoVirExpectedExports = " ++ virExpectedExports ++ ";\n" ++ virBootstrapJs
 
-/-- Generates a `reveal.js` slide presentation with mandatory Lean formatting through VIR. -/
+/-- Generates a {lit}`reveal.js` slide presentation with mandatory Lean formatting through VIR. -/
 def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWithLogger do
   let resourcePlan ← VirResourceSite.prepare virResources
   let bootstrap ← virBootstrap resourcePlan.published
