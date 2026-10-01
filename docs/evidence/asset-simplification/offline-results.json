@@ -1,0 +1,76 @@
+[
+  {
+    "name": "warm-offline",
+    "command": [
+      "lake",
+      "--no-cache",
+      "exe",
+      "my-talk"
+    ],
+    "exit": 0,
+    "transport": []
+  },
+  {
+    "name": "native-cold-offline",
+    "command": [
+      "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-first-landing/.qualification-assets-20261001/downstream/source/examples/default-deck/.lake/packages/lean_vir/.lake/build/bin/vir_resource_pack",
+      "acquire",
+      "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-first-landing/.qualification-assets-20261001/downstream/source/examples/default-deck/.lake/packages/lean_vir/vir-resources/compatibility.json",
+      "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+      "https://github.com/ejgallego/lean-vir/releases/download/resource-832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d.virres",
+      "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-first-landing/.qualification-assets-20261001/downstream/empty-offline/cache.virres",
+      "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-first-landing/.qualification-assets-20261001/downstream/empty-offline/stage.virres",
+      "--offline"
+    ],
+    "exit": 1,
+    "transport": []
+  },
+  {
+    "name": "ordinary-cold-offline",
+    "command": [
+      "lake",
+      "--no-cache",
+      "build"
+    ],
+    "exit": 1,
+    "transport": [
+      {
+        "tool": "curl",
+        "args": [
+          "-q",
+          "--fail",
+          "--silent",
+          "--show-error",
+          "--location",
+          "--proto",
+          "=https",
+          "--proto-redir",
+          "=https",
+          "--connect-timeout",
+          "20",
+          "--max-time",
+          "120",
+          "--max-filesize",
+          "541065228",
+          "--output",
+          "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-first-landing/.qualification-assets-20261001/downstream/source/examples/default-deck/.lake/packages/lean_vir/.lake/build/vir/resources/runtime/.vir-payload-203-175-253-180-201-89-212-69-65-210-14-3-98-154-24-94/payload",
+          "--url",
+          "https://github.com/ejgallego/lean-vir/releases/download/resource-832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d.virres"
+        ],
+        "mode": "offline",
+        "time": 1790874149.6328664
+      }
+    ]
+  },
+  {
+    "name": "restored-warm-offline",
+    "command": [
+      "lake",
+      "--no-cache",
+      "exe",
+      "my-talk"
+    ],
+    "exit": 0,
+    "transport": []
+  }
+]

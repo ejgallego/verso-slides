@@ -1,0 +1,3096 @@
+{
+  "executedSlides": "cfe1f9f2c7b9d7ffe9174daf879bff8f327d2a71",
+  "vir": "590be72bd91519c7beb89e105dfba498a4aff140",
+  "lean": "4.34.0",
+  "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+  "runtime": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+  "program": "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58",
+  "nativeChecks": 101,
+  "configurationChecks": 46,
+  "publication": "single-program plan, real renderer byte equality, stale-file retention, partial failure and recovery passed",
+  "nodeChecks": 50,
+  "browserChecks": 119,
+  "browserSeconds": 56.385,
+  "downstream": {
+    "slides": "cfe1f9f2c7b9d7ffe9174daf879bff8f327d2a71",
+    "initial": {
+      "sourceLakeAbsent": true,
+      "deckLakeAbsent": true,
+      "stageAbsent": true,
+      "artifactCacheEmpty": true
+    },
+    "cachePolicy": {
+      "flags": "default; no --no-cache",
+      "lakeCacheDir": "fresh owned directory",
+      "userConfig": "empty isolated config",
+      "artifactCacheOverride": "true",
+      "runtimeSeeding": false
+    },
+    "steps": [
+      {
+        "name": "update",
+        "command": [
+          "lake",
+          "update"
+        ],
+        "exit": 0,
+        "seconds": 24.529
+      },
+      {
+        "name": "build",
+        "command": [
+          "lake",
+          "build"
+        ],
+        "exit": 0,
+        "seconds": 192.316
+      },
+      {
+        "name": "render",
+        "command": [
+          "lake",
+          "exe",
+          "my-talk"
+        ],
+        "exit": 0,
+        "seconds": 1.619
+      },
+      {
+        "name": "warm-build",
+        "command": [
+          "lake",
+          "build"
+        ],
+        "exit": 0,
+        "seconds": 1.599
+      }
+    ],
+    "prebuild": {
+      "vir": "590be72bd91519c7beb89e105dfba498a4aff140",
+      "runtimeContentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+      "runtimeSource": "https://github.com/ejgallego/lean-vir/releases/download/resource-832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d.virres",
+      "runtimeCacheAbsent": true,
+      "runtimeStageAbsent": true,
+      "artifactCacheEmpty": true
+    },
+    "packs": [
+      {
+        "name": "runtime-cache",
+        "bytes": 1120731,
+        "sha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1"
+      },
+      {
+        "name": "runtime-stage",
+        "bytes": 1120731,
+        "sha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1"
+      },
+      {
+        "name": "program-stage",
+        "bytes": 122442,
+        "sha256": "c48f6857c125340a748c983635abe52e8e603fc62fc59ef5cc41746f86b953da"
+      }
+    ],
+    "artifactCacheFiles": 3184
+  },
+  "browserMeasurements": [
+    {
+      "test": "test_repeated_formatting_reflow_and_retry_retention[chromium]",
+      "property": "observations",
+      "value": {
+        "browser": "chromium",
+        "version": "145.0.7632.6",
+        "capacities": [
+          4194304,
+          4194304,
+          4194304,
+          4194304,
+          4194304
+        ],
+        "batchMilliseconds": [
+          16.399999976158142,
+          16,
+          11.700000047683716,
+          11.100000023841858,
+          12
+        ],
+        "counts": [
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21
+        ],
+        "liveMemoryWrappersAfterGC": 1
+      }
+    },
+    {
+      "test": "test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[chromium-dark]",
+      "property": "observations",
+      "value": {
+        "browser": "chromium",
+        "version": "145.0.7632.6",
+        "light": false,
+        "layouts": [
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "group",
+            "columns": 7,
+            "width": 103.08838786166379,
+            "space": 13.86767025970712,
+            "postLayoutWidth": 103.08838786166379,
+            "visibleWidth": 103.02597729351945,
+            "extent": 69.3384781025759,
+            "largestAtom": 69.51805114746094,
+            "whiteSpace": "pre",
+            "text": "hello\nworld",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "fill",
+            "columns": 7,
+            "width": 103.08838786166379,
+            "space": 13.86767025970712,
+            "postLayoutWidth": 180.24889999439884,
+            "visibleWidth": 103.02597729351945,
+            "extent": 180.24889999439884,
+            "largestAtom": 180.74693298339844,
+            "whiteSpace": "pre",
+            "text": "lean ir\nruns\nformat.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "Greek tags",
+            "columns": 7,
+            "width": 103.08838786166379,
+            "space": 13.86767025970712,
+            "postLayoutWidth": 103.08838786166379,
+            "visibleWidth": 103.02597729351945,
+            "extent": 27.735403921434393,
+            "largestAtom": 27.807220458984375,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2\n\u03b3\u03b4\n\u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "supplementary hard lines",
+            "columns": 7,
+            "width": 103.08838786166379,
+            "space": 13.86767025970712,
+            "postLayoutWidth": 103.08838786166379,
+            "visibleWidth": 103.02597729351945,
+            "extent": 28.91962685382839,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "group",
+            "columns": 18,
+            "width": 257.8834722106521,
+            "space": 13.915139072176753,
+            "postLayoutWidth": 257.8834722106521,
+            "visibleWidth": 257.8839818918924,
+            "extent": 153.05087953768003,
+            "largestAtom": 69.51805114746094,
+            "whiteSpace": "pre",
+            "text": "hello world",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "fill",
+            "columns": 18,
+            "width": 257.8834722106521,
+            "space": 13.915139072176753,
+            "postLayoutWidth": 257.8834722106521,
+            "visibleWidth": 257.8839818918924,
+            "extent": 180.8655074257693,
+            "largestAtom": 180.74693298339844,
+            "whiteSpace": "pre",
+            "text": "lean ir runs\nformat.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "Greek tags",
+            "columns": 18,
+            "width": 257.8834722106521,
+            "space": 13.915139072176753,
+            "postLayoutWidth": 257.8834722106521,
+            "visibleWidth": 257.8839818918924,
+            "extent": 111.32111257741403,
+            "largestAtom": 27.807220458984375,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2 \u03b3\u03b4 \u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "supplementary hard lines",
+            "columns": 18,
+            "width": 257.8834722106521,
+            "space": 13.915139072176753,
+            "postLayoutWidth": 257.8834722106521,
+            "visibleWidth": 257.8839818918924,
+            "extent": 29.018476137020283,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "group",
+            "columns": 28,
+            "width": 393.9218437364871,
+            "space": 13.906269775831253,
+            "postLayoutWidth": 393.9218437364871,
+            "visibleWidth": 393.91059833155975,
+            "extent": 152.95314360153492,
+            "largestAtom": 69.51805114746094,
+            "whiteSpace": "pre",
+            "text": "hello world",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "fill",
+            "columns": 28,
+            "width": 393.9218437364871,
+            "space": 13.906269775831253,
+            "postLayoutWidth": 393.9218437364871,
+            "visibleWidth": 393.91059833155975,
+            "extent": 361.50008931459763,
+            "largestAtom": 180.74693298339844,
+            "whiteSpace": "pre",
+            "text": "lean ir runs format.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "Greek tags",
+            "columns": 28,
+            "width": 393.9218437364871,
+            "space": 13.906269775831253,
+            "postLayoutWidth": 393.9218437364871,
+            "visibleWidth": 393.91059833155975,
+            "extent": 111.25003458217651,
+            "largestAtom": 27.807220458984375,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2 \u03b3\u03b4 \u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "supplementary hard lines",
+            "columns": 28,
+            "width": 393.9218437364871,
+            "space": 13.906269775831253,
+            "postLayoutWidth": 393.9218437364871,
+            "visibleWidth": 393.91059833155975,
+            "extent": 29.00001443193193,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          }
+        ]
+      }
+    },
+    {
+      "test": "test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[chromium-light]",
+      "property": "observations",
+      "value": {
+        "browser": "chromium",
+        "version": "145.0.7632.6",
+        "light": true,
+        "layouts": [
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "group",
+            "columns": 7,
+            "width": 103.08838786166379,
+            "space": 13.86767025970712,
+            "postLayoutWidth": 103.08838786166379,
+            "visibleWidth": 103.02597729351945,
+            "extent": 69.3384781025759,
+            "largestAtom": 69.51805114746094,
+            "whiteSpace": "pre",
+            "text": "hello\nworld",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "fill",
+            "columns": 7,
+            "width": 103.08838786166379,
+            "space": 13.86767025970712,
+            "postLayoutWidth": 180.24889999439884,
+            "visibleWidth": 103.02597729351945,
+            "extent": 180.24889999439884,
+            "largestAtom": 180.74693298339844,
+            "whiteSpace": "pre",
+            "text": "lean ir\nruns\nformat.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "Greek tags",
+            "columns": 7,
+            "width": 103.08838786166379,
+            "space": 13.86767025970712,
+            "postLayoutWidth": 103.08838786166379,
+            "visibleWidth": 103.02597729351945,
+            "extent": 27.735403921434393,
+            "largestAtom": 27.807220458984375,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2\n\u03b3\u03b4\n\u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "supplementary hard lines",
+            "columns": 7,
+            "width": 103.08838786166379,
+            "space": 13.86767025970712,
+            "postLayoutWidth": 103.08838786166379,
+            "visibleWidth": 103.02597729351945,
+            "extent": 28.91962685382839,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "group",
+            "columns": 18,
+            "width": 257.8834722106521,
+            "space": 13.915139072176753,
+            "postLayoutWidth": 257.8834722106521,
+            "visibleWidth": 257.8839818918924,
+            "extent": 153.05087953768003,
+            "largestAtom": 69.51805114746094,
+            "whiteSpace": "pre",
+            "text": "hello world",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "fill",
+            "columns": 18,
+            "width": 257.8834722106521,
+            "space": 13.915139072176753,
+            "postLayoutWidth": 257.8834722106521,
+            "visibleWidth": 257.8839818918924,
+            "extent": 180.8655074257693,
+            "largestAtom": 180.74693298339844,
+            "whiteSpace": "pre",
+            "text": "lean ir runs\nformat.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "Greek tags",
+            "columns": 18,
+            "width": 257.8834722106521,
+            "space": 13.915139072176753,
+            "postLayoutWidth": 257.8834722106521,
+            "visibleWidth": 257.8839818918924,
+            "extent": 111.32111257741403,
+            "largestAtom": 27.807220458984375,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2 \u03b3\u03b4 \u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "supplementary hard lines",
+            "columns": 18,
+            "width": 257.8834722106521,
+            "space": 13.915139072176753,
+            "postLayoutWidth": 257.8834722106521,
+            "visibleWidth": 257.8839818918924,
+            "extent": 29.018476137020283,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "group",
+            "columns": 28,
+            "width": 393.9218437364871,
+            "space": 13.906269775831253,
+            "postLayoutWidth": 393.9218437364871,
+            "visibleWidth": 393.91059833155975,
+            "extent": 152.95314360153492,
+            "largestAtom": 69.51805114746094,
+            "whiteSpace": "pre",
+            "text": "hello world",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "fill",
+            "columns": 28,
+            "width": 393.9218437364871,
+            "space": 13.906269775831253,
+            "postLayoutWidth": 393.9218437364871,
+            "visibleWidth": 393.91059833155975,
+            "extent": 361.50008931459763,
+            "largestAtom": 180.74693298339844,
+            "whiteSpace": "pre",
+            "text": "lean ir runs format.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "Greek tags",
+            "columns": 28,
+            "width": 393.9218437364871,
+            "space": 13.906269775831253,
+            "postLayoutWidth": 393.9218437364871,
+            "visibleWidth": 393.91059833155975,
+            "extent": 111.25003458217651,
+            "largestAtom": 27.807220458984375,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2 \u03b3\u03b4 \u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "supplementary hard lines",
+            "columns": 28,
+            "width": 393.9218437364871,
+            "space": 13.906269775831253,
+            "postLayoutWidth": 393.9218437364871,
+            "visibleWidth": 393.91059833155975,
+            "extent": 29.00001443193193,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          }
+        ]
+      }
+    },
+    {
+      "test": "test_actual_delayed_font_download_reflows_current_native_layout[chromium]",
+      "property": "observations",
+      "value": {
+        "browser": "chromium",
+        "version": "145.0.7632.6",
+        "beforeFont": {
+          "columns": 24,
+          "width": 339.85135590280817,
+          "space": 13.922585569990348,
+          "postLayoutWidth": 339.85135590280817,
+          "visibleWidth": 339.8617793136887,
+          "extent": 180.96211306747747,
+          "largestAtom": 180.74693298339844,
+          "whiteSpace": "pre",
+          "text": "lean ir runs\nformat.pretty\ninside wasm",
+          "segments": [
+            {
+              "text": "lean",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "ir",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "runs",
+              "tags": []
+            },
+            {
+              "text": "\n",
+              "tags": []
+            },
+            {
+              "text": "format.pretty",
+              "tags": []
+            },
+            {
+              "text": "\n",
+              "tags": []
+            },
+            {
+              "text": "inside wasm",
+              "tags": []
+            }
+          ],
+          "tagged": [],
+          "probes": 0
+        },
+        "afterFont": {
+          "columns": 28,
+          "width": 339.85135590280817,
+          "space": 12.014059598426705,
+          "postLayoutWidth": 339.85135590280817,
+          "visibleWidth": 339.8617793136887,
+          "extent": 312.3661065219265,
+          "largestAtom": 156,
+          "whiteSpace": "pre",
+          "text": "lean ir runs format.pretty\ninside wasm",
+          "segments": [
+            {
+              "text": "lean",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "ir",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "runs",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "format.pretty",
+              "tags": []
+            },
+            {
+              "text": "\n",
+              "tags": []
+            },
+            {
+              "text": "inside wasm",
+              "tags": []
+            }
+          ],
+          "tagged": [],
+          "probes": 0
+        },
+        "actualFontEvents": 1
+      }
+    },
+    {
+      "test": "test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[firefox-light]",
+      "property": "observations",
+      "value": {
+        "browser": "firefox",
+        "version": "146.0.1",
+        "light": true,
+        "layouts": [
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "group",
+            "columns": 7,
+            "width": 103.05674071863939,
+            "space": 13.851689621630642,
+            "postLayoutWidth": 103.05674071863939,
+            "visibleWidth": 103.03417278006982,
+            "extent": 69.32781656931448,
+            "largestAtom": 69.25,
+            "whiteSpace": "pre",
+            "text": "hello\nworld",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "fill",
+            "columns": 7,
+            "width": 103.05674071863939,
+            "space": 13.851689621630642,
+            "postLayoutWidth": 180.21076541162068,
+            "visibleWidth": 103.03417278006984,
+            "extent": 180.21076541162068,
+            "largestAtom": 180.0500030517578,
+            "whiteSpace": "pre",
+            "text": "lean ir\nruns\nformat.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "Greek tags",
+            "columns": 7,
+            "width": 103.05674071863939,
+            "space": 13.851689621630642,
+            "postLayoutWidth": 103.05674071863939,
+            "visibleWidth": 103.03417278006982,
+            "extent": 27.738063473841923,
+            "largestAtom": 27.700000762939453,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2\n\u03b3\u03b4\n\u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "supplementary hard lines",
+            "columns": 7,
+            "width": 103.05674071863939,
+            "space": 13.851689621630642,
+            "postLayoutWidth": 103.05674071863939,
+            "visibleWidth": 103.03417278006982,
+            "extent": 28.915456774640028,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "group",
+            "columns": 18,
+            "width": 257.87726123966746,
+            "space": 13.904926202039247,
+            "postLayoutWidth": 257.87726123966746,
+            "visibleWidth": 257.88856991198116,
+            "extent": 152.99606288437565,
+            "largestAtom": 69.25,
+            "whiteSpace": "pre",
+            "text": "hello world",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "fill",
+            "columns": 18,
+            "width": 257.87726123966746,
+            "space": 13.904926202039247,
+            "postLayoutWidth": 257.87726123966746,
+            "visibleWidth": 257.88856991198116,
+            "extent": 180.82679536145625,
+            "largestAtom": 180.0500030517578,
+            "whiteSpace": "pre",
+            "text": "lean ir runs\nformat.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "Greek tags",
+            "columns": 18,
+            "width": 257.87726123966746,
+            "space": 13.904926202039247,
+            "postLayoutWidth": 257.87726123966746,
+            "visibleWidth": 257.88856991198116,
+            "extent": 111.2812842782579,
+            "largestAtom": 27.700000762939453,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2 \u03b3\u03b4 \u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "supplementary hard lines",
+            "columns": 18,
+            "width": 257.87726123966746,
+            "space": 13.904926202039247,
+            "postLayoutWidth": 257.87726123966746,
+            "visibleWidth": 257.88856991198116,
+            "extent": 29.019007125196175,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "group",
+            "columns": 28,
+            "width": 393.8954056441796,
+            "space": 13.907937593014626,
+            "postLayoutWidth": 393.8954056441796,
+            "visibleWidth": 393.8974494220313,
+            "extent": 152.90304940253483,
+            "largestAtom": 69.25,
+            "whiteSpace": "pre",
+            "text": "hello world",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "fill",
+            "columns": 28,
+            "width": 393.8954056441796,
+            "space": 13.907937593014626,
+            "postLayoutWidth": 393.8954056441796,
+            "visibleWidth": 393.8974494220313,
+            "extent": 361.3872567085917,
+            "largestAtom": 180.0500030517578,
+            "whiteSpace": "pre",
+            "text": "lean ir runs format.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "Greek tags",
+            "columns": 28,
+            "width": 393.8954056441796,
+            "space": 13.907937593014626,
+            "postLayoutWidth": 393.8954056441796,
+            "visibleWidth": 393.8974494220313,
+            "extent": 111.21298553958253,
+            "largestAtom": 27.700000762939453,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2 \u03b3\u03b4 \u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "supplementary hard lines",
+            "columns": 28,
+            "width": 393.8954056441796,
+            "space": 13.907937593014626,
+            "postLayoutWidth": 393.8954056441796,
+            "visibleWidth": 393.8974494220313,
+            "extent": 28.997396305242233,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          }
+        ]
+      }
+    },
+    {
+      "test": "test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[firefox-dark]",
+      "property": "observations",
+      "value": {
+        "browser": "firefox",
+        "version": "146.0.1",
+        "light": false,
+        "layouts": [
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "group",
+            "columns": 7,
+            "width": 103.05674071863939,
+            "space": 13.851689621630642,
+            "postLayoutWidth": 103.05674071863939,
+            "visibleWidth": 103.03417278006982,
+            "extent": 69.32781656931448,
+            "largestAtom": 69.25,
+            "whiteSpace": "pre",
+            "text": "hello\nworld",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "fill",
+            "columns": 7,
+            "width": 103.05674071863939,
+            "space": 13.851689621630642,
+            "postLayoutWidth": 180.21076541162068,
+            "visibleWidth": 103.03417278006984,
+            "extent": 180.21076541162068,
+            "largestAtom": 180.0500030517578,
+            "whiteSpace": "pre",
+            "text": "lean ir\nruns\nformat.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "Greek tags",
+            "columns": 7,
+            "width": 103.05674071863939,
+            "space": 13.851689621630642,
+            "postLayoutWidth": 103.05674071863939,
+            "visibleWidth": 103.03417278006982,
+            "extent": 27.738063473841923,
+            "largestAtom": 27.700000762939453,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2\n\u03b3\u03b4\n\u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 480,
+              "height": 812
+            },
+            "codeRatio": 0.82,
+            "case": "supplementary hard lines",
+            "columns": 7,
+            "width": 103.05674071863939,
+            "space": 13.851689621630642,
+            "postLayoutWidth": 103.05674071863939,
+            "visibleWidth": 103.03417278006982,
+            "extent": 28.915456774640028,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "group",
+            "columns": 18,
+            "width": 257.87726123966746,
+            "space": 13.904926202039247,
+            "postLayoutWidth": 257.87726123966746,
+            "visibleWidth": 257.88856991198116,
+            "extent": 152.99606288437565,
+            "largestAtom": 69.25,
+            "whiteSpace": "pre",
+            "text": "hello world",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "fill",
+            "columns": 18,
+            "width": 257.87726123966746,
+            "space": 13.904926202039247,
+            "postLayoutWidth": 257.87726123966746,
+            "visibleWidth": 257.88856991198116,
+            "extent": 180.82679536145625,
+            "largestAtom": 180.0500030517578,
+            "whiteSpace": "pre",
+            "text": "lean ir runs\nformat.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "Greek tags",
+            "columns": 18,
+            "width": 257.87726123966746,
+            "space": 13.904926202039247,
+            "postLayoutWidth": 257.87726123966746,
+            "visibleWidth": 257.88856991198116,
+            "extent": 111.2812842782579,
+            "largestAtom": 27.700000762939453,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2 \u03b3\u03b4 \u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 800,
+              "height": 600
+            },
+            "codeRatio": 0.65,
+            "case": "supplementary hard lines",
+            "columns": 18,
+            "width": 257.87726123966746,
+            "space": 13.904926202039247,
+            "postLayoutWidth": 257.87726123966746,
+            "visibleWidth": 257.88856991198116,
+            "extent": 29.019007125196175,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "group",
+            "columns": 28,
+            "width": 393.8954056441796,
+            "space": 13.907937593014626,
+            "postLayoutWidth": 393.8954056441796,
+            "visibleWidth": 393.8974494220313,
+            "extent": 152.90304940253483,
+            "largestAtom": 69.25,
+            "whiteSpace": "pre",
+            "text": "hello world",
+            "segments": [
+              {
+                "text": "hello",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "world",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "fill",
+            "columns": 28,
+            "width": 393.8954056441796,
+            "space": 13.907937593014626,
+            "postLayoutWidth": 393.8954056441796,
+            "visibleWidth": 393.8974494220313,
+            "extent": 361.3872567085917,
+            "largestAtom": 180.0500030517578,
+            "whiteSpace": "pre",
+            "text": "lean ir runs format.pretty\ninside wasm",
+            "segments": [
+              {
+                "text": "lean",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "ir",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "runs",
+                "tags": []
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "format.pretty",
+                "tags": []
+              },
+              {
+                "text": "\n",
+                "tags": []
+              },
+              {
+                "text": "inside wasm",
+                "tags": []
+              }
+            ],
+            "tagged": [],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "Greek tags",
+            "columns": 28,
+            "width": 393.8954056441796,
+            "space": 13.907937593014626,
+            "postLayoutWidth": 393.8954056441796,
+            "visibleWidth": 393.8974494220313,
+            "extent": 111.21298553958253,
+            "largestAtom": 27.700000762939453,
+            "whiteSpace": "pre",
+            "text": "\u03b1\u03b2 \u03b3\u03b4 \u03bbx",
+            "segments": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              },
+              {
+                "text": " ",
+                "tags": []
+              },
+              {
+                "text": "\u03bbx",
+                "tags": []
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\u03b1\u03b2",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u03b3\u03b4",
+                "tags": [
+                  "8"
+                ]
+              }
+            ],
+            "probes": 0
+          },
+          {
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            },
+            "codeRatio": 0.5,
+            "case": "supplementary hard lines",
+            "columns": 28,
+            "width": 393.8954056441796,
+            "space": 13.907937593014626,
+            "postLayoutWidth": 393.8954056441796,
+            "visibleWidth": 393.8974494220313,
+            "extent": 28.997396305242233,
+            "largestAtom": 29,
+            "whiteSpace": "pre",
+            "text": "\ud83d\ude00\n\u754c",
+            "segments": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "tagged": [
+              {
+                "text": "\ud83d\ude00",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\n",
+                "tags": [
+                  "7"
+                ]
+              },
+              {
+                "text": "\u754c",
+                "tags": [
+                  "7"
+                ]
+              }
+            ],
+            "probes": 0
+          }
+        ]
+      }
+    },
+    {
+      "test": "test_actual_delayed_font_download_reflows_current_native_layout[firefox]",
+      "property": "observations",
+      "value": {
+        "browser": "firefox",
+        "version": "146.0.1",
+        "beforeFont": {
+          "columns": 24,
+          "width": 339.82255401417933,
+          "space": 13.924803449778201,
+          "postLayoutWidth": 339.82255401417933,
+          "visibleWidth": 339.8469590660647,
+          "extent": 180.92099807410486,
+          "largestAtom": 180.0500030517578,
+          "whiteSpace": "pre",
+          "text": "lean ir runs\nformat.pretty\ninside wasm",
+          "segments": [
+            {
+              "text": "lean",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "ir",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "runs",
+              "tags": []
+            },
+            {
+              "text": "\n",
+              "tags": []
+            },
+            {
+              "text": "format.pretty",
+              "tags": []
+            },
+            {
+              "text": "\n",
+              "tags": []
+            },
+            {
+              "text": "inside wasm",
+              "tags": []
+            }
+          ],
+          "tagged": [],
+          "probes": 0
+        },
+        "afterFont": {
+          "columns": 28,
+          "width": 339.82255401417933,
+          "space": 12.133510575095057,
+          "postLayoutWidth": 339.82255401417933,
+          "visibleWidth": 339.8469590660647,
+          "extent": 315.40344779784533,
+          "largestAtom": 156.86666870117188,
+          "whiteSpace": "pre",
+          "text": "lean ir runs format.pretty\ninside wasm",
+          "segments": [
+            {
+              "text": "lean",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "ir",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "runs",
+              "tags": []
+            },
+            {
+              "text": " ",
+              "tags": []
+            },
+            {
+              "text": "format.pretty",
+              "tags": []
+            },
+            {
+              "text": "\n",
+              "tags": []
+            },
+            {
+              "text": "inside wasm",
+              "tags": []
+            }
+          ],
+          "tagged": [],
+          "probes": 0
+        },
+        "actualFontEvents": 1
+      }
+    },
+    {
+      "test": "test_repeated_formatting_reflow_and_retry_retention[firefox]",
+      "property": "observations",
+      "value": {
+        "browser": "firefox",
+        "version": "146.0.1",
+        "capacities": [
+          4194304,
+          4194304,
+          4194304,
+          4194304,
+          4194304
+        ],
+        "batchMilliseconds": [
+          72,
+          59,
+          54,
+          50,
+          57
+        ],
+        "counts": [
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21,
+          21
+        ]
+      }
+    }
+  ],
+  "inspectedUpstreamCI": {
+    "head": "590be72bd91519c7beb89e105dfba498a4aff140",
+    "runs": [
+      36890158682,
+      36890158674
+    ],
+    "allChecks": "success",
+    "inspectionUTC": "2026-10-01 17:09:26 UTC"
+  },
+  "notRepeated": [
+    "fresh default artifact-cache mode (new fresh run explicitly enabled writes)",
+    "full Wasm bounds campaign",
+    "mobile DOM-restoration product gate",
+    "Slides remote CI"
+  ],
+  "unsuccessfulRuns": [
+    {
+      "log": "build.log",
+      "cause": "test-only variable prefix was a reserved Lean keyword; fixed before executed source commit"
+    },
+    {
+      "log": "render.log",
+      "cause": "isolated fixture render lacked TestFixtures/images; copied ordinary inputs and reran"
+    },
+    {
+      "log": "browser-setup-failed.log.gz",
+      "cause": "direct virtual-environment Python did not put python on PATH for the test server; corrected environment and reran all119"
+    }
+  ],
+  "commands": {
+    "build": [
+      "lake",
+      "build",
+      "demo-slides",
+      "test-config-validation",
+      "test-vir-publication",
+      "test-pretty",
+      "test-fixtures-build"
+    ],
+    "native": [
+      ".lake/build/bin/test-config-validation",
+      ".lake/build/bin/test-vir-publication",
+      ".lake/build/bin/test-pretty"
+    ],
+    "node": [
+      "node",
+      "--test",
+      "Tests/vir-bootstrap.test.cjs",
+      "Tests/pretty-input.test.cjs",
+      "Tests/pretty-presentation.test.cjs"
+    ],
+    "browser": [
+      "python",
+      "-m",
+      "pytest",
+      "-n",
+      "2",
+      "--browser=all",
+      "--vir-site-acceptance",
+      "--site-dir",
+      "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-first-landing/.qualification-assets-20261001/site",
+      "--junitxml=.qualification-assets-20261001/browser.xml",
+      "browser-tests/test_vir_prettym_site.py",
+      "browser-tests/test_vir_prettym_presentation.py",
+      "browser-tests/test_vir_prettym_lifecycle.py",
+      "browser-tests/test_panel.py",
+      "browser-tests/test_lightbox.py",
+      "browser-tests/test_vir_prettym_geometry.py",
+      "browser-tests/test_vir_prettym_creation.py"
+    ],
+    "browserEnvironment": "matching locked vir-prettym-434-minimal/browser-tests/.venv/bin prepended to PATH; Python3.10.19, Playwright1.58.0",
+    "publication": [
+      "python3",
+      "docs/evidence/asset-simplification/verify-site.py",
+      ".qualification-assets-20261001/site",
+      ".qualification-assets-20261001/site/nested/deck",
+      ".qualification-assets-20261001/site/downstream/custom"
+    ],
+    "offline": [
+      "python3",
+      "docs/evidence/asset-simplification/offline-checks.py",
+      ".qualification-assets-20261001/downstream"
+    ]
+  }
+}

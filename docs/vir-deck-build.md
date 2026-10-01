@@ -23,14 +23,17 @@ values and does not discover a producer path or invoke a nested build.
 
 The renderer prepares one validated publication plan, publishes complete runtime
 and program bundles under `lib/vir/<contentId>/`, and emits a small internal
-bootstrap with site-relative URLs. Configured assets cannot replace the reserved
-resource/staging namespaces, including casing and separator aliases. The ordinary
-asset API and `slidesMain` signature are unchanged.
+inline bootstrap with site-relative URLs. The single program URL and resource
+bytes enter the existing asset plan; there is no generated bootstrap asset or
+separate directory installer. Configured assets cannot replace the reserved
+`lib/vir` namespace or its `lib` parent, including casing and separator aliases.
+The ordinary asset API and `slidesMain` signature are unchanged.
 
-Publication requires one writer. Staging failure preserves installed resources;
-failure between removing the installed directory and renaming the stage can
-leave resources absent. Other site files are written separately. This is not
-transactional whole-site deployment.
+Publication uses the existing writer and requires one writer. Files are written
+in place; unrelated and stale files are retained. A write failure can leave
+partial site output. Correct the destination and rerun, or publish into a fresh
+output directory when old files must be absent. This is not transactional site
+deployment. Resource validation and configured namespace checks precede writes.
 
 ## Formatter contract
 
@@ -65,7 +68,7 @@ preserves the instance. Cancellation does not preempt synchronous Lean execution
 
 ## Exact artifacts and qualification
 
-VIR pin: `87d7646d1ceb99c94efc92000370b814f83219d2`, Lean 4.34.0.
+VIR pin: `590be72bd91519c7beb89e105dfba498a4aff140`, Lean 4.34.0.
 Runtime content ID: `832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d`.
 Runtime pack SHA-256: `d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1`.
 Program content ID: `97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58`.
@@ -83,9 +86,13 @@ remain on the development branch. This reduced renderer is a new source checkpoi
 those executions are not a fresh campaign against it. See
 [the review guide](vir-review-stack.md) for scope and local compilation feedback.
 
-The final [namespace and ordinary downstream qualification](evidence/landing-qualification/README.md)
+The historical [namespace and ordinary downstream qualification](evidence/landing-qualification/README.md)
 passes 54 focused cases and fresh default/explicitly enabled cache builds. Runtime
 and program identities are unchanged; no additional browser or CI run is claimed.
+
+The [asset simplification checkpoint](evidence/asset-simplification/README.md)
+records fresh checks of the current inline publication path and VIR successor.
+Historical executions above retain their original pins and production source.
 
 Managed incremental site builds, render-time input receipts, generic directory
 assets and output command-line options are deferred to separate patches.

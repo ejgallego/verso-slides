@@ -29,8 +29,9 @@ not a calendar reminder, and does not authorize a new PR or merge.
   [Review the separate patch](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...fix/asset-filename-validation).
   It contains only those two files and no formatter dependency. Tests on this
   extracted branch have not been run; review/landing remain deferred.
-  The formatter candidate now checks destinations only against the VIR-owned
-  resource/staging directories, their library parent and bootstrap aliases.
+  The formatter candidate checks destinations only against the VIR-owned
+  `lib/vir` directory and its library parent. The later asset simplification
+  removes the private stage and bootstrap asset, so those names are no longer reserved.
   Lexical resolution accounts for output directory, absolute paths, `.`, `..`,
   repeated separators and casing. It does not validate general asset filenames
   or resolve arbitrary filesystem symlinks.
@@ -86,5 +87,8 @@ acceptance. Fresh downstream acquisition with default and explicitly enabled
 artifact caching now passes, separately from the earlier accepted `--no-cache`
 gate. Both retain their exact source and artifact evidence.
 
-The original `84137ec` audit changed documentation only. This successor applies
-the two scope cleanups without a dependency, formatter ABI or artifact change.
+The original `84137ec` audit changed documentation only. The scope cleanup kept
+the formatter ABI and artifacts unchanged. The subsequent
+[asset simplification](evidence/asset-simplification/README.md) adopts VIR
+`590be72b` while retaining the exact runtime/program bytes. Generic asset APIs
+and the mobile correction remain deferred.

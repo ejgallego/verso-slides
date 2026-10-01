@@ -1,0 +1,8 @@
+update: lake update
+update: exit 0
+build: lake build
+build: exit 0
+render: lake exe my-talk
+render: exit 0
+warm-build: lake build
+warm-build: exit 0

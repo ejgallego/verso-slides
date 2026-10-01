@@ -1,0 +1,4 @@
+warm-offline: exit 0
+native-cold-offline: exit 1
+ordinary-cold-offline: exit 1
+restored-warm-offline: exit 0

@@ -1,0 +1,34 @@
+ℹ [697/700] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [698/700] Replayed «verso-slides»/VersoSlides.VirPrettyM:virProgram
+info: stdout:
+wrote /tmp/tmp.XXlnOaTD/program.irpkg-set.json
+wrote /tmp/tmp.XXlnOaTD/program.irpkg
+wrote /tmp/tmp.XXlnOaTD/report.md
+package set members: 8
+package format: 11
+declarations: 135 (110 Lean IR, 25 native externs)
+interface exports: 1
+ℹ [699/713] Replayed «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack
+info: stdout:
+97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58
+⚠ [755/771] Replayed TestFixtures.Code
+warning: TestFixtures/Code.lean:73:0: Line 73 is too long (65 columns exceeds 60).
+
+Note: Example code is shown on mobile devices and other narrow contexts. Long lines are likely to be truncated in the rendered output.
+
+Hint: The limit of this linter can be changed with the option `verso.code.warnLineLength`. This linter can be disabled by setting this option to 0.
+warning: TestFixtures/Code.lean:74:0: Line 74 is too long (61 columns exceeds 60).
+
+Note: Example code is shown on mobile devices and other narrow contexts. Long lines are likely to be truncated in the rendered output.
+
+Hint: The limit of this linter can be changed with the option `verso.code.warnLineLength`. This linter can be disabled by setting this option to 0.
+warning: TestFixtures/Code.lean:114:0: Line 114 is too long (61 columns exceeds 60).
+
+Note: Example code is shown on mobile devices and other narrow contexts. Long lines are likely to be truncated in the rendered output.
+
+Hint: The limit of this linter can be changed with the option `verso.code.warnLineLength`. This linter can be disabled by setting this option to 0.
+✔ [769/771] Built Tests.VirPublication (761ms)
+✔ [770/771] Built Tests.VirPublication:c.o (454ms)
+✔ [771/771] Built «test-vir-publication»:exe (672ms)
+Build completed successfully (771 jobs).
