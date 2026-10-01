@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="34" time="12.342" timestamp="2026-10-02T01:07:35.374485+02:00" hostname="capivara"><testcase classname="test_vir_prettym_lifecycle" name="test_loading_notification_publishes_current_promise_before_reentrant_action[chromium-terminal]" time="2.003" /><testcase classname="test_vir_prettym_lifecycle" name="test_creation_failure_is_final_and_static_navigation_remains_usable[chromium]" time="2.155" /><testcase classname="test_vir_prettym_lifecycle" name="test_loading_notification_publishes_current_promise_before_reentrant_action[chromium-persisted]" time="0.393" /><testcase classname="test_vir_prettym_lifecycle" name="test_document_termination_cancels_pending_creation_without_late_install[chromium]" time="0.327" /><testcase classname="test_vir_prettym_lifecycle" name="test_slow_creation_keeps_navigation_and_latest_selection_usable[chromium]" time="0.517" /><testcase classname="test_vir_prettym_lifecycle" name="test_malformed_compact_input_keeps_the_single_real_program[chromium]" time="0.282"><failure message="AssertionError: assert {'rejection':...'active', ...} == {'rejection':...'active', ...}&#10;  &#10;  Omitting 4 identical items, use -vv to show&#10;  Differing items:&#10;  {'rejection': None} != {'rejection': 'invalidInput'}&#10;  Use -v to get more diff">page = &lt;Page url='http://127.0.0.1:46811/nested/deck/index.html'&gt;
+server = 'http://127.0.0.1:46811'
+
+    def test_malformed_compact_input_keeps_the_single_real_program(page, server):
+        errors = open_pending(page, server)
+        page.evaluate("window.lifecycleProbe.release()")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        result = page.evaluate("""() =&gt; {
+            const program = window.versoVir, ready = window.versoVirReady;
+            let rejection;
+            try { window.versoVirFormatSegments([3, 1.5, 'x'], 80, 0); }
+            catch (error) { rejection = error.code; }
+            return {rejection, valid: window.versoVirFormatSegments('same program', 4097, 0),
+                same: window.versoVir === program &amp;&amp; window.versoVirReady === ready,
+                status: program.status, state: window.versoVirState};
+        }""")
+&gt;       assert result == {"rejection": "invalidInput", "valid": [{"text": "same program", "tags": []}],
+                          "same": True, "status": "active", "state": "ready"}
+E       AssertionError: assert {'rejection':...'active', ...} == {'rejection':...'active', ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'rejection': None} != {'rejection': 'invalidInput'}
+E         Use -v to get more diff
+
+browser-tests/test_vir_prettym_lifecycle.py:189: AssertionError</failure></testcase><testcase classname="test_vir_prettym_lifecycle" name="test_unexpected_dispatch_failure_closes_owned_program_without_recreation[chromium]" time="0.306"><failure message="AssertionError: assert {'calls': 1, ...y': True, ...} == {'calls': 1, ...y': True, ...}&#10;  &#10;  Omitting 5 identical items, use -vv to show&#10;  Differing items:&#10;  {'noFacade': False} != {'noFacade': True}&#10;  {'status': 'active'} != {'status': 'disposed'}&#10;  {'unavailable': False} != {'unavailable': True}&#10;  Use -v to get more diff">page = &lt;Page url='http://127.0.0.1:46811/nested/deck/index.html'&gt;
+server = 'http://127.0.0.1:46811'
+
+    def test_unexpected_dispatch_failure_closes_owned_program_without_recreation(page, server):
+        errors = open_pending(page, server)
+        page.evaluate("window.lifecycleProbe.release()")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        # Controlled application dispatch failure with a real loader-owned program.
+        # This tests Slides policy, not production Wasm quarantine/trap semantics.
+        result = page.evaluate("""() =&gt; {
+            const probe = window.lifecycleProbe, owned = window.versoVir, facade = window.versoVirFormatSegments;
+            const adapter = formatCompactSegments, ready = window.versoVirReady;
+            const failure = new WebAssembly.RuntimeError('controlled dispatch failure');
+            let calls = 0, sameError;
+            formatCompactSegments = () =&gt; { calls++; throw failure; };
+            try { facade('current', 80, 0); } catch (error) { sameError = error === failure; }
+            finally { formatCompactSegments = adapter; }
+            let unavailable = false;
+            try { facade('next', 80, 0); } catch (error) { unavailable = error.message.includes('unavailable'); }
+            return {sameError, calls, unavailable, status: owned.status,
+                sameReady: window.versoVirReady === ready,
+                noFacade: window.versoVir === undefined &amp;&amp; window.versoVirFormatSegments === undefined,
+                noRetry: window.versoVirRetry === undefined,
+                diagnostic: probe.diagnostics.some(args =&gt; args[0] === 'VIR formatting failed' &amp;&amp; args[1] === failure)};
+        }""")
+&gt;       assert result == {"sameError": True, "calls": 1, "unavailable": True, "status": "disposed",
+                          "sameReady": True, "noFacade": True, "noRetry": True, "diagnostic": True}
+E       AssertionError: assert {'calls': 1, ...y': True, ...} == {'calls': 1, ...y': True, ...}
+E         
+E         Omitting 5 identical items, use -vv to show
+E         Differing items:
+E         {'noFacade': False} != {'noFacade': True}
+E         {'status': 'active'} != {'status': 'disposed'}
+E         {'unavailable': False} != {'unavailable': True}
+E         Use -v to get more diff
+
+browser-tests/test_vir_prettym_lifecycle.py:217: AssertionError</failure></testcase><testcase classname="test_vir_prettym_lifecycle" name="test_readiness_does_not_restore_a_cleared_selection[chromium]" time="0.468" /><testcase classname="test_vir_prettym_creation" name="test_published_bootstrap_pagehide_during_actual_creation_has_no_facade[chromium]" time="0.445" /><testcase classname="test_vir_prettym_presentation" name="test_panel_font_metric_change_reflows_current_format[chromium]" time="0.428" /><testcase classname="test_vir_prettym_presentation" name="test_complete_native_segments_tags_classes_and_bindings_in_dom[chromium]" time="0.309" /><testcase classname="test_vir_prettym_presentation" name="test_vir_numeric_admission_keeps_the_same_program_usable[chromium]" time="0.299" /><testcase classname="test_vir_prettym_presentation" name="test_annotation_escaping_and_exact_decimal_tags[chromium]" time="0.305" /><testcase classname="test_vir_prettym_geometry" name="test_repeated_formatting_and_reflow_retention[chromium]" time="0.512"><properties><property name="observations" value="{&quot;browser&quot;: &quot;chromium&quot;, &quot;version&quot;: &quot;145.0.7632.6&quot;, &quot;capacities&quot;: [4194304, 4194304, 4194304, 4194304, 4194304], &quot;batchMilliseconds&quot;: [10.799999952316284, 9.700000047683716, 6.600000023841858, 6.799999952316284, 6.700000047683716], &quot;counts&quot;: [21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21], &quot;liveMemoryWrappersAfterGC&quot;: 1}" /></properties></testcase><testcase classname="test_vir_prettym_presentation" name="test_shared_goal_binding_interaction_uses_escaped_selector[chromium]" time="0.472" /><testcase classname="test_vir_prettym_presentation" name="test_rejected_format_is_visible_without_static_layout_substitution_or_probe_retention[chromium]" time="0.518" /><testcase classname="test_vir_prettym_lifecycle" name="test_loading_notification_publishes_current_promise_before_reentrant_action[firefox-terminal]" time="1.391" /><testcase classname="test_vir_prettym_lifecycle" name="test_creation_failure_is_final_and_static_navigation_remains_usable[firefox]" time="0.697" /><testcase classname="test_vir_prettym_lifecycle" name="test_loading_notification_publishes_current_promise_before_reentrant_action[firefox-persisted]" time="1.678" /><testcase classname="test_vir_prettym_lifecycle" name="test_document_termination_cancels_pending_creation_without_late_install[firefox]" time="0.465" /><testcase classname="test_vir_prettym_lifecycle" name="test_slow_creation_keeps_navigation_and_latest_selection_usable[firefox]" time="0.870" /><testcase classname="test_vir_prettym_lifecycle" name="test_malformed_compact_input_keeps_the_single_real_program[firefox]" time="0.447"><failure message="AssertionError: assert {'rejection':...'active', ...} == {'rejection':...'active', ...}&#10;  &#10;  Omitting 4 identical items, use -vv to show&#10;  Differing items:&#10;  {'rejection': None} != {'rejection': 'invalidInput'}&#10;  Use -v to get more diff">page = &lt;Page url='http://127.0.0.1:36237/nested/deck/index.html'&gt;
+server = 'http://127.0.0.1:36237'
+
+    def test_malformed_compact_input_keeps_the_single_real_program(page, server):
+        errors = open_pending(page, server)
+        page.evaluate("window.lifecycleProbe.release()")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        result = page.evaluate("""() =&gt; {
+            const program = window.versoVir, ready = window.versoVirReady;
+            let rejection;
+            try { window.versoVirFormatSegments([3, 1.5, 'x'], 80, 0); }
+            catch (error) { rejection = error.code; }
+            return {rejection, valid: window.versoVirFormatSegments('same program', 4097, 0),
+                same: window.versoVir === program &amp;&amp; window.versoVirReady === ready,
+                status: program.status, state: window.versoVirState};
+        }""")
+&gt;       assert result == {"rejection": "invalidInput", "valid": [{"text": "same program", "tags": []}],
+                          "same": True, "status": "active", "state": "ready"}
+E       AssertionError: assert {'rejection':...'active', ...} == {'rejection':...'active', ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'rejection': None} != {'rejection': 'invalidInput'}
+E         Use -v to get more diff
+
+browser-tests/test_vir_prettym_lifecycle.py:189: AssertionError</failure></testcase><testcase classname="test_vir_prettym_lifecycle" name="test_unexpected_dispatch_failure_closes_owned_program_without_recreation[firefox]" time="0.428"><failure message="AssertionError: assert {'calls': 1, ...y': True, ...} == {'calls': 1, ...y': True, ...}&#10;  &#10;  Omitting 5 identical items, use -vv to show&#10;  Differing items:&#10;  {'status': 'active'} != {'status': 'disposed'}&#10;  {'unavailable': False} != {'unavailable': True}&#10;  {'noFacade': False} != {'noFacade': True}&#10;  Use -v to get more diff">page = &lt;Page url='http://127.0.0.1:36237/nested/deck/index.html'&gt;
+server = 'http://127.0.0.1:36237'
+
+    def test_unexpected_dispatch_failure_closes_owned_program_without_recreation(page, server):
+        errors = open_pending(page, server)
+        page.evaluate("window.lifecycleProbe.release()")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        # Controlled application dispatch failure with a real loader-owned program.
+        # This tests Slides policy, not production Wasm quarantine/trap semantics.
+        result = page.evaluate("""() =&gt; {
+            const probe = window.lifecycleProbe, owned = window.versoVir, facade = window.versoVirFormatSegments;
+            const adapter = formatCompactSegments, ready = window.versoVirReady;
+            const failure = new WebAssembly.RuntimeError('controlled dispatch failure');
+            let calls = 0, sameError;
+            formatCompactSegments = () =&gt; { calls++; throw failure; };
+            try { facade('current', 80, 0); } catch (error) { sameError = error === failure; }
+            finally { formatCompactSegments = adapter; }
+            let unavailable = false;
+            try { facade('next', 80, 0); } catch (error) { unavailable = error.message.includes('unavailable'); }
+            return {sameError, calls, unavailable, status: owned.status,
+                sameReady: window.versoVirReady === ready,
+                noFacade: window.versoVir === undefined &amp;&amp; window.versoVirFormatSegments === undefined,
+                noRetry: window.versoVirRetry === undefined,
+                diagnostic: probe.diagnostics.some(args =&gt; args[0] === 'VIR formatting failed' &amp;&amp; args[1] === failure)};
+        }""")
+&gt;       assert result == {"sameError": True, "calls": 1, "unavailable": True, "status": "disposed",
+                          "sameReady": True, "noFacade": True, "noRetry": True, "diagnostic": True}
+E       AssertionError: assert {'calls': 1, ...y': True, ...} == {'calls': 1, ...y': True, ...}
+E         
+E         Omitting 5 identical items, use -vv to show
+E         Differing items:
+E         {'status': 'active'} != {'status': 'disposed'}
+E         {'unavailable': False} != {'unavailable': True}
+E         {'noFacade': False} != {'noFacade': True}
+E         Use -v to get more diff
+
+browser-tests/test_vir_prettym_lifecycle.py:217: AssertionError</failure></testcase><testcase classname="test_vir_prettym_lifecycle" name="test_readiness_does_not_restore_a_cleared_selection[firefox]" time="0.685" /><testcase classname="test_vir_prettym_creation" name="test_published_bootstrap_pagehide_during_actual_creation_has_no_facade[firefox]" time="0.811" /><testcase classname="test_vir_prettym_presentation" name="test_complete_native_segments_tags_classes_and_bindings_in_dom[firefox]" time="0.517" /><testcase classname="test_vir_prettym_presentation" name="test_annotation_escaping_and_exact_decimal_tags[firefox]" time="0.458" /><testcase classname="test_vir_prettym_presentation" name="test_shared_goal_binding_interaction_uses_escaped_selector[firefox]" time="0.711" /><testcase classname="test_vir_prettym_presentation" name="test_rejected_format_is_visible_without_static_layout_substitution_or_probe_retention[firefox]" time="0.655" /><testcase classname="test_vir_prettym_presentation" name="test_panel_font_metric_change_reflows_current_format[firefox]" time="0.664" /><testcase classname="test_vir_prettym_presentation" name="test_vir_numeric_admission_keeps_the_same_program_usable[firefox]" time="0.517" /><testcase classname="test_vir_prettym_geometry" name="test_repeated_formatting_and_reflow_retention[firefox]" time="0.995"><properties><property name="observations" value="{&quot;browser&quot;: &quot;firefox&quot;, &quot;version&quot;: &quot;146.0.1&quot;, &quot;capacities&quot;: [4194304, 4194304, 4194304, 4194304, 4194304], &quot;batchMilliseconds&quot;: [27, 21, 19, 19, 20], &quot;counts&quot;: [21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21]}" /></properties></testcase><testcase classname="test_vir_prettym_creation" name="test_exact_pair_published_bytes" time="0.510" /><testcase classname="test_vir_prettym_presentation" name="test_published_formatter_has_one_mandatory_path" time="0.501" /></testsuite></testsuites>

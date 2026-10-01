@@ -1,0 +1,156 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.19, pytest-9.0.2, pluggy-1.6.0
+browsers: chromium, firefox (--browser=all)
+rootdir: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/browser-tests
+configfile: pyproject.toml
+plugins: xdist-3.8.0
+created: 2/2 workers
+2 workers [34 items]
+
+....F.F.............F.F...........                                       [100%]
+=================================== FAILURES ===================================
+_____ test_malformed_compact_input_keeps_the_single_real_program[chromium] _____
+[gw1] linux -- Python 3.10.19 /home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/browser-tests/.venv/bin/python
+
+page = <Page url='http://127.0.0.1:46811/nested/deck/index.html'>
+server = 'http://127.0.0.1:46811'
+
+    def test_malformed_compact_input_keeps_the_single_real_program(page, server):
+        errors = open_pending(page, server)
+        page.evaluate("window.lifecycleProbe.release()")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        result = page.evaluate("""() => {
+            const program = window.versoVir, ready = window.versoVirReady;
+            let rejection;
+            try { window.versoVirFormatSegments([3, 1.5, 'x'], 80, 0); }
+            catch (error) { rejection = error.code; }
+            return {rejection, valid: window.versoVirFormatSegments('same program', 4097, 0),
+                same: window.versoVir === program && window.versoVirReady === ready,
+                status: program.status, state: window.versoVirState};
+        }""")
+>       assert result == {"rejection": "invalidInput", "valid": [{"text": "same program", "tags": []}],
+                          "same": True, "status": "active", "state": "ready"}
+E       AssertionError: assert {'rejection':...'active', ...} == {'rejection':...'active', ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'rejection': None} != {'rejection': 'invalidInput'}
+E         Use -v to get more diff
+
+browser-tests/test_vir_prettym_lifecycle.py:189: AssertionError
+_ test_unexpected_dispatch_failure_closes_owned_program_without_recreation[chromium] _
+[gw1] linux -- Python 3.10.19 /home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/browser-tests/.venv/bin/python
+
+page = <Page url='http://127.0.0.1:46811/nested/deck/index.html'>
+server = 'http://127.0.0.1:46811'
+
+    def test_unexpected_dispatch_failure_closes_owned_program_without_recreation(page, server):
+        errors = open_pending(page, server)
+        page.evaluate("window.lifecycleProbe.release()")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        # Controlled application dispatch failure with a real loader-owned program.
+        # This tests Slides policy, not production Wasm quarantine/trap semantics.
+        result = page.evaluate("""() => {
+            const probe = window.lifecycleProbe, owned = window.versoVir, facade = window.versoVirFormatSegments;
+            const adapter = formatCompactSegments, ready = window.versoVirReady;
+            const failure = new WebAssembly.RuntimeError('controlled dispatch failure');
+            let calls = 0, sameError;
+            formatCompactSegments = () => { calls++; throw failure; };
+            try { facade('current', 80, 0); } catch (error) { sameError = error === failure; }
+            finally { formatCompactSegments = adapter; }
+            let unavailable = false;
+            try { facade('next', 80, 0); } catch (error) { unavailable = error.message.includes('unavailable'); }
+            return {sameError, calls, unavailable, status: owned.status,
+                sameReady: window.versoVirReady === ready,
+                noFacade: window.versoVir === undefined && window.versoVirFormatSegments === undefined,
+                noRetry: window.versoVirRetry === undefined,
+                diagnostic: probe.diagnostics.some(args => args[0] === 'VIR formatting failed' && args[1] === failure)};
+        }""")
+>       assert result == {"sameError": True, "calls": 1, "unavailable": True, "status": "disposed",
+                          "sameReady": True, "noFacade": True, "noRetry": True, "diagnostic": True}
+E       AssertionError: assert {'calls': 1, ...y': True, ...} == {'calls': 1, ...y': True, ...}
+E         
+E         Omitting 5 identical items, use -vv to show
+E         Differing items:
+E         {'noFacade': False} != {'noFacade': True}
+E         {'status': 'active'} != {'status': 'disposed'}
+E         {'unavailable': False} != {'unavailable': True}
+E         Use -v to get more diff
+
+browser-tests/test_vir_prettym_lifecycle.py:217: AssertionError
+_____ test_malformed_compact_input_keeps_the_single_real_program[firefox] ______
+[gw0] linux -- Python 3.10.19 /home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/browser-tests/.venv/bin/python
+
+page = <Page url='http://127.0.0.1:36237/nested/deck/index.html'>
+server = 'http://127.0.0.1:36237'
+
+    def test_malformed_compact_input_keeps_the_single_real_program(page, server):
+        errors = open_pending(page, server)
+        page.evaluate("window.lifecycleProbe.release()")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        result = page.evaluate("""() => {
+            const program = window.versoVir, ready = window.versoVirReady;
+            let rejection;
+            try { window.versoVirFormatSegments([3, 1.5, 'x'], 80, 0); }
+            catch (error) { rejection = error.code; }
+            return {rejection, valid: window.versoVirFormatSegments('same program', 4097, 0),
+                same: window.versoVir === program && window.versoVirReady === ready,
+                status: program.status, state: window.versoVirState};
+        }""")
+>       assert result == {"rejection": "invalidInput", "valid": [{"text": "same program", "tags": []}],
+                          "same": True, "status": "active", "state": "ready"}
+E       AssertionError: assert {'rejection':...'active', ...} == {'rejection':...'active', ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'rejection': None} != {'rejection': 'invalidInput'}
+E         Use -v to get more diff
+
+browser-tests/test_vir_prettym_lifecycle.py:189: AssertionError
+_ test_unexpected_dispatch_failure_closes_owned_program_without_recreation[firefox] _
+[gw0] linux -- Python 3.10.19 /home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/browser-tests/.venv/bin/python
+
+page = <Page url='http://127.0.0.1:36237/nested/deck/index.html'>
+server = 'http://127.0.0.1:36237'
+
+    def test_unexpected_dispatch_failure_closes_owned_program_without_recreation(page, server):
+        errors = open_pending(page, server)
+        page.evaluate("window.lifecycleProbe.release()")
+        page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+        # Controlled application dispatch failure with a real loader-owned program.
+        # This tests Slides policy, not production Wasm quarantine/trap semantics.
+        result = page.evaluate("""() => {
+            const probe = window.lifecycleProbe, owned = window.versoVir, facade = window.versoVirFormatSegments;
+            const adapter = formatCompactSegments, ready = window.versoVirReady;
+            const failure = new WebAssembly.RuntimeError('controlled dispatch failure');
+            let calls = 0, sameError;
+            formatCompactSegments = () => { calls++; throw failure; };
+            try { facade('current', 80, 0); } catch (error) { sameError = error === failure; }
+            finally { formatCompactSegments = adapter; }
+            let unavailable = false;
+            try { facade('next', 80, 0); } catch (error) { unavailable = error.message.includes('unavailable'); }
+            return {sameError, calls, unavailable, status: owned.status,
+                sameReady: window.versoVirReady === ready,
+                noFacade: window.versoVir === undefined && window.versoVirFormatSegments === undefined,
+                noRetry: window.versoVirRetry === undefined,
+                diagnostic: probe.diagnostics.some(args => args[0] === 'VIR formatting failed' && args[1] === failure)};
+        }""")
+>       assert result == {"sameError": True, "calls": 1, "unavailable": True, "status": "disposed",
+                          "sameReady": True, "noFacade": True, "noRetry": True, "diagnostic": True}
+E       AssertionError: assert {'calls': 1, ...y': True, ...} == {'calls': 1, ...y': True, ...}
+E         
+E         Omitting 5 identical items, use -vv to show
+E         Differing items:
+E         {'status': 'active'} != {'status': 'disposed'}
+E         {'unavailable': False} != {'unavailable': True}
+E         {'noFacade': False} != {'noFacade': True}
+E         Use -v to get more diff
+
+browser-tests/test_vir_prettym_lifecycle.py:217: AssertionError
+- generated xml file: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/browser.xml -
+=========================== short test summary info ============================
+FAILED browser-tests/test_vir_prettym_lifecycle.py::test_malformed_compact_input_keeps_the_single_real_program[chromium]
+FAILED browser-tests/test_vir_prettym_lifecycle.py::test_unexpected_dispatch_failure_closes_owned_program_without_recreation[chromium]
+FAILED browser-tests/test_vir_prettym_lifecycle.py::test_malformed_compact_input_keeps_the_single_real_program[firefox]
+FAILED browser-tests/test_vir_prettym_lifecycle.py::test_unexpected_dispatch_failure_closes_owned_program_without_recreation[firefox]
+======================== 4 failed, 30 passed in 12.34s =========================

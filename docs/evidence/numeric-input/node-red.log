@@ -1,0 +1,114 @@
+✖ compact adapter passes scalar values and dimensions unchanged to VIR (5.904624ms)
+✖ active program survives request rejection (object) with raw diagnostics (6.349651ms)
+✖ active program survives request rejection (object) with raw diagnostics (1.784579ms)
+✖ active program survives request rejection (undefined) with raw diagnostics (2.850475ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 80.769516
+
+✖ failing tests:
+
+test at .qualification-numeric-input-20261002/baseline/Tests/pretty-presentation.test.cjs:127:1
+✖ compact adapter passes scalar values and dimensions unchanged to VIR (5.904624ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  '7' !== 7
+  
+      at TestContext.<anonymous> (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/pretty-presentation.test.cjs:138:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '7',
+    expected: 7,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at .qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:258:3
+✖ active program survives request rejection (object) with raw diagnostics (6.349651ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  PrettyFormatError: PrettyM input error: invalidInput
+      at TestContext.<anonymous> (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:267:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: PrettyFormatError: PrettyM input error: invalidInput
+        at formatScalar (evalmachine.<anonymous>:24:19)
+        at compactFormatToStdFormat (evalmachine.<anonymous>:99:35)
+        at formatCompactSegments (evalmachine.<anonymous>:52:20)
+        at window.versoVirFormatSegments (evalmachine.<anonymous>:104:26)
+        at /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:267:25
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:267:12)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3),
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at .qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:258:3
+✖ active program survives request rejection (object) with raw diagnostics (1.784579ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  PrettyFormatError: PrettyM input error: invalidInput
+      at TestContext.<anonymous> (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:267:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: PrettyFormatError: PrettyM input error: invalidInput
+        at formatScalar (evalmachine.<anonymous>:24:19)
+        at compactFormatToStdFormat (evalmachine.<anonymous>:99:35)
+        at formatCompactSegments (evalmachine.<anonymous>:52:20)
+        at window.versoVirFormatSegments (evalmachine.<anonymous>:104:26)
+        at /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:267:25
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:267:12)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at .qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:258:3
+✖ active program survives request rejection (undefined) with raw diagnostics (2.850475ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  PrettyFormatError: PrettyM input error: invalidInput
+      at TestContext.<anonymous> (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:267:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: PrettyFormatError: PrettyM input error: invalidInput
+        at formatScalar (evalmachine.<anonymous>:24:19)
+        at compactFormatToStdFormat (evalmachine.<anonymous>:99:35)
+        at formatCompactSegments (evalmachine.<anonymous>:52:20)
+        at window.versoVirFormatSegments (evalmachine.<anonymous>:104:26)
+        at /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:267:25
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-numeric-input-20261002/baseline/Tests/vir-bootstrap.test.cjs:267:12)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'throws',
+    diff: 'simple'
+  }

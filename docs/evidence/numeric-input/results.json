@@ -1,0 +1,78 @@
+{
+  "source": "71eddc1c15aa74737210f72e6a786913a08329c2",
+  "initialSource": "93a611febd1b19b91bcbec471f7b38f68df8779e",
+  "baseline": "fa731b62c72535d95d39fc3ce634f24834950695",
+  "vir": "590be72bd91519c7beb89e105dfba498a4aff140",
+  "interfaceId": "verso-slides-format-segments-hostabi-v2",
+  "runtimeContentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+  "runtimePackSha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1",
+  "programContentId": "f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede",
+  "programPackSha256": "85dd8d25261b5da8e807b4d373dd5db885a5b24480c24d1310525895ad308c3f",
+  "programPackBytes": 79510,
+  "nativePassed": 7,
+  "nodePassed": 43,
+  "browserPassed": 36,
+  "newNodeRegressionsRedAgainstBaseline": 4,
+  "initialBrowser": {
+    "passed": 30,
+    "failed": 4
+  },
+  "nativeBuildJobs": 753,
+  "publication": "passed",
+  "manifestsChecked": 4,
+  "payloadsChecked": 28,
+  "logs": {
+    "node-red.log": {
+      "sha256": "7e245a322fcadd9e8ce1d3f55ea45878d955a99f4f477941db24188d0f40a4d8",
+      "bytes": 6496
+    },
+    "node.log": {
+      "sha256": "09780a5b12a9a83405b48f07ec3facac86f4e6fcd1495f4477ecc869fd948179",
+      "bytes": 4097
+    },
+    "build.log": {
+      "sha256": "ce51399230f8eeb1e03d5f0e21b5ed9a3cf27ad80149de05f72cc85ed8fa4e62",
+      "bytes": 2453
+    },
+    "native.log": {
+      "sha256": "5d8eabaa615ff4d800936464151b7efc6e98b34bb374247d72218fc98b493f12",
+      "bytes": 20
+    },
+    "publication.log": {
+      "sha256": "e276ee2f8db9dba9533b0818e0ffd5ac0d7ba60c511113ecb61a212ac08b37fc",
+      "bytes": 251
+    },
+    "render.log": {
+      "sha256": "5eb688d199d9b7e8b15e54973cdcb56d9822944f69651b34aa92ada4c3d1a4e6",
+      "bytes": 37
+    },
+    "browser-initial.log": {
+      "sha256": "11777aaab6a004eafd6d533af481c1fb1c2e6843132bc81947b62023e2e9558d",
+      "bytes": 9804
+    },
+    "browser-initial.xml": {
+      "sha256": "f151731bdc8f05bc2155a14d6c5df316843b47e540ce52289aba9f3ae48fa37e",
+      "bytes": 15490
+    },
+    "browser.log": {
+      "sha256": "b3c30c32d043fdc572df023cf9a3d2979a55f3dc5dc8ff4313e204e1bf6e245d",
+      "bytes": 671
+    },
+    "browser.xml": {
+      "sha256": "5cb0308fb224776ed2e0b4ac6f3b52ba45bba2497b3a75e918efd17d9c5aae13",
+      "bytes": 6686
+    },
+    "inventory.json": {
+      "sha256": "5f608209037bb652877f6fa5db370f56e13bfa8319de0aa0f9c46f7ad65c5400",
+      "bytes": 909
+    },
+    "native-corpus.json": {
+      "sha256": "7487d16bbfb92447a1966d1b795ebbfcf2070be66c31d6c3b07863d3c09ad541",
+      "bytes": 1556
+    },
+    "geometry-corpus.json": {
+      "sha256": "6bdc87880d5cefa9c4ae6f5a78d9f5779c1b215a209af210f3c48c7f38dabd1c",
+      "bytes": 133304
+    }
+  }
+}

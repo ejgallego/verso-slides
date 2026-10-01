@@ -1,0 +1,26 @@
+[
+  {
+    "route": "root",
+    "contentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+    "manifestSha256": "637f94bc170e972abcc59d5ddfbce108925a3e962155c7df318477282f5775f6",
+    "payloads": 6
+  },
+  {
+    "route": "root",
+    "contentId": "f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede",
+    "manifestSha256": "733c16959698ae4ea6883b0b38e4c703435a9716d524407a2f70039a3e0037b4",
+    "payloads": 8
+  },
+  {
+    "route": "nested/deck",
+    "contentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+    "manifestSha256": "637f94bc170e972abcc59d5ddfbce108925a3e962155c7df318477282f5775f6",
+    "payloads": 6
+  },
+  {
+    "route": "nested/deck",
+    "contentId": "f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede",
+    "manifestSha256": "733c16959698ae4ea6883b0b38e4c703435a9716d524407a2f70039a3e0037b4",
+    "payloads": 8
+  }
+]
