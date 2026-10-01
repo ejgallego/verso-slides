@@ -1,0 +1,305 @@
+{
+  "slides": "16e748ab7978e39b30d9fe0c804882461785de6d",
+  "vir": "87d7646d1ceb99c94efc92000370b814f83219d2",
+  "runtime": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+  "program": "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58",
+  "nativeChecks": 101,
+  "browserChecks": 100,
+  "geometryLayouts": 48,
+  "geometryOracleCases": 512,
+  "geometryOracleSha256": "6bdc87880d5cefa9c4ae6f5a78d9f5779c1b215a209af210f3c48c7f38dabd1c",
+  "command": {
+    "command": [
+      "uv",
+      "run",
+      "--frozen",
+      "--project",
+      "browser-tests",
+      "pytest",
+      "-n",
+      "2",
+      "--browser=all",
+      "--vir-site-acceptance",
+      "--site-dir",
+      "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/.qualification-browser-20261001/site",
+      "--junitxml=/home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/.qualification-browser-20261001/final.xml",
+      "browser-tests/test_vir_prettym_site.py",
+      "browser-tests/test_vir_prettym_presentation.py",
+      "browser-tests/test_vir_prettym_lifecycle.py",
+      "browser-tests/test_panel.py",
+      "browser-tests/test_lightbox.py",
+      "browser-tests/test_vir_prettym_geometry.py"
+    ],
+    "exit": 0,
+    "seconds": 44.74879550002515
+  },
+  "retention": [
+    {
+      "test": "test_repeated_formatting_reflow_and_retry_retention[chromium]",
+      "browser": "chromium",
+      "version": "145.0.7632.6",
+      "capacities": [
+        4194304,
+        4194304,
+        4194304,
+        4194304,
+        4194304
+      ],
+      "batchMilliseconds": [
+        14.699999928474426,
+        15.899999976158142,
+        9.200000047683716,
+        9.899999976158142,
+        9.100000023841858
+      ],
+      "liveMemoryWrappersAfterGC": 1,
+      "reflowNodeCounts": {
+        "repeats": 64,
+        "min": 21,
+        "max": 21
+      }
+    },
+    {
+      "test": "test_repeated_formatting_reflow_and_retry_retention[firefox]",
+      "browser": "firefox",
+      "version": "146.0.1",
+      "capacities": [
+        4194304,
+        4194304,
+        4194304,
+        4194304,
+        4194304
+      ],
+      "batchMilliseconds": [
+        45,
+        36,
+        31,
+        32,
+        32
+      ],
+      "reflowNodeCounts": {
+        "repeats": 64,
+        "min": 21,
+        "max": 21
+      }
+    }
+  ],
+  "fonts": [
+    {
+      "test": "test_actual_delayed_font_download_reflows_current_native_layout[chromium]",
+      "browser": "chromium",
+      "version": "145.0.7632.6",
+      "beforeFont": {
+        "columns": 24,
+        "width": 339.85135590280817,
+        "space": 13.922585569990348,
+        "postLayoutWidth": 339.85135590280817,
+        "visibleWidth": 339.8617793136887,
+        "extent": 180.96211306747747,
+        "largestAtom": 180.74693298339844,
+        "whiteSpace": "pre",
+        "text": "lean ir runs\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      "afterFont": {
+        "columns": 28,
+        "width": 339.85135590280817,
+        "space": 12.014059598426705,
+        "postLayoutWidth": 339.85135590280817,
+        "visibleWidth": 339.8617793136887,
+        "extent": 312.3661065219265,
+        "largestAtom": 156,
+        "whiteSpace": "pre",
+        "text": "lean ir runs format.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      "actualFontEvents": 1
+    },
+    {
+      "test": "test_actual_delayed_font_download_reflows_current_native_layout[firefox]",
+      "browser": "firefox",
+      "version": "146.0.1",
+      "beforeFont": {
+        "columns": 24,
+        "width": 339.82255401417933,
+        "space": 13.924803449778201,
+        "postLayoutWidth": 339.82255401417933,
+        "visibleWidth": 339.8469590660647,
+        "extent": 180.92099807410486,
+        "largestAtom": 180.0500030517578,
+        "whiteSpace": "pre",
+        "text": "lean ir runs\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      "afterFont": {
+        "columns": 28,
+        "width": 339.82255401417933,
+        "space": 12.133510575095057,
+        "postLayoutWidth": 339.82255401417933,
+        "visibleWidth": 339.8469590660647,
+        "extent": 315.40344779784533,
+        "largestAtom": 156.86666870117188,
+        "whiteSpace": "pre",
+        "text": "lean ir runs format.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      "actualFontEvents": 1
+    }
+  ]
+}

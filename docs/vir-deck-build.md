@@ -74,7 +74,9 @@ The runtime lock names the public [exact release pack](https://github.com/ejgall
 Ordinary resource preparation remains library-owned and verifies content identity;
 there is no implicit Wasm source build or formatter fallback. The historical
 supplied-pack checkpoint stays separate from [public-source qualification](vir-public-runtime.md).
-Final geometry/retention/product acceptance remains open.
+The [focused browser checkpoint](vir-browser-acceptance.md) passes semantic,
+font, geometry and bounded retention checks. Overall product acceptance remains
+open, including the separately reproduced mobile panel restoration issue.
 
 [Accepted historical execution and immutable logs](https://github.com/ejgallego/verso-slides/blob/3f7dbc93f10f1ed2ef88ee65dda9019b5c298233/docs/evidence/publication-adoption/README.md)
 remain on the development branch. This reduced renderer is a new source checkpoint;

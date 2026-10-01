@@ -83,7 +83,7 @@ test executions or a Slides CI claim. No tests were rerun for this status update
   `--no-cache` scope; preserve the minimal
   API/build scope and historical evidence.
 - VIR: exact public lock/source supplied; no new consumer API/artifact request.
-- Slides: fresh browser acceptance of the reduced renderer, geometry, font/theme/
-  resize and retention/performance remain open. No native formatter or browser
-  campaign was rerun for this source-only pin update; unchanged runtime/program
-  bytes retain their historical coverage without qualifying changed renderer bytes.
+- Slides: the subsequent [focused browser checkpoint](vir-browser-acceptance.md)
+  records fresh reduced-renderer checks and the separate mobile panel issue.
+  Overall product acceptance remains open. No browser campaign was rerun during
+  the source-only pin update recorded here.

@@ -48,5 +48,6 @@ Intermediate commits are not independently qualified.
 
 VIR supplies the public exact runtime source at `87d7646d`; Slides owns
 [public-source qualification](vir-public-runtime.md) and remaining
-geometry/retention/product acceptance. Historical `af3052c` supplied-pack
+[focused browser checks](vir-browser-acceptance.md) with overall product
+acceptance still open. Historical `af3052c` supplied-pack
 qualification stays separate. See [integration notes](vir-deck-build.md).
