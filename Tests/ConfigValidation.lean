@@ -45,6 +45,16 @@ def expectVirNamespaceFail (desc : String) (cfg : Config) : IO (Except String Un
     else
       return .error s!"{desc}: unexpected error {e}"
 
+def expectRejectedBeforeWrites (desc filename : String) (output : System.FilePath) :
+    IO (Except String Unit) := do
+  let cfg : Config := { outputDir := output, extraCss := #[dummyCss filename "conflict"] }
+  let rejected ← try
+    pure ((← slidesMain cfg (.mk #[] "namespace test" none #[] #[])) != 0)
+  catch _ => pure true
+  if !rejected then return .error s!"{desc}: renderer accepted a conflicting destination"
+  if ← output.pathExists then return .error s!"{desc}: renderer wrote output before rejection"
+  return .ok ()
+
 /-- String substring check. -/
 private def hasSubstr (haystack needle : String) : Bool :=
   haystack.find? needle |>.isSome
@@ -68,6 +78,11 @@ def expectFailMentioning (desc : String) (cfg : Config)
       return .error s!"{desc}: error missing substrings {missing}\n  got: {msg}"
 
 public def main : IO UInt32 := do
+  let cwd ← IO.currentDir
+  let output := cwd / "_test/namespace-output"
+  let assetConfig (filename : String) : Config :=
+    { outputDir := output,
+      theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset filename]) }
   let cases : List (IO (Except String Unit)) := [
     expectOk "builtin theme + no extraCss" { theme := "black" },
     expectOk "builtin theme + unique extraCss"
@@ -139,6 +154,45 @@ public def main : IO UInt32 := do
     expectVirNamespaceFail "reserved namespace recognizes portable separators"
       { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "LIB\\VIR\\runtime.js"]) }
   ]
+  -- Only destinations owned by VIR are reserved. This deliberately does not
+  -- impose the separately extracted general asset-filename policy.
+  let reserved := [
+    "./lib/vir/runtime.js", "lib//vir/runtime.js", "assets/../lib/vir/runtime.js",
+    "lib/assets/../vir/runtime.js", "lib/vir/../.vir-stage/stale",
+    "assets/../LIB/.VIR-STAGE/stale", "lib/vir/..",
+    "assets\\..\\LiB\\ViR\\runtime.js",
+    "./vir-bootstrap.js", "VIR-BOOTSTRAP.JS", "assets/../vir-bootstrap.js",
+    "assets\\..\\vir-bootstrap.js",
+    (output / "lib/vir/runtime.js").toString,
+    (output / "LIB/.VIR-STAGE/stale").toString,
+    (output / "lib").toString,
+    (output / "vir-bootstrap.js").toString,
+    "../namespace-output/lib/vir/runtime.js" ]
+  let allowed := [
+    "lib/viral/runtime.js", "lib/.vir-stage-extra/stale", "nested/lib/vir/runtime.js",
+    "assets/../logo.png", "generated//logo.png", "../unrelated/logo.png",
+    "./logo.png", (cwd / "_test/unrelated/logo.png").toString,
+    "vir-bootstrap.js" ]
+  let aliases := reserved.map (fun filename =>
+    expectVirNamespaceFail s!"reserved destination alias {filename}" (assetConfig filename))
+  let unrelated := allowed.map (fun filename =>
+    expectOk s!"unrelated destination {filename}" (assetConfig filename))
+  let customOutput := [
+    expectVirNamespaceFail "relative output directory with lexical aliases"
+      { (assetConfig "./lib//vir/runtime.js") with outputDir := "_test/other/../relative" },
+    expectVirNamespaceFail "absolute alias resolves against normalized output directory"
+      { (assetConfig ((cwd / "_test/relative/lib/vir/runtime.js").toString)) with
+        outputDir := "_test/other/../relative" } ]
+  let cases := cases ++ aliases ++ unrelated ++ customOutput
+  let stamp ← IO.monoNanosNow
+  let rejectedOutput := cwd / s!"_test/namespace-rejected-{stamp}"
+  let cases := cases ++ [
+    expectRejectedBeforeWrites "resource alias rejected before publication"
+      "assets/../lib/vir/runtime.js" rejectedOutput,
+    expectRejectedBeforeWrites "bootstrap alias rejected before publication"
+      "assets/../vir-bootstrap.js" rejectedOutput,
+    expectRejectedBeforeWrites "exact bootstrap collision rejected before publication"
+      "vir-bootstrap.js" rejectedOutput ]
   let mut failed := 0
   for run in cases do
     match ← run with
