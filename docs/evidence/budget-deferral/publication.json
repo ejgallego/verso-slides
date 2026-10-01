@@ -1,0 +1,176 @@
+[
+  {
+    "route": "",
+    "bundles": [
+      {
+        "contentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+        "manifestSha256": "637f94bc170e972abcc59d5ddfbce108925a3e962155c7df318477282f5775f6",
+        "payloads": [
+          {
+            "path": "LICENSE",
+            "bytes": 10318,
+            "sha256": "6f306db6390c163410b41f6517867b756207212736b31e50b2639710ccd706d8"
+          },
+          {
+            "path": "NOTICE",
+            "bytes": 725,
+            "sha256": "ec9f9f0edffd4204177a59e36ae91454029334b410f2b87f4477bad349da23c2"
+          },
+          {
+            "path": "lean-LICENSE",
+            "bytes": 9160,
+            "sha256": "8b28515ffffc5c0fe2807d8ae3735b00b324d9b7ce807dd63ff6ac8922fbce7e"
+          },
+          {
+            "path": "lean-LICENSES",
+            "bytes": 81854,
+            "sha256": "00cce2ac071f63d470a287438a7c6bbc4334706be244384e9af4fc9ead11cdce"
+          },
+          {
+            "path": "runtime.js",
+            "bytes": 244489,
+            "sha256": "b9fa28797af2787b4bae53a4d4a6a440b718512b54553717c65630b239b5829a"
+          },
+          {
+            "path": "runtime.wasm",
+            "bytes": 773031,
+            "sha256": "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4"
+          }
+        ]
+      },
+      {
+        "contentId": "f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede",
+        "manifestSha256": "733c16959698ae4ea6883b0b38e4c703435a9716d524407a2f70039a3e0037b4",
+        "payloads": [
+          {
+            "path": "parts/0.irpkg",
+            "bytes": 670,
+            "sha256": "b2ccf89ee4778f1880f3f30a796cb7c1956fccff0f06c47b674c06297ac013c2"
+          },
+          {
+            "path": "parts/1.irpkg",
+            "bytes": 1976,
+            "sha256": "359f8fc1c73ad5951db2f2ca7840ef7ac6b82442914b7bfaf0b77c6c2b12ffeb"
+          },
+          {
+            "path": "parts/2.irpkg",
+            "bytes": 900,
+            "sha256": "07eb3ea68d1df4d730c71c0583e2ec5be195fa0cffab315522af653193c45e28"
+          },
+          {
+            "path": "parts/3.irpkg",
+            "bytes": 5934,
+            "sha256": "5c2d76ebca92de975ca6ed39e7c240d3a7b8c79a41c714ebf6659fa60eb42826"
+          },
+          {
+            "path": "parts/4.irpkg",
+            "bytes": 11228,
+            "sha256": "c188d5e9c5cd46cad47950c7f929c55d6f1d85b64870afe56e2b615693401e13"
+          },
+          {
+            "path": "parts/5.irpkg",
+            "bytes": 48758,
+            "sha256": "9a00a75be86f64d07810ea7f2d4b25a0b2e55dfa047f7decf8e5e90fb4957111"
+          },
+          {
+            "path": "program.irpkg",
+            "bytes": 7061,
+            "sha256": "323657c8c4bd44c3371c90c64f4df67f1f9ed72bbc5837373e011471f7b6ede9"
+          },
+          {
+            "path": "program.irpkg-set.json",
+            "bytes": 1239,
+            "sha256": "b80d5f80cf54b08abcbfb2d2e5dd29368c2a6e84ae9d0d1d6eb7dae2d6a23b4a"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "route": "nested/deck",
+    "bundles": [
+      {
+        "contentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+        "manifestSha256": "637f94bc170e972abcc59d5ddfbce108925a3e962155c7df318477282f5775f6",
+        "payloads": [
+          {
+            "path": "LICENSE",
+            "bytes": 10318,
+            "sha256": "6f306db6390c163410b41f6517867b756207212736b31e50b2639710ccd706d8"
+          },
+          {
+            "path": "NOTICE",
+            "bytes": 725,
+            "sha256": "ec9f9f0edffd4204177a59e36ae91454029334b410f2b87f4477bad349da23c2"
+          },
+          {
+            "path": "lean-LICENSE",
+            "bytes": 9160,
+            "sha256": "8b28515ffffc5c0fe2807d8ae3735b00b324d9b7ce807dd63ff6ac8922fbce7e"
+          },
+          {
+            "path": "lean-LICENSES",
+            "bytes": 81854,
+            "sha256": "00cce2ac071f63d470a287438a7c6bbc4334706be244384e9af4fc9ead11cdce"
+          },
+          {
+            "path": "runtime.js",
+            "bytes": 244489,
+            "sha256": "b9fa28797af2787b4bae53a4d4a6a440b718512b54553717c65630b239b5829a"
+          },
+          {
+            "path": "runtime.wasm",
+            "bytes": 773031,
+            "sha256": "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4"
+          }
+        ]
+      },
+      {
+        "contentId": "f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede",
+        "manifestSha256": "733c16959698ae4ea6883b0b38e4c703435a9716d524407a2f70039a3e0037b4",
+        "payloads": [
+          {
+            "path": "parts/0.irpkg",
+            "bytes": 670,
+            "sha256": "b2ccf89ee4778f1880f3f30a796cb7c1956fccff0f06c47b674c06297ac013c2"
+          },
+          {
+            "path": "parts/1.irpkg",
+            "bytes": 1976,
+            "sha256": "359f8fc1c73ad5951db2f2ca7840ef7ac6b82442914b7bfaf0b77c6c2b12ffeb"
+          },
+          {
+            "path": "parts/2.irpkg",
+            "bytes": 900,
+            "sha256": "07eb3ea68d1df4d730c71c0583e2ec5be195fa0cffab315522af653193c45e28"
+          },
+          {
+            "path": "parts/3.irpkg",
+            "bytes": 5934,
+            "sha256": "5c2d76ebca92de975ca6ed39e7c240d3a7b8c79a41c714ebf6659fa60eb42826"
+          },
+          {
+            "path": "parts/4.irpkg",
+            "bytes": 11228,
+            "sha256": "c188d5e9c5cd46cad47950c7f929c55d6f1d85b64870afe56e2b615693401e13"
+          },
+          {
+            "path": "parts/5.irpkg",
+            "bytes": 48758,
+            "sha256": "9a00a75be86f64d07810ea7f2d4b25a0b2e55dfa047f7decf8e5e90fb4957111"
+          },
+          {
+            "path": "program.irpkg",
+            "bytes": 7061,
+            "sha256": "323657c8c4bd44c3371c90c64f4df67f1f9ed72bbc5837373e011471f7b6ede9"
+          },
+          {
+            "path": "program.irpkg-set.json",
+            "bytes": 1239,
+            "sha256": "b80d5f80cf54b08abcbfb2d2e5dd29368c2a6e84ae9d0d1d6eb7dae2d6a23b4a"
+          }
+        ]
+      }
+    ]
+  }
+]

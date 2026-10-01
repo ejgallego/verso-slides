@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "141161a5910bc6a3d895dc87a7136c1d31e8c898",
+  "virCommit": "590be72bd91519c7beb89e105dfba498a4aff140",
+  "lean": "4.34.0",
+  "runtimeContentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+  "runtimePackSha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1",
+  "programContentId": "f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede",
+  "programPackSha256": "85dd8d25261b5da8e807b4d373dd5db885a5b24480c24d1310525895ad308c3f",
+  "programPackBytes": 79510,
+  "nodePassed": 39,
+  "nativeSemanticPassed": 7,
+  "browserPassed": 32,
+  "buildJobs": 753,
+  "manifestsChecked": 4,
+  "payloadsChecked": 28,
+  "retainedFilesSha256": {
+    "node.log": "dbaee0b9604daac9e3d4a5fd2a3d074a3bae1fadba295ece18cd5cda6efd117d",
+    "build.log": "f937de36684085910baf9e95e44d66161cbf21fad524022dd0a2deb3143fa311",
+    "test-pretty.log": "5d8eabaa615ff4d800936464151b7efc6e98b34bb374247d72218fc98b493f12",
+    "test-vir-publication.log": "b9e806b340637da4a5ca57733c31087e1314a117d0283ddbcb55143c3137fcb0",
+    "render.log": "5eb688d199d9b7e8b15e54973cdcb56d9822944f69651b34aa92ada4c3d1a4e6",
+    "browser.log": "91af8bc5fe5d0515fe76eadb965fc4cb5c79cd09d879db1ec6ff03659e7f497c",
+    "browser.xml": "6699a9e1a13b902e47373de8387b2eae053f66e35b9b7d19f97af2647ac067e5",
+    "publication.json": "6f227af0bc6d2af03b12b3231b60f0c8f176bba14bed3068ad17fa05e89c06d5"
+  }
+}
