@@ -28,5 +28,48 @@ declare function formatToHtml(
     measurer: DOMMeasurer,
 ): string;
 
-/** pretty.js — create a DOM-based measurer for pixel-accurate text width measurement (global). */
+/** pretty.js — measure panel widths and monospace columns in CSS pixels (global). */
 declare function createDOMMeasurer(panel: HTMLElement): DOMMeasurer;
+
+declare function renderRichFormat(container: HTMLElement, source: Element): void;
+declare function showFormattingStatus(container: HTMLElement): void;
+declare function showFormattingFailure(container: HTMLElement, error: unknown): void;
+declare function formatterIsReady(): boolean;
+declare function bindingSelector(binding: string): string;
+
+interface VersoVirProgram {
+    readonly status: "active" | "failed" | "disposed";
+    call(role: string, ...args: unknown[]): unknown;
+    dispose(): void;
+}
+
+interface PrettySegment {
+    text: string;
+    tags: string[];
+}
+
+type PrettyFormatResult =
+    | { kind: "ok"; value: PrettySegment[] }
+    | { kind: "error"; value: string };
+
+interface Window {
+    /** Independent, reviewed existing VIR interface representation; embedded at build time. */
+    __versoVirExpectedExports: Readonly<Record<string, {
+        declaration: string;
+        interfaceId: string;
+        signature: { args: unknown[]; result: unknown; effect: "pure" };
+    }>>;
+    __versoVirResourceUrls: {
+        runtimeModule: string;
+        runtimeManifest: string;
+        programManifest: string;
+    };
+    versoVir?: VersoVirProgram;
+    versoVirReady?: Promise<VersoVirProgram>;
+    /** State of the current page-owned creation attempt. */
+    versoVirState?: "loading" | "ready" | "failed" | "disposed";
+    /** Create a fresh attempt; no formatting calls are replayed. */
+    versoVirRetry: () => Promise<VersoVirProgram>;
+    /** Slides v2 facade: bounded compact input, typed segments, recoverable errors. */
+    versoVirFormatSegments?: (format: unknown, width: number, indent: number) => PrettySegment[];
+}

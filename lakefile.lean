@@ -7,7 +7,10 @@ import Lake
 
 open System Lake DSL
 
-require verso from git "https://github.com/leanprover/verso.git"@"main"
+require verso from git "https://github.com/leanprover/verso.git"@
+  "cad4b633e75ea769b851f12f9ca3b4f0dfcc625f"
+require lean_vir from git "https://github.com/ejgallego/lean-vir.git" @
+  "87d7646d1ceb99c94efc92000370b814f83219d2"
 
 package «verso-slides» where
   version := v!"0.1.0"
@@ -28,7 +31,20 @@ lean_lib VersoSlides where
 lean_lib Demo where
   needs := #[`@verso/+Verso.Code.External:highlighted]
 
-@[default_target] lean_exe «demo-slides» where root := `Main
+@[default_target] lean_exe «demo-slides» where
+  root := `Main
+
+-- The program and carrier are separate libraries. VIR's facet prepares the
+-- exact pack before Lake compiles the carrier's include_vir_bundle declaration.
+lean_lib VersoSlidesVirPrettyM where
+  roots := #[]
+  globs := #[.one `VersoSlides.VirPrettyM]
+
+lean_lib VersoSlidesVirPrettyMResources where
+  srcDir := "resources"
+  roots := #[]
+  globs := #[.one `VersoSlides.VirPrettyMResources]
+  needs := #[`@«verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack]
 
 lean_exe «extract-lakefile» where
   root := `ExtractLakefile
@@ -56,3 +72,4 @@ lean_exe «test-comment-parsers» where
 
 lean_exe «test-config-validation» where
   root := `Tests.ConfigValidation
+

@@ -8,6 +8,8 @@ module
 public import VersoSlides.Attributes
 public import VersoSlides.SlideCode.Render
 public import VersoSlides.SlideCode.Export
+public import VersoSlides.VirResourceSite
+public import VersoSlides.VirResources
 public import Verso.Doc.Html
 import Verso.Code.Highlighted.WebAssets
 import Illuminate.Animation.Render
@@ -353,8 +355,11 @@ private def jsBool (b : Bool) : String := if b then "true" else "false"
 /-- CSS for the interactive info panel layout. -/
 private def slideCodePanelCss : String := include_str "../web-lib/panel/panel.css"
 
-/-- JS for the pretty-printer (reflowable format rendering). -/
+/-- Browser measurement and presentation around the embedded Lean formatter. -/
 private def prettyJs : String := include_str "../web-lib/panel/pretty.js"
+private def virBootstrapJs : String := include_str "../web-lib/vir-prettym/bootstrap.js"
+private def virExpectedExports : String :=
+  include_str "../web-lib/vir-prettym/format-segments-v2.contract.json"
 
 /-- JS for the interactive info panel. -/
 private def slideCodePanelJs : String := include_str "../web-lib/panel/panel.js"
@@ -631,10 +636,10 @@ private def recordAsset (seen : Std.HashMap String (String × AssetPayload))
         s!"Filename collision in config: \"{filename}\" is claimed by {prevSource} ({prev.kind}) and {source} ({payload.kind}) with different contents."
 
 /--
-Builds the deduplicated asset plan for a {name}`Config`: the custom
+Builds the deduplicated embedded-asset plan for a {name}`Config`: the custom
 theme's stylesheet (if any), every bundled theme asset, and every
-{lit}`extraCss` entry. When two entries share a filename their contents
-must match; otherwise {name}`IO.userError` is raised.
+{lit}`extraCss` entry. When two entries share a filename
+their contents must match; otherwise {name}`IO.userError` is raised.
 
 Returns the map of filenames to (source, payload) pairs so
 {lit}`slidesMain` can write each file exactly once without
@@ -656,21 +661,54 @@ def Config.collectAssets (config : Config) :
       "extraCss" (.text css.contents.css)
   return seen
 
-/--
-Checks that every filename supplied through {lit}`Config.theme` (when
-{lit}`.custom`), its bundled assets, and {lit}`extraCss` either is unique
-or is repeated with identical contents. Raises {name}`IO.userError` on
-divergent-contents clashes; duplicates with identical contents are
-silently deduplicated.
--/
-def Config.validateFilenames (config : Config) : IO Unit := do
-  let _ ← config.collectAssets
+-- Resolve lexical aliases only for comparing destinations with our owned
+-- directories. General configured-filename policy belongs to a separate patch.
+private def foldedAssetPath (path : System.FilePath) : String := Id.run do
+  let mut parts : List String := []
+  for part in path.toString.splitToList (fun c => c == '/' || c == '\\') do
+    if part == ".." then parts := parts.tail
+    else if !part.isEmpty && part != "." then parts := part.toLower :: parts
+  return String.intercalate "/" parts.reverse
 
-/-- Generates a {lit}`reveal.js` slide presentation from a Verso document. -/
+private def validateVirAssetNamespace (outputDir : System.FilePath)
+    (plan : Std.HashMap String (String × AssetPayload)) : IO Unit := do
+  let output := (← IO.currentDir) / outputDir
+  let library := foldedAssetPath (output / "lib")
+  let resources := library ++ "/vir"
+  let stage := library ++ "/.vir-stage"
+  let bootstrap := foldedAssetPath (output / "vir-bootstrap.js")
+  for (filename, _, _) in plan.toList do
+    let folded := foldedAssetPath (output / filename.replace "\\" "/")
+    if folded == library || folded == resources || folded.startsWith (resources ++ "/") ||
+        folded == stage || folded.startsWith (stage ++ "/") ||
+        (folded == bootstrap && filename != "vir-bootstrap.js") then
+      throw <| IO.userError s!"Slides asset {filename} collides with the reserved VIR resource namespace"
+
+/-- Validate configured filenames and reserve the embedded publisher's namespace. -/
+def Config.validateFilenames (config : Config) : IO Unit := do
+  validateVirAssetNamespace config.outputDir (← config.collectAssets)
+
+private def virBootstrap (published : VirResourceSite.PublishedResources) : IO String := do
+  let some (_, programManifestUrl) := published.programManifestUrls.find?
+      (·.1 == "verso-slides/prettyM")
+    | throw <| IO.userError "PrettyM program manifest is missing"
+  let urls := Lean.Json.mkObj [
+    ("runtimeModule", Lean.Json.str published.runtimeModuleUrl),
+    ("runtimeManifest", Lean.Json.str published.runtimeManifestUrl),
+    ("programManifest", Lean.Json.str programManifestUrl)]
+  return "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++
+    "window.__versoVirExpectedExports = " ++ virExpectedExports ++ ";\n" ++ virBootstrapJs
+
+/-- Generates a {lit}`reveal.js` slide presentation with mandatory Lean formatting through VIR. -/
 def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWithLogger do
-  -- Validate the config and build the deduplicated asset plan up-front so
-  -- any filename collision fails before we start writing files.
-  let assetPlan ← config.collectAssets
+  let resourcePlan ← VirResourceSite.prepare virResources
+  let bootstrap ← virBootstrap resourcePlan.published
+  let config := { config with extraJs := config.extraJs.push "vir-bootstrap.js" }
+  -- Merge internal bootstrap bytes with the existing configured assets so
+  -- filename conflicts are rejected before any publication writes.
+  let assetPlan ← recordAsset (← config.collectAssets) "vir-bootstrap.js"
+    "VIR bootstrap" (.text bootstrap)
+  validateVirAssetNamespace config.outputDir assetPlan
 
   -- Run the traversal pass (collects CSS blocks, etc.)
   let (doc, traverseState) ← (Slides.traverse doc : TraverseM (Part Slides)) () {}
@@ -714,6 +752,8 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
     match payload with
     | .text body => writeFileWithDirs (dir / filename) body
     | .binary bytes => writeBinFileWithDirs (dir / filename) bytes
+
+  let _ ← VirResourceSite.write dir resourcePlan
 
   -- Copy local images to the output directory
   if !traverseState.imageFiles.isEmpty then
