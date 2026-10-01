@@ -1,0 +1,49 @@
+✔ [612/626] Built Vir.Resources.Types (686ms)
+✔ [613/626] Built Vir.Resources.Types:c.o (490ms)
+✔ [614/626] Built Vir.Resources.Validate (601ms)
+✔ [615/626] Built Vir.Resources (216ms)
+✔ [617/626] Built Vir.Resources.Pack (448ms)
+✔ [619/626] Built Vir.Resources.Build (817ms)
+✔ [620/626] Built Vir.Resources.Validate:c.o (1.2s)
+✔ [622/626] Built tools.VirResourcePack (1.2s)
+✔ [624/626] Built vir_resource_pack:exe (643ms)
+✔ [628/638] Built Vir.BinaryLiteral (407ms)
+✔ [629/638] Built Vir.Resources.Program (507ms)
+✔ [630/638] Built Vir.BinaryLiteral.ToExpr (260ms)
+✔ [631/638] Built Vir.Resources.Embed (612ms)
+✔ [632/638] Built Vir.Resources.Program:c.o (857ms)
+✔ [633/638] Built tools.VirResourceProgram (987ms)
+✔ [634/638] Built tools.VirResourceProgram:c.o (504ms)
+✔ [635/701] Built vir_resource_program:exe (604ms)
+ℹ [694/701] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+✔ [695/701] Built tools.VirProgram (945ms)
+✔ [696/701] Built tools.VirProgram:c.o (475ms)
+✔ [697/701] Built vir_program:exe (809ms)
+ℹ [698/701] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (1.1s)
+info: stdout:
+wrote /tmp/tmp.XXrSfh9S/program.irpkg-set.json
+wrote /tmp/tmp.XXrSfh9S/program.irpkg
+wrote /tmp/tmp.XXrSfh9S/report.md
+package set members: 8
+package format: 11
+declarations: 135 (110 Lean IR, 25 native externs)
+interface exports: 1
+ℹ [700/745] Built «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack (60ms)
+info: stdout:
+97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58
+✔ [716/745] Built Vir.BinaryLiteral.ToExpr:c.o (80ms)
+✔ [723/745] Built Vir.BinaryLiteral:c.o (289ms)
+✔ [724/745] Built Vir.Resources.Embed:c.o (301ms)
+✔ [725/745] Built VersoSlides.VirPrettyMResources (1.2s)
+✔ [727/745] Built VersoSlides.InlineLean (2.6s)
+✔ [729/745] Built Vir.Resources.Runtime (7.7s)
+✔ [734/745] Built Vir.Resources.Runtime:c.o (97ms)
+✔ [735/745] Built VersoSlides.ModuleExample (3.3s)
+✔ [737/745] Built VersoSlides.LibModule (2.9s)
+✔ [739/745] Built VersoSlides (587ms)
+✔ [741/745] Built MyTalk.Slides (836ms)
+✔ [743/745] Built Main (720ms)
+✔ [744/745] Built Main:c.o (100ms)
+✔ [745/745] Built «my-talk»:exe (717ms)
+Build completed successfully (745 jobs).

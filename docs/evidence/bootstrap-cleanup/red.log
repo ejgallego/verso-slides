@@ -1,0 +1,122 @@
+✔ pending creation receives independent expectedExports/signal; pagehide aborts without a facade (4.539189ms)
+✔ late success after before import is disposed once and never handed off (2.540519ms)
+✔ late success after during creation is disposed once and never handed off (1.3238ms)
+✔ obsolete cancellation reports own raw cleanup evidence (undefined) (1.542993ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (1.142479ms)
+✔ obsolete cancellation reports own raw cleanup evidence (object) (0.892359ms)
+✔ resolved lifetime preserves bfcache and disposes on terminal pagehide (1.03689ms)
+✖ late disposal throwing Error retains/reports evidence without an unhandled rejection (58.112048ms)
+✖ late disposal throwing null retains/reports evidence without an unhandled rejection (40.33124ms)
+✖ late disposal throwing undefined retains/reports evidence without an unhandled rejection (50.864195ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 7
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 252.012198
+
+✖ failing tests:
+
+test at Tests/vir-bootstrap.test.cjs:133:3
+✖ late disposal throwing Error retains/reports evidence without an unhandled rejection (58.112048ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      alerts: 0,
+      disposals: 1,
+      rejected: true,
+  +   reported: false,
+  +   retained: false,
+  -   reported: true,
+  -   retained: true,
+      staleFacade: false,
+      unhandled: []
+    }
+
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:137:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { rejected: true, disposals: 1, reported: false, retained: false, staleFacade: false, alerts: 0, unhandled: [] },
+    expected: { rejected: true, disposals: 1, reported: true, retained: true, staleFacade: false, alerts: 0, unhandled: [] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at Tests/vir-bootstrap.test.cjs:133:3
+✖ late disposal throwing null retains/reports evidence without an unhandled rejection (40.33124ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      alerts: 0,
+      disposals: 1,
+      rejected: true,
+  +   reported: false,
+  +   retained: false,
+  -   reported: true,
+  -   retained: true,
+      staleFacade: false,
+  +   unhandled: [
+  +     'TypeError'
+  +   ]
+  -   unhandled: []
+    }
+
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:137:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { rejected: true, disposals: 1, reported: false, retained: false, staleFacade: false, alerts: 0, unhandled: [ 'TypeError' ] },
+    expected: { rejected: true, disposals: 1, reported: true, retained: true, staleFacade: false, alerts: 0, unhandled: [] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at Tests/vir-bootstrap.test.cjs:133:3
+✖ late disposal throwing undefined retains/reports evidence without an unhandled rejection (50.864195ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      alerts: 0,
+      disposals: 1,
+      rejected: true,
+  +   reported: false,
+  +   retained: false,
+  -   reported: true,
+  -   retained: true,
+      staleFacade: false,
+  +   unhandled: [
+  +     'TypeError'
+  +   ]
+  -   unhandled: []
+    }
+
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:137:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { rejected: true, disposals: 1, reported: false, retained: false, staleFacade: false, alerts: 0, unhandled: [ 'TypeError' ] },
+    expected: { rejected: true, disposals: 1, reported: true, retained: true, staleFacade: false, alerts: 0, unhandled: [] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

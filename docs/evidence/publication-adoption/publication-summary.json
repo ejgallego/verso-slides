@@ -1,0 +1,11 @@
+{
+  "filesByteIdentical": 115,
+  "baselinePublicationMedianSeconds": 0.261900256969966,
+  "planPublicationMedianSeconds": 0.17212522902991623,
+  "baselineWarmBuildMedianSeconds": 1.1618399780709296,
+  "planWarmBuildMedianSeconds": 1.1602530099917203,
+  "prepareMedianMs": 70.403926,
+  "writeReusedPlanMedianMs": 0.632701,
+  "applicationValidationCallsBefore": 3,
+  "applicationValidationCallsAfter": 1
+}

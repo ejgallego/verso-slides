@@ -1,0 +1,5 @@
+reserved resource namespace ignores casing: expected reserved namespace failure, got success
+reserved staging namespace ignores casing: expected reserved namespace failure, got success
+file cannot replace resource library parent: expected reserved namespace failure, got success
+generated directory cannot replace library parent through casing: expected failure, got success
+4 validation case(s) FAILED.

@@ -1,0 +1,47 @@
+{
+  "vir": "47e82e9a483e727431bb004fb64ce76ada739ba9",
+  "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+  "virVersion": 1,
+  "runtimeContentId": "401b115ed3f4770b11e5b64d6066cbebb5b41beb468c3f9908603b89690776ba",
+  "programContentId": "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58",
+  "runtimePackSha256": "1d6192985fedd8d4c85c3db3c625857c2191832a3f02c72d818f47562e3daaf7",
+  "runtimeJsSha256": "08e542ef60d71b9308b1e12ba3f4438fef24b7634e1aab1f380a93833e1469a0",
+  "wasmSha256": "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4",
+  "artifactSource": "supplied pack; runtime lock source remains -",
+  "slides": "19bf157fbd33171a16c2fa10a40e94ac440a2dd0",
+  "slidesParent": "e2b34da6312ecec3c28650fcec1c341dc8baf3aa",
+  "recordedUtc": "2026-09-30T20:47:23.782493+00:00",
+  "inventoryFilesComparedAcrossRootAndNested": 34,
+  "inventoriesByteIdenticalToPriorConsolidationSite": true,
+  "sourceSha256": {
+    "web-lib/vir-prettym/bootstrap.js": "00ae8d6e2dc6f53903243860cdeb28505c95efa6f06e95e85c2b1e2579146220",
+    "Tests/vir-bootstrap.test.cjs": "a845815244d795111928255bd7590701ffcf4121b7bf4fcee27af476dad2c929",
+    "browser-tests/test_vir_prettym_lifecycle.py": "7ad76b5370a7937e4bc0914bfdb7606364458dff02e1a5966e45bb76192ea1b9",
+    "web-lib/vir-prettym/format-segments-v2.contract.json": "19803f20b296671a4b8b8626d69e80d4c8720fb764fd7576b711fde4f95d222c",
+    "web-lib/panel/pretty.js": "1f62640baf57396a1a900723694c3da4dce9f5cdd12eee39834e24ebac8800df",
+    "web-lib/panel/panel.js": "ac7a5ed3fbfe9de9a82e71f92d75a5fa0c6a9b0f0bd27fe2c308caa2e998e9b1",
+    "web-lib/panel/lightbox.js": "d8a49cc3e86fcdc325a09dbd8db5a30ac7a073a5dd0b5e9b774269c276ec77f6",
+    "lakefile.lean": "03f3f28377c846ce247107755f52c032ec86dda9fbe21b1f9c937184036f5ffd",
+    "lake-manifest.json": "4adf3e8b6e3b347b6ccb994cb1def848e1cdaf577e690ea2476c94b606657d61"
+  },
+  "publishedBootstrapSha256": "08addaed471dcd06796f23e1cd0048bad33d293ece1aedf710eaaea3af57c49f",
+  "evidenceSha256": {
+    "README.md": "431db9852afd59ed74ce353523322a9f4e0f58545e18ae3e479491bfbb21be79",
+    "browser.log": "4187524418a567733c70e2bdeba034568f8f624bc20c81b2c52944efd6be943e",
+    "build.log": "26906bfb3963b54b1df20a3646faea2623dab61ab8aa8a3990001afeb9c431e6",
+    "green.log": "c214b1674aa15dda49f2466082d2a163f6b17dce7cfb27247325c32b1dde2fa4",
+    "red.log": "a983a70a9f4ea3e9a8b79c9ac9c838f205115713a868f69baf5a70b164e2f3bc",
+    "render-nested.log": "9d06666ec74af1072874d9ca29ab4bf00ac0e7db3f7b40b3f2bba57c3dcca5b0",
+    "render-root.log": "5de422774ad5e0e30cf61d51a5af2c2dfcbf46ff50bc4f8c932ecb34c079f561",
+    "types.log": "6496d0e6a9407541a5823a7800504215786151f492807e834c7c9c4c82e91575"
+  },
+  "localResults": {
+    "baselineFailed": 4,
+    "nodePassed": 50,
+    "browserPassed": 22,
+    "browserDeselected": 22,
+    "typechecksExit": 0,
+    "warmBuildJobs": 743
+  },
+  "ci": "No fresh Slides or VIR CI query; upstream successor workflow success is Module-reported evidence."
+}

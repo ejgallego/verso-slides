@@ -1,0 +1,76 @@
+✔ [688/700] Built VersoSlides.ImgSrc (422ms)
+✔ [689/700] Built VersoSlides.VirResourceSite (456ms)
+✔ [690/700] Built VersoSlides.SlideCode.CommentParsers (1.1s)
+✔ [691/700] Built VersoSlides.Pretty (981ms)
+ℹ [692/700] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [693/700] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (986ms)
+info: stdout:
+wrote /tmp/tmp.XXSbDgIu/program.irpkg-set.json
+wrote /tmp/tmp.XXSbDgIu/program.irpkg
+wrote /tmp/tmp.XXSbDgIu/report.md
+package set members: 8
+package format: 11
+declarations: 135 (110 Lean IR, 25 native externs)
+interface exports: 1
+ℹ [694/705] Built «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack (65ms)
+info: stdout:
+97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58
+✔ [696/743] Built VersoSlides.SlideCode (1.5s)
+✔ [707/743] Built VersoSlides.Basic (2.5s)
+✔ [709/743] Built VersoSlides.ImageWidget (656ms)
+✔ [711/743] Built VersoSlides.SlideCode.Render (933ms)
+✔ [713/743] Built VersoSlides.Attributes (696ms)
+✔ [714/743] Built VersoSlides.SlideCode.Export (1.0s)
+✔ [717/743] Built VersoSlides.VirPrettyMResources (1.2s)
+✔ [719/743] Built VersoSlides.VirResources (211ms)
+✔ [721/743] Built VersoSlides.OtherLanguages (1.2s)
+✔ [723/743] Built VersoSlides.Diagram (1.4s)
+✔ [725/743] Built VersoSlides.Animate (1.2s)
+✔ [727/743] Built VersoSlides.Directives (2.5s)
+✔ [729/743] Built VersoSlides.InlineLean (2.5s)
+✔ [731/743] Built VersoSlides.Render (2.8s)
+✔ [732/743] Built VersoSlides.ModuleExample (3.5s)
+✔ [734/743] Built VersoSlides.Render:c.o (3.8s)
+✔ [735/743] Built VersoSlides.LibModule (2.5s)
+✔ [737/743] Built VersoSlides (818ms)
+✔ [743/743] Built «demo-slides»:exe (761ms)
+Build completed successfully (743 jobs).
+✔ [688/700] Built VersoSlides.ImgSrc (431ms)
+✔ [689/700] Built VersoSlides.VirResourceSite (472ms)
+✔ [690/700] Built VersoSlides.SlideCode.CommentParsers (1.3s)
+✔ [691/700] Built VersoSlides.Pretty (1.2s)
+ℹ [692/700] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+✔ [693/700] Built VersoSlides.Basic (2.1s)
+ℹ [694/700] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (1.1s)
+info: stdout:
+wrote /tmp/tmp.XX43ZcPY/program.irpkg-set.json
+wrote /tmp/tmp.XX43ZcPY/program.irpkg
+wrote /tmp/tmp.XX43ZcPY/report.md
+package set members: 8
+package format: 11
+declarations: 135 (110 Lean IR, 25 native externs)
+interface exports: 1
+ℹ [695/713] Built «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack (59ms)
+info: stdout:
+97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58
+✔ [707/743] Built VersoSlides.SlideCode (1.8s)
+✔ [709/743] Built VersoSlides.Attributes (773ms)
+✔ [711/743] Built VersoSlides.ImageWidget (603ms)
+✔ [713/743] Built VersoSlides.OtherLanguages (912ms)
+✔ [715/743] Built VersoSlides.Diagram (1.1s)
+✔ [717/743] Built VersoSlides.SlideCode.Export (968ms)
+✔ [719/743] Built VersoSlides.SlideCode.Render (1.1s)
+✔ [720/743] Built VersoSlides.VirPrettyMResources (1.3s)
+✔ [723/743] Built VersoSlides.VirResources (226ms)
+✔ [725/743] Built VersoSlides.Animate (1.2s)
+✔ [727/743] Built VersoSlides.Directives (2.8s)
+✔ [729/743] Built VersoSlides.InlineLean (2.7s)
+✔ [731/743] Built VersoSlides.Render (2.7s)
+✔ [732/743] Built VersoSlides.ModuleExample (2.8s)
+✔ [734/743] Built VersoSlides.Render:c.o (3.8s)
+✔ [735/743] Built VersoSlides.LibModule (2.5s)
+✔ [737/743] Built VersoSlides (798ms)
+✔ [743/743] Built «demo-slides»:exe (709ms)
+Build completed successfully (743 jobs).

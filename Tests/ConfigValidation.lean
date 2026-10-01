@@ -35,6 +35,16 @@ def expectFail (desc : String) (cfg : Config) : IO (Except String Unit) := do
   catch _ =>
     return .ok ()
 
+def expectVirNamespaceFail (desc : String) (cfg : Config) : IO (Except String Unit) := do
+  try
+    cfg.validateVirResourceNamespace
+    return .error s!"{desc}: expected reserved namespace failure, got success"
+  catch e =>
+    if ((toString e).splitOn "reserved VIR resource namespace").length > 1 then
+      return .ok ()
+    else
+      return .error s!"{desc}: unexpected error {e}"
+
 /-- String substring check. -/
 private def hasSubstr (haystack needle : String) : Bool :=
   haystack.find? needle |>.isSome
@@ -115,7 +125,48 @@ public def main : IO UInt32 := do
     expectFail "asset clashes with extraCss even when both are text"
       { theme := .custom (dummyBundle (dummyCss "theme.css")
                            #[dummyAsset "shared.css"]),
-        extraCss := #[dummyCss "shared.css"] }
+        extraCss := #[dummyCss "shared.css"] },
+    expectFail "embedded asset cannot escape output directory"
+      { extraAssets := #[dummyAsset "../runtime.js"] },
+    expectFail "embedded asset path has no empty components"
+      { extraAssets := #[dummyAsset "generated//runtime.js"] },
+    expectOk "generated asset directory"
+      { extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "generated" }] },
+    expectFail "generated asset directory source must exist"
+      { extraAssetDirs := #[{ source := "TestFixtures/not-present",
+                              destination := "generated" }] },
+    expectFailMentioning "generated directory cannot replace builtin libraries"
+      { highlightTheme := { ({} : Config).highlightTheme with filename := "highlight.css" },
+        extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "lib" }] }
+      ["lib", "reserved"],
+    expectFail "generated asset directory destination is top-level"
+      { extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "generated/nested" }] },
+    expectFail "generated asset directory destination is unique"
+      { extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "generated" },
+                            { source := "TestFixtures/theme-assets",
+                              destination := "generated" }] },
+    expectFail "generated directory conflicts with embedded asset"
+      { extraAssets := #[dummyAsset "generated/runtime.js"],
+        extraAssetDirs := #[{ source := "TestFixtures/theme-assets",
+                              destination := "generated" }] },
+    expectVirNamespaceFail "runtime bundle asset cannot claim lib/vir"
+      { extraAssets := #[dummyAsset "lib/vir/runtime.js"] },
+    expectVirNamespaceFail "staging asset cannot claim lib/.vir-stage"
+      { extraAssets := #[dummyAsset "lib/.vir-stage/stale"] },
+    expectVirNamespaceFail "reserved resource namespace ignores casing"
+      { extraAssets := #[dummyAsset "Lib/ViR/runtime.js"] },
+    expectVirNamespaceFail "reserved staging namespace ignores casing"
+      { extraAssets := #[dummyAsset "LIB/.VIR-STAGE/stale"] },
+    expectVirNamespaceFail "file cannot replace resource library parent"
+      { extraAssets := #[dummyAsset "Lib"] },
+    expectVirNamespaceFail "reserved namespace recognizes portable separators"
+      { extraAssets := #[dummyAsset "LIB\\VIR\\runtime.js"] },
+    expectFail "generated directory cannot replace library parent through casing"
+      { extraAssetDirs := #[{ source := "TestFixtures/theme-assets", destination := "LIB" }] }
   ]
   let mut failed := 0
   for run in cases do

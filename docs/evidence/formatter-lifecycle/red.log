@@ -1,0 +1,82 @@
+✖ retry before module acquisition completes only starts the latest creation (2.325768ms)
+✖ slow initialization shows loading without publishing a facade (1.505465ms)
+✖ failure keeps raw diagnostics and explicit button retry owns a fresh program (1.289838ms)
+✖ overlapping attempts (old first) never install an obsolete success (0.688396ms)
+✖ overlapping attempts (new first) never install an obsolete success (1.647592ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 63.390829
+
+✖ failing tests:
+
+test at Tests/vir-bootstrap.test.cjs:180:1
+✖ retry before module acquisition completes only starts the latest creation (2.325768ms)
+  TypeError: f.window.versoVirRetry is not a function
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:182:25)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+
+test at Tests/vir-bootstrap.test.cjs:203:1
+✖ slow initialization shows loading without publishing a facade (1.505465ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'loading'
+
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:205:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at node:internal/test_runner/test:1305:31
+      at node:internal/process/task_queues:151:7
+      at AsyncResource.runInAsyncScope (node:async_hooks:227:14)
+      at AsyncResource.runMicrotask (node:internal/process/task_queues:148:8) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'loading',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at Tests/vir-bootstrap.test.cjs:215:1
+✖ failure keeps raw diagnostics and explicit button retry owns a fresh program (1.289838ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'failed'
+
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:220:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'failed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at Tests/vir-bootstrap.test.cjs:236:3
+✖ overlapping attempts (old first) never install an obsolete success (0.688396ms)
+  TypeError: f.window.versoVirRetry is not a function
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:239:27)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at Tests/vir-bootstrap.test.cjs:236:3
+✖ overlapping attempts (new first) never install an obsolete success (1.647592ms)
+  TypeError: f.window.versoVirRetry is not a function
+      at TestContext.<anonymous> (<candidate>/Tests/vir-bootstrap.test.cjs:239:27)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
