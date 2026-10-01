@@ -610,6 +610,12 @@ private def AssetPayload.kind : AssetPayload → String
   | .text _ => "text"
   | .binary _ => "binary"
 
+private def validateAssetFilename (source filename : String) : IO Unit := do
+  let parts := filename.splitToList fun c => c == '/' || c == '\\'
+  if filename.isEmpty || (System.FilePath.mk filename).isAbsolute ||
+      parts.any fun part => part.isEmpty || part == "." || part == ".." then
+    throw <| IO.userError s!"Invalid output filename \"{filename}\" from {source}: expected a relative path without empty, `.` or `..` components."
+
 /--
 Records a file entry at {lit}`filename`, treating it as already-present
 when the previous entry at the same filename has identical contents (so
@@ -621,6 +627,7 @@ sources and their content kinds.
 private def recordAsset (seen : Std.HashMap String (String × AssetPayload))
     (filename source : String) (payload : AssetPayload) :
     IO (Std.HashMap String (String × AssetPayload)) := do
+  validateAssetFilename source filename
   match seen.get? filename with
   | none => return seen.insert filename (source, payload)
   | some (prevSource, prev) =>

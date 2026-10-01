@@ -115,7 +115,11 @@ public def main : IO UInt32 := do
     expectFail "asset clashes with extraCss even when both are text"
       { theme := .custom (dummyBundle (dummyCss "theme.css")
                            #[dummyAsset "shared.css"]),
-        extraCss := #[dummyCss "shared.css"] }
+        extraCss := #[dummyCss "shared.css"] },
+    expectFail "configured asset cannot escape output directory"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "../runtime.js"]) },
+    expectFail "configured asset path has no empty components"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "generated//runtime.js"]) }
   ]
   let mut failed := 0
   for run in cases do
