@@ -48,10 +48,14 @@ def expectVirNamespaceFail (desc : String) (cfg : Config) : IO (Except String Un
 def expectRejectedBeforeWrites (desc filename : String) (output : System.FilePath) :
     IO (Except String Unit) := do
   let cfg : Config := { outputDir := output, extraCss := #[dummyCss filename "conflict"] }
-  let rejected ← try
-    pure ((← slidesMain cfg (.mk #[] "namespace test" none #[] #[])) != 0)
-  catch _ => pure true
-  if !rejected then return .error s!"{desc}: renderer accepted a conflicting destination"
+  let error ← try
+    let _ ← slidesMain cfg (.mk #[] "namespace test" none #[] #[])
+    pure ""
+  catch error => pure error.toString
+  let expected := if filename == "vir-bootstrap.js" then "Filename collision in config"
+    else "reserved VIR resource namespace"
+  if (error.splitOn expected).length == 1 then
+    return .error s!"{desc}: expected {expected}, got {error}"
   if ← output.pathExists then return .error s!"{desc}: renderer wrote output before rejection"
   return .ok ()
 
