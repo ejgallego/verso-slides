@@ -44,10 +44,12 @@ interface: `verso-slides-format-segments-hostabi-v2`.
 Std.Format → Nat → Nat → Except FormatError (Array Pretty.Segment)
 ```
 
-The independent complete ABI reference is embedded at build time. The runtime
-checks it during creation. JavaScript admits the compact input iteratively before
-ABI conversion; Lean independently checks input and reserves output before
-allocation. Recoverable rejection leaves the program usable, with no truncation.
+VIR uses the callable interface metadata generated from the compiled Lean
+program to marshal arguments and results. Slides keeps no separate ABI snapshot.
+JavaScript admits the compact input iteratively before ABI conversion; Lean
+independently checks input and reserves output before allocation. Recoverable
+rejection leaves the program usable, with no truncation. Focused Playwright tests
+exercise the actual Lean formatting path and its presentation.
 
 | Bound | Limit |
 | --- | --- |
@@ -97,6 +99,12 @@ and program identities are unchanged; no additional browser or CI run is claimed
 The [asset simplification checkpoint](evidence/asset-simplification/README.md)
 records fresh checks of the current inline publication path and VIR successor.
 Historical executions above retain their original pins and production source.
+
+The first client uses the program's generated callable metadata directly. The
+previous frozen JSON ABI reference and its separate comparison test were removed
+at the maintainer's direction. Historical strict-reference checks retain their
+original scope; [current format-path checks](evidence/generated-interface/README.md)
+exercise the Lean function, native results and browser presentation.
 
 The [one-shot initialization checkpoint](evidence/one-shot/README.md) records
 the smaller first-client lifecycle. Prior retry/replacement acceptance is

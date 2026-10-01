@@ -13,7 +13,7 @@ not a calendar reminder, and does not authorize a new PR or merge.
 
 | Addition | Reason |
 | --- | --- |
-| Lean segments, bounds, exported wrapper and independent ABI reference | Formatting behavior and safe admission at the new call boundary. |
+| Lean segments, bounds and exported wrapper | Formatting behavior and safe admission at the new call boundary. |
 | VIR dependency, formatter/carrier Lake libraries and resource recipe | Prepare the library-owned program/runtime for ordinary downstream builds. |
 | Embedded resource publication and reserved VIR namespaces | Serve the new runtime without producer paths; configured assets must not overwrite it. |
 | One-shot initialization, cancellation, disposal and loading/failure | Own one asynchronous formatter instance and keep static slides usable. |

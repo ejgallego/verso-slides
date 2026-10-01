@@ -1,14 +1,12 @@
-"""Client ABI reference and document termination during actual creation."""
+"""Published bundle checks and document termination during actual creation."""
 import hashlib
 import json
-from pathlib import Path
 
 RUNTIME = "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d"
 PROGRAM = "97b280b7c42cbed3783f31c98f7753d6eab5b9707f49f6cfbacdde2c0350ef58"
 
 
-def test_exact_pair_published_bytes_and_reference(site_dir):
-    reference = json.loads((Path(__file__).parents[1] / "web-lib/vir-prettym/format-segments-v2.contract.json").read_text())
+def test_exact_pair_published_bytes(site_dir):
     for route in ("", "nested/deck"):
         root = site_dir / route
         manifests = [json.loads(p.read_text()) for p in root.glob("lib/vir/*/bundle.json")]
@@ -23,9 +21,6 @@ def test_exact_pair_published_bytes_and_reference(site_dir):
             assert hashlib.sha256(payload).hexdigest() == info["sha256"]
         assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.js").read_bytes()).hexdigest() == "b9fa28797af2787b4bae53a4d4a6a440b718512b54553717c65630b239b5829a"
         assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.wasm").read_bytes()).hexdigest() == "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4"
-        bootstrap = (root / "index.html").read_text()
-        embedded = bootstrap.split("window.__versoVirExpectedExports = ", 1)[1].split(";\n", 1)[0]
-        assert json.loads(embedded) == reference
 
 
 def test_published_bootstrap_pagehide_during_actual_creation_has_no_facade(page, server):

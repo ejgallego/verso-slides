@@ -358,8 +358,6 @@ private def slideCodePanelCss : String := include_str "../web-lib/panel/panel.cs
 /-- Browser measurement and presentation around the embedded Lean formatter. -/
 private def prettyJs : String := include_str "../web-lib/panel/pretty.js"
 private def virBootstrapJs : String := include_str "../web-lib/vir-prettym/bootstrap.js"
-private def virExpectedExports : String :=
-  include_str "../web-lib/vir-prettym/format-segments-v2.contract.json"
 
 /-- JS for the interactive info panel. -/
 private def slideCodePanelJs : String := include_str "../web-lib/panel/panel.js"
@@ -696,8 +694,7 @@ private def virBootstrap (plan : VirResourceSite.PublicationPlan) : String := Id
     ("runtimeModule", Lean.Json.str plan.runtimeModuleUrl),
     ("runtimeManifest", Lean.Json.str plan.runtimeManifestUrl),
     ("programManifest", Lean.Json.str plan.programManifestUrl)]
-  return "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++
-    "window.__versoVirExpectedExports = " ++ virExpectedExports ++ ";\n" ++ virBootstrapJs
+  return "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++ virBootstrapJs
 
 /-- Generates a {lit}`reveal.js` slide presentation with mandatory Lean formatting through VIR. -/
 def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWithLogger do

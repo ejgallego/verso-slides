@@ -53,12 +53,6 @@ type PrettyFormatResult =
     | { kind: "error"; value: string };
 
 interface Window {
-    /** Independent, reviewed existing VIR interface representation; embedded at build time. */
-    __versoVirExpectedExports: Readonly<Record<string, {
-        declaration: string;
-        interfaceId: string;
-        signature: { args: unknown[]; result: unknown; effect: "pure" };
-    }>>;
     __versoVirResourceUrls: {
         runtimeModule: string;
         runtimeManifest: string;

@@ -14,7 +14,9 @@ def test_published_formatter_has_one_mandatory_path(site_dir):
         for old in ("function deserializeFormat", "function spaceUptoLine", "function be("):
             assert old not in pretty
         assert not (root / "vir-bootstrap.js").exists()
-        assert (root / "index.html").read_text().count("window.__versoVirResourceUrls = ") == 1
+        html = (root / "index.html").read_text()
+        assert html.count("window.__versoVirResourceUrls = ") == 1
+        assert "__versoVirExpectedExports" not in html
         assert len(list(root.glob("lib/vir/*/bundle.json"))) == 2
 
 

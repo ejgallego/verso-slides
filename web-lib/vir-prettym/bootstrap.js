@@ -87,7 +87,6 @@
         if (disposed) throw closedError();
         var created = await loader.createProgram({
             runtimeManifestUrl, programManifestUrl,
-            expectedExports: window.__versoVirExpectedExports,
             signal: pending.signal
         });
         if (disposed) {

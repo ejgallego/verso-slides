@@ -7,7 +7,6 @@ const {spawnSync} = require('node:child_process');
 
 const source = fs.readFileSync(process.env.VIR_BOOTSTRAP_SOURCE ||
   path.join(__dirname, '../web-lib/vir-prettym/bootstrap.js'), 'utf8');
-const reference = JSON.parse(fs.readFileSync(path.join(__dirname, '../web-lib/vir-prettym/format-segments-v2.contract.json'), 'utf8'));
 const deferred = () => {
   let resolve, reject;
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
@@ -35,7 +34,6 @@ function fixture(config = {}) {
   }};
   const window = {
     __versoVirResourceUrls: {runtimeModule: 'lib/runtime.js', runtimeManifest: 'lib/runtime.json', programManifest: 'lib/program.json'},
-    __versoVirExpectedExports: reference,
     addEventListener(name, callback) { assert.equal(name, 'pagehide'); hide = callback; },
     dispatchEvent(event) {
       assert.equal(event.type, 'verso-vir-statechange'); states.push(this.versoVirState);
@@ -178,9 +176,9 @@ for (const kind of ['terminal', 'persisted']) {
   });
 }
 
-test('pending creation receives independent expectedExports/signal; pagehide aborts without a facade', async () => {
+test('pending creation receives resource URLs/signal; pagehide aborts without a facade', async () => {
   const f = fixture(); f.loading.resolve(f.loader); await f.started.promise;
-  assert.equal(f.options().expectedExports, reference);
+  assert.deepEqual(Object.keys(f.options()).sort(), ['programManifestUrl', 'runtimeManifestUrl', 'signal']);
   assert.equal(f.options().programManifestUrl.href, 'http://slides.test/nested/deck/lib/program.json');
   f.hide(true); assert.equal(f.options().signal.aborted, false);
   f.hide(false); assert.equal(f.options().signal.aborted, true);
