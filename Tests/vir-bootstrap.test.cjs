@@ -16,7 +16,7 @@ const deferred = () => {
 
 function fixture(config = {}) {
   const loading = deferred(), creation = deferred(), started = deferred();
-  const diagnostics = [], calls = [], creationStarts = [], nodes = [], states = [];
+  const diagnostics = [], calls = [], formatCalls = [], nodes = [], states = [];
   function element() {
     return {children: [], attributes: {}, listeners: {},
       setAttribute(name, value) { this.attributes[name] = value; },
@@ -26,8 +26,11 @@ function fixture(config = {}) {
     };
   }
   let hide, options, disposed = 0;
-  const program = {dispose() {
-    disposed++;
+  const program = {status: 'active', call(role, ...args) {
+    formatCalls.push({role, args});
+    return config.call ? config.call(program, ...args) : {kind: 'ok', value: [{text: 'formatted', tags: []}]};
+  }, dispose() {
+    disposed++; program.status = 'disposed';
     if (Object.hasOwn(config, 'cleanup')) throw config.cleanup;
   }};
   const window = {
@@ -55,22 +58,16 @@ function fixture(config = {}) {
   // the actual bootstrap and its createProgram inputs/lifetime unchanged.
   const marker = 'import(runtimeModuleUrl.href)';
   assert.equal(source.split(marker).length, 2);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../web-lib/panel/pretty.js'), 'utf8'), context);
   vm.runInContext(source.replace(marker, '__loadRuntime(runtimeModuleUrl.href)'), context);
   const loader = {createProgram(value) {
-    const index = calls.length;
-    const completion = calls.length === 0 ? creation : deferred();
-    calls.push({options: value, completion});
-    creationStarts[index]?.resolve();
-    options = value; started.resolve(); return completion.promise;
+    calls.push(value);
+    options = value; started.resolve(); return creation.promise;
   }};
-  return {window, loading, creation, started, program, diagnostics, loader, calls, states,
-    waitForCall(index) {
-      if (calls[index]) return Promise.resolve();
-      creationStarts[index] ??= deferred(); return creationStarts[index].promise;
-    },
+  return {window, loading, creation, started, program, diagnostics, loader, calls, formatCalls, states,
     get alerts() { return nodes.flatMap(el => el.children).filter(el => el.attributes.role === 'alert'); },
     get status() { return nodes[0]?.children[0]?.textContent; },
-    clickRetry() { nodes[0].children[1].listeners.click(); },
+    get buttons() { return nodes.flatMap(el => el.children).filter(el => el.type === 'button'); },
     hide: persisted => hide({persisted}), options: () => options, disposals: () => disposed};
 }
 
@@ -118,71 +115,37 @@ async function rejectionReportingProbe(kind) {
     retained: rejected && failure === raw,
     reported: f.diagnostics.some(args => args[0] === 'VIR initialization failed' && args[1] === raw),
     staleFacade: f.window.versoVir !== undefined || f.window.versoVirFormatSegments !== undefined,
-    summary: kind === 'sink' || f.alerts[0]?.textContent === 'Lean formatting could not be initialized.',
+    summary: kind === 'sink' || f.alerts[0]?.textContent === 'Lean formatting is unavailable.',
     unhandled: unhandled.map(error => error?.name ?? typeof error),
   };
-}
-
-async function retryReportingProbe(kind) {
-  const cleanup = kind === 'Error' ? new Error('dispose failed') : kind === 'null' ? null : undefined;
-  const unhandled = [];
-  process.on('unhandledRejection', error => unhandled.push(error));
-  const f = fixture({cleanup, reportingThrows: true});
-  f.loading.resolve(f.loader); await f.started.promise;
-  f.creation.resolve(f.program); await f.window.versoVirReady;
-  f.window.versoVirRetry(); await f.waitForCall(1);
-  f.calls[1].completion.reject(undefined);
-  await new Promise(resolve => setImmediate(resolve));
-  f.clickRetry(); await f.waitForCall(2);
-  f.calls[2].completion.resolve(f.program); await f.window.versoVirReady;
-  f.hide(false); f.hide(false);
-  await new Promise(resolve => setImmediate(resolve));
-  return {disposals: f.disposals(), state: f.window.versoVirState,
-    reported: f.diagnostics.filter(args => args[0] === 'VIR program disposal failed' && args[1] === cleanup).length,
-    staleFacade: f.window.versoVir !== undefined || f.window.versoVirFormatSegments !== undefined,
-    unhandled: unhandled.map(error => error?.name ?? typeof error)};
 }
 
 async function notificationProbe(kind) {
   const unhandled = [];
   process.on('unhandledRejection', error => unhandled.push(error));
-  let armed = kind !== 'creation-retry', notified, nested, obsoleteDisposals = 0;
+  let notified;
   const f = fixture({onState(window, hide) {
-    if (!armed || window.versoVirState !== 'loading') return;
-    armed = false;
+    if (window.versoVirState !== 'loading') return;
     notified = window.versoVirReady;
-    if (kind.endsWith('retry')) nested = window.versoVirRetry();
-    else hide({persisted: kind === 'persisted'});
+    hide({persisted: kind === 'persisted'});
   }});
-  let original;
-  if (kind === 'creation-retry') {
-    original = f.window.versoVirReady;
-    f.loading.resolve(f.loader); await f.started.promise;
-    armed = true;
-    f.window.versoVirRetry();
-  } else f.loading.resolve(f.loader);
+  f.loading.resolve(f.loader);
   const published = f.window.versoVirReady;
   if (kind !== 'terminal') {
-    const index = kind === 'creation-retry' ? 1 : 0;
-    await f.waitForCall(index);
-    f.calls[index].completion.resolve(f.program);
-    if (original) f.creation.resolve({dispose() { obsoleteDisposals++; }});
+    await f.started.promise;
+    f.creation.resolve(f.program);
   }
-  const results = await Promise.allSettled([published, nested, notified, original]);
-  await new Promise(resolve => setImmediate(resolve));
+  const results = await Promise.allSettled([published, notified]);
   await new Promise(resolve => setImmediate(resolve));
   return {
     notifiedPromise: notified !== undefined && typeof notified.then === 'function',
-    publishedIsCurrent: published === (nested || notified),
+    publishedIsCurrent: published === notified,
     publishedOutcome: results[0].status,
-    notifiedOutcome: results[2].status,
-    notifiedError: results[2].reason?.name ?? null,
+    notifiedOutcome: results[1].status,
+    notifiedError: results[1].reason?.name ?? null,
     state: f.window.versoVirState,
     facade: f.window.versoVir === f.program,
     calls: f.calls.length,
-    activeSignal: f.calls.at(-1)?.options.signal.aborted ?? null,
-    disposals: f.disposals(),
-    obsoleteDisposals,
     unhandled: unhandled.map(error => error?.name ?? typeof error),
   };
 }
@@ -191,28 +154,26 @@ if (process.argv[2]?.endsWith('-probe')) {
   const probe = process.argv[2] === '--late-dispose-probe' ?
     lateDisposalProbe(process.argv[3], process.argv[4] === 'throw-reporting') :
     process.argv[2] === '--notification-probe' ? notificationProbe(process.argv[3]) :
-    process.argv[2] === '--retry-reporting-probe' ? retryReportingProbe(process.argv[3]) : rejectionReportingProbe(process.argv[3]);
+    rejectionReportingProbe(process.argv[3]);
   probe.then(
     result => process.stdout.write(JSON.stringify(result) + '\n'),
     error => { console.error(error); process.exitCode = 1; },
   );
 } else {
 
-for (const kind of ['import-retry', 'creation-retry', 'terminal', 'persisted']) {
+for (const kind of ['terminal', 'persisted']) {
   test(`loading notification ${kind} preserves the observed current promise without unhandled errors`, () => {
     const env = {...process.env}; delete env.NODE_TEST_CONTEXT;
     const child = spawnSync(process.execPath, [__filename, '--notification-probe', kind], {encoding: 'utf8', env});
     assert.equal(child.status, 0, child.stderr);
-    const terminal = kind === 'terminal', retry = kind.endsWith('retry');
+    const terminal = kind === 'terminal';
     assert.deepEqual(JSON.parse(child.stdout), {
       notifiedPromise: true, publishedIsCurrent: true,
       publishedOutcome: terminal ? 'rejected' : 'fulfilled',
-      notifiedOutcome: terminal || retry ? 'rejected' : 'fulfilled',
-      notifiedError: terminal || retry ? 'AbortError' : null,
+      notifiedOutcome: terminal ? 'rejected' : 'fulfilled',
+      notifiedError: terminal ? 'AbortError' : null,
       state: terminal ? 'disposed' : 'ready', facade: !terminal,
-      calls: terminal ? 0 : kind === 'creation-retry' ? 2 : 1,
-      activeSignal: terminal ? null : false, disposals: 0,
-      obsoleteDisposals: kind === 'creation-retry' ? 1 : 0, unhandled: [],
+      calls: terminal ? 0 : 1, unhandled: [],
     });
   });
 }
@@ -242,17 +203,6 @@ test('cancellation before import finishes skips creation and cannot publish a fa
   assert.equal(f.status, undefined);
 });
 
-test('retry before module acquisition completes only starts the latest creation', async () => {
-  const f = fixture(); const first = f.window.versoVirReady;
-  const next = f.window.versoVirRetry();
-  f.loading.resolve(f.loader); await f.started.promise;
-  await assert.rejects(first, /superseded/);
-  assert.equal(f.calls.length, 1);
-  assert.equal(f.options().signal.aborted, false);
-  f.creation.resolve(f.program); await next;
-  assert.equal(f.window.versoVirState, 'ready');
-});
-
 test('late success during creation is disposed once and never handed off', async () => {
   const f = fixture();
   f.loading.resolve(f.loader); await f.started.promise;
@@ -277,105 +227,77 @@ test('slow initialization shows loading without publishing a facade', async () =
   assert.equal(f.status, undefined);
 });
 
-test('failure keeps raw diagnostics and explicit button retry owns a fresh program', async () => {
+test('creation failure reports once without a retry control or another creation', async () => {
   const f = fixture(); f.loading.resolve(f.loader); await f.started.promise;
-  const failure = new Error('failed first attempt');
-  const first = f.window.versoVirReady;
-  f.creation.reject(failure); await assert.rejects(first, e => e === failure);
+  const failure = new Error('creation failed');
+  const ready = f.window.versoVirReady;
+  f.creation.reject(failure); await assert.rejects(ready, e => e === failure);
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(f.window.versoVirState, 'failed');
-  assert.equal(f.alerts[0].textContent, 'Lean formatting could not be initialized.');
-  f.clickRetry(); const retry = f.window.versoVirReady;
-  await f.waitForCall(1);
-  assert.notEqual(first, retry);
-  assert.equal(f.calls.length, 2);
-  assert.notEqual(f.calls[0].options.signal, f.calls[1].options.signal);
-  assert.equal(f.calls[0].options.signal.aborted, true);
-  assert.equal(f.window.versoVirState, 'loading');
-  assert.equal(f.alerts.length, 0);
-  f.calls[1].completion.resolve(f.program); await retry;
-  assert.equal(f.window.versoVir, f.program);
-  assert.deepEqual(f.states, ['loading', 'failed', 'loading', 'ready']);
+  assert.equal(f.alerts[0].textContent, 'Lean formatting is unavailable.');
+  assert.equal(f.buttons.length, 0);
+  assert.equal(f.window.versoVirRetry, undefined);
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.window.versoVirReady, ready);
+  assert.deepEqual(f.states, ['loading', 'failed']);
 });
 
-for (const order of ['old first', 'new first']) {
-  test(`overlapping attempts (${order}) never install an obsolete success`, async () => {
-    const f = fixture(); f.loading.resolve(f.loader); await f.started.promise;
-    const old = f.window.versoVirReady;
-    const next = f.window.versoVirRetry(); await f.waitForCall(1);
-    const fresh = {dispose() {}};
-    assert.equal(f.calls[0].options.signal.aborted, true);
-    if (order === 'new first') {
-      f.calls[1].completion.resolve(fresh); await next;
-    }
-    f.creation.resolve(f.program); await assert.rejects(old, /superseded/);
-    assert.equal(f.disposals(), 1);
-    assert.equal(f.window.versoVir, order === 'new first' ? fresh : undefined);
-    if (order === 'old first') {
-      assert.equal(f.window.versoVirState, 'loading');
-      f.calls[1].completion.resolve(fresh); await next;
-    }
-    assert.equal(f.window.versoVir, fresh);
-    assert.equal(f.window.versoVirState, 'ready');
-    assert.deepEqual(f.states, ['loading', 'loading', 'ready']);
-    assert.equal(f.alerts.length, 0);
-  });
-}
-
-test('obsolete rejection cannot replace a newer ready view with a failure', async () => {
-  const f = fixture(); f.loading.resolve(f.loader); await f.started.promise;
-  const old = f.window.versoVirReady;
-  const next = f.window.versoVirRetry(); await f.waitForCall(1);
-  f.calls[1].completion.resolve(f.program); await next;
-  f.creation.reject(null); await assert.rejects(old, e => e === null);
+test('input and Lean Except errors leave the same program usable', async () => {
+  let rejectExpression = true;
+  const f = fixture({call() {
+    if (rejectExpression) { rejectExpression = false; return {kind: 'error', value: 'outputBytes'}; }
+    return {kind: 'ok', value: [{text: 'valid', tags: []}]};
+  }});
+  f.loading.resolve(f.loader); await f.started.promise;
+  f.creation.resolve(f.program); await f.window.versoVirReady;
+  assert.throws(() => f.window.versoVirFormatSegments('x', 4097, 0), e => e.code === 'width');
+  assert.equal(f.formatCalls.length, 0);
+  assert.throws(() => f.window.versoVirFormatSegments('x', 80, 0), e => e.code === 'outputBytes');
+  assert.equal(f.window.versoVirFormatSegments('valid', 80, 0)[0].text, 'valid');
+  assert.equal(f.window.versoVir, f.program);
+  assert.equal(f.program.status, 'active');
   assert.equal(f.window.versoVirState, 'ready');
-  assert.equal(f.alerts.length, 0);
-  assert.equal(f.window.versoVir, f.program);
+  assert.equal(f.disposals(), 0);
+  assert.equal(f.calls.length, 1);
 });
 
-for (const cleanup of [new Error('cleanup'), null, undefined]) {
-  test(`ready retry and terminal pagehide contain raw disposal failure (${typeof cleanup})`, async () => {
-    const f = fixture({cleanup}); f.loading.resolve(f.loader); await f.started.promise;
-    f.creation.resolve(f.program); await f.window.versoVirReady;
-    const next = f.window.versoVirRetry(); await f.waitForCall(1);
-    assert.equal(f.disposals(), 1);
+for (const raw of [new Error('runtime failed'), null, undefined]) {
+  test(`unexpected runtime failure (${typeof raw}) closes formatting without recreation or replay`, async () => {
+    const f = fixture({call(program) { program.status = 'failed'; throw raw; }});
+    f.loading.resolve(f.loader); await f.started.promise;
+    f.creation.resolve(f.program); const ready = f.window.versoVirReady; await ready;
+    const facade = f.window.versoVirFormatSegments;
+    assert.throws(() => facade('x', 80, 0), error => error === raw);
+    assert.equal(f.diagnostics.find(args => args[0] === 'VIR formatting failed')[1], raw);
+    assert.equal(f.window.versoVirState, 'failed');
+    assert.equal(f.alerts[0].textContent, 'Lean formatting is unavailable.');
     assert.equal(f.window.versoVir, undefined);
     assert.equal(f.window.versoVirFormatSegments, undefined);
+    assert.equal(f.window.versoVirRetry, undefined);
+    assert.equal(f.buttons.length, 0);
+    assert.throws(() => facade('next', 80, 0), /unavailable/);
+    assert.equal(f.formatCalls.length, 1);
+    assert.equal(f.disposals(), 1);
+    assert.equal(f.calls.length, 1);
+    assert.equal(f.window.versoVirReady, ready);
+    f.hide(false); f.hide(false);
+    assert.equal(f.disposals(), 1);
+  });
+}
+
+for (const cleanup of [new Error('cleanup'), null, undefined]) {
+  test(`terminal document cleanup reports raw disposal failure (${typeof cleanup}) once`, async () => {
+    const f = fixture({cleanup, reportingThrows: true});
+    f.loading.resolve(f.loader); await f.started.promise;
+    f.creation.resolve(f.program); await f.window.versoVirReady;
+    f.hide(true); assert.equal(f.disposals(), 0);
+    f.hide(false); f.hide(false);
+    assert.equal(f.disposals(), 1);
     assert.equal(f.diagnostics.find(args => args[0] === 'VIR program disposal failed')[1], cleanup);
-    f.calls[1].completion.resolve(f.program); await next;
-    f.hide(true); assert.equal(f.disposals(), 1);
-    f.hide(false); f.hide(false); assert.equal(f.disposals(), 2);
     assert.equal(f.window.versoVirState, 'disposed');
     assert.equal(f.window.versoVir, undefined);
-    assert.equal(f.window.versoVirRetry(), next);
-    assert.equal(f.calls.length, 2);
-  });
-}
-
-for (const cleanup of [new Error('late cleanup'), null, undefined]) {
-  test(`late obsolete retry success reports raw cleanup failure (${typeof cleanup})`, async () => {
-    const f = fixture({cleanup}); f.loading.resolve(f.loader); await f.started.promise;
-    const old = f.window.versoVirReady;
-    const next = f.window.versoVirRetry(); await f.waitForCall(1);
-    const fresh = {dispose() {}};
-    f.calls[1].completion.resolve(fresh); await next;
-    f.creation.resolve(f.program);
-    await assert.rejects(old, e => Object.hasOwn(e, 'cleanupError') && e.cleanupError === cleanup);
-    assert.equal(f.disposals(), 1);
-    assert.equal(f.diagnostics.find(args => args[0] === 'VIR creation cleanup failed')[1], cleanup);
-    assert.equal(f.window.versoVir, fresh);
-    assert.equal(f.window.versoVirState, 'ready');
-    assert.equal(f.alerts.length, 0);
-  });
-}
-
-for (const kind of ['Error', 'null', 'undefined']) {
-  test(`ignored retry rejection/ready cleanup (${kind}) and throwing diagnostics produce no unhandled errors`, () => {
-    const env = {...process.env}; delete env.NODE_TEST_CONTEXT;
-    const child = spawnSync(process.execPath, [__filename, '--retry-reporting-probe', kind], {encoding: 'utf8', env});
-    assert.equal(child.status, 0, child.stderr);
-    assert.deepEqual(JSON.parse(child.stdout), {
-      disposals: 2, state: 'disposed', reported: 2, staleFacade: false, unhandled: [],
-    });
+    assert.equal(f.window.versoVirFormatSegments, undefined);
+    assert.equal(f.calls.length, 1);
   });
 }
 
@@ -446,7 +368,7 @@ test('primary creation wrapper/context and untouched raw cause are logged', asyn
   assert.equal(f.diagnostics.find(args => args[0] === 'VIR initialization failed')[1], error);
   assert.equal(f.diagnostics.find(args => args[0] === 'VIR initialization cause')[1], cause);
   assert.equal(f.diagnostics.some(args => args[0] === 'VIR creation cleanup failed'), false);
-  assert.equal(f.alerts[0].textContent, 'Lean formatting could not be initialized.');
+  assert.equal(f.alerts[0].textContent, 'Lean formatting is unavailable.');
 });
 
 }

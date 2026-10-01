@@ -204,7 +204,7 @@ MEMORY_PROBE = """(() => {
 })()"""
 
 
-def test_repeated_formatting_reflow_and_retry_retention(page, browser, server, site_dir, request):
+def test_repeated_formatting_and_reflow_retention(page, browser, server, site_dir, request):
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.add_init_script(MEMORY_PROBE)
@@ -237,15 +237,6 @@ def test_repeated_formatting_reflow_and_retry_retention(page, browser, server, s
     }""", corpus)
     assert len(set(measurements["capacities"][1:])) == 1
     assert len(set(measurements["counts"])) == 1
-    for _ in range(8):
-        assert page.evaluate("""async () => {
-            const old = window.versoVir;
-            const attempt = window.versoVirRetry();
-            if (old.status !== 'disposed') throw Error('prior instance still active');
-            await attempt;
-            return window.versoVir.status === 'active';
-        }""")
-        expect(panel.locator(".reflowed").first).not_to_be_empty()
     # Chromium GC is a separate diagnostic phase, not part of the timings above.
     if browser.browser_type.name == "chromium":
         cdp = page.context.new_cdp_session(page)

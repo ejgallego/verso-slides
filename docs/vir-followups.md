@@ -16,7 +16,7 @@ not a calendar reminder, and does not authorize a new PR or merge.
 | Lean segments, bounds, exported wrapper and independent ABI reference | Formatting behavior and safe admission at the new call boundary. |
 | VIR dependency, formatter/carrier Lake libraries and resource recipe | Prepare the library-owned program/runtime for ordinary downstream builds. |
 | Embedded resource publication and reserved VIR namespaces | Serve the new runtime without producer paths; configured assets must not overwrite it. |
-| Bootstrap cancellation, disposal, loading/failure and retry | Own the asynchronous formatter instance and keep static slides usable. |
+| One-shot initialization, cancellation, disposal and loading/failure | Own one asynchronous formatter instance and keep static slides usable. |
 | Shared measurement, tags, escaping, binding lookup and panel/lightbox reflow | Present the Lean result consistently in both existing consumers. Font and resize reflow use that same presentation path. |
 | Native/browser tests and small downstream example | Validate the replacement, lifecycle, annotations and owning-library build integration. |
 | Toolchain/dependency alignment and Demo external-source line correction | Build compatibility for the selected Lean 4.34/VIR pair. |

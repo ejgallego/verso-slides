@@ -61,10 +61,14 @@ Tags use bounded exact decimal values. Newline segments preserve active tags.
 Pixels are converted to columns using DOM measurement; complete tag associations,
 CSS classes, bindings, escaping and reflow share one presentation layer.
 
-Static presentation/navigation remains usable during loading or failure. Retry
-owns a fresh creation attempt. Pending cancellation, stale completion checks,
-resolved disposal and raw cleanup diagnostics stay explicit. Persisted pagehide
-preserves the instance. Cancellation does not preempt synchronous Lean execution.
+Static presentation/navigation remains usable during loading or failure. Each
+document initializes once. Creation failure leaves formatting unavailable;
+there is no retry or replacement instance. Expected expression errors leave the
+same healthy program usable. Unexpected runtime failure reports raw diagnostics
+and closes formatting without recreation or replay. Terminal pagehide cancels
+pending creation or disposes the owned program, and late completion cannot
+install a facade. Persisted pagehide preserves the instance. Cancellation does
+not preempt synchronous Lean execution.
 
 ## Exact artifacts and qualification
 
@@ -93,6 +97,10 @@ and program identities are unchanged; no additional browser or CI run is claimed
 The [asset simplification checkpoint](evidence/asset-simplification/README.md)
 records fresh checks of the current inline publication path and VIR successor.
 Historical executions above retain their original pins and production source.
+
+The [one-shot initialization checkpoint](evidence/one-shot/README.md) records
+the smaller first-client lifecycle. Prior retry/replacement acceptance is
+historical coverage of removed features, not a current application requirement.
 
 Managed incremental site builds, render-time input receipts, generic directory
 assets and output command-line options are deferred to separate patches.

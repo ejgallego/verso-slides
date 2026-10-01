@@ -1,8 +1,10 @@
-"""Page-owned retry UX against the emitted bootstrap and real supplied runtime.
+"""One-shot document ownership against the emitted bootstrap and published runtime.
 
-Only the first Wasm fetch is held/failed. Acquisition, validation, instantiation,
+The Wasm fetch is held/failed. Acquisition, validation, instantiation,
 formatting and disposal still run through the published VIR loader.
 """
+import json
+
 import pytest
 from playwright.sync_api import expect
 
@@ -14,8 +16,14 @@ def observe(page, mode):
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.add_init_script("""(() => {
         const mode = MODE;
-        const control = window.lifecycleProbe = {unhandled: [], wasmRequests: 0, aborted: 0};
+        const control = window.lifecycleProbe = {unhandled: [], wasmRequests: 0, instances: 0, aborted: 0, diagnostics: []};
         window.addEventListener('unhandledrejection', e => control.unhandled.push(String(e.reason)));
+        const instanceOriginal = WebAssembly.Instance;
+        WebAssembly.Instance = new Proxy(instanceOriginal, {construct(target, args) {
+            control.instances++; return Reflect.construct(target, args);
+        }});
+        const report = console.error;
+        console.error = (...args) => { control.diagnostics.push(args); report.apply(console, args); };
         const original = window.fetch;
         window.fetch = (url, init) => {
             if (!String(url).endsWith('/runtime.wasm') || ++control.wasmRequests !== 1)
@@ -69,13 +77,13 @@ def assert_current_goal(block, panel):
 
 
 def assert_no_unhandled(page, errors):
-    # Drain a task after the last attempt settles, including its report observer.
+    # Drain a task after initialization settles, including its report observer.
     page.evaluate("() => new Promise(resolve => setTimeout(resolve, 0))")
     assert page.evaluate("window.lifecycleProbe?.unhandled || []") == []
     assert errors == []
 
 
-@pytest.mark.parametrize("action", ["retry", "terminal", "persisted"])
+@pytest.mark.parametrize("action", ["terminal", "persisted"])
 def test_loading_notification_publishes_current_promise_before_reentrant_action(page, server, action):
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
@@ -87,23 +95,21 @@ def test_loading_notification_publishes_current_promise_before_reentrant_action(
             if (window.versoVirState !== 'loading' || probe.notified) return;
             probe.notified = true;
             probe.initial = window.versoVirReady;
-            if (action === 'retry') probe.retry = window.versoVirRetry();
-            else window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: action === 'persisted'}));
+            window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: action === 'persisted'}));
         });
     })()""".replace("ACTION", repr(action)))
     page.goto(f"{server}/nested/deck/index.html")
     state = "disposed" if action == "terminal" else "ready"
     page.wait_for_function(f"window.Reveal?.isReady() === true && window.versoVirState === '{state}'", timeout=30000)
     assert page.evaluate("typeof window.lifecycleProbe.initial?.then === 'function'")
-    assert page.evaluate("window.versoVirReady === (window.lifecycleProbe.retry || window.lifecycleProbe.initial)")
+    assert page.evaluate("window.versoVirReady === window.lifecycleProbe.initial")
     result = page.evaluate("""async () => {
         const outcome = async promise => {
             try { await promise; return 'ready'; } catch (e) { return e.name; }
         };
         return [await outcome(window.versoVirReady), await outcome(window.lifecycleProbe.initial)];
     }""")
-    assert result == (["ready", "AbortError"] if action == "retry" else
-                      ["AbortError", "AbortError"] if action == "terminal" else ["ready", "ready"])
+    assert result == (["AbortError", "AbortError"] if action == "terminal" else ["ready", "ready"])
     assert page.evaluate("window.versoVir?.status || 'absent'") == ("absent" if action == "terminal" else "active")
     expect(page.locator(".vir-formatter-status")).to_have_count(0)
     assert_no_unhandled(page, errors)
@@ -136,49 +142,86 @@ def test_readiness_does_not_restore_a_cleared_selection(page, server):
     assert_no_unhandled(page, errors)
 
 
-def test_failure_has_explicit_retry_and_renders_current_document(page, server):
+def test_creation_failure_is_final_and_static_navigation_remains_usable(page, server):
     errors = open_pending(page, server, "fail")
     page.wait_for_function("window.versoVirState === 'failed'")
     block, panel = select_pending_goal(page)
-    expect(page.get_by_role("alert")).to_have_text("Lean formatting could not be initialized.")
-    expect(panel.locator(".vir-panel-status")).to_contain_text("unavailable")
-    page.get_by_role("button", name="Retry Lean formatting").click()
-    page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
-    assert_current_goal(block, panel)
-    assert page.evaluate("window.versoVirFormatSegments('retried', 80, 0)") == [{"text": "retried", "tags": []}]
-    expect(page.get_by_role("alert")).to_have_count(0)
+    expect(page.get_by_role("alert")).to_have_text("Lean formatting is unavailable.")
+    expect(panel.locator(".vir-panel-status")).to_have_text("Lean formatting is unavailable.")
+    expect(page.locator(".vir-formatter-status button")).to_have_count(0)
+    assert page.evaluate("window.versoVirRetry === undefined && window.versoVir === undefined")
+    assert page.evaluate("window.lifecycleProbe.diagnostics.some(args => args[0] === 'VIR initialization failed' && args[1].cause)")
+    page.evaluate("Reveal.slide(Reveal.getIndices().h + 1, 0, -1)")
+    page.set_viewport_size({"width": 900, "height": 600})
     assert_no_unhandled(page, errors)
+    assert page.evaluate("window.lifecycleProbe.wasmRequests") == 1
+    assert page.evaluate("window.lifecycleProbe.instances") == 0
+    assert page.evaluate("window.versoVirState") == "failed"
 
 
-def test_pending_retry_cancels_old_acquisition_without_stale_updates(page, server):
+def test_document_termination_cancels_pending_creation_without_late_install(page, server):
     errors = open_pending(page, server)
-    block, panel = select_pending_goal(page)
-    page.evaluate("window.firstAttempt = window.versoVirReady; window.versoVirRetry();")
-    page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
-    assert page.evaluate("window.lifecycleProbe.aborted") == 1
-    assert page.evaluate("async () => { try { await window.firstAttempt; return false; } catch (e) { return e.name === 'AbortError'; } }")
-    # A late network completion does not revive the old attempt.
+    page.evaluate("window.initialReady = window.versoVirReady; window.dispatchEvent(new PageTransitionEvent('pagehide'))")
+    assert page.evaluate("async () => { try { await window.initialReady; return false; } catch (e) { return e.name === 'AbortError'; } }")
     page.evaluate("window.lifecycleProbe.release()")
-    assert_current_goal(block, panel)
-    expect(page.get_by_role("alert")).to_have_count(0)
+    assert page.evaluate("window.lifecycleProbe.aborted") == 1
+    assert page.evaluate("window.lifecycleProbe.wasmRequests") == 1
+    assert page.evaluate("window.lifecycleProbe.instances") == 0
+    assert page.evaluate("window.versoVirReady === window.initialReady && window.versoVir === undefined && window.versoVirFormatSegments === undefined")
+    assert page.evaluate("window.versoVirState") == "disposed"
+    expect(page.locator(".vir-formatter-status")).to_have_count(0)
     assert_no_unhandled(page, errors)
 
 
-def test_ready_retry_disposes_old_instance_and_preserves_pagehide_ownership(page, server):
-    errors = []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    page.add_init_script("window.lifecycleProbe = {unhandled: []}; window.addEventListener('unhandledrejection', e => window.lifecycleProbe.unhandled.push(String(e.reason))); ")
-    open_demo(page, server)
-    block, panel, _ = open_proof_panel(page)
-    page.evaluate("window.oldProgram = window.versoVir; window.versoVirRetry();")
-    assert page.evaluate("window.oldProgram.status") == "disposed"
+def test_bounded_expression_errors_keep_the_single_real_program(page, server, site_dir):
+    errors = open_pending(page, server)
+    page.evaluate("window.lifecycleProbe.release()")
     page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
-    assert page.evaluate("window.oldProgram !== window.versoVir")
-    assert_current_goal(block, panel)
-    page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: true}))")
-    assert page.evaluate("window.versoVir.status") == "active"
-    page.evaluate("window.currentProgram = window.versoVir; window.dispatchEvent(new PageTransitionEvent('pagehide'))")
-    assert page.evaluate("window.currentProgram.status") == "disposed"
-    assert page.evaluate("window.versoVir === undefined && window.versoVirFormatSegments === undefined")
-    assert page.evaluate("window.versoVirState") == "disposed"
+    corpus = json.loads((site_dir / "bounds-corpus.json").read_text())
+    for case in [c for c in corpus if c["name"] in ("width over", "output bytes over")]:
+        result = page.evaluate("""c => {
+            const program = window.versoVir, ready = window.versoVirReady;
+            let rejection;
+            try { window.versoVirFormatSegments(c.format, c.width, c.indent); }
+            catch (error) { rejection = {name: error.name, code: error.code}; }
+            const valid = window.versoVirFormatSegments('same program', 80, 0);
+            return {rejection, valid, same: window.versoVir === program && window.versoVirReady === ready,
+                status: program.status, state: window.versoVirState};
+        }""", case)
+        assert result == {"rejection": {"name": "PrettyFormatError", "code": case["result"]["error"]},
+                          "valid": [{"text": "same program", "tags": []}], "same": True,
+                          "status": "active", "state": "ready"}
+    assert page.evaluate("window.lifecycleProbe.wasmRequests === 1 && window.lifecycleProbe.instances === 1 && window.versoVirRetry === undefined")
+    assert_no_unhandled(page, errors)
+
+
+def test_unexpected_dispatch_failure_closes_owned_program_without_recreation(page, server):
+    errors = open_pending(page, server)
+    page.evaluate("window.lifecycleProbe.release()")
+    page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
+    # Controlled application dispatch failure with a real loader-owned program.
+    # This tests Slides policy, not production Wasm quarantine/trap semantics.
+    result = page.evaluate("""() => {
+        const probe = window.lifecycleProbe, owned = window.versoVir, facade = window.versoVirFormatSegments;
+        const adapter = formatCompactSegments, ready = window.versoVirReady;
+        const failure = new WebAssembly.RuntimeError('controlled dispatch failure');
+        let calls = 0, sameError;
+        formatCompactSegments = () => { calls++; throw failure; };
+        try { facade('current', 80, 0); } catch (error) { sameError = error === failure; }
+        finally { formatCompactSegments = adapter; }
+        let unavailable = false;
+        try { facade('next', 80, 0); } catch (error) { unavailable = error.message.includes('unavailable'); }
+        return {sameError, calls, unavailable, status: owned.status,
+            sameReady: window.versoVirReady === ready,
+            noFacade: window.versoVir === undefined && window.versoVirFormatSegments === undefined,
+            noRetry: window.versoVirRetry === undefined,
+            diagnostic: probe.diagnostics.some(args => args[0] === 'VIR formatting failed' && args[1] === failure)};
+    }""")
+    assert result == {"sameError": True, "calls": 1, "unavailable": True, "status": "disposed",
+                      "sameReady": True, "noFacade": True, "noRetry": True, "diagnostic": True}
+    expect(page.locator(".vir-formatter-status [role=alert]")).to_have_text("Lean formatting is unavailable.")
+    expect(page.locator(".vir-formatter-status button")).to_have_count(0)
+    page.set_viewport_size({"width": 900, "height": 600})
+    page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide'))")
+    assert page.evaluate("window.lifecycleProbe.wasmRequests === 1 && window.lifecycleProbe.instances === 1")
     assert_no_unhandled(page, errors)

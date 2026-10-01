@@ -1,4 +1,9 @@
-# Reduced-renderer browser checkpoint
+# Historical reduced-renderer browser checkpoint
+
+The first client now uses [one-shot initialization](evidence/one-shot/README.md).
+Retry/replacement results below document removed features. Semantic, annotation
+and artifact evidence retain their exact executed source; current affected
+application checks are recorded in the new checkpoint.
 
 Executed test source: `16e748ab7978e39b30d9fe0c804882461785de6d` (2026-10-01).
 Production source is unchanged from `b019155`; the successor adds only a native

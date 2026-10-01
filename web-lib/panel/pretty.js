@@ -419,7 +419,7 @@ function showFormattingStatus(container) {
     message.className = "vir-panel-status";
     message.setAttribute("role", "status");
     message.textContent = window.versoVirState === "loading" ? "Loading Lean formatting…" :
-        window.versoVirState === "failed" ? "Lean formatting is unavailable. Use Retry Lean formatting to try again." :
+        window.versoVirState === "failed" ? "Lean formatting is unavailable." :
         "Lean formatting has been closed.";
     container.appendChild(message);
 }

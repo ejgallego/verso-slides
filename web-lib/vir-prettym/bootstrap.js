@@ -1,12 +1,13 @@
 // @ts-check
 
-/* One embedded PrettyM program per attempt, owned by this page. */
+/* One embedded PrettyM program, initialized once and owned by this document. */
 (function () {
     "use strict";
     var urls = window.__versoVirResourceUrls;
     var disposed = false;
-    /** @type {{pending: AbortController, program?: VersoVirProgram} | undefined} */
-    var current;
+    var pending = new AbortController();
+    /** @type {VersoVirProgram | undefined} */
+    var program;
     /** @type {HTMLElement | undefined} */
     var status;
 
@@ -49,17 +50,8 @@
                 var message = document.createElement("p");
                 message.setAttribute("role", state === "failed" ? "alert" : "status");
                 message.textContent = state === "failed" ?
-                    "Lean formatting could not be initialized." : "Loading Lean formatting…";
+                    "Lean formatting is unavailable." : "Loading Lean formatting…";
                 status.appendChild(message);
-                if (state === "failed") {
-                    var retry = document.createElement("button");
-                    retry.type = "button";
-                    retry.textContent = "Retry Lean formatting";
-                    // Each promise is already observed by startAttempt. Retry
-                    // reacquires a program; it never replays runtime calls.
-                    retry.addEventListener("click", function () { startAttempt(); });
-                    status.appendChild(retry);
-                }
                 document.body.appendChild(status);
             }
         } catch (reportingError) {
@@ -69,79 +61,77 @@
         catch (reportingError) { reportDiagnostic("VIR state notification failed", reportingError); }
     }
 
-    function releaseCurrent() {
-        var previous = current;
-        current = undefined;
+    function releaseProgram() {
+        var previous = program;
+        program = undefined;
         delete window.versoVir;
         delete window.versoVirFormatSegments;
         if (!previous) return;
         // Detach ownership before cleanup, including when cleanup throws.
-        if (previous.program) {
-            try { previous.program.dispose(); }
-            catch (cleanupError) { reportDiagnostic("VIR program disposal failed", cleanupError); }
-        } else {
-            previous.pending.abort();
-        }
+        try { previous.dispose(); }
+        catch (cleanupError) { reportDiagnostic("VIR program disposal failed", cleanupError); }
     }
 
-    function obsoleteError() {
-        var error = new Error(disposed ? "Page closed before PrettyM was ready" :
-            "PrettyM initialization superseded by a newer attempt");
+    function closedError() {
+        var error = new Error("Page closed before PrettyM was ready");
         error.name = "AbortError";
         return error;
     }
 
     /** @returns {Promise<VersoVirProgram>} */
-    function startAttempt() {
-        if (disposed) return window.versoVirReady;
-        releaseCurrent();
-        var attempt = {pending: new AbortController(), program: /** @type {VersoVirProgram | undefined} */ (undefined)};
-        current = attempt;
-        var ready = (async function () {
-            var runtimeModuleUrl = new URL(urls.runtimeModule, document.baseURI);
-            var runtimeManifestUrl = new URL(urls.runtimeManifest, document.baseURI);
-            var programManifestUrl = new URL(urls.programManifest, document.baseURI);
-            var loader = await import(runtimeModuleUrl.href);
-            if (current !== attempt) throw obsoleteError();
-            var program = await loader.createProgram({
-                runtimeManifestUrl, programManifestUrl,
-                expectedExports: window.__versoVirExpectedExports,
-                signal: attempt.pending.signal
-            });
-            if (current !== attempt) {
-                var failure = obsoleteError();
-                try { program.dispose(); }
-                catch (cleanupError) {
-                    Object.defineProperty(failure, "cleanupError", { value: cleanupError, enumerable: true });
-                }
-                throw failure;
-            }
-            attempt.program = program;
-            window.versoVirFormatSegments = function (format, width, indent) {
-                return formatCompactSegments(program, format, width, indent);
-            };
-            window.versoVir = program;
-            setState("ready");
-            return program;
-        })();
-        window.versoVirReady = ready;
-        ready.catch(function (error) {
-            reportFailure(error);
-            if (current === attempt) setState("failed");
+    async function initialize() {
+        var runtimeModuleUrl = new URL(urls.runtimeModule, document.baseURI);
+        var runtimeManifestUrl = new URL(urls.runtimeManifest, document.baseURI);
+        var programManifestUrl = new URL(urls.programManifest, document.baseURI);
+        var loader = await import(runtimeModuleUrl.href);
+        if (disposed) throw closedError();
+        var created = await loader.createProgram({
+            runtimeManifestUrl, programManifestUrl,
+            expectedExports: window.__versoVirExpectedExports,
+            signal: pending.signal
         });
-        // Listeners can synchronously retry or close the page. Publish and
-        // observe this attempt before notification; do not overwrite a nested
-        // attempt's promise when its notification returns.
-        setState("loading");
-        return ready;
+        if (disposed) {
+            var failure = closedError();
+            try { created.dispose(); }
+            catch (cleanupError) {
+                Object.defineProperty(failure, "cleanupError", { value: cleanupError, enumerable: true });
+            }
+            throw failure;
+        }
+        program = created;
+        window.versoVirFormatSegments = function (format, width, indent) {
+            var active = program;
+            if (!active) throw new Error("Lean formatting is unavailable");
+            try { return formatCompactSegments(active, format, width, indent); }
+            catch (error) {
+                // Bounded expression errors keep the healthy instance.
+                // Any unexpected failure closes formatting for this document.
+                if (!(error instanceof PrettyFormatError) || active.status !== "active") {
+                    reportDiagnostic("VIR formatting failed", error);
+                    releaseProgram();
+                    if (!disposed) setState("failed");
+                }
+                throw error;
+            }
+        };
+        window.versoVir = program;
+        setState("ready");
+        return created;
     }
 
     window.addEventListener("pagehide", function (event) {
         if (event.persisted || disposed) return;
         disposed = true;
-        releaseCurrent();
+        if (!program) pending.abort();
+        releaseProgram();
         setState("disposed");
     });
-    window.versoVirRetry = startAttempt;
-    startAttempt();
+    var ready = initialize();
+    window.versoVirReady = ready;
+    ready.catch(function (error) {
+        reportFailure(error);
+        if (!disposed) setState("failed");
+    });
+    // Publish and observe readiness before listeners can close the document.
+    setState("loading");
 })();

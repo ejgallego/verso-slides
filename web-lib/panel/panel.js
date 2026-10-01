@@ -27,8 +27,7 @@
         document.querySelectorAll(".code-with-panel").forEach(setupBlock);
 
         window.addEventListener("verso-vir-statechange", function () {
-            // Render what is selected now, rather than retaining a request from
-            // an earlier attempt or selection.
+            // Initial readiness renders the current selection, not a saved request.
             document.querySelectorAll(".code-with-panel").forEach(function (el) {
                 var block = /** @type {PanelBlock} */ (el);
                 var panel = /** @type {InfoPanel | null} */ (block.querySelector(".info-panel"));
