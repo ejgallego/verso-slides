@@ -1,0 +1,69 @@
+{
+  "source": "a92d77b736ac42b6f186690bbe927f051f867fc3",
+  "baseline": "b367e3d0f53b7e094d166ae5543e195aec2233e7",
+  "vir": "7d69b9a09b0c946333d1b6358341be251306f161",
+  "lean": "4.34.0",
+  "runtimeContentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+  "runtimePackSha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1",
+  "programContentId": "f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede",
+  "programPackSha256": "85dd8d25261b5da8e807b4d373dd5db885a5b24480c24d1310525895ad308c3f",
+  "nativeBuildJobs": 751,
+  "publicationTests": "pass",
+  "namespaceCasesPassed": 46,
+  "focusedBrowserPassed": 12,
+  "productionFilesByteIdentical": 113,
+  "manifestsVerified": 4,
+  "payloadsVerified": 28,
+  "upstreamCI": {
+    "run": 36989194732,
+    "head": "7d69b9a09b0c946333d1b6358341be251306f161",
+    "conclusion": "failure",
+    "failure": "runtime-lean cache.mjs:285 assertion3 !==5"
+  },
+  "logs": {
+    "update.log": {
+      "sha256": "e9f71714faa3ab021340c027ecdc4790e2a57642b653a51b060c8135876a44cb",
+      "bytes": 288
+    },
+    "build.log": {
+      "sha256": "bd377484e8128c4974e4aef3168d4bafb76360e24d9b174568a6e96f6c35d019",
+      "bytes": 2414
+    },
+    "publication-build.log": {
+      "sha256": "3b5bd9cb2d6ab6b31d06a4966d31f1c2d35de45222dda240d32518cbf3b1f8f0",
+      "bytes": 1059
+    },
+    "publication.log": {
+      "sha256": "141bdbe0b3b68a2933a862e8f3d69aa3d3ea5e28cc342341bf7c410a58416541",
+      "bytes": 251
+    },
+    "namespace.log": {
+      "sha256": "2bedf6a3381147ef5f167a2cceed045f6f9293c30fa55643a0f7a29606cd32f2",
+      "bytes": 32
+    },
+    "render.log": {
+      "sha256": "5eb688d199d9b7e8b15e54973cdcb56d9822944f69651b34aa92ada4c3d1a4e6",
+      "bytes": 37
+    },
+    "browser.log": {
+      "sha256": "51982716e8093cc7963faae197b5694bacd35ad379f20505ac028ff4c06649a1",
+      "bytes": 668
+    },
+    "browser.xml": {
+      "sha256": "ecf3a18ce45a4ba409a9d1a0c5b4ec845a0950acf51df047ae2fe1d86fcec285",
+      "bytes": 1722
+    },
+    "inventory.json": {
+      "sha256": "dd8ea4502ac36d9635a810ad13578f19ed0259a8e4e205401848143dc20742d3",
+      "bytes": 20971
+    },
+    "baseline-site.json": {
+      "sha256": "fec8f8e7469bfd8cd4aae82744e21bc8555398669698e31fc1504bb438a11a51",
+      "bytes": 19000
+    },
+    "upstream-ci-failure.log": {
+      "sha256": "047017ef41acf95fc17e9dacb62b919f2830fbe37325b532256869126366f43e",
+      "bytes": 2781
+    }
+  }
+}

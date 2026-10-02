@@ -1,0 +1,4 @@
+info: lean_vir: checking out revision '7d69b9a09b0c946333d1b6358341be251306f161'
+info: toolchain not updated; already up-to-date
+warning: subverso: ignoring missing manifest:
+  /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/packages/subverso/lake-manifest.json

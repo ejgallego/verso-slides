@@ -1,0 +1,46 @@
+✔ [615/625] Built Vir.Resources.Site (312ms)
+✔ [616/625] Built Vir.Resources (208ms)
+✔ [617/625] Built Vir.NativePayload (953ms)
+✔ [618/625] Built Vir.NativePayload:c.o (552ms)
+✔ [619/625] Built Vir.Resources.Build (918ms)
+✔ [620/625] Built Vir.Resources.Build:c.o (409ms)
+✔ [621/625] Built tools.VirResourcePack (935ms)
+✔ [622/625] Built tools.VirResourcePack:c.o (276ms)
+✔ [623/625] Built vir_resource_pack:exe (694ms)
+✔ [631/639] Built Vir.Resources.Embed (749ms)
+✔ [632/639] Built Vir.Resources.Program (782ms)
+✔ [634/639] Built tools.VirResourceProgram (981ms)
+✔ [636/639] Built vir_resource_program:exe (613ms)
+ℹ [693/700] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+✔ [694/700] Built tools.VirProgram (862ms)
+✔ [696/700] Built vir_program:exe (734ms)
+ℹ [697/700] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (1.1s)
+info: stdout:
+wrote /tmp/tmp.XXGwCnaL/program.irpkg-set.json
+wrote /tmp/tmp.XXGwCnaL/program.irpkg
+wrote /tmp/tmp.XXGwCnaL/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [698/744] Built «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack (56ms)
+info: stdout:
+f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede
+✔ [728/751] Built Vir.Resources:c.o (73ms)
+✔ [730/751] Built Vir.Resources.Site:c.o (198ms)
+✔ [731/751] Built VersoSlides.VirPrettyMResources (953ms)
+✔ [733/751] Built Vir.Resources.Runtime (7.2s)
+✔ [735/751] Built VersoSlides.VirResources (518ms)
+✔ [737/751] Built VersoSlides.Render (3.1s)
+✔ [738/751] Built VersoSlides (641ms)
+✔ [740/751] Built Tests.VirPublication (888ms)
+✔ [741/751] Built Tests.VirPublication:c.o (376ms)
+✔ [742/751] Built Tests.ConfigValidation (1.1s)
+✔ [744/751] Built VersoSlides.Render:c.o (3.0s)
+✔ [745/751] Built «test-vir-publication»:exe (821ms)
+✔ [746/751] Built «test-config-validation»:exe (858ms)
+✔ [747/751] Built Demo (11s)
+✔ [749/751] Built Main (881ms)
+✔ [751/751] Built «demo-slides»:exe (746ms)
+Build completed successfully (751 jobs).

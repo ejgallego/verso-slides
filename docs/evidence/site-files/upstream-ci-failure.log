@@ -1,0 +1,28 @@
+runtime-lean	Run npm run test:resources:cache	﻿2026-10-02T09:40:51.2851276Z ##[group]Run npm run test:resources:cache
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:40:51.2851626Z ^[[36;1mnpm run test:resources:cache^[[0m
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:40:51.2887075Z shell: /usr/bin/bash -e {0}
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:40:51.2887351Z ##[endgroup]
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:40:51.3788540Z 
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:40:51.3789299Z > lean-vir@0.1.0 test:resources:cache
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:40:51.3789948Z > node tests/resources/cache.mjs
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:40:51.3790300Z 
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:40:51.4166091Z resource cache evidence: /tmp/vir-resource-cache-g0oeGj
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5436738Z node:internal/modules/run_main:107
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5438940Z     triggerUncaughtException(
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5439514Z     ^
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5439748Z 
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5440298Z AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5440826Z 
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5440942Z 3 !== 5
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5441108Z 
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5441533Z     at file:///home/runner/work/lean-vir/lean-vir/tests/resources/cache.mjs:285:8 {
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5442173Z   generatedMessage: true,
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5442627Z   code: 'ERR_ASSERTION',
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5443002Z   actual: 3,
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5443490Z   expected: 5,
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5443846Z   operator: 'strictEqual',
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5444228Z   diff: 'simple'
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5444586Z }
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5444776Z 
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5444912Z Node.js v24.21.0
+runtime-lean	Run npm run test:resources:cache	2026-10-02T09:41:43.5554781Z ##[error]Process completed with exit code 1.
