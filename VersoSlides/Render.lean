@@ -8,7 +8,7 @@ module
 public import VersoSlides.Attributes
 public import VersoSlides.SlideCode.Render
 public import VersoSlides.SlideCode.Export
-public import VersoSlides.VirResourceSite
+public import Vir.Resources
 public import VersoSlides.VirResources
 public import Verso.Doc.Html
 import Verso.Code.Highlighted.WebAssets
@@ -689,16 +689,23 @@ private def validateVirAssetNamespace (outputDir : System.FilePath)
 def Config.validateFilenames (config : Config) : IO Unit := do
   validateVirAssetNamespace config.outputDir (← config.collectAssets)
 
-private def virBootstrap (plan : VirResourceSite.PublicationPlan) : String := Id.run do
+/-- Slides owns the single-formatter policy; VIR prepares all files and paths. -/
+def prepareVirSite (resources : Vir.Resources.ResourceSet) : IO Vir.Resources.SiteFiles := do
+  unless resources.programs.size == 1 do
+    throw <| IO.userError "Slides PrettyM requires exactly one program bundle"
+  IO.ofExcept <| (resources.forSite "lib/vir").mapError
+    (fun error => s!"Invalid VIR resource set: {repr error}")
+
+private def virBootstrap (plan : Vir.Resources.SiteFiles) : String := Id.run do
   let urls := Lean.Json.mkObj [
-    ("runtimeModule", Lean.Json.str plan.runtimeModuleUrl),
-    ("runtimeManifest", Lean.Json.str plan.runtimeManifestUrl),
-    ("programManifest", Lean.Json.str plan.programManifestUrl)]
+    ("runtimeModule", Lean.Json.str plan.runtimeModule),
+    ("runtimeManifest", Lean.Json.str plan.runtimeManifest),
+    ("programManifest", Lean.Json.str plan.programManifests[0]!)]
   return "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++ virBootstrapJs
 
 /-- Generates a {lit}`reveal.js` slide presentation with mandatory Lean formatting through VIR. -/
 def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWithLogger do
-  let resourcePlan ← VirResourceSite.prepare virResources
+  let resourcePlan ← prepareVirSite virResources
   let mut assetPlan ← config.collectAssets
   validateVirAssetNamespace config.outputDir assetPlan
   for file in resourcePlan.files do

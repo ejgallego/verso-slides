@@ -10,7 +10,7 @@ open System Lake DSL
 require verso from git "https://github.com/leanprover/verso.git"@
   "cad4b633e75ea769b851f12f9ca3b4f0dfcc625f"
 require lean_vir from git "https://github.com/ejgallego/lean-vir.git" @
-  "590be72bd91519c7beb89e105dfba498a4aff140"
+  "7d69b9a09b0c946333d1b6358341be251306f161"
 
 package «verso-slides» where
   version := v!"0.1.0"

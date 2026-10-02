@@ -20,27 +20,19 @@ program and its evidence remain on the archival branch, not this landing diff.
 
 ## Qualification
 
-Executed source: `71eddc1c15aa74737210f72e6a786913a08329c2`.
-All production/test files in this regrouped candidate are byte-identical to that
-source. Seven native semantic checks, 43 Node checks, the warm native build
-(753 jobs)/publication tests and 36 Chromium/Firefox checks passed. Four
-root/nested manifests and all 28 payload hashes were checked. Runtime and v2
-program packs remain byte-identical to the preceding fa731b6 checkpoint.
-Intermediate migration commits have not been separately qualified.
+The forSite adoption deliberately selects the public helper revision below.
+Affected native build (751 jobs), ordinary publication tests and all 46 filename/
+namespace checks pass. Complete rendered output matches the preceding candidate
+byte-for-byte: all 113 production files, including loader URLs and manifests.
+Root/nested output matches four envelopes and all 28 payloads; runtime and v2
+program packs are unchanged. Focused actual-loader browser checks are pending.
 
-Numeric values now pass unchanged to VIR's existing Nat/Int validation. Slides
-retains compact shape and pixel measurement policy. Rejected requests preserve
-active instances and raw diagnostics; failed/disposed instances close formatting.
-Tests cover safe numbers, signed indentation, exact decimal/BigInt tags, invalid
-numbers, raw Error/null/undefined and active versus terminal document ownership.
+Formatter, numeric conversion, one-shot lifecycle and all JavaScript assets are
+unchanged from the qualified numeric-delegation checkpoint. Its broader tests
+remain historical evidence of those unchanged files, not a fresh campaign.
+Raw qualification evidence stays outside the landing diff.
 
-[Immutable commands/results and retained initial failures](https://github.com/ejgallego/verso-slides/tree/18519bb9eb07cd87983077c14613266384c8d722/docs/evidence/numeric-input)
-remain outside this landing diff. The initial browser run exposed assertions tied
-to the former local error code and exception-class closure policy; the final
-checks explicitly exercise the chosen status-based recovery. Historical bounded
-results qualify only the deferred implementation.
-
-VIR remains `590be72bd91519c7beb89e105dfba498a4aff140`, Lean 4.34.0.
+VIR selected: `7d69b9a09b0c946333d1b6358341be251306f161`, Lean 4.34.0.
 Runtime content ID:
 `832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d`.
 Runtime pack SHA-256:

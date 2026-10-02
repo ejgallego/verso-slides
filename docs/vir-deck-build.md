@@ -23,9 +23,9 @@ own the bytes; the renderer reads no producer paths and invokes no build tools.
 The small `vir-resources/VersoSlidesVirPrettyMResources.json` recipe selects the
 program module and public export role. It is configuration, not an ABI snapshot.
 
-Slides publishes the runtime and program under `lib/vir/<contentId>/` through
-its existing asset writer. A single validated plan supplies files and relative
-loader URLs. Configured assets cannot overwrite that namespace. Publication
+VIR’s `ResourceSet.forSite "lib/vir"` prepares all resource files and loader
+paths. Slides checks its one-program policy and publishes those files through
+its existing asset writer; it constructs no manifests or content-ID paths. Configured assets cannot overwrite that namespace. Publication
 writes in place, retains stale files and may leave partial output on failure;
 rerun after correcting the destination or use a fresh output directory.
 
