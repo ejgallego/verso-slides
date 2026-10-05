@@ -34,6 +34,12 @@ directory over HTTP:
 python3 -m http.server -d _slides
 ```
 
+Lean formatting runs through the embedded PrettyM program supplied by VIR.
+Downstream decks keep the ordinary `slidesMain` entry point. Lake prepares the
+library-owned resource carrier before compiling the renderer and acquires the
+exact runtime from its public, content-verified source. See
+[the integration notes](docs/vir-deck-build.md) for the dependency pin and limits.
+
 ## Writing a Presentation
 
 A presentation is a Verso document declared with the `Slides` genre.
