@@ -1,0 +1,30 @@
+{
+  "programStage": {
+    "path": ".vir-generated/VersoSlidesVendored.virres",
+    "bytes": 77910,
+    "inode": 112986820,
+    "mtimeNs": 1791220479996444541,
+    "sha256": "cde0b85f98fc98e9281efbe5b834317f3df63833be851b424b934e2ebc84dace"
+  },
+  "programCache": {
+    "path": ".lake/build/vir/resources/programs/VersoSlidesVendored.virres",
+    "bytes": 77910,
+    "inode": 112986961,
+    "mtimeNs": 1791220706062748367,
+    "sha256": "cde0b85f98fc98e9281efbe5b834317f3df63833be851b424b934e2ebc84dace"
+  },
+  "runtimeStage": {
+    "path": ".lake/packages/lean_vir/.vir-generated/VirResourceRuntime.virres",
+    "bytes": 1120731,
+    "inode": 112884217,
+    "mtimeNs": 1790873409089258545,
+    "sha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1"
+  },
+  "runtimeCache": {
+    "path": ".lake/packages/lean_vir/.lake/build/vir/resources/runtime/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d.virres",
+    "bytes": 1120731,
+    "inode": 112884215,
+    "mtimeNs": 1790873409088793991,
+    "sha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1"
+  }
+}

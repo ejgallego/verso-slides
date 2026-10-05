@@ -1,0 +1,1 @@
+Default warm lake build preserves all four pack bytes/inode/mtime. Withheld only VersoSlidesVendored source stage; default lake build repairs identical bytes, remaining three pack stats unchanged.

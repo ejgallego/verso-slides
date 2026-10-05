@@ -1,0 +1,22 @@
+Executed source: 521c70d3ff8a56bddc56da0007a71170611f2133; final production/test source bytes unchanged through checks.
+CWD /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch
+lake build
+lake build test-pretty test-vir-publication
+.lake/build/bin/test-pretty
+.lake/build/bin/test-vir-publication
+# Existing default-deck application, with only dependency path pointing at this checkout:
+# CWD .qualification-library-carrier-20261005/downstream-deck
+lake build
+# Root native demo executable run in NEW scratch/assets-render with copied demo-images.
+# Leaf native talk-build/bin/my-talk run in NEW scratch/assets-downstream-render.
+# Compare all emitted files to preceding qualified fresh root/downstream outputs.
+python3 .qualification-build-20261005/verify-assets.py
+# After downstream work, settle root build traces, then snapshot the four pack paths:
+lake build
+python3 .qualification-build-20261005/assets-snapshot.py .qualification-build-20261005/assets-warm-before.json
+lake build
+python3 .qualification-build-20261005/assets-snapshot.py .qualification-build-20261005/assets-warm-after.json
+# Compare bytes/inode/mtime; rename only .vir-generated/VersoSlidesVendored.virres into scratch.
+lake build
+python3 .qualification-build-20261005/assets-snapshot.py .qualification-build-20261005/assets-repair-after.json
+# Verify repaired stage bytes and unchanged other three packs. No producer command/manual seeding.
