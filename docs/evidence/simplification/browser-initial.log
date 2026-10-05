@@ -1,0 +1,29 @@
+F............................................                            [100%]
+=================================== FAILURES ===================================
+_______________________ test_published_bundles_and_urls ________________________
+
+site_dir = PosixPath('/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-simplification-20261005/site')
+
+    def test_published_bundles_and_urls(site_dir):
+        for subdir in ("", "nested/deck", "downstream/custom"):
+            root = site_dir / subdir
+            assert (root / "index.html").is_file()
+            bootstrap = (root / "index.html").read_text()
+            assert not (root / "vir-bootstrap.js").exists()
+            scripts = BeautifulSoup(bootstrap, "html.parser").select("script[data-runtime-module]")
+            assert len(scripts) == 1
+            urls = {key: scripts[0][attribute] for key, attribute in [
+                ("runtimeModule", "data-runtime-module"), ("runtimeManifest", "data-runtime-manifest"),
+                ("programManifest", "data-program-manifest")]}
+            assert all(not url.startswith("/") and ".lake" not in url for url in urls.values())
+            assert all((root / url).is_file() for url in urls.values())
+    
+            manifests = list(root.glob("lib/vir/*/bundle.json"))
+>           assert len(manifests) == 2
+E           AssertionError: assert 3 == 2
+E            +  where 3 = len([PosixPath('/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-simplification-20261005...20261005/site/downstream/custom/lib/vir/f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede/bundle.json')])
+
+browser-tests/test_vir_prettym_site.py:31: AssertionError
+=========================== short test summary info ============================
+FAILED browser-tests/test_vir_prettym_site.py::test_published_bundles_and_urls
+1 failed, 44 passed in 24.13s

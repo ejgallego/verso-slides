@@ -1,0 +1,364 @@
+{
+  "path": ".qualification-simplification-20261005/site/lib/vir/6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995/program.irpkg",
+  "byteLength": 5512,
+  "package": {
+    "magic": "lean-vir-ir-package",
+    "version": 11,
+    "declarationCount": 23,
+    "sections": [
+      {
+        "kind": 1,
+        "name": "declarations",
+        "offset": 95,
+        "byteLength": 1293
+      },
+      {
+        "kind": 2,
+        "name": "initGlobals",
+        "offset": 1388,
+        "byteLength": 4
+      },
+      {
+        "kind": 3,
+        "name": "hostImports",
+        "offset": 1392,
+        "byteLength": 4
+      },
+      {
+        "kind": 4,
+        "name": "exportSummaries",
+        "offset": 1396,
+        "byteLength": 61
+      },
+      {
+        "kind": 5,
+        "name": "interfaceManifest",
+        "offset": 1457,
+        "byteLength": 4055
+      }
+    ]
+  },
+  "manifest": {
+    "version": 9,
+    "artifact": "lean-vir-ir-package",
+    "metadata": {
+      "generator": "tools/GeneratePackage.lean",
+      "packageFormatVersion": 11,
+      "manifestVersion": 9,
+      "leanVersion": "4.34.0",
+      "leanToolchain": "leanprover/lean4:4.34.0",
+      "leanGithash": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+      "targets": [
+        {
+          "module": "VersoSlides.VirPrettyM",
+          "mode": "markedModule",
+          "roots": [],
+          "resolvedRoots": [
+            "VersoSlides.VirPrettyM.formatSegments",
+            "VersoSlides.VirPrettyM.formatSegments._boxed"
+          ]
+        }
+      ],
+      "packageSetMember": {
+        "module": "VersoSlides.VirPrettyM",
+        "role": "root"
+      }
+    },
+    "exports": [
+      {
+        "id": "VersoSlides_VirPrettyM_formatSegments",
+        "jsName": "VersoSlides_VirPrettyM_formatSegments",
+        "entry": "VersoSlides.VirPrettyM.formatSegments",
+        "nameKey": "s566572736f536c69646573/s5669725072657474794d/s666f726d61745365676d656e7473/",
+        "source": "module VersoSlides.VirPrettyM",
+        "args": [
+          {
+            "name": "format",
+            "type": {
+              "type": "Std.Format",
+              "interfaceTag": 25,
+              "kind": "customInductive",
+              "name": "Std.Format",
+              "constructors": [
+                {
+                  "name": "Std.Format.nil",
+                  "jsName": "nil",
+                  "tag": 0,
+                  "objectFieldCount": 0,
+                  "usizeFieldCount": 0,
+                  "scalarByteSize": 0,
+                  "fields": []
+                },
+                {
+                  "name": "Std.Format.line",
+                  "jsName": "line",
+                  "tag": 1,
+                  "objectFieldCount": 0,
+                  "usizeFieldCount": 0,
+                  "scalarByteSize": 0,
+                  "fields": []
+                },
+                {
+                  "name": "Std.Format.align",
+                  "jsName": "align",
+                  "tag": 2,
+                  "objectFieldCount": 0,
+                  "usizeFieldCount": 0,
+                  "scalarByteSize": 1,
+                  "fields": [
+                    {
+                      "name": "force",
+                      "type": {
+                        "type": "Bool",
+                        "interfaceTag": 2
+                      },
+                      "layout": {
+                        "kind": "scalar",
+                        "size": 1,
+                        "offset": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Std.Format.text",
+                  "jsName": "text",
+                  "tag": 3,
+                  "objectFieldCount": 1,
+                  "usizeFieldCount": 0,
+                  "scalarByteSize": 0,
+                  "fields": [
+                    {
+                      "name": "arg1",
+                      "type": {
+                        "type": "String",
+                        "interfaceTag": 3
+                      },
+                      "layout": {
+                        "kind": "object",
+                        "index": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Std.Format.nest",
+                  "jsName": "nest",
+                  "tag": 4,
+                  "objectFieldCount": 2,
+                  "usizeFieldCount": 0,
+                  "scalarByteSize": 0,
+                  "fields": [
+                    {
+                      "name": "indent",
+                      "type": {
+                        "type": "Int",
+                        "interfaceTag": 1
+                      },
+                      "layout": {
+                        "kind": "object",
+                        "index": 0
+                      }
+                    },
+                    {
+                      "name": "f",
+                      "type": {
+                        "type": "Std.Format",
+                        "interfaceTag": 26,
+                        "kind": "recursiveSelf",
+                        "name": "Std.Format"
+                      },
+                      "layout": {
+                        "kind": "object",
+                        "index": 1
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Std.Format.append",
+                  "jsName": "append",
+                  "tag": 5,
+                  "objectFieldCount": 2,
+                  "usizeFieldCount": 0,
+                  "scalarByteSize": 0,
+                  "fields": [
+                    {
+                      "name": "arg1",
+                      "type": {
+                        "type": "Std.Format",
+                        "interfaceTag": 26,
+                        "kind": "recursiveSelf",
+                        "name": "Std.Format"
+                      },
+                      "layout": {
+                        "kind": "object",
+                        "index": 0
+                      }
+                    },
+                    {
+                      "name": "arg2",
+                      "type": {
+                        "type": "Std.Format",
+                        "interfaceTag": 26,
+                        "kind": "recursiveSelf",
+                        "name": "Std.Format"
+                      },
+                      "layout": {
+                        "kind": "object",
+                        "index": 1
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Std.Format.group",
+                  "jsName": "group",
+                  "tag": 6,
+                  "objectFieldCount": 1,
+                  "usizeFieldCount": 0,
+                  "scalarByteSize": 1,
+                  "fields": [
+                    {
+                      "name": "arg1",
+                      "type": {
+                        "type": "Std.Format",
+                        "interfaceTag": 26,
+                        "kind": "recursiveSelf",
+                        "name": "Std.Format"
+                      },
+                      "layout": {
+                        "kind": "object",
+                        "index": 0
+                      }
+                    },
+                    {
+                      "name": "behavior",
+                      "type": {
+                        "type": "Std.Format.FlattenBehavior",
+                        "interfaceTag": 14,
+                        "kind": "simpleEnum",
+                        "constructors": [
+                          {
+                            "name": "Std.Format.FlattenBehavior.allOrNone",
+                            "jsName": "allOrNone",
+                            "tag": 0
+                          },
+                          {
+                            "name": "Std.Format.FlattenBehavior.fill",
+                            "jsName": "fill",
+                            "tag": 1
+                          }
+                        ]
+                      },
+                      "layout": {
+                        "kind": "scalar",
+                        "size": 1,
+                        "offset": 0
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Std.Format.tag",
+                  "jsName": "tag",
+                  "tag": 7,
+                  "objectFieldCount": 2,
+                  "usizeFieldCount": 0,
+                  "scalarByteSize": 0,
+                  "fields": [
+                    {
+                      "name": "arg1",
+                      "type": {
+                        "type": "Nat",
+                        "interfaceTag": 0
+                      },
+                      "layout": {
+                        "kind": "object",
+                        "index": 0
+                      }
+                    },
+                    {
+                      "name": "arg2",
+                      "type": {
+                        "type": "Std.Format",
+                        "interfaceTag": 26,
+                        "kind": "recursiveSelf",
+                        "name": "Std.Format"
+                      },
+                      "layout": {
+                        "kind": "object",
+                        "index": 1
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "name": "width",
+            "type": {
+              "type": "Nat",
+              "interfaceTag": 0
+            }
+          },
+          {
+            "name": "indent",
+            "type": {
+              "type": "Nat",
+              "interfaceTag": 0
+            }
+          }
+        ],
+        "result": {
+          "type": "Array VersoSlides.Pretty.Segment",
+          "interfaceTag": 16,
+          "kind": "array",
+          "element": {
+            "type": "VersoSlides.Pretty.Segment",
+            "interfaceTag": 20,
+            "kind": "structure",
+            "name": "VersoSlides.Pretty.Segment",
+            "objectFieldCount": 2,
+            "usizeFieldCount": 0,
+            "scalarByteSize": 0,
+            "fields": [
+              {
+                "name": "text",
+                "type": {
+                  "type": "String",
+                  "interfaceTag": 3
+                },
+                "layout": {
+                  "kind": "object",
+                  "index": 0
+                }
+              },
+              {
+                "name": "tags",
+                "type": {
+                  "type": "Array Nat",
+                  "interfaceTag": 16,
+                  "kind": "array",
+                  "element": {
+                    "type": "Nat",
+                    "interfaceTag": 0
+                  }
+                },
+                "layout": {
+                  "kind": "object",
+                  "index": 1
+                }
+              }
+            ]
+          }
+        },
+        "effect": "pure",
+        "startup": false
+      }
+    ],
+    "hostImports": [],
+    "diagnostics": []
+  }
+}

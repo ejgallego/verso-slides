@@ -1,0 +1,67 @@
+✔ [118/122] Built VersoSlides.Pretty (659ms)
+ℹ [119/122] Built VersoSlides.VirPrettyM (460ms)
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [120/122] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (1.1s)
+info: stdout:
+wrote /tmp/tmp.XXseHcoN/program.irpkg-set.json
+wrote /tmp/tmp.XXseHcoN/program.irpkg
+wrote /tmp/tmp.XXseHcoN/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [121/151] Built «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack (49ms)
+info: stdout:
+6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995
+✔ [694/758] Built VersoSlides.ImgSrc (339ms)
+✔ [706/758] Built VersoSlides.ImageWidget (620ms)
+✔ [708/758] Built VersoSlides.Pretty:c.o (507ms)
+✔ [709/758] Built VersoSlidesVirPrettyMResources (948ms)
+✔ [711/758] Built VersoSlides.SlideCode.CommentParsers (996ms)
+✔ [713/758] Built VersoSlidesVirPrettyMResources:c.o (78ms)
+✔ [714/758] Built Tests.Pretty (756ms)
+✔ [715/758] Built Tests.Pretty:c.o (491ms)
+✔ [716/758] Built «test-pretty»:exe (589ms)
+✔ [717/758] Built VersoSlides.SlideCode (1.7s)
+✔ [719/758] Built VersoSlides.Basic (2.5s)
+✔ [721/758] Built VersoSlides.Attributes (790ms)
+✔ [722/758] Built VersoSlides.SlideCode.Export (926ms)
+✔ [725/758] Built VersoSlides.SlideCode.Render (1.1s)
+✔ [726/758] Built VersoSlides.OtherLanguages (1.1s)
+✔ [729/758] Built VersoSlides.Diagram (1.3s)
+✔ [731/758] Built VersoSlides.Directives (2.3s)
+✔ [733/758] Built VersoSlides.Animate (1.3s)
+✔ [735/758] Built VersoSlides.Render (2.3s)
+✔ [736/758] Built VersoSlides.InlineLean (2.5s)
+✔ [738/758] Built Tests.VirPublication (724ms)
+✔ [739/758] Built Tests.Render (782ms)
+✔ [740/758] Built Tests.VirPublication:c.o (298ms)
+✔ [741/758] Built Tests.Render:c.o (261ms)
+✔ [742/758] Built VersoSlides.Render:c.o (2.9s)
+✔ [743/758] Built VersoSlides.ModuleExample (3.0s)
+✔ [745/758] Built «test-vir-publication»:exe (619ms)
+✔ [746/758] Built «test-render»:exe (614ms)
+✔ [747/758] Built VersoSlides.LibModule (2.7s)
+✔ [749/758] Built VersoSlides (598ms)
+✔ [751/758] Built Tests.ConfigValidation (722ms)
+✔ [752/758] Built Tests.ConfigValidation:c.o (322ms)
+✔ [753/758] Built «test-config-validation»:exe (595ms)
+✖ [754/758] Building Demo (11s)
+trace: .> LEAN_PATH=/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/packages/subverso/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/packages/MD4Lean/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/packages/plausible/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/packages/illuminate/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/packages/Cli/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/packages/verso/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/packages/lean_vir/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/build/lib/lean /home/egallego/.elan/toolchains/leanprover--lean4---v4.34.0/bin/lean /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/Demo.lean -o /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/build/lib/lean/Demo.olean -i /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/build/lib/lean/Demo.ilean -c /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/build/ir/Demo.c --setup /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.lake/build/ir/Demo.setup.json --json
+error: Demo.lean:326:0: Code block does not match the current library code:
+- public meta def withNl (s : String) : String := if s.endsWith "\n" then s else s ++ "\n"
++ -/
+
+
+Hint: Update the line range or replace with the current library code
+  • Update line numbers:
+    ```leanLibCode Verso.Code.External (package := verso) (startLine := 77̵8̲) (endLine := 77̵8̲) -stretch
+    public meta def withNl (s : String) : String := if s.endsWith "\n" then s else s ++ "\n"
+    ```
+  • Update expected code:
+    ```leanLibCode Verso.Code.External (package := verso) (startLine := 77) (endLine := 77) -stretch
+    p̵u̵b̵l̵i̵c̵ ̵m̵e̵t̵a̵ ̵d̵e̵f̵ ̵w̵i̵t̵h̵N̵l̵ ̵(̵s̵ ̵:̵ ̵S̵t̵r̵i̵n̵g̵)̵ ̵:̵ ̵S̵t̵r̵i̵n̵g̵ ̵:̵=̵ ̵i̵f̵ ̵s̵.̵e̵n̵d̵s̵W̵i̵t̵h̵ ̵"̵\̵n̵"̵ ̵t̵h̵e̵n̵ ̵s̵ ̵e̵l̵s̵e̵ ̵s̵ ̵+̵+̵ ̵"̵\̵n̵"̵-̲/̲
+    ```
+Some required targets logged failures:
+- Demo
+error: build failed

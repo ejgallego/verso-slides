@@ -1,0 +1,29 @@
+Executed source: 4d66d3cffe44338f6c16435737ab4c43fcff9898; tracked source/test bytes were identical throughout the final checks.
+CWD: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch
+lake build demo-slides test-pretty test-vir-publication test-config-validation test-render
+.lake/build/bin/test-pretty
+.lake/build/bin/test-vir-publication
+.lake/build/bin/test-config-validation
+.lake/build/bin/test-render
+node --test Tests/pretty-presentation.test.cjs Tests/vir-bootstrap.test.cjs
+npx --no-install tsc --noEmit -p web-lib/panel/jsconfig.json
+scripts/check-jsconfig-coverage.sh
+# Copy demo-images to scratch/render; run root native demo executable there.
+# Copy its fresh _slides output to site and site/nested/deck.
+.lake/build/bin/test-pretty --host-abi-corpus  # site/native-corpus.json
+.lake/build/bin/test-pretty --geometry-corpus # site/geometry-corpus.json
+# Existing independent default-deck application from prior carrier qualification:
+# CWD .qualification-library-carrier-20261005/downstream-deck
+lake build
+# Run its talk-build/bin/my-talk in a NEW scratch/downstream-render CWD;
+# copy fresh output to site/downstream/custom. No old output overlay.
+# Python3.10.19/pytest9.0.2/Playwright1.58.0 from the retained existing browser venv:
+env PATH="/home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/browser-tests/.venv/bin:$PATH" python -m pytest browser-tests/test_vir_prettym_site.py browser-tests/test_vir_prettym_creation.py browser-tests/test_vir_prettym_lifecycle.py browser-tests/test_vir_prettym_presentation.py --vir-site-acceptance --site-dir "$PWD/.qualification-simplification-20261005/site" --browser all -q --junitxml=.qualification-simplification-20261005/browser.xml
+node .lake/packages/lean_vir/scripts/packages/inspect-irpkg.mjs --json .qualification-simplification-20261005/site/lib/vir/6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995/program.irpkg
+python3 .qualification-simplification-20261005/verify-site.py
+# Snapshot four cache/stage packs before/after an ordinary settled warm build.
+lake build VersoSlidesVirPrettyMResources demo-slides
+# Rename .vir-generated/VersoSlidesVirPrettyMResources.virres into scratch, then:
+lake build VersoSlidesVirPrettyMResources demo-slides
+# Recheck bytes/stat on remaining packs and repaired stage; keep withheld file.
+gh pr view 217 --repo ejgallego/lean-vir --json headRefOid,state,isDraft,statusCheckRollup

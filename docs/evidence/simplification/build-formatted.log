@@ -1,0 +1,39 @@
+✔ [689/700] Built VersoSlides.ImgSrc (305ms)
+✔ [690/700] Built VersoSlides.Pretty (606ms)
+ℹ [691/700] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+✔ [692/700] Built VersoSlides.SlideCode.CommentParsers (905ms)
+ℹ [693/700] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (957ms)
+info: stdout:
+wrote /tmp/tmp.XXY7HGaU/program.irpkg-set.json
+wrote /tmp/tmp.XXY7HGaU/program.irpkg
+wrote /tmp/tmp.XXY7HGaU/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [694/712] Built «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack (52ms)
+info: stdout:
+6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995
+✔ [712/757] Built VersoSlides.SlideCode (1.4s)
+✔ [714/757] Built VersoSlides.Basic (2.3s)
+✔ [716/757] Built VersoSlides.ImageWidget (613ms)
+✔ [718/757] Built VersoSlidesVirPrettyMResources (965ms)
+✔ [720/757] Built VersoSlides.Attributes (801ms)
+✔ [721/757] Built VersoSlides.SlideCode.Export (983ms)
+✔ [724/757] Built VersoSlides.SlideCode.Render (1.1s)
+✔ [726/757] Built VersoSlides.OtherLanguages (1.1s)
+✔ [728/757] Built VersoSlides.Diagram (1.3s)
+✔ [730/757] Built VersoSlides.Directives (2.6s)
+✔ [731/757] Built VersoSlides.Animate (1.3s)
+✔ [734/757] Built VersoSlides.Render (2.2s)
+✔ [739/757] Built VersoSlides.InlineLean (2.6s)
+✔ [741/757] Built VersoSlides.Render:c.o (3.3s)
+✔ [742/757] Built VersoSlides.ModuleExample (3.3s)
+✔ [744/757] Built «test-vir-publication»:exe (662ms)
+✔ [745/757] Built «test-render»:exe (653ms)
+✔ [746/757] Built VersoSlides.LibModule (2.0s)
+✔ [748/757] Built VersoSlides (586ms)
+✔ [756/757] Built «demo-slides»:exe (659ms)
+✔ [757/757] Built «test-config-validation»:exe (650ms)
+Build completed successfully (757 jobs).

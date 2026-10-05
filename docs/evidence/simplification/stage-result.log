@@ -1,0 +1,1 @@
+After mixed-target trace settling, four pack cache/stage snapshots unchanged on ordinary warm build. Missing owning-library source stage repaired by ordinary prerequisites, identical bytes; other three pack stats unchanged.
