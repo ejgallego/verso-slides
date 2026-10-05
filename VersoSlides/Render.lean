@@ -10,7 +10,7 @@ public import VersoSlides.SlideCode.Render
 public import VersoSlides.SlideCode.Export
 public import Vir.Resources
 public import Vir.Resources.Runtime
-public import VersoSlidesVirPrettyMResources
+public import VersoSlidesVendored
 public import Verso.Doc.Html
 import Verso.Code.Highlighted.WebAssets
 import Illuminate.Animation.Render

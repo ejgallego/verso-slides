@@ -15,18 +15,21 @@ python3 -m http.server --directory _slides
 Downstream decks keep `slidesMain` and `Config.outputDir`; no resource setup is
 needed in the application. See `examples/default-deck`.
 
-The formatter and resource carrier are separate Lake libraries to avoid a build
-cycle. VIR's `virResourcePack` prerequisite compiles the program, prepares its
-pack and acquires the exact prebuilt runtime. The carrier names its owning
-library with
-`include_vir_library VersoSlidesVirPrettyMResources`; VIR owns the generated
-artifact location. The root module `VersoSlidesVirPrettyMResources.lean` is the
-carrier; no separate Lean resources directory or wrapper module is needed.
-`.vir-generated/` is ignored because VIR stages generated embedding input in
-the owning library source root. Application code does not reference that path.
-Compiled Lean values
-own the bytes; the renderer reads no producer paths and invokes no build tools.
-The small `vir-resources/VersoSlidesVirPrettyMResources.json` recipe selects the
+The existing `VersoSlides` library owns the formatter. The existing
+`VersoSlidesVendored` library embeds its pack alongside the browser assets.
+Its `virResourcePack` prerequisite compiles the formatter and prepares the pack
+before the asset module embeds it. No additional Lake libraries or carrier files
+are needed. The prerequisite belongs on the asset library: putting it on
+`VersoSlides` would make the formatter wait for its own pack, creating a cycle.
+
+`VersoSlidesVendored.lean` uses `include_vir_library VersoSlidesVendored`; VIR
+owns artifact location and preparation. No separate Lean resources directory,
+wrapper module or manual preparation command is needed. `.vir-generated/` is
+ignored because VIR stages embedding input in the owning library source root.
+Compiled Lean values own the bytes; application and renderer code read no
+producer paths or invoke build tools. VIR acquires the exact prebuilt runtime
+through its own library prerequisite.
+The small `vir-resources/VersoSlidesVendored.json` recipe selects the
 program module and public export role. It is configuration, not an ABI snapshot.
 
 VIR’s `ResourceSet.forSite "lib/vir"` prepares all resource files and loader

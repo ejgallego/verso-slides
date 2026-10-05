@@ -20,7 +20,7 @@ input_dir vendorAssets where
   path := "vendor"
 
 lean_lib VersoSlidesVendored where
-  needs := #[vendorAssets]
+  needs := #[vendorAssets, `@«verso-slides»/VersoSlidesVendored:virResourcePack]
 
 input_dir webLibAssets where
   path := "web-lib"
@@ -32,13 +32,6 @@ lean_lib Demo where
   needs := #[`@verso/+Verso.Code.External:highlighted]
 
 @[default_target] lean_exe «demo-slides» where root := `Main
-
--- The formatter must compile before its resource carrier embeds the pack.
-lean_lib VersoSlidesVirPrettyM where
-  roots := #[`VersoSlides.VirPrettyM]
-
-lean_lib VersoSlidesVirPrettyMResources where
-  needs := #[`@«verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack]
 
 lean_exe «extract-lakefile» where
   root := `ExtractLakefile
