@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const {spawnSync} = require('node:child_process');
 
 const source = fs.readFileSync(process.env.VIR_BOOTSTRAP_SOURCE ||
-  path.join(__dirname, '../web-lib/vir-prettym/bootstrap.js'), 'utf8');
+  path.join(__dirname, '../web-lib/panel/pretty-init.js'), 'utf8');
 const deferred = () => {
   let resolve, reject;
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
@@ -27,13 +27,12 @@ function fixture(config = {}) {
   let hide, options, disposed = 0;
   const program = {status: 'active', call(role, ...args) {
     formatCalls.push({role, args});
-    return config.call ? config.call(program, ...args) : {kind: 'ok', value: [{text: 'formatted', tags: []}]};
+    return config.call ? config.call(program, ...args) : [{text: 'formatted', tags: []}];
   }, dispose() {
     disposed++; program.status = 'disposed';
     if (Object.hasOwn(config, 'cleanup')) throw config.cleanup;
   }};
   const window = {
-    __versoVirResourceUrls: {runtimeModule: 'lib/runtime.js', runtimeManifest: 'lib/runtime.json', programManifest: 'lib/program.json'},
     addEventListener(name, callback) { assert.equal(name, 'pagehide'); hide = callback; },
     dispatchEvent(event) {
       assert.equal(event.type, 'verso-vir-statechange'); states.push(this.versoVirState);
@@ -42,6 +41,7 @@ function fixture(config = {}) {
   };
   const context = vm.createContext({window, URL, AbortController, Event,
     document: {baseURI: 'http://slides.test/nested/deck/',
+      currentScript: {dataset: {runtimeModule: 'lib/runtime.js', runtimeManifest: 'lib/runtime.json', programManifest: 'lib/program.json'}},
       createElement: element, body: {appendChild(el) {
         if (config.presentationThrows) throw new Error('alert sink failed');
         nodes.push(el);
@@ -259,7 +259,7 @@ for (const raw of [new Error('argument rejected'), null, undefined]) {
     let rejected = false;
     const f = fixture({call() {
       if (!rejected) { rejected = true; throw raw; }
-      return {kind: 'ok', value: [{text: 'recovered', tags: []}]};
+      return [{text: 'recovered', tags: []}];
     }});
     f.loading.resolve(f.loader); await f.started.promise;
     f.creation.resolve(f.program); await f.window.versoVirReady;

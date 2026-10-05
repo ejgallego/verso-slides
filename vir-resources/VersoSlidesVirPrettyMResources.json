@@ -1,1 +1,1 @@
-{"schemaVersion":1,"logicalId":"verso-slides/prettyM","module":"VersoSlides.VirPrettyM","exports":[{"role":"formatSegments","declaration":"VersoSlides.VirPrettyM.formatSegments","interfaceId":"verso-slides-format-segments-hostabi-v2"}],"supportFiles":[]}
+{"schemaVersion":1,"logicalId":"verso-slides/prettyM","module":"VersoSlides.VirPrettyM","exports":[{"role":"formatSegments","declaration":"VersoSlides.VirPrettyM.formatSegments","interfaceId":"verso-slides-format-segments-hostabi-v3"}],"supportFiles":[]}

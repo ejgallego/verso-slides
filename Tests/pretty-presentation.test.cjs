@@ -128,7 +128,7 @@ test('compact adapter passes scalar values and dimensions unchanged to VIR', () 
   const {context} = fixture();
   const calls = [];
   const program = {call(role, ...args) {
-    calls.push({role, args}); return {kind: 'ok', value: []};
+    calls.push({role, args}); return [];
   }};
   for (const scalar of [7, -2, 1.5, NaN, 9007199254740993n, '9007199254740993', ' 007 ']) {
     const fmt = [3, scalar, [7, scalar, 'x']];

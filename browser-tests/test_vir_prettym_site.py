@@ -7,7 +7,7 @@ These checks execute only published browser files.
 
 import hashlib
 import json
-import re
+from bs4 import BeautifulSoup
 
 import pytest
 from playwright.sync_api import expect
@@ -19,10 +19,11 @@ def test_published_bundles_and_urls(site_dir):
         assert (root / "index.html").is_file()
         bootstrap = (root / "index.html").read_text()
         assert not (root / "vir-bootstrap.js").exists()
-        assert bootstrap.count("window.__versoVirResourceUrls = ") == 1
-        match = re.search(r"window\.__versoVirResourceUrls = (\{.*?\});", bootstrap)
-        assert match is not None
-        urls = json.loads(match.group(1))
+        scripts = BeautifulSoup(bootstrap, "html.parser").select("script[data-runtime-module]")
+        assert len(scripts) == 1
+        urls = {key: scripts[0][attribute] for key, attribute in [
+            ("runtimeModule", "data-runtime-module"), ("runtimeManifest", "data-runtime-manifest"),
+            ("programManifest", "data-program-manifest")]}
         assert all(not url.startswith("/") and ".lake" not in url for url in urls.values())
         assert all((root / url).is_file() for url in urls.values())
 
@@ -60,7 +61,7 @@ def open_demo(page, server, route="nested/deck"):
 def test_same_wrapper_native_corpus(page, server, site_dir, route):
     open_demo(page, server, route)
     corpus = json.loads((site_dir / "native-corpus.json").read_text())
-    assert len(corpus) == 7
+    assert len(corpus) == 8
     for case in corpus:
         actual = page.evaluate("""c => window.versoVirFormatSegments(
             c.format, c.width, c.indent)""", case)

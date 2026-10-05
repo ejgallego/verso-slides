@@ -14,15 +14,13 @@ Revisit limits, traversal cost, pre-allocation checks and recoverable errors in
 one later PR. It must qualify its own resulting program/interface; the old
 bounded evidence does not qualify a changed implementation automatically.
 
-## Agreed array-result migration — separate patch
-
-The pure `Array Pretty.Segment` v3 result is agreed and qualified on
-[feat/vir-prettym-v3-landing](https://github.com/ejgallego/verso-slides/tree/feat/vir-prettym-v3-landing).
-The first landing retains its existing Except/v2 ABI; v3 is not a prerequisite.
-Its later adoption must carry forward subsequent client integration changes.
-
 ## Other independent work
 
 The generic mobile panel restoration fix and general asset filename validation
 remain scheduled after the first landing. Output CLI, directory assets and
 managed build infrastructure remain outside this formatter patch.
+
+Reserved asset-prefix and case-alias validation also belong in that later
+asset-policy PR. The previous implementation is retained on
+[feat/vir-prettym-carrier-landing](https://github.com/ejgallego/verso-slides/tree/edf3fdb2ffe719eefddf222e6512676a729314d5);
+this first landing retains the writer's existing exact collision checks.

@@ -12,7 +12,7 @@ namespace VersoSlides.VirPrettyM
 
 /-- Slides-owned PrettyM entrypoint for VIR's direct host call ABI. -/
 @[vir_export] public def formatSegments (format : Std.Format) (width indent : Nat) :
-    Except Pretty.FormatError (Array Pretty.Segment) :=
+    Array Pretty.Segment :=
   Pretty.formatSegments format width indent
 
 end VersoSlides.VirPrettyM

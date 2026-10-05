@@ -20,14 +20,20 @@ cycle. VIR's `virResourcePack` prerequisite compiles the program, prepares its
 pack and acquires the exact prebuilt runtime. The carrier names its owning
 library with
 `include_vir_library VersoSlidesVirPrettyMResources`; VIR owns the generated
-artifact location. Compiled Lean values
+artifact location. The root module `VersoSlidesVirPrettyMResources.lean` is the
+carrier; no separate Lean resources directory or wrapper module is needed.
+`.vir-generated/` is ignored because VIR stages generated embedding input in
+the owning library source root. Application code does not reference that path.
+Compiled Lean values
 own the bytes; the renderer reads no producer paths and invokes no build tools.
 The small `vir-resources/VersoSlidesVirPrettyMResources.json` recipe selects the
 program module and public export role. It is configuration, not an ABI snapshot.
 
 VIR’s `ResourceSet.forSite "lib/vir"` prepares all resource files and loader
-paths. Slides checks its one-program policy and publishes those files through
-its existing asset writer; it constructs no manifests or content-ID paths. Configured assets cannot overwrite that namespace. Publication
+paths. Slides supplies its single formatter and publishes the returned files through
+its existing asset writer; it constructs no manifests or content-ID paths. The
+writer rejects exact filename collisions before writing. Additional namespace
+and casing policy is deferred with general asset validation. Publication
 writes in place, retains stale files and may leave partial output on failure;
 rerun after correcting the destination or use a fresh output directory.
 
@@ -36,7 +42,7 @@ rerun after correcting the destination or use a fresh output directory.
 The `formatSegments` role calls `VersoSlides.VirPrettyM.formatSegments`:
 
 ```text
-Std.Format → Nat → Nat → Except FormatError (Array Pretty.Segment)
+Std.Format → Nat → Nat → Array Pretty.Segment
 ```
 
 VIR marshals using generated Lean metadata. The adapter converts Verso's
@@ -44,9 +50,14 @@ compact representation and checks constructor shape. Numeric fields pass through
 unchanged: VIR validates and marshals numbers, BigInts and decimal strings.
 The Lean wrapper
 runs `Std.Format.prettyM` directly, preserving the former trusted-input model.
+VIR also converts the returned Lean array and segment records into JavaScript
+arrays and objects; the application does not decode a result envelope.
 Explicit resource budgets and their exclusive tests are deferred to a
-[separate later PR](vir-followups.md). The existing `Except` result shape is
-retained for the first landing; the agreed pure-array v3 migration is separate.
+[separate later PR](vir-followups.md).
+
+`web-lib/panel/pretty-init.js` reads the three library-owned URLs from its
+script element attributes. It owns application status and document cleanup;
+acquisition, validation and execution remain in VIR.
 
 One program is initialized per document. Loading/failure leaves static slides
 usable. A rejected request preserves an active instance and its raw diagnostics; a

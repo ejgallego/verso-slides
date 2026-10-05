@@ -15,19 +15,14 @@ class PrettyFormatError extends Error {
     }
 }
 
-/** Typed v2 boundary for the compact format emitted by Verso.
+/** Typed array boundary for the compact format emitted by Verso.
  * @param {VersoVirProgram} program @param {*} format
  * @param {number} width @param {number} indent
  * @return {PrettySegment[]}
  */
 function formatCompactSegments(program, format, width, indent) {
     var admitted = compactFormatToStdFormat(format);
-    var result = /** @type {PrettyFormatResult} */ (program.call("formatSegments", admitted, width, indent));
-    if (result.kind === "error") throw new PrettyFormatError(result.value);
-    if (result.kind !== "ok" || !Array.isArray(result.value)) {
-        throw new Error("Invalid PrettyM v2 result");
-    }
-    return result.value;
+    return /** @type {PrettySegment[]} */ (program.call("formatSegments", admitted, width, indent));
 }
 
 /**

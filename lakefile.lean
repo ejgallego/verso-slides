@@ -31,19 +31,13 @@ lean_lib VersoSlides where
 lean_lib Demo where
   needs := #[`@verso/+Verso.Code.External:highlighted]
 
-@[default_target] lean_exe «demo-slides» where
-  root := `Main
+@[default_target] lean_exe «demo-slides» where root := `Main
 
--- The program and carrier are separate libraries. VIR's facet prepares the
--- exact pack before Lake compiles the carrier's include_vir_library declaration.
+-- The formatter must compile before its resource carrier embeds the pack.
 lean_lib VersoSlidesVirPrettyM where
-  roots := #[]
-  globs := #[.one `VersoSlides.VirPrettyM]
+  roots := #[`VersoSlides.VirPrettyM]
 
 lean_lib VersoSlidesVirPrettyMResources where
-  srcDir := "resources"
-  roots := #[]
-  globs := #[.one `VersoSlides.VirPrettyMResources]
   needs := #[`@«verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack]
 
 lean_exe «extract-lakefile» where

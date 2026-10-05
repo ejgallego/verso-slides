@@ -4,10 +4,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 module
 
-import VersoSlides.VirResources
+import Vir.Resources.Runtime
+import VersoSlidesVirPrettyMResources
 import VersoSlides.Render
-import Lean.Data.Json.Parser
-import Lean.Data.Json.FromToJson.Basic
 
 open Vir.Resources
 
@@ -19,35 +18,30 @@ private def expectFailure (action : IO α) : IO Unit := do
   check rejected "expected rejection"
 
 private def tests (dir : System.FilePath) : IO Unit := do
-  -- The generic inventory/manifest validation belongs to VIR's own tests.
-  -- Slides retains only its one-program requirement and real writer behavior.
-  expectFailure (VersoSlides.prepareVirSite { VersoSlides.virResources with programs := #[] })
-  expectFailure (VersoSlides.prepareVirSite { VersoSlides.virResources with
-    programs := VersoSlides.virResources.programs ++ VersoSlides.virResources.programs })
-
   -- Exercise the real renderer's ordinary asset writer. Publication writes in
   -- place, preserves unrelated/stale files, and is not whole-site transactional.
   let config : VersoSlides.Config := { outputDir := dir / "site" }
   let doc : Verso.Doc.Part VersoSlides.Slides := .mk #[] "publication" none #[] #[]
-  let blocked := dir / "namespace"
-  let forbidden : VersoSlides.CssFile := {
-    filename := "LiB/VIR/clobber.css", contents := ⟨"body {}"⟩ }
-  expectFailure (VersoSlides.slidesMain { config with
-    outputDir := blocked, extraCss := #[forbidden] } doc)
-  check (!(← blocked.pathExists)) "namespace rejection wrote output"
   check ((← VersoSlides.slidesMain config doc) == 0) "initial render failed"
-  let builtin ← VersoSlides.prepareVirSite VersoSlides.virResources
+  let resources : ResourceSet := {
+    runtime := Vir.Resources.Runtime.bundle
+    programs := #[VersoSlides.VirPrettyMResources.bundle]
+  }
+  let builtin ← IO.ofExcept <| (resources.forSite "lib/vir").mapError reprStr
   for file in builtin.files do
     check ((← IO.FS.readBinFile (config.outputDir / file.path)) == file.bytes)
       "renderer changed a prepared file"
+  -- The existing asset plan catches an exact resource-file collision before writing.
+  let blocked := dir / "collision"
+  let forbidden : VersoSlides.CssFile := {
+    filename := builtin.runtimeModule, contents := ⟨"different contents"⟩ }
+  expectFailure (VersoSlides.slidesMain { config with
+    outputDir := blocked, extraCss := #[forbidden] } doc)
+  check (!(← blocked.pathExists)) "asset collision wrote output"
   let html ← IO.FS.readFile (config.outputDir / "index.html")
-  check ((html.splitOn "window.__versoVirResourceUrls = ").length == 2)
-    "inline bootstrap was not emitted once"
-  let urlsText := ((html.splitOn "window.__versoVirResourceUrls = ")[1]!.splitOn ";\n").head!
-  let urls ← IO.ofExcept (Lean.Json.parse urlsText)
-  for (key, expected) in [("runtimeModule", builtin.runtimeModule),
-      ("runtimeManifest", builtin.runtimeManifest), ("programManifest", builtin.programManifests[0]!)] do
-    check ((← IO.ofExcept (urls.getObjValAs? String key)) == expected)
+  for (key, expected) in [("data-runtime-module", builtin.runtimeModule),
+      ("data-runtime-manifest", builtin.runtimeManifest), ("data-program-manifest", builtin.programManifests[0]!)] do
+    check ((html.splitOn s!"{key}=\"{expected}\"").length == 2)
       s!"bootstrap changed the library-owned {key} path"
   check (!(← (config.outputDir / "vir-bootstrap.js").pathExists)) "external bootstrap was emitted"
   check (!(← (config.outputDir / "lib/.vir-stage").pathExists)) "staging directory was emitted"
@@ -81,6 +75,6 @@ public def main : IO UInt32 := do
   let dir := System.FilePath.mk temp.stdout.trimAscii.toString
   try
     tests dir
-    IO.println "Single-program plan and ordinary publication tests passed."
+    IO.println "Ordinary publication tests passed."
     return 0
   finally IO.FS.removeDirAll dir

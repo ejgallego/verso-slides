@@ -9,7 +9,8 @@ public import VersoSlides.Attributes
 public import VersoSlides.SlideCode.Render
 public import VersoSlides.SlideCode.Export
 public import Vir.Resources
-public import VersoSlides.VirResources
+public import Vir.Resources.Runtime
+public import VersoSlidesVirPrettyMResources
 public import Verso.Doc.Html
 import Verso.Code.Highlighted.WebAssets
 import Illuminate.Animation.Render
@@ -355,9 +356,9 @@ private def jsBool (b : Bool) : String := if b then "true" else "false"
 /-- CSS for the interactive info panel layout. -/
 private def slideCodePanelCss : String := include_str "../web-lib/panel/panel.css"
 
-/-- Browser measurement and presentation around the embedded Lean formatter. -/
+/-- JS for the pretty-printer (reflowable format rendering). -/
 private def prettyJs : String := include_str "../web-lib/panel/pretty.js"
-private def virBootstrapJs : String := include_str "../web-lib/vir-prettym/bootstrap.js"
+private def prettyInitJs : String := include_str "../web-lib/panel/pretty-init.js"
 
 /-- JS for the interactive info panel. -/
 private def slideCodePanelJs : String := include_str "../web-lib/panel/panel.js"
@@ -438,8 +439,9 @@ private def jsString (s : String) : String := Id.run do
         else c.toString
   return out ++ "\""
 
-private def renderFullHtmlWithBootstrap (config : Config) (title : String)
-    (slidesBody : Html) (customCss : Array String) (bootstrap : String) : Html :=
+/-- Renders the full standalone HTML page. -/
+def renderFullHtml (config : Config) (title : String) (slidesBody : Html)
+    (customCss : Array String := #[]) (bootstrap : Html := .empty) : Html :=
   let extraCssLinks := config.extraCss.map fun css =>
     {{ <link rel="stylesheet" href={{css.filename}} /> }}
   let extraJsScripts := config.extraJs.map fun url =>
@@ -520,19 +522,12 @@ private def renderFullHtmlWithBootstrap (config : Config) (title : String)
       <script src={{s!"{libPrefix}/highlighting.js"}}></script>
       <script src={{s!"{libPrefix}/code-block-bg.js"}}></script>
       <script src={{s!"{libPrefix}/pretty.js"}}></script>
-      {{ if bootstrap.isEmpty then Html.empty else
-        {{ <script>{{Html.text false bootstrap}}</script> }} }}
+      {{bootstrap}}
       <script src={{s!"{libPrefix}/panel.js"}}></script>
       <script src={{s!"{libPrefix}/lightbox.js"}}></script>
       <script src={{s!"{libPrefix}/illuminate-reveal.js"}}></script>
     </body>
   </html> }}
-
-/-- Renders the full standalone HTML page. -/
-def renderFullHtml (config : Config) (title : String) (slidesBody : Html)
-    (customCss : Array String := #[]) : Html :=
-  renderFullHtmlWithBootstrap config title slidesBody customCss ""
-
 
 /-- Writes a file, creating parent directories as needed. -/
 private def writeFileWithDirs (path : System.FilePath) (content : String) : IO Unit := do
@@ -641,10 +636,10 @@ private def recordAsset (seen : Std.HashMap String (String × AssetPayload))
         s!"Filename collision in config: \"{filename}\" is claimed by {prevSource} ({prev.kind}) and {source} ({payload.kind}) with different contents."
 
 /--
-Builds the deduplicated embedded-asset plan for a {name}`Config`: the custom
+Builds the deduplicated asset plan for a {name}`Config`: the custom
 theme's stylesheet (if any), every bundled theme asset, and every
-{lit}`extraCss` entry. When two entries share a filename
-their contents must match; otherwise {name}`IO.userError` is raised.
+{lit}`extraCss` entry. When two entries share a filename their contents
+must match; otherwise {name}`IO.userError` is raised.
 
 Returns the map of filenames to (source, payload) pairs so
 {lit}`slidesMain` can write each file exactly once without
@@ -666,48 +661,24 @@ def Config.collectAssets (config : Config) :
       "extraCss" (.text css.contents.css)
   return seen
 
--- Resolve lexical aliases only for comparing destinations with our owned
--- directories. General configured-filename policy belongs to a separate patch.
-private def foldedAssetPath (path : System.FilePath) : String := Id.run do
-  let mut parts : List String := []
-  for part in path.toString.splitToList (fun c => c == '/' || c == '\\') do
-    if part == ".." then parts := parts.tail
-    else if !part.isEmpty && part != "." then parts := part.toLower :: parts
-  return String.intercalate "/" parts.reverse
-
-private def validateVirAssetNamespace (outputDir : System.FilePath)
-    (plan : Std.HashMap String (String × AssetPayload)) : IO Unit := do
-  let output := (← IO.currentDir) / outputDir
-  let library := foldedAssetPath (output / "lib")
-  let resources := library ++ "/vir"
-  for (filename, _, _) in plan.toList do
-    let folded := foldedAssetPath (output / filename.replace "\\" "/")
-    if folded == library || folded == resources || folded.startsWith (resources ++ "/") then
-      throw <| IO.userError s!"Slides asset {filename} collides with the reserved VIR resource namespace"
-
-/-- Validate configured filenames and reserve the embedded publisher's namespace. -/
+/--
+Checks that every filename supplied through {lit}`Config.theme` (when
+{lit}`.custom`), its bundled assets, and {lit}`extraCss` either is unique
+or is repeated with identical contents. Raises {name}`IO.userError` on
+divergent-contents clashes; duplicates with identical contents are
+silently deduplicated.
+-/
 def Config.validateFilenames (config : Config) : IO Unit := do
-  validateVirAssetNamespace config.outputDir (← config.collectAssets)
+  let _ ← config.collectAssets
 
-/-- Slides owns the single-formatter policy; VIR prepares all files and paths. -/
-def prepareVirSite (resources : Vir.Resources.ResourceSet) : IO Vir.Resources.SiteFiles := do
-  unless resources.programs.size == 1 do
-    throw <| IO.userError "Slides PrettyM requires exactly one program bundle"
-  IO.ofExcept <| (resources.forSite "lib/vir").mapError
-    (fun error => s!"Invalid VIR resource set: {repr error}")
-
-private def virBootstrap (plan : Vir.Resources.SiteFiles) : String := Id.run do
-  let urls := Lean.Json.mkObj [
-    ("runtimeModule", Lean.Json.str plan.runtimeModule),
-    ("runtimeManifest", Lean.Json.str plan.runtimeManifest),
-    ("programManifest", Lean.Json.str plan.programManifests[0]!)]
-  return "window.__versoVirResourceUrls = " ++ urls.compress ++ ";\n" ++ virBootstrapJs
-
-/-- Generates a {lit}`reveal.js` slide presentation with mandatory Lean formatting through VIR. -/
+/-- Generates a {lit}`reveal.js` slide presentation from a Verso document. -/
 def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWithLogger do
-  let resourcePlan ← prepareVirSite virResources
+  let resources : Vir.Resources.ResourceSet := {
+    runtime := Vir.Resources.Runtime.bundle
+    programs := #[VersoSlides.VirPrettyMResources.bundle]
+  }
+  let resourcePlan ← IO.ofExcept <| (resources.forSite "lib/vir").mapError reprStr
   let mut assetPlan ← config.collectAssets
-  validateVirAssetNamespace config.outputDir assetPlan
   for file in resourcePlan.files do
     assetPlan ← recordAsset assetPlan file.path "VIR resources" (.binary file.bytes)
 
@@ -730,8 +701,13 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
 
   -- Produce full HTML document
   let title := inlinesToPlainText doc.title
-  let fullHtml := renderFullHtmlWithBootstrap config title slidesHtml traverseState.cssBlocks
-    (virBootstrap resourcePlan)
+  let bootstrap := {{ <script
+    data-runtime-module={{resourcePlan.runtimeModule}}
+    data-runtime-manifest={{resourcePlan.runtimeManifest}}
+    data-program-manifest={{resourcePlan.programManifests[0]!}}>
+    {{Html.text false prettyInitJs}}
+  </script> }}
+  let fullHtml := renderFullHtml config title slidesHtml traverseState.cssBlocks bootstrap
 
   -- Write output
   let dir := config.outputDir

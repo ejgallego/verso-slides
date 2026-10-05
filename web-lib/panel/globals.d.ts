@@ -48,16 +48,7 @@ interface PrettySegment {
     tags: string[];
 }
 
-type PrettyFormatResult =
-    | { kind: "ok"; value: PrettySegment[] }
-    | { kind: "error"; value: string };
-
 interface Window {
-    __versoVirResourceUrls: {
-        runtimeModule: string;
-        runtimeManifest: string;
-        programManifest: string;
-    };
     versoVir?: VersoVirProgram;
     versoVirReady?: Promise<VersoVirProgram>;
     /** State of this document's one-shot formatter initialization. */
