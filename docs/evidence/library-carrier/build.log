@@ -1,0 +1,41 @@
+✔ [15/30] Built Vir.Resources.Validate (602ms)
+✔ [16/30] Built Vir.Resources.Pack (324ms)
+✔ [18/30] Built Vir.Resources.Validate:c.o (947ms)
+✔ [19/30] Built Vir.Resources.Build (674ms)
+✔ [21/30] Built Vir.Resources.Program (535ms)
+✔ [23/30] Built tools.VirResourcePack (913ms)
+✔ [25/30] Built tools.VirResourceProgram (997ms)
+✔ [27/30] Built vir_resource_pack:exe (588ms)
+✔ [28/30] Built vir_resource_program:exe (527ms)
+ℹ [116/122] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+✔ [117/122] Built tools.VirProgram (1.1s)
+✔ [119/122] Built vir_program:exe (757ms)
+ℹ [120/122] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (1.0s)
+info: stdout:
+wrote /tmp/tmp.XX8MmLPg/program.irpkg-set.json
+wrote /tmp/tmp.XX8MmLPg/program.irpkg
+wrote /tmp/tmp.XX8MmLPg/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [121/192] Built «verso-slides»/VersoSlidesVirPrettyMResources:virResourcePack (45ms)
+info: stdout:
+f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede
+✔ [704/714] Built Vir.Resources.Site (324ms)
+✔ [731/754] Built Vir.Resources (289ms)
+✔ [732/754] Built Vir.Resources.Site:c.o (193ms)
+✔ [734/754] Built Vir.Resources.Embed (808ms)
+✔ [735/754] Built Vir.Resources.Embed:c.o (484ms)
+✔ [736/754] Built VersoSlides.VirPrettyMResources (1.0s)
+✔ [739/754] Built Vir.Resources.Runtime (6.8s)
+✔ [741/754] Built VersoSlides.VirResources (373ms)
+✔ [743/754] Built VersoSlides.Render (2.2s)
+✔ [745/754] Built VersoSlides (752ms)
+✔ [747/754] Built Tests.VirPublication (764ms)
+✔ [749/754] Built «test-vir-publication»:exe (625ms)
+✔ [750/754] Built Demo (9.8s)
+✔ [752/754] Built Main (586ms)
+✔ [754/754] Built «demo-slides»:exe (603ms)
+Build completed successfully (754 jobs).

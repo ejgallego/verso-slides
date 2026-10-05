@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.19, pytest-9.0.2, pluggy-1.6.0
+browsers: chromium, firefox (--browser=all)
+rootdir: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/browser-tests
+configfile: pyproject.toml
+plugins: xdist-3.8.0
+created: 2/2 workers
+2 workers [15 items]
+
+...............                                                          [100%]
+- generated xml file: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/.qualification-library-carrier-20261005/browser.xml -
+============================== 15 passed in 9.41s ==============================

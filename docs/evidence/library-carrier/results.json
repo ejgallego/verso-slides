@@ -1,0 +1,165 @@
+{
+  "source": "4d135bc7c51c14ed0e1e4e1fa084e2a1e6c7de33",
+  "baseline": "ac17787b2979bbdd74dde98999f7c92c15c34782",
+  "vir": "ff65dc8823e3c6be1ff5c549d89c3683c18e7fd9",
+  "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+  "runtimeContentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+  "runtimePackSha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1",
+  "programContentId": "f8c7b00eb26eb097f7894d13abb2a6198ff827b0fb09deffd3b86cedf475aede",
+  "programPackSha256": "85dd8d25261b5da8e807b4d373dd5db885a5b24480c24d1310525895ad308c3f",
+  "owningBuildLakeJobs": 754,
+  "downstreamBuildLakeJobs": 745,
+  "nativeChecksPassed": 7,
+  "focusedBrowserStaticPassed": 18,
+  "warmNoOpPackInodeMtimeContentUnchanged": true,
+  "missingProgramStageOrdinaryRepair": true,
+  "renderedProductionFilesByteIdentical": 113,
+  "resourceFilesByteIdenticalPerRoute": 16,
+  "manifestsVerified": 6,
+  "payloadsVerified": 42,
+  "upstreamCIObserved": {
+    "headRefOid": "ff65dc8823e3c6be1ff5c549d89c3683c18e7fd9",
+    "isDraft": true,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-05T15:02:27Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/ejgallego/lean-vir/actions/runs/37327449728/job/111822287432",
+        "name": "build-demo",
+        "startedAt": "2026-10-05T14:47:59Z",
+        "status": "COMPLETED",
+        "workflowName": "CI"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/ejgallego/lean-vir/actions/runs/37327449728/job/111828903952",
+        "name": "runtime",
+        "startedAt": "2026-10-05T15:02:29Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "CI"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/ejgallego/lean-vir/actions/runs/37327449728/job/111828903890",
+        "name": "runtime-lean",
+        "startedAt": "2026-10-05T15:02:29Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "CI"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "0001-01-01T00:00:00Z",
+        "conclusion": "",
+        "detailsUrl": "https://github.com/ejgallego/lean-vir/actions/runs/37327449728/job/111828904105",
+        "name": "fixtures",
+        "startedAt": "2026-10-05T15:02:29Z",
+        "status": "IN_PROGRESS",
+        "workflowName": "CI"
+      }
+    ]
+  },
+  "logs": {
+    "update.log": {
+      "bytes": 288,
+      "sha256": "7b9ce339799d152e1c41d2cf1141ab80b1aa2ddad428e46bc5aa1f440439c963"
+    },
+    "build.log": {
+      "bytes": 2141,
+      "sha256": "405b17bc3ae412aeab2ceb1efa38f8df4467a6a9632f23ae6eb87a0e178f702c"
+    },
+    "warm.log": {
+      "bytes": 900,
+      "sha256": "444e8cdea6275e6010fbaff080e559929a65f2fb9fd79168ecc71f78f843be99"
+    },
+    "repair.log": {
+      "bytes": 900,
+      "sha256": "2771dfed1ec98ab21fd9eeb318952e96fbf40acac3e86e0349a85184bf984f6f"
+    },
+    "publication.log": {
+      "bytes": 251,
+      "sha256": "e2adcfa7412828e6f6ae29b956c31c6f578b4d39283869614069c77e1ab73bd1"
+    },
+    "native.log": {
+      "bytes": 20,
+      "sha256": "5d8eabaa615ff4d800936464151b7efc6e98b34bb374247d72218fc98b493f12"
+    },
+    "render.log": {
+      "bytes": 37,
+      "sha256": "5eb688d199d9b7e8b15e54973cdcb56d9822944f69651b34aa92ada4c3d1a4e6"
+    },
+    "browser.log": {
+      "bytes": 673,
+      "sha256": "713200c62e676dea1a7a38a78008241964810b149f867e86b1be264cc962d4d1"
+    },
+    "browser.xml": {
+      "bytes": 2154,
+      "sha256": "8e2fe3d70bdb86a9b670840eccdae6066c1adc0efd1dd86fcb11b82cea6e4e67"
+    },
+    "downstream-build.log": {
+      "bytes": 38802,
+      "sha256": "86cc32b2c935c4cdc281fa66cd3b587ce4ba71e72d5d37148b6ff1aa415071c3"
+    },
+    "downstream-render.log": {
+      "bytes": 37,
+      "sha256": "5eb688d199d9b7e8b15e54973cdcb56d9822944f69651b34aa92ada4c3d1a4e6"
+    },
+    "downstream-browser.log": {
+      "bytes": 683,
+      "sha256": "cd7f7647fb41fbb2a714fbcc80fa03dc03bd10591cc9c8f7a82ba33e8d1354fc"
+    },
+    "downstream-browser.xml": {
+      "bytes": 583,
+      "sha256": "4bc128d3582c3af4a4f615e54f5e120454dd5a05a8899915b20de37b87be346b"
+    },
+    "warm-before.json": {
+      "bytes": 1030,
+      "sha256": "c9523289c07967276c9347ace1f3af89595e015ab8a9bd0c17652e104371e37f"
+    },
+    "warm-after.json": {
+      "bytes": 1030,
+      "sha256": "c9523289c07967276c9347ace1f3af89595e015ab8a9bd0c17652e104371e37f"
+    },
+    "repair-after.json": {
+      "bytes": 1030,
+      "sha256": "e0a415fa505ec828430560e034959698343bbbdcdd5565e842bd8269ce587867"
+    },
+    "root-inventory.json": {
+      "bytes": 18995,
+      "sha256": "9126fa438a8b5dc8a37f9ad9f7ba5c6080d0d3fe39adf1c6b8f3cc7b692a0fee"
+    },
+    "inventory.json": {
+      "bytes": 13510,
+      "sha256": "c41d73f2f6dc0f39a20d0b14ac54f7a9328e8b848b9b3b5b3f8656d8b16acfbe"
+    },
+    "baseline-site.json": {
+      "bytes": 20971,
+      "sha256": "dd8ea4502ac36d9635a810ad13578f19ed0259a8e4e205401848143dc20742d3"
+    },
+    "upstream-ci.json": {
+      "bytes": 1200,
+      "sha256": "c7612686f34bcd7d954dbd63c86d035c8ba703f8f3c9d0801fd188ac91a0447b"
+    },
+    "commands.txt": {
+      "bytes": 1134,
+      "sha256": "cebe968064fc552b1a12aaab332ab1cbe0dd38e935d7dd6174afa9fb918578e4"
+    },
+    "verify-site.py": {
+      "bytes": 2586,
+      "sha256": "d6c1bfccd6c562c499ac807fe4d00ce74c5154ada3c8fe4ec769ccc24c6ed528"
+    },
+    "native-corpus.json": {
+      "bytes": 1556,
+      "sha256": "7487d16bbfb92447a1966d1b795ebbfcf2070be66c31d6c3b07863d3c09ad541"
+    },
+    "downstream-manifest.json": {
+      "bytes": 2587,
+      "sha256": "d2070352ab77848ae71a9ccafd1201de0c94e2297483fda3038b907e730e46c8"
+    }
+  }
+}

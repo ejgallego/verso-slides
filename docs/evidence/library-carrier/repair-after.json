@@ -1,0 +1,26 @@
+{
+  "resources/.vir-generated/VersoSlidesVirPrettyMResources.virres": {
+    "bytes": 79510,
+    "sha256": "85dd8d25261b5da8e807b4d373dd5db885a5b24480c24d1310525895ad308c3f",
+    "inode": 112984079,
+    "mtimeNs": 1791212188913569353
+  },
+  ".lake/build/vir/resources/programs/VersoSlidesVirPrettyMResources.virres": {
+    "bytes": 79510,
+    "sha256": "85dd8d25261b5da8e807b4d373dd5db885a5b24480c24d1310525895ad308c3f",
+    "inode": 112864313,
+    "mtimeNs": 1791212011784254099
+  },
+  ".lake/packages/lean_vir/.vir-generated/VirResourceRuntime.virres": {
+    "bytes": 1120731,
+    "sha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1",
+    "inode": 112884217,
+    "mtimeNs": 1790873409089258545
+  },
+  ".lake/packages/lean_vir/.lake/build/vir/resources/runtime/832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d.virres": {
+    "bytes": 1120731,
+    "sha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1",
+    "inode": 112884215,
+    "mtimeNs": 1790873409088793991
+  }
+}

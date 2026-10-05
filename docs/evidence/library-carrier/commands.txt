@@ -1,0 +1,16 @@
+Executed source: 4d135bc7c51c14ed0e1e4e1fa084e2a1e6c7de33 (tracked files identical throughout checks).
+CWD: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch
+lake update lean_vir
+lake build VersoSlidesVirPrettyMResources demo-slides test-vir-publication test-pretty
+lake build VersoSlidesVirPrettyMResources demo-slides  # warm no-op
+# Stat/hash all runtime/program cache/stage files; compare before/after exact inode and mtime.
+# Rename only resources/.vir-generated/VersoSlidesVirPrettyMResources.virres into scratch, then:
+lake build VersoSlidesVirPrettyMResources demo-slides  # missing-stage repair
+.lake/build/bin/test-vir-publication
+.lake/build/bin/test-pretty
+# Copy tracked examples/default-deck into scratch; change only local Slides dependency path to actual source checkout.
+# CWD scratch/downstream-deck, fresh .lake and talk-build:
+lake build
+# Demo native exe run in scratch/render with copied demo-images; fresh root/nested output.
+# Native test exe --host-abi-corpus and --geometry-corpus produce test-only JSON under site.
+# Focused browser command recorded in README; full stdout/JUnit retained.
