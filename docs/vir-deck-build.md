@@ -17,8 +17,9 @@ needed in the application. See `examples/default-deck`.
 
 The formatter and resource carrier are separate Lake libraries to avoid a build
 cycle. VIR's `virResourcePack` prerequisite compiles the program, prepares its
-pack and acquires the exact prebuilt runtime. The carrier's source-relative
-`.vir-generated` include is VIR's current build interface. Compiled Lean values
+pack and acquires the exact prebuilt runtime. The carrier names its owning library with
+`include_vir_library VersoSlidesVirPrettyMResources`; VIR owns the generated
+artifact location. Compiled Lean values
 own the bytes; the renderer reads no producer paths and invokes no build tools.
 The small `vir-resources/VersoSlidesVirPrettyMResources.json` recipe selects the
 program module and public export role. It is configuration, not an ABI snapshot.

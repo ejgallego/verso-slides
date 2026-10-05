@@ -10,7 +10,7 @@ open System Lake DSL
 require verso from git "https://github.com/leanprover/verso.git"@
   "cad4b633e75ea769b851f12f9ca3b4f0dfcc625f"
 require lean_vir from git "https://github.com/ejgallego/lean-vir.git" @
-  "7d69b9a09b0c946333d1b6358341be251306f161"
+  "ff65dc8823e3c6be1ff5c549d89c3683c18e7fd9"
 
 package «verso-slides» where
   version := v!"0.1.0"
@@ -35,7 +35,7 @@ lean_lib Demo where
   root := `Main
 
 -- The program and carrier are separate libraries. VIR's facet prepares the
--- exact pack before Lake compiles the carrier's include_vir_bundle declaration.
+-- exact pack before Lake compiles the carrier's include_vir_library declaration.
 lean_lib VersoSlidesVirPrettyM where
   roots := #[]
   globs := #[.one `VersoSlides.VirPrettyM]

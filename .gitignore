@@ -1,5 +1,5 @@
 /.lake
-/.vir-generated/
+.vir-generated/
 */__pycache__/*
 /_slides/
 /_test/
