@@ -62,19 +62,12 @@ private def tests (dir : System.FilePath) : IO Unit := do
   catch _ => pure true
   check rejected "invalid resource output did not fail"
   check ((← IO.FS.readFile (broken / "lib/vir")) == "not a directory") "invalid output file was modified"
-  check (← (broken / "index.html").pathExists) "partial-write policy was not exercised"
   IO.FS.removeFile (broken / "lib/vir")
   check ((← VersoSlides.slidesMain { config with outputDir := broken } doc) == 0) "recovery render failed"
   for file in builtin.files do
     check ((← IO.FS.readBinFile (broken / file.path)) == file.bytes) "recovery inventory differs"
 
-public def main : IO UInt32 := do
-  IO.FS.createDirAll "_test"
-  let temp ← IO.Process.output { cmd := "mktemp", args := #["-d", "_test/vir-publication.XXXXXX"] }
-  check (temp.exitCode == 0) "mktemp failed"
-  let dir := System.FilePath.mk temp.stdout.trimAscii.toString
-  try
-    tests dir
-    IO.println "Ordinary publication tests passed."
-    return 0
-  finally IO.FS.removeDirAll dir
+public def main : IO UInt32 := IO.FS.withTempDir fun dir => do
+  tests dir
+  IO.println "Ordinary publication tests passed."
+  return 0

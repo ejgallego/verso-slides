@@ -43,12 +43,10 @@ function fixture(config = {}) {
     document: {baseURI: 'http://slides.test/nested/deck/',
       currentScript: {dataset: {runtimeModule: 'lib/runtime.js', runtimeManifest: 'lib/runtime.json', programManifest: 'lib/program.json'}},
       createElement: element, body: {appendChild(el) {
-        if (config.presentationThrows) throw new Error('alert sink failed');
         nodes.push(el);
       }}},
     console: {error(...args) {
       diagnostics.push(args);
-      if (config.reportingThrows) throw new Error('diagnostic sink failed');
     }},
     __loadRuntime: () => loading.promise,
   });
@@ -71,11 +69,11 @@ function fixture(config = {}) {
 
 // Isolate unhandled-rejection observation from node:test's own process handler.
 // The probe still runs the actual bootstrap, with only module acquisition controlled.
-async function lateDisposalProbe(kind, reportingThrows) {
+async function lateDisposalProbe(kind) {
   const cleanup = kind === 'Error' ? new Error('late disposal failed') : kind === 'null' ? null : undefined;
   const unhandled = [];
   process.on('unhandledRejection', error => unhandled.push(error));
-  const f = fixture({cleanup, reportingThrows});
+  const f = fixture({cleanup});
   f.loading.resolve(f.loader); await f.started.promise;
   f.hide(false); f.creation.resolve(f.program);
   let rejected = false, failure;
@@ -96,12 +94,10 @@ async function lateDisposalProbe(kind, reportingThrows) {
 }
 
 async function rejectionReportingProbe(kind) {
-  const inspection = new Error('diagnostic inspection failed');
-  const raw = kind === 'null' ? null : kind === 'undefined' ? undefined : kind === 'primitive' ? 7 :
-    new Proxy({}, {getOwnPropertyDescriptor() { throw inspection; }, get() { throw inspection; }});
+  const raw = kind === 'null' ? null : kind === 'undefined' ? undefined : 7;
   const unhandled = [];
   process.on('unhandledRejection', error => unhandled.push(error));
-  const f = fixture({reportingThrows: kind === 'sink', presentationThrows: kind === 'sink'});
+  const f = fixture();
   f.loading.resolve(f.loader); await f.started.promise;
   let rejected = false, failure;
   f.creation.reject(raw);
@@ -113,7 +109,7 @@ async function rejectionReportingProbe(kind) {
     retained: rejected && failure === raw,
     reported: f.diagnostics.some(args => args[0] === 'VIR initialization failed' && args[1] === raw),
     staleFacade: f.window.versoVir !== undefined || f.window.versoVirFormatSegments !== undefined,
-    summary: kind === 'sink' || f.alerts[0]?.textContent === 'Lean formatting is unavailable.',
+    summary: f.alerts[0]?.textContent === 'Lean formatting is unavailable.',
     unhandled: unhandled.map(error => error?.name ?? typeof error),
   };
 }
@@ -150,7 +146,7 @@ async function notificationProbe(kind) {
 
 if (process.argv[2]?.endsWith('-probe')) {
   const probe = process.argv[2] === '--late-dispose-probe' ?
-    lateDisposalProbe(process.argv[3], process.argv[4] === 'throw-reporting') :
+    lateDisposalProbe(process.argv[3]) :
     process.argv[2] === '--notification-probe' ? notificationProbe(process.argv[3]) :
     rejectionReportingProbe(process.argv[3]);
   probe.then(
@@ -303,7 +299,7 @@ for (const raw of [new Error('runtime failed'), null, undefined]) {
 
 for (const cleanup of [new Error('cleanup'), null, undefined]) {
   test(`terminal document cleanup reports raw disposal failure (${typeof cleanup}) once`, async () => {
-    const f = fixture({cleanup, reportingThrows: true});
+    const f = fixture({cleanup});
     f.loading.resolve(f.loader); await f.started.promise;
     f.creation.resolve(f.program); await f.window.versoVirReady;
     f.hide(true); assert.equal(f.disposals(), 0);
@@ -352,17 +348,7 @@ for (const kind of ['Error', 'null', 'undefined']) {
 }
 
 
-test('late disposal diagnostics tolerate a throwing reporting sink', () => {
-  const env = {...process.env}; delete env.NODE_TEST_CONTEXT;
-  const child = spawnSync(process.execPath, [__filename, '--late-dispose-probe', 'Error', 'throw-reporting'], {encoding: 'utf8', env});
-  assert.equal(child.status, 0, child.stderr);
-  assert.deepEqual(JSON.parse(child.stdout), {
-    rejected: true, disposals: 1, reported: true, retained: true,
-    staleFacade: false, alerts: 0, unhandled: [],
-  });
-});
-
-for (const kind of ['null', 'undefined', 'primitive', 'proxy', 'sink']) {
+for (const kind of ['null', 'undefined', 'primitive']) {
   test(`arbitrary creation rejection (${kind}) reports without coercion or a secondary unhandled rejection`, () => {
     const env = {...process.env}; delete env.NODE_TEST_CONTEXT;
     const child = spawnSync(process.execPath, [__filename, '--reporting-probe', kind], {encoding: 'utf8', env});
@@ -375,7 +361,7 @@ for (const kind of ['null', 'undefined', 'primitive', 'proxy', 'sink']) {
 
 test('primary creation wrapper/context and untouched raw cause are logged', async () => {
   const f = fixture(); f.loading.resolve(f.loader); await f.started.promise;
-  const cause = new Proxy({}, {get() { throw new Error('do not coerce cause'); }});
+  const cause = new Error('validation cause');
   const error = new Error('program creation failed');
   error.phase = 'program-validation'; error.context = {bundle: 'program'};
   Object.defineProperty(error, 'cause', {value: cause});

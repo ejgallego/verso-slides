@@ -71,7 +71,15 @@ creation or disposes the program; persisted pagehide preserves it.
 ## Tests
 
 Native tests are in `Tests/Pretty.lean` and `Tests/VirPublication.lean`. Node
-checks cover admission, presentation and document lifetime:
+checks cover admission, presentation and document lifetime. The ordinary
+`lake test` driver runs them before its native checks and fixture generation.
+For those checks without the browser campaign:
+
+```sh
+lake test -- --no-playwright
+```
+
+For just the two Node files:
 
 ```sh
 node --test Tests/pretty-presentation.test.cjs Tests/vir-bootstrap.test.cjs

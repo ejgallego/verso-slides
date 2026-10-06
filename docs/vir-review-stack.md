@@ -1,12 +1,11 @@
 # Three-patch PrettyM review
 
-Branch: `feat/vir-prettym-build-review`.
 Base: `a51f7e581893042eb317edf50216060a26f38ac3`.
 
-1. `9939db5`: Lean formatter and VIR dependency/resource wiring, embedded by the existing
-   asset library; one-shot initialization and typed JavaScript adapter.
-2. `36d3bab`: delete the handwritten JavaScript layout implementation and use shared
-   Lean-backed panel/lightbox presentation.
+1. Lean formatter and VIR dependency/resource wiring through the existing asset
+   library; one-shot initialization and typed JavaScript adapter.
+2. Remove the handwritten JavaScript layout implementation and use shared
+   Lean-backed panel/lightbox presentation, including safe measurement cleanup.
 3. Tests, ordinary downstream example, short documentation and the required
    one-line Demo source-location correction for the pinned Verso version.
 
@@ -14,34 +13,40 @@ Intermediate commits are not independently qualified. The final tree has one
 formatter and the pure Array/v3 result. Budgets and unrelated asset/mobile work
 remain [separate followups](vir-followups.md).
 
-Executed source: `521c70d3ff8a56bddc56da0007a71170611f2133`. All production,
-test and integration-documentation files match that source byte for byte; only
-these review notes differ. The preceding `d7ed59c` and `edf3fdb` branches remain
-preserved. [Exact build commands, output hashes and raw results](https://github.com/ejgallego/verso-slides/tree/cb7728af055d649ad56544ff53e9fa1f2d85d17c/docs/evidence/build-streamline)
-are retained outside the landing diff.
+## Focused review corrections
 
-## Build simplification
+A production-source Node regression reproduced terminal redraw detaching a DOM
+measurement probe: removeChild cleanup masked the original formatting failure.
+One-line container.remove cleanup preserves that failure; faithful DOM model
+checks absent-child removal and HTML redraw. The existing browser dispatch test
+now exercises shared rendering with active/disposed program status, checking raw
+error identity, probe cleanup and one-shot ownership. It is a controlled dispatch
+error using a real loader-owned instance, not a Wasm trap/quarantine campaign.
 
-The existing `VersoSlides` library owns the formatter, and the existing
-`VersoSlidesVendored` library embeds its program pack with the browser assets.
-There are no new libraries or carrier modules. Only the asset library has the
-`virResourcePack` prerequisite. VIR still owns preparation and acquisition;
-applications use ordinary `lake build` and `slidesMain` without resource setup.
+Publication tests use pinned IO.FS.withTempDir. They retain failure, obstruction,
+exact bytes/collisions, stale files and repair checks without requiring partial
+index.html output. Pixel extents and Wasm capacities remain observations. Native
+result/column/text/tags, probe cleanup, finite font reflow and disposal checks
+remain. Exclusively hostile-proxy/throwing-sink tests are removed; raw Error/null/
+undefined failure and cleanup evidence is retained. No lifetime/API redesign.
 
-Default package and warm transitive default-deck builds pass (741 jobs each).
-Native formatter:8 checks and ordinary publication tests pass. Settled default
-warm build preserves four cache/stage pack snapshots; withholding only the asset
-library's source stage is repaired by default build, preserving other pack stats.
-Fresh root113 and downstream112 production files are byte-identical to the
-previously qualified simplification output. The exact program/runtime packs,
-relative loader URLs and generated ABI are unchanged.
+Ordinary `lake test -- --no-playwright` now runs the two Node files:41 pass,
+then existing native checks/publication and fixture generation; browsers skipped.
+Default lake build passes:741 jobs. TypeScript passes. Focused Chromium/Firefox
+interaction, semantic/font/reflow and observational retention checks:16 pass.
+Only lib/pretty.js changes among113 emitted demo files; all resource files,
+loader URLs, inline initialization and actual program/runtime packs are unchanged.
+No broad native/browser/cold/offline/mobile campaign or new CI claim.
 
-The preceding Node43 and published Chromium/Firefox/static45 checks remain
-historical executed evidence on source `4d66d3cffe44338f6c16435737ab4c43fcff9898`:
-[retained results](https://github.com/ejgallego/verso-slides/tree/f2e2ec9659a99bb83d36c02b1cc05ba047d8366b/docs/evidence/simplification).
-Those suites were not rerun for this build-only change. No full anonymous
-cold-install, mobile, geometry/performance or offline rerun is claimed. The
-existing writer retains stale files; fresh output is used for comparison.
+## Build setup and retained qualification
+
+Existing VersoSlides owns the formatter. Existing VersoSlidesVendored embeds its
+pack with one extra needs key: no added libraries/carrier modules or manual setup.
+[Earlier build qualification](https://github.com/ejgallego/verso-slides/tree/cb7728af055d649ad56544ff53e9fa1f2d85d17c/docs/evidence/build-streamline)
+records ordinary/warm downstream builds, cache/stage repair and113/112 output-file
+identity. Those build-only gates are not rerun here; the changed cleanup bytes
+have their own focused evidence. Historical broader results remain tied to their
+executed source, not relabelled as fresh final-head runs.
 
 Exact VIR: `ff65dc8823e3c6be1ff5c549d89c3683c18e7fd9`, Lean4.34.0.
 Runtime content ID: `832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d`.

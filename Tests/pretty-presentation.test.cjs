@@ -7,22 +7,35 @@ const vm = require('node:vm');
 function fixture() {
   const calls = [], diagnostics = [];
   function element() {
-    return {children: [], attributes: {}, style: {}, textContent: '', innerHTML: '',
+    let html = '', text = '';
+    return {children: [], parentNode: null, attributes: {}, style: {},
+      set innerHTML(value) { this.replaceChildren(); html = value; },
+      get innerHTML() { return html; },
+      set textContent(value) { this.replaceChildren(); text = value; },
+      get textContent() { return text; },
       setAttribute(name, value) { this.attributes[name] = value; },
-      appendChild(el) { this.children.push(el); return el; },
-      removeChild(el) { this.children.splice(this.children.indexOf(el), 1); },
+      appendChild(el) {
+        el.remove(); el.parentNode = this; this.children.push(el); return el;
+      },
+      removeChild(el) {
+        const index = this.children.indexOf(el);
+        if (index < 0) throw new DOMException('The node is not a child', 'NotFoundError');
+        this.children.splice(index, 1); el.parentNode = null; return el;
+      },
+      remove() { this.parentNode?.removeChild(this); },
+      replaceChildren() { for (const child of [...this.children]) this.removeChild(child); },
       getBoundingClientRect() { return {width: 20}; },
     };
   }
-  const window = {versoVirState: 'ready', versoVirFormatSegments(format, width, indent) {
+  const window = Object.assign(new EventTarget(), {versoVirState: 'ready', versoVirFormatSegments(format, width, indent) {
     calls.push({format, width, indent}); return [{text: 'native\n  output', tags: []}];
-  }};
+  }});
   const context = vm.createContext({window,
     document: {createElement: element}, getComputedStyle: () => ({paddingLeft: '10px', paddingRight: '10px'}),
     console: {error(...args) { diagnostics.push(args); }},
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../web-lib/panel/pretty.js'), 'utf8'), context);
-  const container = {...element(), clientWidth: 100, getBoundingClientRect: () => ({width: 200}), querySelectorAll: () => []};
+  const container = Object.assign(element(), {clientWidth: 100, getBoundingClientRect: () => ({width: 200}), querySelectorAll: () => []});
   return {context, window, calls, diagnostics, container, element};
 }
 
@@ -112,6 +125,33 @@ for (const kind of ['signature', 'goal']) {
     });
   }
 }
+
+test('terminal redraw during shared rendering preserves the original formatting failure', () => {
+  const {context, window, container, element} = fixture();
+  const failure = new Error('runtime formatting failed');
+  const source = element();
+  source.getAttribute = () => JSON.stringify([
+    {hypotheses: [], goalPrefix: '⊢ ', ppConclusion: {fmt: 'goal', annotations: {}}},
+  ]);
+  const span = {getAttribute: () => '0', closest: () => ({getBoundingClientRect: () => ({width: 80})})};
+  container.querySelectorAll = () => [span];
+  let redraws = 0;
+  window.addEventListener('verso-vir-statechange', () => {
+    redraws++;
+    container.innerHTML = '';
+    context.showFormattingStatus(container);
+  });
+  window.versoVirFormatSegments = () => {
+    window.versoVirState = 'failed';
+    window.dispatchEvent(new Event('verso-vir-statechange'));
+    throw failure;
+  };
+  assert.throws(() => context.renderRichFormat(container, source), error => error === failure);
+  assert.equal(redraws, 1);
+  assert.equal(container.children.length, 1);
+  assert.equal(container.children[0].attributes.role, 'status');
+  assert.equal(container.children[0].textContent, 'Lean formatting is unavailable.');
+});
 
 test('formatting failure reports raw evidence and deliberate presentation', () => {
   const {context, container, diagnostics} = fixture();

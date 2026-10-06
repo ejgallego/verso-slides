@@ -129,7 +129,7 @@ function createDOMMeasurer(panel) {
             return el.getBoundingClientRect().width / scale;
         },
         cleanup: function () {
-            panel.removeChild(container);
+            container.remove();
         },
     };
 }

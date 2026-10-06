@@ -197,15 +197,18 @@ def test_dispatch_error_uses_owned_program_status_without_recreation(page, serve
     errors = open_pending(page, server)
     page.evaluate("window.lifecycleProbe.release()")
     page.wait_for_function("window.versoVirState === 'ready'", timeout=30000)
-    # Controlled application dispatch error, optionally after disposing the real
-    # loader-owned program. This is not a production Wasm trap/quarantine test.
+    open_proof_panel(page)
+    # Controlled dispatch error during real DOM rendering, optionally after
+    # disposing the loader-owned program. Terminal state redraw removes the probe
+    # synchronously. This is not a production Wasm trap/quarantine test.
     result = page.evaluate("""terminal => {
         const probe = window.lifecycleProbe, owned = window.versoVir, facade = window.versoVirFormatSegments;
         const adapter = formatCompactSegments, ready = window.versoVirReady;
         const failure = new WebAssembly.RuntimeError('controlled dispatch failure');
         let calls = 0, sameError;
         formatCompactSegments = () => { calls++; if (terminal) owned.dispose(); throw failure; };
-        try { facade('current', 80, 0); } catch (error) { sameError = error === failure; }
+        const panel = document.querySelector('.slides > section.present .info-panel');
+        try { renderRichFormat(panel, panel._richFormatSource); } catch (error) { sameError = error === failure; }
         finally { formatCompactSegments = adapter; }
         let unavailable = false;
         try { facade('next', 80, 0); } catch (error) { unavailable = error.message.includes('unavailable'); }
@@ -213,11 +216,12 @@ def test_dispatch_error_uses_owned_program_status_without_recreation(page, serve
             sameReady: window.versoVirReady === ready,
             noFacade: window.versoVir === undefined && window.versoVirFormatSegments === undefined,
             noRetry: window.versoVirRetry === undefined,
+            noProbe: panel.querySelector('[style*="visibility: hidden"]') === null,
             diagnostic: probe.diagnostics.some(args => args[0] === 'VIR formatting failed' && args[1] === failure)};
     }""", terminal)
     assert result == {"sameError": True, "calls": 1, "unavailable": terminal,
                       "status": "disposed" if terminal else "active",
-                      "sameReady": True, "noFacade": terminal, "noRetry": True, "diagnostic": True}
+                      "sameReady": True, "noFacade": terminal, "noRetry": True, "noProbe": True, "diagnostic": True}
     if terminal:
         expect(page.locator(".vir-formatter-status [role=alert]")).to_have_text("Lean formatting is unavailable.")
     else:
