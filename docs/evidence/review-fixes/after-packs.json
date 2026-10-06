@@ -1,0 +1,10 @@
+{
+  "program": {
+    "bytes": 77910,
+    "sha256": "cde0b85f98fc98e9281efbe5b834317f3df63833be851b424b934e2ebc84dace"
+  },
+  "runtime": {
+    "bytes": 1120731,
+    "sha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1"
+  }
+}

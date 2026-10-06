@@ -1,0 +1,28 @@
+{
+  "program": {
+    "bytes": 77910,
+    "sha256": "cde0b85f98fc98e9281efbe5b834317f3df63833be851b424b934e2ebc84dace",
+    "contentId": "6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995",
+    "compatibility": {
+      "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+      "virVersion": 1
+    },
+    "exports": [
+      {
+        "declaration": "VersoSlides.VirPrettyM.formatSegments",
+        "interfaceId": "verso-slides-format-segments-hostabi-v3",
+        "role": "formatSegments"
+      }
+    ]
+  },
+  "runtime": {
+    "bytes": 1120731,
+    "sha256": "d06bda0aba96547679093da441cd3d9b2b7a9291d1757f16c5c6fcf6ed081ba1",
+    "contentId": "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d",
+    "compatibility": {
+      "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+      "virVersion": 1
+    },
+    "exports": []
+  }
+}

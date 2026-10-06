@@ -1,0 +1,2893 @@
+[
+  {
+    "test": "test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[chromium-dark]",
+    "browser": "chromium",
+    "version": "145.0.7632.6",
+    "light": false,
+    "layouts": [
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "group",
+        "columns": 7,
+        "width": 103.08838786166379,
+        "space": 13.86767025970712,
+        "postLayoutWidth": 103.08838786166379,
+        "visibleWidth": 103.02597729351945,
+        "extent": 69.3384781025759,
+        "largestAtom": 69.51805114746094,
+        "whiteSpace": "pre",
+        "text": "hello\nworld",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "fill",
+        "columns": 7,
+        "width": 103.08838786166379,
+        "space": 13.86767025970712,
+        "postLayoutWidth": 180.24889999439884,
+        "visibleWidth": 103.02597729351945,
+        "extent": 180.24889999439884,
+        "largestAtom": 180.74693298339844,
+        "whiteSpace": "pre",
+        "text": "lean ir\nruns\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "Greek tags",
+        "columns": 7,
+        "width": 103.08838786166379,
+        "space": 13.86767025970712,
+        "postLayoutWidth": 103.08838786166379,
+        "visibleWidth": 103.02597729351945,
+        "extent": 27.735403921434393,
+        "largestAtom": 27.807220458984375,
+        "whiteSpace": "pre",
+        "text": "αβ\nγδ\nλx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "supplementary hard lines",
+        "columns": 7,
+        "width": 103.08838786166379,
+        "space": 13.86767025970712,
+        "postLayoutWidth": 103.08838786166379,
+        "visibleWidth": 103.02597729351945,
+        "extent": 28.91962685382839,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "group",
+        "columns": 18,
+        "width": 257.8834722106521,
+        "space": 13.915139072176753,
+        "postLayoutWidth": 257.8834722106521,
+        "visibleWidth": 257.8839818918924,
+        "extent": 153.05087953768003,
+        "largestAtom": 69.51805114746094,
+        "whiteSpace": "pre",
+        "text": "hello world",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "fill",
+        "columns": 18,
+        "width": 257.8834722106521,
+        "space": 13.915139072176753,
+        "postLayoutWidth": 257.8834722106521,
+        "visibleWidth": 257.8839818918924,
+        "extent": 180.8655074257693,
+        "largestAtom": 180.74693298339844,
+        "whiteSpace": "pre",
+        "text": "lean ir runs\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "Greek tags",
+        "columns": 18,
+        "width": 257.8834722106521,
+        "space": 13.915139072176753,
+        "postLayoutWidth": 257.8834722106521,
+        "visibleWidth": 257.8839818918924,
+        "extent": 111.32111257741403,
+        "largestAtom": 27.807220458984375,
+        "whiteSpace": "pre",
+        "text": "αβ γδ λx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "supplementary hard lines",
+        "columns": 18,
+        "width": 257.8834722106521,
+        "space": 13.915139072176753,
+        "postLayoutWidth": 257.8834722106521,
+        "visibleWidth": 257.8839818918924,
+        "extent": 29.018476137020283,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "group",
+        "columns": 28,
+        "width": 393.9218437364871,
+        "space": 13.906269775831253,
+        "postLayoutWidth": 393.9218437364871,
+        "visibleWidth": 393.91059833155975,
+        "extent": 152.95314360153492,
+        "largestAtom": 69.51805114746094,
+        "whiteSpace": "pre",
+        "text": "hello world",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "fill",
+        "columns": 28,
+        "width": 393.9218437364871,
+        "space": 13.906269775831253,
+        "postLayoutWidth": 393.9218437364871,
+        "visibleWidth": 393.91059833155975,
+        "extent": 361.50008931459763,
+        "largestAtom": 180.74693298339844,
+        "whiteSpace": "pre",
+        "text": "lean ir runs format.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "Greek tags",
+        "columns": 28,
+        "width": 393.9218437364871,
+        "space": 13.906269775831253,
+        "postLayoutWidth": 393.9218437364871,
+        "visibleWidth": 393.91059833155975,
+        "extent": 111.25003458217651,
+        "largestAtom": 27.807220458984375,
+        "whiteSpace": "pre",
+        "text": "αβ γδ λx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "supplementary hard lines",
+        "columns": 28,
+        "width": 393.9218437364871,
+        "space": 13.906269775831253,
+        "postLayoutWidth": 393.9218437364871,
+        "visibleWidth": 393.91059833155975,
+        "extent": 29.00001443193193,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      }
+    ]
+  },
+  {
+    "test": "test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[chromium-light]",
+    "browser": "chromium",
+    "version": "145.0.7632.6",
+    "light": true,
+    "layouts": [
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "group",
+        "columns": 7,
+        "width": 103.08838786166379,
+        "space": 13.86767025970712,
+        "postLayoutWidth": 103.08838786166379,
+        "visibleWidth": 103.02597729351945,
+        "extent": 69.3384781025759,
+        "largestAtom": 69.51805114746094,
+        "whiteSpace": "pre",
+        "text": "hello\nworld",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "fill",
+        "columns": 7,
+        "width": 103.08838786166379,
+        "space": 13.86767025970712,
+        "postLayoutWidth": 180.24889999439884,
+        "visibleWidth": 103.02597729351945,
+        "extent": 180.24889999439884,
+        "largestAtom": 180.74693298339844,
+        "whiteSpace": "pre",
+        "text": "lean ir\nruns\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "Greek tags",
+        "columns": 7,
+        "width": 103.08838786166379,
+        "space": 13.86767025970712,
+        "postLayoutWidth": 103.08838786166379,
+        "visibleWidth": 103.02597729351945,
+        "extent": 27.735403921434393,
+        "largestAtom": 27.807220458984375,
+        "whiteSpace": "pre",
+        "text": "αβ\nγδ\nλx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "supplementary hard lines",
+        "columns": 7,
+        "width": 103.08838786166379,
+        "space": 13.86767025970712,
+        "postLayoutWidth": 103.08838786166379,
+        "visibleWidth": 103.02597729351945,
+        "extent": 28.91962685382839,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "group",
+        "columns": 18,
+        "width": 257.8834722106521,
+        "space": 13.915139072176753,
+        "postLayoutWidth": 257.8834722106521,
+        "visibleWidth": 257.8839818918924,
+        "extent": 153.05087953768003,
+        "largestAtom": 69.51805114746094,
+        "whiteSpace": "pre",
+        "text": "hello world",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "fill",
+        "columns": 18,
+        "width": 257.8834722106521,
+        "space": 13.915139072176753,
+        "postLayoutWidth": 257.8834722106521,
+        "visibleWidth": 257.8839818918924,
+        "extent": 180.8655074257693,
+        "largestAtom": 180.74693298339844,
+        "whiteSpace": "pre",
+        "text": "lean ir runs\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "Greek tags",
+        "columns": 18,
+        "width": 257.8834722106521,
+        "space": 13.915139072176753,
+        "postLayoutWidth": 257.8834722106521,
+        "visibleWidth": 257.8839818918924,
+        "extent": 111.32111257741403,
+        "largestAtom": 27.807220458984375,
+        "whiteSpace": "pre",
+        "text": "αβ γδ λx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "supplementary hard lines",
+        "columns": 18,
+        "width": 257.8834722106521,
+        "space": 13.915139072176753,
+        "postLayoutWidth": 257.8834722106521,
+        "visibleWidth": 257.8839818918924,
+        "extent": 29.018476137020283,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "group",
+        "columns": 28,
+        "width": 393.9218437364871,
+        "space": 13.906269775831253,
+        "postLayoutWidth": 393.9218437364871,
+        "visibleWidth": 393.91059833155975,
+        "extent": 152.95314360153492,
+        "largestAtom": 69.51805114746094,
+        "whiteSpace": "pre",
+        "text": "hello world",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "fill",
+        "columns": 28,
+        "width": 393.9218437364871,
+        "space": 13.906269775831253,
+        "postLayoutWidth": 393.9218437364871,
+        "visibleWidth": 393.91059833155975,
+        "extent": 361.50008931459763,
+        "largestAtom": 180.74693298339844,
+        "whiteSpace": "pre",
+        "text": "lean ir runs format.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "Greek tags",
+        "columns": 28,
+        "width": 393.9218437364871,
+        "space": 13.906269775831253,
+        "postLayoutWidth": 393.9218437364871,
+        "visibleWidth": 393.91059833155975,
+        "extent": 111.25003458217651,
+        "largestAtom": 27.807220458984375,
+        "whiteSpace": "pre",
+        "text": "αβ γδ λx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "supplementary hard lines",
+        "columns": 28,
+        "width": 393.9218437364871,
+        "space": 13.906269775831253,
+        "postLayoutWidth": 393.9218437364871,
+        "visibleWidth": 393.91059833155975,
+        "extent": 29.00001443193193,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      }
+    ]
+  },
+  {
+    "test": "test_actual_delayed_font_download_reflows_current_native_layout[chromium]",
+    "browser": "chromium",
+    "version": "145.0.7632.6",
+    "beforeFont": {
+      "columns": 24,
+      "width": 339.85135590280817,
+      "space": 13.922585569990348,
+      "postLayoutWidth": 339.85135590280817,
+      "visibleWidth": 339.8617793136887,
+      "extent": 180.96211306747747,
+      "largestAtom": 180.74693298339844,
+      "whiteSpace": "pre",
+      "text": "lean ir runs\nformat.pretty\ninside wasm",
+      "segments": [
+        {
+          "text": "lean",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "ir",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "runs",
+          "tags": []
+        },
+        {
+          "text": "\n",
+          "tags": []
+        },
+        {
+          "text": "format.pretty",
+          "tags": []
+        },
+        {
+          "text": "\n",
+          "tags": []
+        },
+        {
+          "text": "inside wasm",
+          "tags": []
+        }
+      ],
+      "tagged": [],
+      "probes": 0
+    },
+    "afterFont": {
+      "columns": 28,
+      "width": 339.85135590280817,
+      "space": 12.014059598426705,
+      "postLayoutWidth": 339.85135590280817,
+      "visibleWidth": 339.8617793136887,
+      "extent": 312.3661065219265,
+      "largestAtom": 156,
+      "whiteSpace": "pre",
+      "text": "lean ir runs format.pretty\ninside wasm",
+      "segments": [
+        {
+          "text": "lean",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "ir",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "runs",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "format.pretty",
+          "tags": []
+        },
+        {
+          "text": "\n",
+          "tags": []
+        },
+        {
+          "text": "inside wasm",
+          "tags": []
+        }
+      ],
+      "tagged": [],
+      "probes": 0
+    },
+    "actualFontEvents": 1
+  },
+  {
+    "test": "test_repeated_formatting_and_reflow_retention[chromium]",
+    "browser": "chromium",
+    "version": "145.0.7632.6",
+    "capacities": [
+      4194304,
+      4194304,
+      4194304,
+      4194304,
+      4194304
+    ],
+    "batchMilliseconds": [
+      10.600000008940697,
+      9.200000002980232,
+      6.700000002980232,
+      6.5,
+      8.100000008940697
+    ],
+    "counts": [
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21
+    ],
+    "liveMemoryWrappersAfterGC": 1
+  },
+  {
+    "test": "test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[firefox-dark]",
+    "browser": "firefox",
+    "version": "146.0.1",
+    "light": false,
+    "layouts": [
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "group",
+        "columns": 7,
+        "width": 103.05674071863939,
+        "space": 13.851689621630642,
+        "postLayoutWidth": 103.05674071863939,
+        "visibleWidth": 103.03417278006982,
+        "extent": 69.32781656931448,
+        "largestAtom": 69.25,
+        "whiteSpace": "pre",
+        "text": "hello\nworld",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "fill",
+        "columns": 7,
+        "width": 103.05674071863939,
+        "space": 13.851689621630642,
+        "postLayoutWidth": 180.21076541162068,
+        "visibleWidth": 103.03417278006984,
+        "extent": 180.21076541162068,
+        "largestAtom": 180.0500030517578,
+        "whiteSpace": "pre",
+        "text": "lean ir\nruns\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "Greek tags",
+        "columns": 7,
+        "width": 103.05674071863939,
+        "space": 13.851689621630642,
+        "postLayoutWidth": 103.05674071863939,
+        "visibleWidth": 103.03417278006982,
+        "extent": 27.738063473841923,
+        "largestAtom": 27.700000762939453,
+        "whiteSpace": "pre",
+        "text": "αβ\nγδ\nλx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "supplementary hard lines",
+        "columns": 7,
+        "width": 103.05674071863939,
+        "space": 13.851689621630642,
+        "postLayoutWidth": 103.05674071863939,
+        "visibleWidth": 103.03417278006982,
+        "extent": 28.915456774640028,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "group",
+        "columns": 18,
+        "width": 257.87726123966746,
+        "space": 13.904926202039247,
+        "postLayoutWidth": 257.87726123966746,
+        "visibleWidth": 257.88856991198116,
+        "extent": 152.99606288437565,
+        "largestAtom": 69.25,
+        "whiteSpace": "pre",
+        "text": "hello world",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "fill",
+        "columns": 18,
+        "width": 257.87726123966746,
+        "space": 13.904926202039247,
+        "postLayoutWidth": 257.87726123966746,
+        "visibleWidth": 257.88856991198116,
+        "extent": 180.82679536145625,
+        "largestAtom": 180.0500030517578,
+        "whiteSpace": "pre",
+        "text": "lean ir runs\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "Greek tags",
+        "columns": 18,
+        "width": 257.87726123966746,
+        "space": 13.904926202039247,
+        "postLayoutWidth": 257.87726123966746,
+        "visibleWidth": 257.88856991198116,
+        "extent": 111.2812842782579,
+        "largestAtom": 27.700000762939453,
+        "whiteSpace": "pre",
+        "text": "αβ γδ λx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "supplementary hard lines",
+        "columns": 18,
+        "width": 257.87726123966746,
+        "space": 13.904926202039247,
+        "postLayoutWidth": 257.87726123966746,
+        "visibleWidth": 257.88856991198116,
+        "extent": 29.019007125196175,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "group",
+        "columns": 28,
+        "width": 393.8954056441796,
+        "space": 13.907937593014626,
+        "postLayoutWidth": 393.8954056441796,
+        "visibleWidth": 393.8974494220313,
+        "extent": 152.90304940253483,
+        "largestAtom": 69.25,
+        "whiteSpace": "pre",
+        "text": "hello world",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "fill",
+        "columns": 28,
+        "width": 393.8954056441796,
+        "space": 13.907937593014626,
+        "postLayoutWidth": 393.8954056441796,
+        "visibleWidth": 393.8974494220313,
+        "extent": 361.3872567085917,
+        "largestAtom": 180.0500030517578,
+        "whiteSpace": "pre",
+        "text": "lean ir runs format.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "Greek tags",
+        "columns": 28,
+        "width": 393.8954056441796,
+        "space": 13.907937593014626,
+        "postLayoutWidth": 393.8954056441796,
+        "visibleWidth": 393.8974494220313,
+        "extent": 111.21298553958253,
+        "largestAtom": 27.700000762939453,
+        "whiteSpace": "pre",
+        "text": "αβ γδ λx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "supplementary hard lines",
+        "columns": 28,
+        "width": 393.8954056441796,
+        "space": 13.907937593014626,
+        "postLayoutWidth": 393.8954056441796,
+        "visibleWidth": 393.8974494220313,
+        "extent": 28.997396305242233,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      }
+    ]
+  },
+  {
+    "test": "test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[firefox-light]",
+    "browser": "firefox",
+    "version": "146.0.1",
+    "light": true,
+    "layouts": [
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "group",
+        "columns": 7,
+        "width": 103.05674071863939,
+        "space": 13.851689621630642,
+        "postLayoutWidth": 103.05674071863939,
+        "visibleWidth": 103.03417278006982,
+        "extent": 69.32781656931448,
+        "largestAtom": 69.25,
+        "whiteSpace": "pre",
+        "text": "hello\nworld",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "fill",
+        "columns": 7,
+        "width": 103.05674071863939,
+        "space": 13.851689621630642,
+        "postLayoutWidth": 180.21076541162068,
+        "visibleWidth": 103.03417278006984,
+        "extent": 180.21076541162068,
+        "largestAtom": 180.0500030517578,
+        "whiteSpace": "pre",
+        "text": "lean ir\nruns\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "Greek tags",
+        "columns": 7,
+        "width": 103.05674071863939,
+        "space": 13.851689621630642,
+        "postLayoutWidth": 103.05674071863939,
+        "visibleWidth": 103.03417278006982,
+        "extent": 27.738063473841923,
+        "largestAtom": 27.700000762939453,
+        "whiteSpace": "pre",
+        "text": "αβ\nγδ\nλx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 480,
+          "height": 812
+        },
+        "codeRatio": 0.82,
+        "case": "supplementary hard lines",
+        "columns": 7,
+        "width": 103.05674071863939,
+        "space": 13.851689621630642,
+        "postLayoutWidth": 103.05674071863939,
+        "visibleWidth": 103.03417278006982,
+        "extent": 28.915456774640028,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "group",
+        "columns": 18,
+        "width": 257.87726123966746,
+        "space": 13.904926202039247,
+        "postLayoutWidth": 257.87726123966746,
+        "visibleWidth": 257.88856991198116,
+        "extent": 152.99606288437565,
+        "largestAtom": 69.25,
+        "whiteSpace": "pre",
+        "text": "hello world",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "fill",
+        "columns": 18,
+        "width": 257.87726123966746,
+        "space": 13.904926202039247,
+        "postLayoutWidth": 257.87726123966746,
+        "visibleWidth": 257.88856991198116,
+        "extent": 180.82679536145625,
+        "largestAtom": 180.0500030517578,
+        "whiteSpace": "pre",
+        "text": "lean ir runs\nformat.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "Greek tags",
+        "columns": 18,
+        "width": 257.87726123966746,
+        "space": 13.904926202039247,
+        "postLayoutWidth": 257.87726123966746,
+        "visibleWidth": 257.88856991198116,
+        "extent": 111.2812842782579,
+        "largestAtom": 27.700000762939453,
+        "whiteSpace": "pre",
+        "text": "αβ γδ λx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 800,
+          "height": 600
+        },
+        "codeRatio": 0.65,
+        "case": "supplementary hard lines",
+        "columns": 18,
+        "width": 257.87726123966746,
+        "space": 13.904926202039247,
+        "postLayoutWidth": 257.87726123966746,
+        "visibleWidth": 257.88856991198116,
+        "extent": 29.019007125196175,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "group",
+        "columns": 28,
+        "width": 393.8954056441796,
+        "space": 13.907937593014626,
+        "postLayoutWidth": 393.8954056441796,
+        "visibleWidth": 393.8974494220313,
+        "extent": 152.90304940253483,
+        "largestAtom": 69.25,
+        "whiteSpace": "pre",
+        "text": "hello world",
+        "segments": [
+          {
+            "text": "hello",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "world",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "fill",
+        "columns": 28,
+        "width": 393.8954056441796,
+        "space": 13.907937593014626,
+        "postLayoutWidth": 393.8954056441796,
+        "visibleWidth": 393.8974494220313,
+        "extent": 361.3872567085917,
+        "largestAtom": 180.0500030517578,
+        "whiteSpace": "pre",
+        "text": "lean ir runs format.pretty\ninside wasm",
+        "segments": [
+          {
+            "text": "lean",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "ir",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "runs",
+            "tags": []
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "format.pretty",
+            "tags": []
+          },
+          {
+            "text": "\n",
+            "tags": []
+          },
+          {
+            "text": "inside wasm",
+            "tags": []
+          }
+        ],
+        "tagged": [],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "Greek tags",
+        "columns": 28,
+        "width": 393.8954056441796,
+        "space": 13.907937593014626,
+        "postLayoutWidth": 393.8954056441796,
+        "visibleWidth": 393.8974494220313,
+        "extent": 111.21298553958253,
+        "largestAtom": 27.700000762939453,
+        "whiteSpace": "pre",
+        "text": "αβ γδ λx",
+        "segments": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          },
+          {
+            "text": " ",
+            "tags": []
+          },
+          {
+            "text": "λx",
+            "tags": []
+          }
+        ],
+        "tagged": [
+          {
+            "text": "αβ",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "γδ",
+            "tags": [
+              "8"
+            ]
+          }
+        ],
+        "probes": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "codeRatio": 0.5,
+        "case": "supplementary hard lines",
+        "columns": 28,
+        "width": 393.8954056441796,
+        "space": 13.907937593014626,
+        "postLayoutWidth": 393.8954056441796,
+        "visibleWidth": 393.8974494220313,
+        "extent": 28.997396305242233,
+        "largestAtom": 29,
+        "whiteSpace": "pre",
+        "text": "😀\n界",
+        "segments": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "tagged": [
+          {
+            "text": "😀",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "\n",
+            "tags": [
+              "7"
+            ]
+          },
+          {
+            "text": "界",
+            "tags": [
+              "7"
+            ]
+          }
+        ],
+        "probes": 0
+      }
+    ]
+  },
+  {
+    "test": "test_actual_delayed_font_download_reflows_current_native_layout[firefox]",
+    "browser": "firefox",
+    "version": "146.0.1",
+    "beforeFont": {
+      "columns": 24,
+      "width": 339.82255401417933,
+      "space": 13.924803449778201,
+      "postLayoutWidth": 339.82255401417933,
+      "visibleWidth": 339.8469590660647,
+      "extent": 180.92099807410486,
+      "largestAtom": 180.0500030517578,
+      "whiteSpace": "pre",
+      "text": "lean ir runs\nformat.pretty\ninside wasm",
+      "segments": [
+        {
+          "text": "lean",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "ir",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "runs",
+          "tags": []
+        },
+        {
+          "text": "\n",
+          "tags": []
+        },
+        {
+          "text": "format.pretty",
+          "tags": []
+        },
+        {
+          "text": "\n",
+          "tags": []
+        },
+        {
+          "text": "inside wasm",
+          "tags": []
+        }
+      ],
+      "tagged": [],
+      "probes": 0
+    },
+    "afterFont": {
+      "columns": 28,
+      "width": 339.82255401417933,
+      "space": 12.133510575095057,
+      "postLayoutWidth": 339.82255401417933,
+      "visibleWidth": 339.8469590660647,
+      "extent": 315.40344779784533,
+      "largestAtom": 156.86666870117188,
+      "whiteSpace": "pre",
+      "text": "lean ir runs format.pretty\ninside wasm",
+      "segments": [
+        {
+          "text": "lean",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "ir",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "runs",
+          "tags": []
+        },
+        {
+          "text": " ",
+          "tags": []
+        },
+        {
+          "text": "format.pretty",
+          "tags": []
+        },
+        {
+          "text": "\n",
+          "tags": []
+        },
+        {
+          "text": "inside wasm",
+          "tags": []
+        }
+      ],
+      "tagged": [],
+      "probes": 0
+    },
+    "actualFontEvents": 1
+  },
+  {
+    "test": "test_repeated_formatting_and_reflow_retention[firefox]",
+    "browser": "firefox",
+    "version": "146.0.1",
+    "capacities": [
+      4194304,
+      4194304,
+      4194304,
+      4194304,
+      4194304
+    ],
+    "batchMilliseconds": [
+      23,
+      18,
+      19,
+      17,
+      16
+    ],
+    "counts": [
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21,
+      21
+    ]
+  }
+]

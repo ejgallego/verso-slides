@@ -1,0 +1,19 @@
+Executed source: d1cf6f62e01fd7d91b46b00f902d23e14a2b8fd8 on feat/vir-prettym-review-fixes-integration. Final source/test bytes unchanged during qualification.
+CWD /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch
+# Add faithful DOM mock and regression BEFORE production change; production bytes equal b636197.
+node --test --test-name-pattern='terminal redraw' Tests/pretty-presentation.test.cjs
+# One failure: NotFoundError masks original formatting error. Retain raw test/source/hash/log.
+# Apply only container.remove cleanup correction, then:
+node --test --test-name-pattern='terminal redraw' Tests/pretty-presentation.test.cjs
+node --test Tests/pretty-presentation.test.cjs Tests/vir-bootstrap.test.cjs
+# Before pruning44 pass; after three exclusively adversarial cases removed41 pass.
+npx --no-install tsc --noEmit -p web-lib/panel/jsconfig.json
+lake test --no-playwright  # Initial CLI syntax error only; retained, not a test failure.
+lake test -- --no-playwright
+lake build
+# Run demo executable in NEW scratch/render with copied demo-images; copy fresh root/nested site.
+.lake/build/bin/test-pretty --host-abi-corpus
+.lake/build/bin/test-pretty --geometry-corpus
+env PATH="/home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/browser-tests/.venv/bin:$PATH" python -m pytest browser-tests/test_vir_prettym_presentation.py::test_shared_goal_binding_interaction_uses_escaped_selector browser-tests/test_vir_prettym_presentation.py::test_rejected_format_is_visible_without_static_layout_substitution_or_probe_retention browser-tests/test_vir_prettym_lifecycle.py::test_dispatch_error_uses_owned_program_status_without_recreation browser-tests/test_vir_prettym_geometry.py --vir-site-acceptance --site-dir "$PWD/.qualification-review-fixes-20261006/site" --browser all -q --junitxml=.qualification-review-fixes-20261006/browser.xml
+# Hash actual stages before/after ordinary builds; decode descriptor and recompute actual ContentIds.
+# Compare every root output file against retained previously qualified inventory.

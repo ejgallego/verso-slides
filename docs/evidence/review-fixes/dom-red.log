@@ -1,0 +1,40 @@
+✖ terminal redraw during shared rendering preserves the original formatting failure (3.712139ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 50.945074
+
+✖ failing tests:
+
+test at Tests/pretty-presentation.test.cjs:129:1
+✖ terminal redraw during shared rendering preserves the original formatting failure (3.712139ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  NotFoundError: The node is not a child
+      at TestContext.<anonymous> (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/Tests/pretty-presentation.test.cjs:149:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: NotFoundError: The node is not a child
+        at new DOMException (node:internal/per_context/domexception:76:18)
+        at Object.removeChild (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/Tests/pretty-presentation.test.cjs:22:30)
+        at Object.cleanup (evalmachine.<anonymous>:132:19)
+        at Object.renderRichFormat (evalmachine.<anonymous>:338:28)
+        at /home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/Tests/pretty-presentation.test.cjs:149:31
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (/home/egallego/lean/verso-slides/.worktrees/vir-prettym-three-patch/Tests/pretty-presentation.test.cjs:149:10)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25),
+    operator: 'throws',
+    diff: 'simple'
+  }
