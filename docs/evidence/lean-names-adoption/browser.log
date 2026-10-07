@@ -1,0 +1,67 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.19, pytest-9.0.2, pluggy-1.6.0 -- /home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/browser-tests/.venv/bin/python
+cachedir: .pytest_cache
+browsers: chromium, firefox (--browser=all)
+rootdir: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-lean-names/browser-tests
+configfile: pyproject.toml
+plugins: xdist-3.8.0
+collecting ... collected 55 items
+
+browser-tests/test_vir_prettym_site.py::test_published_bundles_and_urls PASSED [  1%]
+browser-tests/test_vir_prettym_site.py::test_same_wrapper_native_corpus[chromium-root] PASSED [  3%]
+browser-tests/test_vir_prettym_site.py::test_same_wrapper_native_corpus[chromium-nested] PASSED [  5%]
+browser-tests/test_vir_prettym_site.py::test_published_host_call_and_lifecycle[chromium] PASSED [  7%]
+browser-tests/test_vir_prettym_site.py::test_only_full_root_declaration_is_callable[chromium] PASSED [  9%]
+browser-tests/test_vir_prettym_site.py::test_default_panel_reflows_with_wasm[chromium] PASSED [ 10%]
+browser-tests/test_vir_prettym_site.py::test_independent_deck_uses_published_runtime[chromium] PASSED [ 12%]
+browser-tests/test_vir_prettym_presentation.py::test_complete_native_segments_tags_classes_and_bindings_in_dom[chromium] PASSED [ 14%]
+browser-tests/test_vir_prettym_presentation.py::test_annotation_escaping_and_exact_decimal_tags[chromium] PASSED [ 16%]
+browser-tests/test_vir_prettym_presentation.py::test_shared_goal_binding_interaction_uses_escaped_selector[chromium] PASSED [ 18%]
+browser-tests/test_vir_prettym_presentation.py::test_rejected_format_is_visible_without_static_layout_substitution_or_probe_retention[chromium] PASSED [ 20%]
+browser-tests/test_vir_prettym_presentation.py::test_panel_font_metric_change_reflows_current_format[chromium] PASSED [ 21%]
+browser-tests/test_vir_prettym_presentation.py::test_vir_numeric_admission_keeps_the_same_program_usable[chromium] PASSED [ 23%]
+browser-tests/test_vir_prettym_creation.py::test_published_bootstrap_pagehide_during_actual_creation_has_no_facade[chromium] PASSED [ 25%]
+browser-tests/test_vir_prettym_lifecycle.py::test_loading_notification_publishes_current_promise_before_reentrant_action[chromium-terminal] PASSED [ 27%]
+browser-tests/test_vir_prettym_lifecycle.py::test_loading_notification_publishes_current_promise_before_reentrant_action[chromium-persisted] PASSED [ 29%]
+browser-tests/test_vir_prettym_lifecycle.py::test_slow_creation_keeps_navigation_and_latest_selection_usable[chromium] PASSED [ 30%]
+browser-tests/test_vir_prettym_lifecycle.py::test_readiness_does_not_restore_a_cleared_selection[chromium] PASSED [ 32%]
+browser-tests/test_vir_prettym_lifecycle.py::test_creation_failure_is_final_and_static_navigation_remains_usable[chromium] PASSED [ 34%]
+browser-tests/test_vir_prettym_lifecycle.py::test_document_termination_cancels_pending_creation_without_late_install[chromium] PASSED [ 36%]
+browser-tests/test_vir_prettym_lifecycle.py::test_malformed_compact_input_keeps_the_single_real_program[chromium] PASSED [ 38%]
+browser-tests/test_vir_prettym_lifecycle.py::test_dispatch_error_uses_owned_program_status_without_recreation[chromium-active] PASSED [ 40%]
+browser-tests/test_vir_prettym_lifecycle.py::test_dispatch_error_uses_owned_program_status_without_recreation[chromium-disposed] PASSED [ 41%]
+browser-tests/test_vir_prettym_geometry.py::test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[chromium-dark] PASSED [ 43%]
+browser-tests/test_vir_prettym_geometry.py::test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[chromium-light] PASSED [ 45%]
+browser-tests/test_vir_prettym_geometry.py::test_actual_delayed_font_download_reflows_current_native_layout[chromium] PASSED [ 47%]
+browser-tests/test_vir_prettym_geometry.py::test_repeated_formatting_and_reflow_retention[chromium] PASSED [ 49%]
+browser-tests/test_vir_prettym_site.py::test_same_wrapper_native_corpus[firefox-root] PASSED [ 50%]
+browser-tests/test_vir_prettym_site.py::test_same_wrapper_native_corpus[firefox-nested] PASSED [ 52%]
+browser-tests/test_vir_prettym_site.py::test_published_host_call_and_lifecycle[firefox] PASSED [ 54%]
+browser-tests/test_vir_prettym_site.py::test_only_full_root_declaration_is_callable[firefox] PASSED [ 56%]
+browser-tests/test_vir_prettym_site.py::test_default_panel_reflows_with_wasm[firefox] PASSED [ 58%]
+browser-tests/test_vir_prettym_site.py::test_independent_deck_uses_published_runtime[firefox] PASSED [ 60%]
+browser-tests/test_vir_prettym_presentation.py::test_complete_native_segments_tags_classes_and_bindings_in_dom[firefox] PASSED [ 61%]
+browser-tests/test_vir_prettym_presentation.py::test_annotation_escaping_and_exact_decimal_tags[firefox] PASSED [ 63%]
+browser-tests/test_vir_prettym_presentation.py::test_shared_goal_binding_interaction_uses_escaped_selector[firefox] PASSED [ 65%]
+browser-tests/test_vir_prettym_presentation.py::test_rejected_format_is_visible_without_static_layout_substitution_or_probe_retention[firefox] PASSED [ 67%]
+browser-tests/test_vir_prettym_presentation.py::test_panel_font_metric_change_reflows_current_format[firefox] PASSED [ 69%]
+browser-tests/test_vir_prettym_presentation.py::test_vir_numeric_admission_keeps_the_same_program_usable[firefox] PASSED [ 70%]
+browser-tests/test_vir_prettym_creation.py::test_published_bootstrap_pagehide_during_actual_creation_has_no_facade[firefox] PASSED [ 72%]
+browser-tests/test_vir_prettym_lifecycle.py::test_loading_notification_publishes_current_promise_before_reentrant_action[firefox-terminal] PASSED [ 74%]
+browser-tests/test_vir_prettym_lifecycle.py::test_loading_notification_publishes_current_promise_before_reentrant_action[firefox-persisted] PASSED [ 76%]
+browser-tests/test_vir_prettym_lifecycle.py::test_slow_creation_keeps_navigation_and_latest_selection_usable[firefox] PASSED [ 78%]
+browser-tests/test_vir_prettym_lifecycle.py::test_readiness_does_not_restore_a_cleared_selection[firefox] PASSED [ 80%]
+browser-tests/test_vir_prettym_lifecycle.py::test_creation_failure_is_final_and_static_navigation_remains_usable[firefox] PASSED [ 81%]
+browser-tests/test_vir_prettym_lifecycle.py::test_document_termination_cancels_pending_creation_without_late_install[firefox] PASSED [ 83%]
+browser-tests/test_vir_prettym_lifecycle.py::test_malformed_compact_input_keeps_the_single_real_program[firefox] PASSED [ 85%]
+browser-tests/test_vir_prettym_lifecycle.py::test_dispatch_error_uses_owned_program_status_without_recreation[firefox-active] PASSED [ 87%]
+browser-tests/test_vir_prettym_lifecycle.py::test_dispatch_error_uses_owned_program_status_without_recreation[firefox-disposed] PASSED [ 89%]
+browser-tests/test_vir_prettym_geometry.py::test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[firefox-dark] PASSED [ 90%]
+browser-tests/test_vir_prettym_geometry.py::test_measured_panel_geometry_matches_native_at_narrow_and_wide_viewports[firefox-light] PASSED [ 92%]
+browser-tests/test_vir_prettym_geometry.py::test_actual_delayed_font_download_reflows_current_native_layout[firefox] PASSED [ 94%]
+browser-tests/test_vir_prettym_geometry.py::test_repeated_formatting_and_reflow_retention[firefox] PASSED [ 96%]
+browser-tests/test_vir_prettym_presentation.py::test_published_formatter_has_one_mandatory_path PASSED [ 98%]
+browser-tests/test_vir_prettym_creation.py::test_exact_pair_published_bytes PASSED [100%]
+
+- generated xml file: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-lean-names/.qualification-lean-names-20261007/browser.xml -
+============================= 55 passed in 34.32s ==============================

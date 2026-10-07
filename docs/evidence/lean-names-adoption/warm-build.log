@@ -1,0 +1,16 @@
+ℹ [162/165] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [163/165] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (1.1s)
+info: stdout:
+wrote /tmp/tmp.XXrh62Wu/program.irpkg-set.json
+wrote /tmp/tmp.XXrh62Wu/program.irpkg
+wrote /tmp/tmp.XXrh62Wu/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [164/576] Built «verso-slides»/VersoSlidesVendored:virResourcePack (48ms)
+info: stdout:
+ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a
+✔ [714/742] Built VersoSlidesVendored (1.3s)
+Build completed successfully (742 jobs).

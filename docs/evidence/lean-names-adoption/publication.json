@@ -1,0 +1,78 @@
+{
+  "manifests": [
+    {
+      "route": "",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+      "kind": "program",
+      "schema": 2,
+      "logicalId": "VersoSlides.VirPrettyM",
+      "compatibility": {
+        "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+        "virVersion": 3
+      }
+    },
+    {
+      "route": "",
+      "contentId": "d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c",
+      "kind": "runtime",
+      "schema": 2,
+      "logicalId": "lean-vir/runtime",
+      "compatibility": {
+        "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+        "virVersion": 3
+      }
+    },
+    {
+      "route": "nested/deck",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+      "kind": "program",
+      "schema": 2,
+      "logicalId": "VersoSlides.VirPrettyM",
+      "compatibility": {
+        "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+        "virVersion": 3
+      }
+    },
+    {
+      "route": "nested/deck",
+      "contentId": "d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c",
+      "kind": "runtime",
+      "schema": 2,
+      "logicalId": "lean-vir/runtime",
+      "compatibility": {
+        "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+        "virVersion": 3
+      }
+    },
+    {
+      "route": "downstream/custom",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+      "kind": "program",
+      "schema": 2,
+      "logicalId": "VersoSlides.VirPrettyM",
+      "compatibility": {
+        "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+        "virVersion": 3
+      }
+    },
+    {
+      "route": "downstream/custom",
+      "contentId": "d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c",
+      "kind": "runtime",
+      "schema": 2,
+      "logicalId": "lean-vir/runtime",
+      "compatibility": {
+        "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b",
+        "virVersion": 3
+      }
+    }
+  ],
+  "payloadsVerified": 42,
+  "nonResourceFiles": 97,
+  "changedNonResource": [
+    "index.html",
+    "lib/pretty.js"
+  ],
+  "removedNonResource": [],
+  "addedNonResource": []
+}

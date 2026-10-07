@@ -1,0 +1,211 @@
+{
+  "source": "41b5747c722b8f7519676129e658acbe72ef68a3",
+  "virSource": "37d2eb99f85f58b295dbf67996b0b7492366bd8e",
+  "files": [
+    {
+      "path": "README.md",
+      "byteLength": 7071,
+      "sha256": "d3cdcb0144c2dafffc4458dded8414c2778caef1b5c50452f0aab706450e5743"
+    },
+    {
+      "path": "browser-observations.json",
+      "byteLength": 61171,
+      "sha256": "6781a0249940b7338d06b9632f6d9e2a43a47456650b7b04f4e6a147076b25be"
+    },
+    {
+      "path": "browser.log",
+      "byteLength": 7673,
+      "sha256": "1e8bb97cb2f90c60f6a020f730a34c115d0e5122d2d13491fd02d856827d2774"
+    },
+    {
+      "path": "browser.xml",
+      "byteLength": 62988,
+      "sha256": "1d88e880b9e4430e39780a767ccfb55721ef937f917fb376a1fc4f851dea4e36"
+    },
+    {
+      "path": "build.log",
+      "byteLength": 2815,
+      "sha256": "22dc56324b245d07f24a6c53f37d70cd40cfb1bc43ed9e01d0c9a4026c8f4ca4"
+    },
+    {
+      "path": "downstream-build.log",
+      "byteLength": 1435,
+      "sha256": "2a863e528492db3a27d00210e2d8e82518ad9bcb22de6c1c2f032b16131c105a"
+    },
+    {
+      "path": "downstream-program-manifest.json",
+      "byteLength": 1680,
+      "sha256": "31e0f1d0a8b4850055a40d1334a984dfc321f21abc07fca8d98a0e10eb48d236"
+    },
+    {
+      "path": "downstream-runtime-manifest.json",
+      "byteLength": 1223,
+      "sha256": "1c53052ecd03f11584eb715a3ecea0c12c8fe9170497758d627299180e232bcb"
+    },
+    {
+      "path": "downstream-site.log",
+      "byteLength": 885,
+      "sha256": "3ff553a12147bb88b56966f73b0cbb981dec75e645206af01a88c5a4ae7e8ea8"
+    },
+    {
+      "path": "geometry-corpus.json",
+      "byteLength": 133304,
+      "sha256": "6bdc87880d5cefa9c4ae6f5a78d9f5779c1b215a209af210f3c48c7f38dabd1c"
+    },
+    {
+      "path": "identities.json",
+      "byteLength": 4420,
+      "sha256": "71b7bf5b64f245fc1cae42bd21bc8257b3bd5fbf2b0b78b0ce2453b2f0753c56"
+    },
+    {
+      "path": "native-corpus.json",
+      "byteLength": 1634,
+      "sha256": "6ab31d5760987f8848958694996e54cf1e674fb4288c0f54139dd9531b741210"
+    },
+    {
+      "path": "nested-program-manifest.json",
+      "byteLength": 1680,
+      "sha256": "31e0f1d0a8b4850055a40d1334a984dfc321f21abc07fca8d98a0e10eb48d236"
+    },
+    {
+      "path": "nested-runtime-manifest.json",
+      "byteLength": 1223,
+      "sha256": "1c53052ecd03f11584eb715a3ecea0c12c8fe9170497758d627299180e232bcb"
+    },
+    {
+      "path": "node.log",
+      "byteLength": 3887,
+      "sha256": "4969ded17badb6d810b1780c0443fef1bd6e3a1797246502d4ef231822de2fe1"
+    },
+    {
+      "path": "ordinary-tests.log",
+      "byteLength": 12326,
+      "sha256": "7f15896330bcdb5e77378184da1b1a3401a821d7cd16d812ab62eff484525e8e"
+    },
+    {
+      "path": "pack-tool-build.log",
+      "byteLength": 593,
+      "sha256": "21fbd93f0f106e4b87dcd6703074d93e678408245720771df2ee47fe6536274c"
+    },
+    {
+      "path": "packs/program.virres",
+      "byteLength": 77764,
+      "sha256": "2516a1e9560673b45a63a61a1b6d7a8b33843e39c4331c5760ff5afc84b28150"
+    },
+    {
+      "path": "packs/runtime.virres",
+      "byteLength": 1115089,
+      "sha256": "6127371c45aecfc4a064c993060963b78612977acf1444f74889f1ee7856f814"
+    },
+    {
+      "path": "program-payload-comparison.json",
+      "byteLength": 164,
+      "sha256": "71f2d51d05e6ad4841e224deeb989f9cdb458b6e47206fa2b4dcb68da4a96180"
+    },
+    {
+      "path": "publication.json",
+      "byteLength": 2235,
+      "sha256": "5addd60197bec6123c2a1211463a398e1754888ae333c9df5150526ab50c213b"
+    },
+    {
+      "path": "root-program-manifest.json",
+      "byteLength": 1680,
+      "sha256": "31e0f1d0a8b4850055a40d1334a984dfc321f21abc07fca8d98a0e10eb48d236"
+    },
+    {
+      "path": "root-runtime-manifest.json",
+      "byteLength": 1223,
+      "sha256": "1c53052ecd03f11584eb715a3ecea0c12c8fe9170497758d627299180e232bcb"
+    },
+    {
+      "path": "root-site.log",
+      "byteLength": 885,
+      "sha256": "46db97fae35b30859985095edbc9d0c1c74a184d62997822b02282536cc93333"
+    },
+    {
+      "path": "runtime-seed.log",
+      "byteLength": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "screenshots/chromium-1280-dark.png",
+      "byteLength": 37180,
+      "sha256": "c54a96b809aeadd74abbc58867b4f66ef49356b4b74d25c774d0af11bb98b134"
+    },
+    {
+      "path": "screenshots/chromium-1280-light.png",
+      "byteLength": 36320,
+      "sha256": "3835d24f56c6783f34c23124ee5d82f038d9955bf5436a017904e5aae907cce3"
+    },
+    {
+      "path": "screenshots/chromium-480-dark.png",
+      "byteLength": 18471,
+      "sha256": "006d3edde00d99b5c695652b32f46b6919eee7a5cefda1921b39e13aed7ed5fa"
+    },
+    {
+      "path": "screenshots/chromium-480-light.png",
+      "byteLength": 18369,
+      "sha256": "b88b36afaba573a3ab3b04531dec359f1155899744e1919992066600949ef98e"
+    },
+    {
+      "path": "screenshots/chromium-800-dark.png",
+      "byteLength": 30337,
+      "sha256": "7361521d844c1a42e4e68896ee828af93c9a6e7a8f2c56d93a629812f4ea0680"
+    },
+    {
+      "path": "screenshots/chromium-800-light.png",
+      "byteLength": 29870,
+      "sha256": "54940398e246f88bf40b318fcbfdf009233b8add6fc1dce35a846ac2690b3ab5"
+    },
+    {
+      "path": "screenshots/firefox-1280-dark.png",
+      "byteLength": 65409,
+      "sha256": "3372617457b21b0f2da1b113cc10100029008603c567e641159ad56cc15d26a0"
+    },
+    {
+      "path": "screenshots/firefox-1280-light.png",
+      "byteLength": 64297,
+      "sha256": "47cac3add6771c10a7ad9817528793f69d54a545d32ebbba789679fafbd68d38"
+    },
+    {
+      "path": "screenshots/firefox-480-dark.png",
+      "byteLength": 29010,
+      "sha256": "7fce1aacbfc834efc1f98d1c1a01c19c0e10164adf2eab77a23ffe24cd14a85a"
+    },
+    {
+      "path": "screenshots/firefox-480-light.png",
+      "byteLength": 28609,
+      "sha256": "9d9db10b48919ff5624697e41dc6c4d99af8be5290b27f2fc1e4ac3bfa205e3e"
+    },
+    {
+      "path": "screenshots/firefox-800-dark.png",
+      "byteLength": 47614,
+      "sha256": "5d2d7c48fe4ca927ae023edb70fd3e9fa332e5669caeb702eb2e96c927f386a1"
+    },
+    {
+      "path": "screenshots/firefox-800-light.png",
+      "byteLength": 46747,
+      "sha256": "dd000bc21b35441db6b0d037eec8e3b8a1db8fc6ee42ae038b1b776f896fde08"
+    },
+    {
+      "path": "typescript-final.log",
+      "byteLength": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "typescript.log",
+      "byteLength": 212,
+      "sha256": "d3e9137c688826d16f58154c507e83c914c719b09a7b81cedff810c3acd0c19a"
+    },
+    {
+      "path": "warm-build.log",
+      "byteLength": 944,
+      "sha256": "ff5e1356af6d5168d2e12fcb67acd7d169e2f3ac7e4e3bed124e842349da9ff8"
+    },
+    {
+      "path": "warm-steady-build.log",
+      "byteLength": 889,
+      "sha256": "b0748031f8ba43890442b493c274d16ab4eeb28a4f51cb53544b00de001f19bc"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+✔ [6/18] Built Vir.GeneratePackage.PackageFormat (188ms)
+✔ [7/18] Built Vir.GeneratePackage.PackageFormat:c.o (66ms)
+✔ [8/18] Built Vir.Resources.Types (443ms)
+✔ [9/18] Built Vir.Resources.Types:c.o (318ms)
+✔ [10/18] Built Vir.Resources.Validate (549ms)
+✔ [11/18] Built Vir.Resources.Pack (307ms)
+✔ [12/18] Built Vir.Resources.Pack:c.o (367ms)
+✔ [13/18] Built Vir.Resources.Build (611ms)
+✔ [14/18] Built Vir.Resources.Validate:c.o (976ms)
+✔ [16/18] Built tools.VirResourcePack (866ms)
+✔ [18/18] Built vir_resource_pack:exe (563ms)
+Build completed successfully (18 jobs).
