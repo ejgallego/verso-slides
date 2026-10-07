@@ -10,7 +10,7 @@ open System Lake DSL
 require verso from git "https://github.com/leanprover/verso.git"@
   "cad4b633e75ea769b851f12f9ca3b4f0dfcc625f"
 require lean_vir from git "https://github.com/ejgallego/lean-vir.git" @
-  "ff65dc8823e3c6be1ff5c549d89c3683c18e7fd9"
+  "37d2eb99f85f58b295dbf67996b0b7492366bd8e"
 
 package «verso-slides» where
   version := v!"0.1.0"
@@ -21,6 +21,9 @@ input_dir vendorAssets where
 
 lean_lib VersoSlidesVendored where
   needs := #[vendorAssets, `@«verso-slides»/VersoSlidesVendored:virResourcePack]
+
+target virPrograms (_pkg) : Array (Lean.Name × Lean.Name) := do
+  return Job.pure #[(`VersoSlidesVendored, `VersoSlides.VirPrettyM)]
 
 input_dir webLibAssets where
   path := "web-lib"

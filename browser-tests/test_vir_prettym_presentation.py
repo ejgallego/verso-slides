@@ -10,7 +10,7 @@ def test_published_formatter_has_one_mandatory_path(site_dir):
     for route in ("", "nested/deck"):
         root = site_dir / route
         pretty = (root / "lib/pretty.js").read_text()
-        assert "program.call(\"formatSegments\"" in pretty
+        assert "program.call(\"VersoSlides.VirPrettyM.formatSegments\"" in pretty
         for old in ("function deserializeFormat", "function spaceUptoLine", "function be("):
             assert old not in pretty
         assert not (root / "vir-bootstrap.js").exists()
@@ -25,13 +25,14 @@ def test_complete_native_segments_tags_classes_and_bindings_in_dom(page, server,
     open_demo(page, server)
     corpus = json.loads((site_dir / "native-corpus.json").read_text())
     actual = page.evaluate("""cases => cases.map(c => {
-        const direct = window.versoVir.call("formatSegments", compactFormatToStdFormat(c.format), c.width, c.indent);
+        const direct = window.versoVir.call("VersoSlides.VirPrettyM.formatSegments", compactFormatToStdFormat(c.format), c.width, c.indent);
         const segments = window.versoVirFormatSegments(c.format, c.width, c.indent);
         const annotations = {'7': {cssClass: 'const', binding: 'outer'},
             '8': {cssClass: 'var', binding: 'inner'}};
         const template = document.createElement('template');
         template.innerHTML = formatToHtml(c.format, annotations, c.width * 10, {spaceWidth: 10});
-        return {segments, direct, isArray: Array.isArray(direct), text: template.content.textContent,
+        return {segments: window.testSegmentsForJSON(segments), direct: window.testSegmentsForJSON(direct),
+            isArray: Array.isArray(direct), text: template.content.textContent,
             tagged: [...template.content.querySelectorAll('[data-format-tags]')].map(el => ({
                 text: el.textContent, tags: el.dataset.formatTags.split(' '),
                 classes: [...el.classList], binding: el.getAttribute('data-binding'),
@@ -155,7 +156,9 @@ def test_vir_numeric_admission_keeps_the_same_program_usable(page, server):
         const numeric = facade([3, -2, [7, 7, 'x']], 80, 0);
         const exact = facade([7, '9007199254740993', 'y'], 80, 0);
         const big = facade([7, 9007199254740993n, 'z'], 80, 0);
-        return {rejected, numeric, exact, big, recovered: facade('valid', 80, 0),
+        return {rejected, numeric: window.testSegmentsForJSON(numeric),
+            exact: window.testSegmentsForJSON(exact), big: window.testSegmentsForJSON(big),
+            recovered: facade('valid', 80, 0),
             same: window.versoVir === program && window.versoVirFormatSegments === facade,
             state: window.versoVirState};
     }""")

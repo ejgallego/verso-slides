@@ -2,8 +2,8 @@
 import hashlib
 import json
 
-RUNTIME = "832ab095ad79df0f10f538bcf71272731bb74b90df44f965dac2f086c222897d"
-PROGRAM = "6533441116b4390058891c6045874e2400e99cc72719f92f420c606c7215f995"
+RUNTIME = "d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c"
+PROGRAM = "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a"
 
 
 def test_exact_pair_published_bytes(site_dir):
@@ -13,14 +13,14 @@ def test_exact_pair_published_bytes(site_dir):
         assert {m["contentId"] for m in manifests} == {RUNTIME, PROGRAM}
         runtime = next(m for m in manifests if m["contentId"] == RUNTIME)
         assert runtime["descriptor"]["compatibility"] == {
-            "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b", "virVersion": 1,
+            "leanRevision": "293d5d0c0c3f3dded4688b3ccd6a33939ac5102b", "virVersion": 3,
         }
         for info in runtime["descriptor"]["files"]:
             payload = (root / "lib/vir" / RUNTIME / info["path"]).read_bytes()
             assert len(payload) == info["byteLength"]
             assert hashlib.sha256(payload).hexdigest() == info["sha256"]
-        assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.js").read_bytes()).hexdigest() == "b9fa28797af2787b4bae53a4d4a6a440b718512b54553717c65630b239b5829a"
-        assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.wasm").read_bytes()).hexdigest() == "e74e7f8e663537a4f0035c0edf594fbea9699f40b4b683ffe563922b4f453ec4"
+        assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.js").read_bytes()).hexdigest() == "9a17ab0c9de1c92acfa0c46540687ac95350c975f1add7c7c8891bded5be65a0"
+        assert hashlib.sha256((root / "lib/vir" / RUNTIME / "runtime.wasm").read_bytes()).hexdigest() == "a80e04dbbda9b9d40b98acfb95cde83ec1d75ccc60714aed7e6e8ebd2ef04d0d"
 
 
 def test_published_bootstrap_pagehide_during_actual_creation_has_no_facade(page, server):

@@ -29,8 +29,21 @@ ignored because VIR stages embedding input in the owning library source root.
 Compiled Lean values own the bytes; application and renderer code read no
 producer paths or invoke build tools. VIR acquires the exact prebuilt runtime
 through its own library prerequisite.
-The small `vir-resources/VersoSlidesVendored.json` recipe selects the
-program module and public export role. It is configuration, not an ABI snapshot.
+This local successor currently uses VIR `37d2eb99` and its supplied runtime
+`d72d5c8f`; the runtime lock has no public source yet. Its ordinary-build
+qualification uses an independently seeded verified pack, and does not establish
+fresh public installation. Durable source/runtime publication is a separate gate.
+The stock Lake target selects the owning library and program module:
+
+```lean
+target virPrograms (_pkg) : Array (Lean.Name × Lean.Name) := do
+  return Job.pure #[(`VersoSlidesVendored, `VersoSlides.VirPrettyM)]
+```
+
+VIR derives callable exports from the selected module's generated interface and
+existing export attributes. No handwritten JSON recipe, export list or alias is
+needed. Declarations marked `@[vir_startup]` are also callable, following VIR's
+existing rule; creating a program does not automatically invoke them.
 
 VIR’s `ResourceSet.forSite "lib/vir"` prepares all resource files and loader
 paths. Slides supplies its single formatter and publishes the returned files through
@@ -42,7 +55,7 @@ rerun after correcting the destination or use a fresh output directory.
 
 ## Formatter and lifetime
 
-The `formatSegments` role calls `VersoSlides.VirPrettyM.formatSegments`:
+The adapter calls `VersoSlides.VirPrettyM.formatSegments` by its full Lean name:
 
 ```text
 Std.Format → Nat → Nat → Array Pretty.Segment
@@ -54,7 +67,9 @@ unchanged: VIR validates and marshals numbers, BigInts and decimal strings.
 The Lean wrapper
 runs `Std.Format.prettyM` directly, preserving the former trusted-input model.
 VIR also converts the returned Lean array and segment records into JavaScript
-arrays and objects; the application does not decode a result envelope.
+arrays and objects; the application does not decode a result envelope. Segment
+tag IDs are JavaScript BigInts. Presentation converts them to exact decimal text
+for annotation lookup and HTML attributes, without losing large IDs.
 Explicit resource budgets and their exclusive tests are deferred to a
 [separate later PR](vir-followups.md).
 

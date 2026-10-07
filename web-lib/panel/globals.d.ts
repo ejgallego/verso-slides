@@ -39,13 +39,13 @@ declare function bindingSelector(binding: string): string;
 
 interface VersoVirProgram {
     readonly status: "active" | "failed" | "disposed";
-    call(role: string, ...args: unknown[]): unknown;
+    call(declaration: string, ...args: unknown[]): unknown;
     dispose(): void;
 }
 
 interface PrettySegment {
     text: string;
-    tags: string[];
+    tags: bigint[];
 }
 
 interface Window {

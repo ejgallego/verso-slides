@@ -89,7 +89,7 @@ MEASURE = """(panel, c) => {
     return {columns, width: call.width, space: call.space, postLayoutWidth: width,
         visibleWidth, extent: (maxRight - rect.left) / scale, largestAtom,
         whiteSpace: style.whiteSpace, text: span.textContent,
-        segments: window.versoVirFormatSegments(c.format, columns, 0),
+        segments: window.testSegmentsForJSON(window.versoVirFormatSegments(c.format, columns, 0)),
         tagged: [...span.querySelectorAll('[data-format-tags]')].map(el => ({
             text: el.textContent, tags: el.dataset.formatTags.split(' '),
         })), probes: panel.querySelectorAll('[style*="visibility: hidden"]').length};
@@ -219,7 +219,7 @@ def test_repeated_formatting_and_reflow_retention(page, browser, server, site_di
                 const expected = c.result.segments;
                 if (got.length !== expected.length || got.some((s, i) =>
                     s.text !== expected[i].text || s.tags.length !== expected[i].tags.length ||
-                    s.tags.some((tag, t) => tag !== expected[i].tags[t]))) throw Error(c.name);
+                    s.tags.some((tag, t) => typeof tag !== 'bigint' || tag !== BigInt(expected[i].tags[t])))) throw Error(c.name);
             }
             batchMilliseconds.push(performance.now() - start);
             capacities.push(window.retentionProbe.memories[0].deref().buffer.byteLength);

@@ -35,6 +35,10 @@ def test_published_bundles_and_urls(site_dir):
         compatibilities = []
         for manifest in manifests:
             data = json.loads(manifest.read_text())
+            assert data["descriptor"]["schemaVersion"] == 2
+            assert "exports" not in data["descriptor"]
+            if data["descriptor"]["kind"] == "program":
+                assert data["descriptor"]["logicalId"] == "VersoSlides.VirPrettyM"
             assert manifest.parent.name == data["contentId"]
             compatibility = data["descriptor"]["compatibility"]
             assert set(compatibility) == {"leanRevision", "virVersion"}
@@ -55,6 +59,16 @@ def open_demo(page, server, route="nested/deck"):
     page.wait_for_function("window.versoVir !== undefined", timeout=30000)
     assert not errors, errors
     assert page.locator('[role="alert"]').count() == 0
+    # Test-only JSON projection: assert raw ABI tags are BigInts before sending
+    # exact decimal IDs across the browser/Python boundary. Production stays raw.
+    page.evaluate("""() => {
+        window.testSegmentsForJSON = segments => segments.map(({text, tags}) => ({
+            text, tags: tags.map(tag => {
+                if (typeof tag !== 'bigint') throw Error('expected a BigInt tag');
+                return tag.toString();
+            }),
+        }));
+    }""")
 
 
 @pytest.mark.parametrize("route", ["", "nested/deck"], ids=["root", "nested"])
@@ -63,16 +77,16 @@ def test_same_wrapper_native_corpus(page, server, site_dir, route):
     corpus = json.loads((site_dir / "native-corpus.json").read_text())
     assert len(corpus) == 8
     for case in corpus:
-        actual = page.evaluate("""c => window.versoVirFormatSegments(
-            c.format, c.width, c.indent)""", case)
+        actual = page.evaluate("""c => window.testSegmentsForJSON(window.versoVirFormatSegments(
+            c.format, c.width, c.indent))""", case)
         assert actual == case["result"]["segments"], case["name"]
 
 
 def test_published_host_call_and_lifecycle(page, server):
     open_demo(page, server)
-    assert page.evaluate("""() => window.versoVirFormatSegments(
+    assert page.evaluate("""() => window.testSegmentsForJSON(window.versoVirFormatSegments(
         [7, '7', 'hello'],
-        80, 0)""") == [{"text": "hello", "tags": ["7"]}]
+        80, 0))""") == [{"text": "hello", "tags": ["7"]}]
 
     # Back-forward cache pagehide preserves the page-owned program.
     page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: true}))")
@@ -97,6 +111,22 @@ def test_published_host_call_and_lifecycle(page, server):
         'new page', 80, 0)""") == [
         {"text": "new page", "tags": []}
     ]
+
+
+def test_only_full_root_declaration_is_callable(page, server):
+    open_demo(page, server)
+    assert page.evaluate("""() => {
+        const program = window.versoVir;
+        const rejected = ['formatSegments', 'VersoSlides.Pretty.formatSegments'].map(name => {
+            try { program.call(name, {kind: 'text', value: 'x'}, 80, 0); return false; }
+            catch (error) { return error.message.startsWith('unknown program export '); }
+        });
+        const segments = program.call('VersoSlides.VirPrettyM.formatSegments',
+            compactFormatToStdFormat([7, '9007199254740993', 'still usable']), 80, 0);
+        return {rejected, active: program.status === 'active',
+            segments: window.testSegmentsForJSON(segments)};
+    }""") == {"rejected": [True, True], "active": True,
+        "segments": [{"text": "still usable", "tags": ["9007199254740993"]}]}
 
 
 def open_proof_panel(page):

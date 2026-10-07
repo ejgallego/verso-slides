@@ -1,4 +1,30 @@
-# Three-patch PrettyM review
+# Lean-name adoption successor
+
+Local branch: `feat/vir-prettym-lean-names`, based on the preserved public
+three-patch review `7bee77a03c60b6423ed67a3a682fa85d1eb077c0` below.
+
+The successor replaces the handwritten recipe with the stock owner/module Lake
+target, calls the full Lean declaration, and types returned tag IDs as BigInts.
+No extra libraries, aliases, resource wrapper, formatter algorithm or lifetime
+mechanism is added. Test-only decimal projection checks raw BigInt tags before
+crossing the browser/Python JSON boundary.
+
+Exact local VIR: `37d2eb99f85f58b295dbf67996b0b7492366bd8e`, Lean4.34.0,
+descriptor schema2/resource compatibility3. Runtime source is `-`; qualification
+uses an independently copied supplied pack and warm compilation caches. This is
+not fresh public acquisition, CI or permission to merge/publish a runtime.
+
+Runtime CID: `d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c`.
+Runtime pack SHA: `6127371c45aecfc4a064c993060963b78612977acf1444f74889f1ee7856f814`.
+Regenerated program CID: `ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a`.
+Program pack SHA: `2516a1e9560673b45a63a61a1b6d7a8b33843e39c4331c5760ff5afc84b28150`.
+
+Exact executed source, commands/logs, identities and observations belong to the
+separate adoption checkpoint; previous results below describe their historical
+pair. The public three-commit branch remains frozen until producer publication
+and a review successor are deliberately sequenced.
+
+## Historical public three-patch baseline
 
 Branch: `feat/vir-prettym-reviewed`.
 Base: `a51f7e581893042eb317edf50216060a26f38ac3`.

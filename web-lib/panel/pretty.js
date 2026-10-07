@@ -22,7 +22,7 @@ class PrettyFormatError extends Error {
  */
 function formatCompactSegments(program, format, width, indent) {
     var admitted = compactFormatToStdFormat(format);
-    return /** @type {PrettySegment[]} */ (program.call("formatSegments", admitted, width, indent));
+    return /** @type {PrettySegment[]} */ (program.call("VersoSlides.VirPrettyM.formatSegments", admitted, width, indent));
 }
 
 /**

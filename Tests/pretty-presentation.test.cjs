@@ -49,7 +49,7 @@ test('plain text and hard lines survive HTML escaping exactly', () => {
 
 test('full exact tag stacks survive; nearest registered annotation owns presentation', () => {
   const {context} = fixture();
-  const tags = ['7', '9007199254740993', '99999999999999999999'];
+  const tags = [7n, 9007199254740993n, 99999999999999999999n];
   const annotations = {'7': {cssClass: 'const', binding: 'outer'},
     '9007199254740993': {cssClass: 'var', binding: 'inner'}};
   assert.equal(context.segmentsToHtml([{text: 'x', tags}], annotations),
@@ -60,7 +60,7 @@ test('full exact tag stacks survive; nearest registered annotation owns presenta
 
 test('annotation classes and binding attributes cannot introduce HTML attributes', () => {
   const {context} = fixture();
-  assert.equal(context.segmentsToHtml([{text: '<script>', tags: ['1']}], {
+  assert.equal(context.segmentsToHtml([{text: '<script>', tags: [1n]}], {
     '1': {cssClass: 'var" onclick="bad<&', binding: 'x" data-evil="y<&'},
   }), '<span class="var&quot; onclick=&quot;bad&lt;&amp; token" data-binding="x&quot; data-evil=&quot;y&lt;&amp;" data-format-tags="1">&lt;script&gt;</span>');
 });
@@ -167,14 +167,14 @@ test('formatting failure reports raw evidence and deliberate presentation', () =
 test('compact adapter passes scalar values and dimensions unchanged to VIR', () => {
   const {context} = fixture();
   const calls = [];
-  const program = {call(role, ...args) {
-    calls.push({role, args}); return [];
+  const program = {call(declaration, ...args) {
+    calls.push({declaration, args}); return [];
   }};
   for (const scalar of [7, -2, 1.5, NaN, 9007199254740993n, '9007199254740993', ' 007 ']) {
     const fmt = [3, scalar, [7, scalar, 'x']];
     context.formatCompactSegments(program, fmt, scalar, scalar);
     const call = calls.at(-1);
-    assert.equal(call.role, 'formatSegments');
+    assert.equal(call.declaration, 'VersoSlides.VirPrettyM.formatSegments');
     assert.equal(call.args[0].fields.indent, scalar);
     assert.equal(call.args[0].fields.f.fields.arg1, scalar);
     assert.equal(call.args[1], scalar);
