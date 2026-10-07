@@ -1,0 +1,28 @@
+✔ plain text and hard lines survive HTML escaping exactly (2.073515ms)
+✔ exact tags select the nearest registered annotation (1.540101ms)
+✔ goal structure shares indexed formats and escapes names/prefixes (0.856042ms)
+✔ pixel-to-column conversion calls only the typed VIR facade without changing text (0.949689ms)
+✔ one DOM measurer accounts for Reveal scaling and releases its probe (1.006877ms)
+✔ shared signature rendering always releases measurement (success) (0.807772ms)
+✔ shared signature rendering always releases measurement (failure) (0.623354ms)
+✔ shared goal rendering always releases measurement (success) (4.658004ms)
+✔ shared goal rendering always releases measurement (failure) (0.783175ms)
+✔ terminal redraw during shared rendering preserves the original formatting failure (1.047693ms)
+✔ formatting failure reports raw evidence and deliberate presentation (0.622302ms)
+✔ compact adapter passes scalar values and dimensions unchanged to VIR (0.722171ms)
+✔ initialization publishes readiness and resolves library-owned relative URLs (3.172025ms)
+✔ import failure preserves primary diagnostics and closes initialization (1.937049ms)
+✔ creation failure preserves primary diagnostics and closes initialization (0.73225ms)
+✔ malformed compact input leaves the same initialized program usable (1.136201ms)
+✔ active request failure (object) preserves raw evidence and same-program recovery (0.813973ms)
+✔ active request failure (object) preserves raw evidence and same-program recovery (1.090053ms)
+✔ active request failure (undefined) preserves raw evidence and same-program recovery (1.637885ms)
+✔ failed runtime closes formatting without recreation or replay (0.865761ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 63.417312

@@ -1,0 +1,35 @@
+{
+  "manifests": [
+    {
+      "route": "",
+      "kind": "program",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a"
+    },
+    {
+      "route": "",
+      "kind": "runtime",
+      "contentId": "d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c"
+    },
+    {
+      "route": "nested/deck",
+      "kind": "program",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a"
+    },
+    {
+      "route": "nested/deck",
+      "kind": "runtime",
+      "contentId": "d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c"
+    },
+    {
+      "route": "downstream/custom",
+      "kind": "program",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a"
+    },
+    {
+      "route": "downstream/custom",
+      "kind": "runtime",
+      "contentId": "d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c"
+    }
+  ],
+  "verifiedPayloads": 42
+}
