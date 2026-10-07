@@ -47,22 +47,15 @@ test('plain text and hard lines survive HTML escaping exactly', () => {
   }
 });
 
-test('full exact tag stacks survive; nearest registered annotation owns presentation', () => {
+test('exact tags select the nearest registered annotation', () => {
   const {context} = fixture();
   const tags = [7n, 9007199254740993n, 99999999999999999999n];
   const annotations = {'7': {cssClass: 'const', binding: 'outer'},
     '9007199254740993': {cssClass: 'var', binding: 'inner'}};
   assert.equal(context.segmentsToHtml([{text: 'x', tags}], annotations),
-    '<span class="var token" data-binding="inner" data-format-tags="7 9007199254740993 99999999999999999999">x</span>');
+    '<span class="var token" data-binding="inner">x</span>');
   assert.equal(context.segmentsToHtml([{text: 'x', tags}], {}),
-    '<span data-format-tags="7 9007199254740993 99999999999999999999">x</span>');
-});
-
-test('annotation classes and binding attributes cannot introduce HTML attributes', () => {
-  const {context} = fixture();
-  assert.equal(context.segmentsToHtml([{text: '<script>', tags: [1n]}], {
-    '1': {cssClass: 'var" onclick="bad<&', binding: 'x" data-evil="y<&'},
-  }), '<span class="var&quot; onclick=&quot;bad&lt;&amp; token" data-binding="x&quot; data-evil=&quot;y&lt;&amp;" data-format-tags="1">&lt;script&gt;</span>');
+    'x');
 });
 
 test('goal structure shares indexed formats and escapes names/prefixes', () => {

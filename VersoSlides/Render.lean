@@ -529,6 +529,7 @@ def renderFullHtml (config : Config) (title : String) (slidesBody : Html)
     </body>
   </html> }}
 
+
 /-- Writes a file, creating parent directories as needed. -/
 private def writeFileWithDirs (path : System.FilePath) (content : String) : IO Unit := do
   let dir := path.parent.getD "."

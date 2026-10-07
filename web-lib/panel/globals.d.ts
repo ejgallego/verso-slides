@@ -35,12 +35,10 @@ declare function renderRichFormat(container: HTMLElement, source: Element): void
 declare function showFormattingStatus(container: HTMLElement): void;
 declare function showFormattingFailure(container: HTMLElement, error: unknown): void;
 declare function formatterIsReady(): boolean;
-declare function bindingSelector(binding: string): string;
 
 interface VersoVirProgram {
     readonly status: "active" | "failed" | "disposed";
     call(declaration: string, ...args: unknown[]): unknown;
-    dispose(): void;
 }
 
 interface PrettySegment {
@@ -52,7 +50,7 @@ interface Window {
     versoVir?: VersoVirProgram;
     versoVirReady?: Promise<VersoVirProgram>;
     /** State of this document's one-shot formatter initialization. */
-    versoVirState?: "loading" | "ready" | "failed" | "disposed";
+    versoVirState?: "loading" | "ready" | "failed";
     /** Slides facade: compact input converted to typed Lean segments. */
     versoVirFormatSegments?: (format: unknown, width: number, indent: number) => PrettySegment[];
 }

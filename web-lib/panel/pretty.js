@@ -174,17 +174,12 @@ function segmentsToHtml(segments, annotations) {
             }
         }
 
-        // Preserve every exact tag association; the nearest registered tag
-        // supplies presentation class/binding, as in the existing UI policy.
-        var tagAttr = seg.tags.length ? ' data-format-tags="' + escapeHtml(seg.tags.join(" ")) + '"' : "";
         if (annotation) {
-            var cls = escapeHtml(annotation.cssClass) + " token";
+            var cls = annotation.cssClass + " token";
             var bindAttr = annotation.binding
                 ? ' data-binding="' + escapeHtml(annotation.binding) + '"'
                 : "";
-            parts.push('<span class="' + cls + '"' + bindAttr + tagAttr + ">" + text + "</span>");
-        } else if (tagAttr) {
-            parts.push("<span" + tagAttr + ">" + text + "</span>");
+            parts.push('<span class="' + cls + '"' + bindAttr + ">" + text + "</span>");
         } else {
             parts.push(text);
         }
@@ -289,13 +284,6 @@ function fillReflowedSpans(container, formats, measurer) {
     }
 }
 
-/** One binding-selector policy for code, panels and lightboxes.
- * @param {string} binding @returns {string}
- */
-function bindingSelector(binding) {
-    return '.token[data-binding="' + CSS.escape(binding) + '"]';
-}
-
 function formatterIsReady() {
     return window.versoVirState === "ready";
 }
@@ -307,7 +295,7 @@ function showFormattingStatus(container) {
     message.setAttribute("role", "status");
     message.textContent = window.versoVirState === "loading" ? "Loading Lean formatting…" :
         window.versoVirState === "failed" ? "Lean formatting is unavailable." :
-        "Lean formatting has been closed.";
+        "Lean formatting is unavailable.";
     container.appendChild(message);
 }
 

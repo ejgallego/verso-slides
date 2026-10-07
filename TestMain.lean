@@ -31,7 +31,7 @@ public def main (args : List String) : IO UInt32 := do
   -- Step 0: Unit tests that don't require browsers
   let rc ← runCmd "node"
     #["--test", "Tests/pretty-presentation.test.cjs", "Tests/vir-bootstrap.test.cjs"]
-    "Running formatter presentation and document lifetime tests"
+    "Running formatter presentation and initialization tests"
   if rc != 0 then return rc
 
   let leanTests := #[

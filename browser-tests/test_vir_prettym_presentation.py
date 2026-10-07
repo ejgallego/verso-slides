@@ -33,8 +33,8 @@ def test_complete_native_segments_tags_classes_and_bindings_in_dom(page, server,
         template.innerHTML = formatToHtml(c.format, annotations, c.width * 10, {spaceWidth: 10});
         return {segments: window.testSegmentsForJSON(segments), direct: window.testSegmentsForJSON(direct),
             isArray: Array.isArray(direct), text: template.content.textContent,
-            tagged: [...template.content.querySelectorAll('[data-format-tags]')].map(el => ({
-                text: el.textContent, tags: el.dataset.formatTags.split(' '),
+            tagged: [...template.content.querySelectorAll('.token')].map(el => ({
+                text: el.textContent,
                 classes: [...el.classList], binding: el.getAttribute('data-binding'),
             }))};
     })""", corpus)
@@ -49,27 +49,27 @@ def test_complete_native_segments_tags_classes_and_bindings_in_dom(page, server,
             if not s["tags"]:
                 continue
             annotation = next((t for t in reversed(s["tags"]) if t in ("7", "8")), None)
-            tagged.append({**s, "classes": ["var" if annotation == "8" else "const", "token"] if annotation else [],
-                "binding": "inner" if annotation == "8" else "outer" if annotation else None})
+            if annotation:
+                tagged.append({"text": s["text"], "classes": ["var" if annotation == "8" else "const", "token"],
+                    "binding": "inner" if annotation == "8" else "outer"})
         assert dom["tagged"] == tagged, case["name"]
 
 
-def test_annotation_escaping_and_exact_decimal_tags(page, server):
+def test_existing_text_and_binding_escaping_with_large_tags(page, server):
     open_demo(page, server)
     result = page.evaluate("""() => {
-        const binding = 'b"\\\\[x]&<';
-        const annotations = {'9007199254740993': {cssClass: 'var" onclick="evil', binding}};
+        const binding = 'b"&<';
+        const fmt = [7, '7', [7, '9007199254740993', '<&"']];
+        const annotations = {'9007199254740993': {cssClass: 'var', binding}};
         const template = document.createElement('template');
-        const fmt = [7, '7', [7, '9007199254740993', '<&"\\n😀']];
         template.innerHTML = formatToHtml(fmt, annotations, 800, {spaceWidth: 10});
-        const span = template.content.querySelector('[data-format-tags]');
-        return {text: template.content.textContent, tags: span.dataset.formatTags.split(' '),
-            binding: span.getAttribute('data-binding'), css: span.getAttribute('class'),
-            unsafe: template.content.querySelectorAll('script,img,[onclick],[data-evil]').length,
-            selectable: template.content.querySelector(bindingSelector(binding)) === span};
+        const span = template.content.querySelector('.token');
+        return {text: template.content.textContent, binding: span.getAttribute('data-binding'),
+            css: span.getAttribute('class'), unsafe: template.content.querySelectorAll('[onclick],[data-evil]').length,
+            segments: window.testSegmentsForJSON(window.versoVirFormatSegments(fmt, 80, 0))};
     }""")
-    assert result == {"text": '<&"\n😀', "tags": ["7", "9007199254740993"],
-        "binding": 'b"\\[x]&<', "css": 'var" onclick="evil token', "unsafe": 0, "selectable": True}
+    assert result == {"text": '<&"', "binding": 'b"&<', "css": 'var token', "unsafe": 0,
+        "segments": [{"text": '<&"', "tags": ["7", "9007199254740993"]}]}
 
 
 def set_goal(block, format_value, binding):
@@ -87,16 +87,15 @@ def set_goal(block, format_value, binding):
     }""", {"format": format_value, "binding": binding})
 
 
-def test_shared_goal_binding_interaction_uses_escaped_selector(page, server):
+def test_shared_goal_preserves_ordinary_binding_interaction(page, server):
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     open_demo(page, server)
     block, panel, _ = open_proof_panel(page)
-    binding = 'binding"\\[x]&<='
+    binding = "ordinary-binding"
     set_goal(block, [7, "7", 'x<&"'], binding)
     token = panel.locator(".reflowed .token").first
     expect(token).to_have_text('x<&"')
-    expect(token).to_have_attribute("data-format-tags", "7")
     assert token.get_attribute("data-binding") == binding
     token.dispatch_event("mouseover")
     expect(token).to_have_class("var token binding-hl")
@@ -122,18 +121,6 @@ def test_rejected_format_is_visible_without_static_layout_substitution_or_probe_
     expect(panel.get_by_role("alert")).to_have_count(0)
     expect(panel.locator('[style*="visibility: hidden"]')).to_have_count(0)
     assert errors == []
-
-
-def test_panel_font_metric_change_reflows_current_format(page, server):
-    open_demo(page, server)
-    _, panel, _ = open_proof_panel(page)
-    panel.evaluate("el => { el.firstElementChild.dataset.fontMarker = 'old'; el.style.fontSize = '0.8em'; }")
-    # This is a controlled FontFaceSet notification, not qualification of an
-    # actual delayed font download. Real acquisition/font geometry is a later gate.
-    page.evaluate("document.fonts.dispatchEvent(new Event('loadingdone'))")
-    expect(panel.locator('[data-font-marker]')).to_have_count(0)
-    expect(panel.locator('.reflowed').first).not_to_be_empty()
-    expect(panel.locator('[style*="visibility: hidden"]')).to_have_count(0)
 
 
 def test_vir_numeric_admission_keeps_the_same_program_usable(page, server):

@@ -68,17 +68,6 @@ private def nativeCorpus : Lean.Json := .arr <| corpusCases.map
       ("width", Lean.toJson width), ("indent", Lean.toJson (0 : Nat)),
       ("result", resultJson <| VersoSlides.VirPrettyM.formatSegments format width 0)]
 
--- Test-only width sweep for measured browser layouts. Production exports are unchanged.
-private def geometryCorpus : Lean.Json := .arr <| (List.range 128).toArray.flatMap fun n =>
-  let formats : Array (String × Format) := #[
-    ("group", groupedLineDoc), ("fill", paragraphDoc),
-    ("Greek tags", .group <| .tag 7 "αβ" ++ .line ++ .tag 8 "γδ" ++ .line ++ "λx"),
-    ("supplementary hard lines", .tag 7 <| .text "😀\n界")]
-  formats.map fun (name, format) => Lean.Json.mkObj [
-    ("name", .str name), ("format", compactFormat format),
-    ("width", Lean.toJson (n + 1)), ("indent", Lean.toJson (0 : Nat)),
-    ("result", resultJson <| VersoSlides.VirPrettyM.formatSegments format (n + 1) 0)]
-
 private def oraclePlain (format : Format) (width : Nat) : String :=
   String.join <| (VersoSlides.VirPrettyM.formatSegments format width 0).toList.map (·.text)
 
@@ -112,11 +101,8 @@ def main (args : List String) : IO UInt32 := do
   if args == ["--host-abi-corpus"] then
     IO.println nativeCorpus.compress
     return 0
-  if args == ["--geometry-corpus"] then
-    IO.println geometryCorpus.compress
-    return 0
   if !args.isEmpty then
-    IO.eprintln "usage: test-pretty [--host-abi-corpus | --geometry-corpus]"
+    IO.eprintln "usage: test-pretty [--host-abi-corpus]"
     return 1
   let ((), state) ← tests.run {}
   state.report

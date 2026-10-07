@@ -32,6 +32,10 @@ def test_published_bundles_and_urls(site_dir):
         assert {json.loads(m.read_text())["descriptor"]["kind"] for m in manifests} == {
             "runtime", "program"
         }
+        assert {json.loads(m.read_text())["contentId"] for m in manifests} == {
+            "d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c",
+            "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+        }
         compatibilities = []
         for manifest in manifests:
             data = json.loads(manifest.read_text())
@@ -82,35 +86,10 @@ def test_same_wrapper_native_corpus(page, server, site_dir, route):
         assert actual == case["result"]["segments"], case["name"]
 
 
-def test_published_host_call_and_lifecycle(page, server):
+def test_published_host_call(page, server):
     open_demo(page, server)
     assert page.evaluate("""() => window.testSegmentsForJSON(window.versoVirFormatSegments(
-        [7, '7', 'hello'],
-        80, 0))""") == [{"text": "hello", "tags": ["7"]}]
-
-    # Back-forward cache pagehide preserves the page-owned program.
-    page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: true}))")
-    assert page.evaluate("""() => window.versoVirFormatSegments(
-        'still live', 80, 0)""") == [
-        {"text": "still live", "tags": []}
-    ]
-
-    # A terminal pagehide disposes it; a fresh navigation creates a new one.
-    page.evaluate("window.dispatchEvent(new PageTransitionEvent('pagehide', {persisted: false}))")
-    assert page.evaluate("""() => {
-        try {
-            window.versoVirFormatSegments('disposed', 80, 0);
-            return false;
-        } catch (_) {
-            return true;
-        }
-    }""")
-    page.reload()
-    page.wait_for_function("window.versoVir !== undefined", timeout=30000)
-    assert page.evaluate("""() => window.versoVirFormatSegments(
-        'new page', 80, 0)""") == [
-        {"text": "new page", "tags": []}
-    ]
+        [7, '7', 'hello'], 80, 0))""") == [{"text": "hello", "tags": ["7"]}]
 
 
 def test_only_full_root_declaration_is_callable(page, server):

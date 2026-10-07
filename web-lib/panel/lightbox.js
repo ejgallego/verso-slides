@@ -62,14 +62,8 @@
         Reveal.on("slidechanged", closeLightbox);
 
         // Rescale lightbox content when viewport changes
-        Reveal.on("resize", function () {
-            applyScale();
-            if (currentInner) reflowLightboxSignatures(currentInner);
-        });
+        Reveal.on("resize", applyScale);
         window.addEventListener("verso-vir-statechange", function () {
-            if (currentInner) reflowLightboxSignatures(currentInner);
-        });
-        document.fonts.addEventListener("loadingdone", function () {
             if (currentInner) reflowLightboxSignatures(currentInner);
         });
 
@@ -195,7 +189,7 @@
             if (!tok) return;
             var binding = tok.getAttribute("data-binding");
             if (!binding) return;
-            var sel = bindingSelector(binding);
+            var sel = '.token[data-binding="' + binding + '"]';
             inner.querySelectorAll(sel).forEach(function (t) {
                 t.classList.add("binding-hl");
             });
@@ -214,15 +208,15 @@
      * @param {HTMLElement} container
      */
     function reflowLightboxSignatures(container) {
-        container.querySelectorAll("code[data-rich-format]").forEach(function (source) {
-            if (!formatterIsReady()) {
-                source.textContent = "";
-                showFormattingStatus(/** @type {HTMLElement} */ (source));
-            } else {
-                try { renderRichFormat(container, source); }
-                catch (error) { showFormattingFailure(/** @type {HTMLElement} */ (source), error); }
-            }
-        });
+        var source = container.querySelector("code[data-rich-format]");
+        if (!source) return;
+        if (!formatterIsReady()) {
+            source.textContent = "";
+            showFormattingStatus(/** @type {HTMLElement} */ (source));
+        } else {
+            try { renderRichFormat(container, source); }
+            catch (error) { showFormattingFailure(/** @type {HTMLElement} */ (source), error); }
+        }
     }
 
     /** Close the lightbox overlay if open. */

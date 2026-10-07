@@ -43,11 +43,6 @@
                 redrawFocusOutline(/** @type {PanelBlock} */ (el));
             });
         });
-        document.fonts.addEventListener("loadingdone", function () {
-            document.querySelectorAll(".info-panel").forEach(function (panel) {
-                reflowPanel(/** @type {InfoPanel} */ (panel));
-            });
-        });
     }
 
     // ---- Per-block setup ----
@@ -97,7 +92,7 @@
             if (!tok) return;
             var binding = tok.getAttribute("data-binding");
             if (!binding) return;
-            var sel = bindingSelector(binding);
+            var sel = '.token[data-binding="' + binding + '"]';
             codeEl.querySelectorAll(sel).forEach(function (t) {
                 t.classList.add("binding-hl");
             });
@@ -584,7 +579,6 @@
             drawElementOutline(codeEl, null, "panel-outline-focus");
         }
         block._activeSource = null;
-        panel._richFormatSource = null;
         panel.innerHTML = "";
     }
 
