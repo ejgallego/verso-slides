@@ -9,13 +9,14 @@ landed head. Preserve mandatory VIR and full Lean-name/typed-array contracts.
 ## Active landing and retained work
 
 Active landing candidate:
-[`feat/vir-prettym-assets-notes`](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...eb89ef99ce3791b57ccb649e8fd7f8023241e0d8),
-exactly three commits: essential integration; JavaScript formatter removal;
-focused tests/docs/examples. Qualified sourcef5e59bc and
+[`feat/vir-prettym-four-patch`](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...576295f7b3abf569f25b10f2c5c4ddc427224a4c),
+exactly four commits: essential integration; JavaScript formatter removal/readiness;
+shared panel/lightbox rendering refactor; focused tests/docs/examples. Qualified sourcef5e59bc and
 [fresh scoped evidence786dd3c](https://github.com/ejgallego/verso-slides/tree/786dd3c6b3b15f022f2a65202967b179c230b1cc/docs/evidence/scoped-first-patch)
 record20 Node/native/build checks and30 focused Chromium/Firefox checks.
 The current successor adds asset-ownership/publication comments and generated-output
-ignore rules only; executable code/tests and the exact resource pair are unchanged.
+ignore rules, then separates shared rendering into its own commit. The final
+executable code/tests and exact resource pair remain unchanged.
 The Demo source-location prerequisite stays in commit3. Formatting-only noise is
 dropped. Basic readiness/error reporting and the existing panel resize behavior
 stay; cleanup of an already-detached measurement probe is required by readiness/
