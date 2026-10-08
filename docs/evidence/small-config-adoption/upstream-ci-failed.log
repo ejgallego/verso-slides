@@ -1,0 +1,24 @@
+build-demo	Run npm run test:surface:browser	﻿2026-10-08T12:49:29.8770148Z ##[group]Run npm run test:surface:browser
+build-demo	Run npm run test:surface:browser	2026-10-08T12:49:29.8770508Z ^[[36;1mnpm run test:surface:browser^[[0m
+build-demo	Run npm run test:surface:browser	2026-10-08T12:49:29.8835397Z shell: /usr/bin/bash -e {0}
+build-demo	Run npm run test:surface:browser	2026-10-08T12:49:29.8835696Z ##[endgroup]
+build-demo	Run npm run test:surface:browser	2026-10-08T12:49:29.9902091Z 
+build-demo	Run npm run test:surface:browser	2026-10-08T12:49:29.9902747Z > lean-vir@0.1.0 test:surface:browser
+build-demo	Run npm run test:surface:browser	2026-10-08T12:49:29.9903384Z > node tests/browser/surface-report.mjs
+build-demo	Run npm run test:surface:browser	2026-10-08T12:49:29.9903719Z 
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3719521Z file:///home/runner/work/lean-vir/lean-vir/tests/browser/harness.mjs:270
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3720448Z   const error = new Error(details === "" ? message : `${message}\nChromium stderr:\n${details}`);
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3720936Z                 ^
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3721089Z 
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3721557Z Error: Chromium did not publish a DevTools port within 30000ms
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3722162Z Chromium stderr:
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3723511Z [4890:4909:1008/124949.218647:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3725262Z [4890:4909:1008/124954.013372:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3726907Z [4890:4909:1008/124955.432747:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3728049Z     at chromiumError (file:///home/runner/work/lean-vir/lean-vir/tests/browser/harness.mjs:270:17)
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3729632Z     at waitForDevToolsPort (file:///home/runner/work/lean-vir/lean-vir/tests/browser/harness.mjs:313:9)
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3731187Z     at async launchChromium (file:///home/runner/work/lean-vir/lean-vir/tests/browser/harness.mjs:372:24)
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3732324Z     at async file:///home/runner/work/lean-vir/lean-vir/tests/browser/surface-report.mjs:61:14
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3733068Z 
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3733181Z Node.js v24.21.0
+build-demo	Run npm run test:surface:browser	2026-10-08T12:50:05.3874142Z ##[error]Process completed with exit code 1.

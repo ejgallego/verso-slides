@@ -1,0 +1,174 @@
+{
+  "README.md": {
+    "sha256": "5d141c999d2707fb56f1f123ecb735f6dd0923d2a70b7a5588ad0181c4a185f7",
+    "byteLength": 6795
+  },
+  "browser.log": {
+    "sha256": "211e3cdd6f68eb00a3a7e992454c9c681880edd80983e8fe111effa0cc32a982",
+    "byteLength": 4311
+  },
+  "browser.xml": {
+    "sha256": "582a0e1b46fd13a9a7d103af4f230db54d8ea857334e9407943e6ff037c09034",
+    "byteLength": 4180
+  },
+  "dependency-update.log": {
+    "sha256": "0707b0006fddbf47d361fe7154904acc109429d73a797583597cebf1e9acda9b",
+    "byteLength": 367
+  },
+  "downstream-before.json": {
+    "sha256": "f89db9f43c19f13935e8d0cc7ffede544eebcf80ea7c7a6042558f3a116b9577",
+    "byteLength": 342
+  },
+  "downstream-cold-after.json": {
+    "sha256": "04c58f78281152c53e0b7f998d49a7e9c7f0ff447b913a4865350cf822c74f96",
+    "byteLength": 506
+  },
+  "downstream-cold-build.log": {
+    "sha256": "f9591c2a18d9e18198f82f99625a183cac10588189b7967d6e1d442517c8f65a",
+    "byteLength": 6289
+  },
+  "downstream-downloads.log": {
+    "sha256": "be8498bc1cf2fdbcf10a78248a082a0aceaa989e6958829266cfb7f84a88c9d5",
+    "byteLength": 33
+  },
+  "downstream-render.log": {
+    "sha256": "9b5e30ee78b4c0a14853989a2377b295f5fad45ff80eb10ee49e47e2503aac9a",
+    "byteLength": 940
+  },
+  "downstream-update.log": {
+    "sha256": "cb779e200797fbcd2b4b67b554f76a918a6a262d35eef6ec825b554db38ee044",
+    "byteLength": 1315
+  },
+  "downstream-warm-after.json": {
+    "sha256": "04c58f78281152c53e0b7f998d49a7e9c7f0ff447b913a4865350cf822c74f96",
+    "byteLength": 506
+  },
+  "downstream-warm-build.log": {
+    "sha256": "d22274cc49ad5c347f4c3d6bb95f1ea600f39568361215084bb9b189a31f0181",
+    "byteLength": 945
+  },
+  "draft-preparation.json": {
+    "sha256": "b933e95106cf5a8bad89219bd3b9db49dc66876f524b700925f753fd893b797f",
+    "byteLength": 350
+  },
+  "executed-source.json": {
+    "sha256": "92969cd9348112c72879618c07eb7c2494eeb061f6ede0c51889e4d08a950a35",
+    "byteLength": 6136
+  },
+  "identities.json": {
+    "sha256": "1632121a0d9ed77de7e164477ff906e0bcaf7ce42955525f00621786d837bf29",
+    "byteLength": 4420
+  },
+  "manifests/downstream/ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a/bundle.json": {
+    "sha256": "31e0f1d0a8b4850055a40d1334a984dfc321f21abc07fca8d98a0e10eb48d236",
+    "byteLength": 1680
+  },
+  "manifests/downstream/e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd/bundle.json": {
+    "sha256": "fe1421e25a171bd34b2a7b4a468205d7dc934c86d296f4d5764ab4d852c8d6c1",
+    "byteLength": 1223
+  },
+  "manifests/nested/ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a/bundle.json": {
+    "sha256": "31e0f1d0a8b4850055a40d1334a984dfc321f21abc07fca8d98a0e10eb48d236",
+    "byteLength": 1680
+  },
+  "manifests/nested/e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd/bundle.json": {
+    "sha256": "fe1421e25a171bd34b2a7b4a468205d7dc934c86d296f4d5764ab4d852c8d6c1",
+    "byteLength": 1223
+  },
+  "manifests/root/ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a/bundle.json": {
+    "sha256": "31e0f1d0a8b4850055a40d1334a984dfc321f21abc07fca8d98a0e10eb48d236",
+    "byteLength": 1680
+  },
+  "manifests/root/e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd/bundle.json": {
+    "sha256": "fe1421e25a171bd34b2a7b4a468205d7dc934c86d296f4d5764ab4d852c8d6c1",
+    "byteLength": 1223
+  },
+  "native-corpus.json": {
+    "sha256": "6ab31d5760987f8848958694996e54cf1e674fb4288c0f54139dd9531b741210",
+    "byteLength": 1634
+  },
+  "native-oracle.log": {
+    "sha256": "c5d5428419a948aca0ded8a66071493dcf30ef27acef099776946cfce3672d14",
+    "byteLength": 372
+  },
+  "node.log": {
+    "sha256": "af19bee0541d172c27ead03d2d1b8e326d81fad924b307e599f14cd861e31cfe",
+    "byteLength": 1837
+  },
+  "observe/curl": {
+    "sha256": "75b0adc5fdbc7ab342ca4c6abfb36c0ed604fd85673dd56f583ef1d5d55fb059",
+    "byteLength": 396
+  },
+  "ordinary-tests.log": {
+    "sha256": "04d2f8a26477eab680434a08172877b7fa04b821b8650fc1a1cf79ffc5ac76c7",
+    "byteLength": 11509
+  },
+  "packs/downstream-runtime.virres": {
+    "sha256": "3910c29e40ee68c3b110355fa1d30dae3029f2b34967269642521fc8409848d7",
+    "byteLength": 1120065
+  },
+  "packs/root-program.virres": {
+    "sha256": "2516a1e9560673b45a63a61a1b6d7a8b33843e39c4331c5760ff5afc84b28150",
+    "byteLength": 77764
+  },
+  "packs/root-runtime.virres": {
+    "sha256": "3910c29e40ee68c3b110355fa1d30dae3029f2b34967269642521fc8409848d7",
+    "byteLength": 1120065
+  },
+  "prepared-input.json": {
+    "sha256": "5a5be31259447278c8364b316e5123c64349cfc193062b2a0a3c2322df387639",
+    "byteLength": 304
+  },
+  "publication-verification.json": {
+    "sha256": "c84ea8661839e7b2a0b9adc4efed579f41b8430ae3866e15cf2a201e38e2d0b6",
+    "byteLength": 1517
+  },
+  "root-before.json": {
+    "sha256": "6e202ac162ebd72f31bc3d3cf2fc6eaa3cb274b3d65bc5dddbf9b1ad9dd75282",
+    "byteLength": 262
+  },
+  "root-cold-after.json": {
+    "sha256": "5c497a3504cdfc9dba216924735b50c038efa4ab953340d07c98952ce27d25c5",
+    "byteLength": 903
+  },
+  "root-cold-build.log": {
+    "sha256": "e040e578a38c91c38bc5638c85db24a0f040b64da403466e67d6d6011e828c4b",
+    "byteLength": 8268
+  },
+  "root-downloads.log": {
+    "sha256": "be8498bc1cf2fdbcf10a78248a082a0aceaa989e6958829266cfb7f84a88c9d5",
+    "byteLength": 33
+  },
+  "root-render.log": {
+    "sha256": "6b54bec170188b69a558b2887a15626d72b126665944739ed1f026abd74ae37f",
+    "byteLength": 941
+  },
+  "root-warm-after.json": {
+    "sha256": "5c497a3504cdfc9dba216924735b50c038efa4ab953340d07c98952ce27d25c5",
+    "byteLength": 903
+  },
+  "root-warm-build.log": {
+    "sha256": "3b9edb500ead2d5fca5c72e9f0b96c32cae122fb46d64c478855e745fa1f2945",
+    "byteLength": 945
+  },
+  "runtime-lock.json": {
+    "sha256": "aea4cc587cfc26a7967399bbcfd2d53e422221def57801f6f4671228181257da",
+    "byteLength": 325
+  },
+  "typescript.log": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "byteLength": 0
+  },
+  "upstream-ci-failed.log": {
+    "sha256": "fbd27c3e6ed90ab3d5b2b63ca68d782bde574e37efde4bcc54d8d1fa9e2a0630",
+    "byteLength": 3270
+  },
+  "upstream-ci-initial.json": {
+    "sha256": "7357b6d2d4cb6435eac4f36b58276f1b1b7535b5e1ba47d2f2d01187b6c736d6",
+    "byteLength": 7891
+  },
+  "upstream-ci.json": {
+    "sha256": "7357b6d2d4cb6435eac4f36b58276f1b1b7535b5e1ba47d2f2d01187b6c736d6",
+    "byteLength": 7891
+  }
+}

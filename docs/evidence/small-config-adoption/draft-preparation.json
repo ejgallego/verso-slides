@@ -1,0 +1,13 @@
+{
+  "base": "235aac80e627c11e4f094ced7e4e564ed5ecfe93",
+  "producerPublicRef": "pending",
+  "producerSourceCopied": false,
+  "otherDependencyCaches": "copied",
+  "runtimePackSupplied": false,
+  "rootApplicationBuildCacheExists": false,
+  "consumerDraftFiles": [
+    "lakefile.lean",
+    "VersoSlidesVendored.lean",
+    "docs/vir-deck-build.md"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "sourceRevision": "cfa6ece02c1d1b24cb4ee623632a560c25018d08",
+  "runtimeCacheExists": false,
+  "runtimeStageExists": false,
+  "suppliedPack": false,
+  "otherDependencyCaches": "copied after ordinary public dependency resolution",
+  "leafBuildCacheExists": false,
+  "parentApplicationBuildCache": "root build shared via path dependency"
+}

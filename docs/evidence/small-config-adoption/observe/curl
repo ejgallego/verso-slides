@@ -1,0 +1,7 @@
+#!/bin/sh
+for arg do
+  if [ "$arg" = 'https://github.com/ejgallego/lean-vir/releases/download/resource-e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd/e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd.virres' ]; then
+    printf '%s\n' 'standard public runtime download' >> "$SLIDES_RUNTIME_DOWNLOAD_LOG"
+  fi
+done
+exec /usr/bin/curl -q --netrc-file /dev/null "$@"

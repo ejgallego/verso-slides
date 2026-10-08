@@ -1,0 +1,199 @@
+ℹ [161/164] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [162/187] Replayed «verso-slides»/VersoSlidesVendored:virResourcePack
+info: stdout:
+ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a
+ℹ [163/187] Replayed «verso-slides»/VersoSlides.VirPrettyM:virProgram
+info: stdout:
+wrote /tmp/tmp.XXaTIqIY/program.irpkg-set.json
+wrote /tmp/tmp.XXaTIqIY/program.irpkg
+wrote /tmp/tmp.XXaTIqIY/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+✔ [737/745] Built TestElab.ErrorReporting (687ms)
+✔ [738/745] Built TestElab.ImageWarning (704ms)
+✔ [739/745] Built TestElab.ErrorReporting:c.o (78ms)
+✔ [740/745] Built TestElab.ImageWarning:c.o (93ms)
+✔ [741/745] Built TestElab (607ms)
+✔ [742/745] Built TestElab:c.o (64ms)
+✔ [743/745] Built TestMain (820ms)
+✔ [744/745] Built TestMain:c.o (192ms)
+✔ [745/745] Built «verso-slides-test»:exe (621ms)
+✔ [37/39] Built Tests.Fragmentize (893ms)
+✔ [38/39] Built Tests.Fragmentize:c.o (883ms)
+✔ [39/39] Built «test-fragmentize»:exe (623ms)
+ℹ [161/164] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [162/190] Replayed «verso-slides»/VersoSlidesVendored:virResourcePack
+info: stdout:
+ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a
+ℹ [163/190] Replayed «verso-slides»/VersoSlides.VirPrettyM:virProgram
+info: stdout:
+wrote /tmp/tmp.XXaTIqIY/program.irpkg-set.json
+wrote /tmp/tmp.XXaTIqIY/program.irpkg
+wrote /tmp/tmp.XXaTIqIY/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+✔ [717/719] Built Tests.Render (736ms)
+✔ [718/719] Built Tests.Render:c.o (245ms)
+✔ [719/719] Built «test-render»:exe (695ms)
+✔ [35/37] Built Tests.CommentParsers (415ms)
+✔ [36/37] Built Tests.CommentParsers:c.o (339ms)
+✔ [37/37] Built «test-comment-parsers»:exe (643ms)
+ℹ [47/64] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+✔ [60/64] Built VersoSlides.VirPrettyM:c.o (63ms)
+✔ [61/64] Built Vir.Attributes:c.o (580ms)
+✔ [62/64] Built Tests.Pretty (703ms)
+✔ [63/64] Built Tests.Pretty:c.o (429ms)
+✔ [64/64] Built «test-pretty»:exe (663ms)
+ℹ [126/129] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [127/129] Replayed «verso-slides»/VersoSlides.VirPrettyM:virProgram
+info: stdout:
+wrote /tmp/tmp.XXaTIqIY/program.irpkg-set.json
+wrote /tmp/tmp.XXaTIqIY/program.irpkg
+wrote /tmp/tmp.XXaTIqIY/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [128/565] Replayed «verso-slides»/VersoSlidesVendored:virResourcePack
+info: stdout:
+ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a
+✔ [717/719] Built Tests.VirPublication (823ms)
+✔ [718/719] Built Tests.VirPublication:c.o (415ms)
+✔ [719/719] Built «test-vir-publication»:exe (662ms)
+ℹ [161/164] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [162/164] Replayed «verso-slides»/VersoSlides.VirPrettyM:virProgram
+info: stdout:
+wrote /tmp/tmp.XXaTIqIY/program.irpkg-set.json
+wrote /tmp/tmp.XXaTIqIY/program.irpkg
+wrote /tmp/tmp.XXaTIqIY/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [163/699] Replayed «verso-slides»/VersoSlidesVendored:virResourcePack
+info: stdout:
+ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a
+✔ [736/738] Built Tests.ConfigValidation (857ms)
+✔ [737/738] Built Tests.ConfigValidation:c.o (361ms)
+✔ [738/738] Built «test-config-validation»:exe (736ms)
+ℹ [165/168] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [166/168] Replayed «verso-slides»/VersoSlides.VirPrettyM:virProgram
+info: stdout:
+wrote /tmp/tmp.XXaTIqIY/program.irpkg-set.json
+wrote /tmp/tmp.XXaTIqIY/program.irpkg
+wrote /tmp/tmp.XXaTIqIY/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [167/699] Replayed «verso-slides»/VersoSlidesVendored:virResourcePack
+info: stdout:
+ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a
+✔ [736/750] Built TestFixtures.PanelOption (851ms)
+✔ [737/750] Built TestFixtures.MinimalThemed (774ms)
+✔ [738/750] Built TestFixtures.Theme (926ms)
+✔ [739/750] Built TestFixtures.PanelOption:c.o (107ms)
+✔ [740/750] Built TestFixtures.MinimalThemed:c.o (104ms)
+✔ [741/750] Built TestFixtures.Theme:c.o (108ms)
+✔ [742/750] Built TestFixtures.Markup (1.1s)
+✔ [743/750] Built TestFixtures.DiagramAnim (1.2s)
+✔ [744/750] Built TestFixtures.DiagramAnim:c.o (160ms)
+⚠ [745/750] Built TestFixtures.Code (1.4s)
+warning: TestFixtures/Code.lean:73:0: Line 73 is too long (65 columns exceeds 60).
+
+Note: Example code is shown on mobile devices and other narrow contexts. Long lines are likely to be truncated in the rendered output.
+
+Hint: The limit of this linter can be changed with the option `verso.code.warnLineLength`. This linter can be disabled by setting this option to 0.
+warning: TestFixtures/Code.lean:74:0: Line 74 is too long (61 columns exceeds 60).
+
+Note: Example code is shown on mobile devices and other narrow contexts. Long lines are likely to be truncated in the rendered output.
+
+Hint: The limit of this linter can be changed with the option `verso.code.warnLineLength`. This linter can be disabled by setting this option to 0.
+warning: TestFixtures/Code.lean:114:0: Line 114 is too long (61 columns exceeds 60).
+
+Note: Example code is shown on mobile devices and other narrow contexts. Long lines are likely to be truncated in the rendered output.
+
+Hint: The limit of this linter can be changed with the option `verso.code.warnLineLength`. This linter can be disabled by setting this option to 0.
+✔ [746/750] Built TestFixtures.Markup:c.o (345ms)
+✔ [747/750] Built TestFixtures.Code:c.o (270ms)
+✔ [748/750] Built TestFixtures.Build (768ms)
+✔ [749/750] Built TestFixtures.Build:c.o (205ms)
+✔ [750/750] Built «test-fixtures-build»:exe (731ms)
+[test] Running formatter presentation and initialization tests...
+✔ plain text and hard lines survive HTML escaping exactly (2.483558ms)
+✔ exact tags select the nearest registered annotation (1.82144ms)
+✔ goal structure shares indexed formats and escapes names/prefixes (0.992649ms)
+✔ pixel-to-column conversion calls only the typed VIR facade without changing text (1.137993ms)
+✔ one DOM measurer accounts for Reveal scaling and releases its probe (0.924421ms)
+✔ shared signature rendering always releases measurement (success) (0.944198ms)
+✔ shared signature rendering always releases measurement (failure) (1.663282ms)
+✔ shared goal rendering always releases measurement (success) (0.80664ms)
+✔ shared goal rendering always releases measurement (failure) (0.760112ms)
+✔ terminal redraw during shared rendering preserves the original formatting failure (1.075805ms)
+✔ formatting failure reports raw evidence and deliberate presentation (0.73256ms)
+✔ compact adapter passes scalar values and dimensions unchanged to VIR (0.893483ms)
+✔ initialization publishes readiness and resolves library-owned relative URLs (2.939756ms)
+✔ import failure preserves primary diagnostics and closes initialization (2.036045ms)
+✔ creation failure preserves primary diagnostics and closes initialization (0.904744ms)
+✔ malformed compact input leaves the same initialized program usable (1.211512ms)
+✔ active request failure (object) preserves raw evidence and same-program recovery (0.940521ms)
+✔ active request failure (object) preserves raw evidence and same-program recovery (0.859869ms)
+✔ active request failure (undefined) preserves raw evidence and same-program recovery (1.429132ms)
+✔ failed runtime closes formatting without recreation or replay (0.86021ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 69.515804
+[test] Running fragmentize unit tests...
+All 51 tests passed.
+[test] Running rendering unit tests...
+All 24 tests passed.
+[test] Running comment-parser unit tests...
+All 36 tests passed.
+[test] Running prettyM segment tests...
+All 8 tests passed.
+[test] Running VIR publication tests...
+Slides written to /tmp/tmp.XX1PW3rh/site/index.html
+Slides written to /tmp/tmp.XX1PW3rh/site/index.html
+Slides written to /tmp/tmp.XX1PW3rh/partial/index.html
+Ordinary publication tests passed.
+[test] Running Config.validateFilenames unit tests...
+All 17 validation cases passed.
+[test] Generating test fixtures...
+Slides written to _test/markup/index.html
+Slides written to _test/code/index.html
+Slides written to _test/paneloption/index.html
+Slides written to _test/diagramanim/index.html
+Slides written to _test/theme/index.html
+Slides written to _test/hl-default/index.html
+Slides written to _test/hl-builtin/index.html
+Slides written to _test/hl-custom/index.html
+Slides written to _test/themes/black/index.html
+Slides written to _test/themes/black-contrast/index.html
+Slides written to _test/themes/white/index.html
+Slides written to _test/themes/white-contrast/index.html
+Slides written to _test/themes/beige/index.html
+Slides written to _test/themes/league/index.html
+Slides written to _test/themes/moon/index.html
+Slides written to _test/themes/solarized/index.html
+Slides written to _test/themes/blood/index.html
+Slides written to _test/themes/night/index.html
+Slides written to _test/themes/simple/index.html
+Slides written to _test/themes/sky/index.html
+Slides written to _test/themes/dracula/index.html
+Slides written to _test/themes/serif/index.html
+[test] Skipping Playwright browser tests (--no-playwright)

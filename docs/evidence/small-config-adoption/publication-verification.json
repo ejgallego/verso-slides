@@ -1,0 +1,56 @@
+{
+  "manifests": 6,
+  "payloads": 42,
+  "routes": [
+    {
+      "route": "",
+      "kind": "program",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+      "payloads": 8
+    },
+    {
+      "route": "",
+      "kind": "runtime",
+      "contentId": "e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd",
+      "payloads": 6
+    },
+    {
+      "route": "nested/deck",
+      "kind": "program",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+      "payloads": 8
+    },
+    {
+      "route": "nested/deck",
+      "kind": "runtime",
+      "contentId": "e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd",
+      "payloads": 6
+    },
+    {
+      "route": "downstream/custom",
+      "kind": "program",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+      "payloads": 8
+    },
+    {
+      "route": "downstream/custom",
+      "kind": "runtime",
+      "contentId": "e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd",
+      "payloads": 6
+    }
+  ],
+  "selectedPresentationFilesByteIdentical": [
+    "/index.html",
+    "/lib/pretty.js",
+    "/lib/panel.js",
+    "/lib/lightbox.js",
+    "nested/deck/index.html",
+    "nested/deck/lib/pretty.js",
+    "nested/deck/lib/panel.js",
+    "nested/deck/lib/lightbox.js",
+    "downstream/custom/index.html",
+    "downstream/custom/lib/pretty.js",
+    "downstream/custom/lib/panel.js",
+    "downstream/custom/lib/lightbox.js"
+  ]
+}
