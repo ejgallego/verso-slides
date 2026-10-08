@@ -31,9 +31,10 @@ match executed0b5e4c2; only short review notes differ. Required Demo location fi
 stays in commit4. Basic readiness/error reporting, existing panel resize and
 already-detached probe cleanup stay with the formatter integration.
 
-Upstream exactcfa CI37779304197 finished FAILURE at Chromium launch (no DevTools
-port within30s), before browser assertions; dependent jobs skipped. Existing VIR
-owner notified and retains retry/diagnostic work. Local Slides checks above pass;
+The first upstream exactcfa CI37779304197 attempt failed at Chromium launch
+(no DevTools port within30s), before assertions; dependent jobs skipped. At consumer
+publication, independent readback found its retry in_progress with no conclusion.
+Existing VIR owner retains retry/diagnostic work. Local Slides checks above pass;
 no upstream green claim, oldbda CI reuse or fresh Slides CI claimed.
 
 This follow-up branch retains the implemented additions at
