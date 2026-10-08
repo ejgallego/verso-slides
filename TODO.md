@@ -9,15 +9,21 @@ landed head. Preserve mandatory VIR and full Lean-name/typed-array contracts.
 ## Active landing and retained work
 
 Active landing candidate:
-[`feat/vir-prettym-four-patch`](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...576295f7b3abf569f25b10f2c5c4ddc427224a4c),
+[`feat/vir-prettym-public-four-patch`](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...235aac8),
 exactly four commits: essential integration; JavaScript formatter removal/readiness;
-shared panel/lightbox rendering refactor; focused tests/docs/examples. Qualified sourcef5e59bc and
-[fresh scoped evidence786dd3c](https://github.com/ejgallego/verso-slides/tree/786dd3c6b3b15f022f2a65202967b179c230b1cc/docs/evidence/scoped-first-patch)
-record20 Node/native/build checks and30 focused Chromium/Firefox checks.
-The current successor adds asset-ownership/publication comments and generated-output
-ignore rules, then separates shared rendering into its own commit. The final
-executable code/tests and exact resource pair remain unchanged.
-The Demo source-location prerequisite stays in commit3. Formatting-only noise is
+shared panel/lightbox rendering refactor; focused tests/docs/examples. Executed
+source925c4b4 and [public-pair evidence2c06928](https://github.com/ejgallego/verso-slides/tree/2c06928/docs/evidence/public-pair-adoption)
+record20 Node checks, TypeScript, native/publication/fixture tests and30 focused
+Chromium/Firefox checks. Root and ordinary downstream cold/warm builds pass742
+jobs each. Both owning VIR source/cache/stage started fresh with no supplied
+runtime; each cold build made one anonymous public download and warm builds reused
+unchanged packs. Unrelated dependency/toolchain caches were shared; Lake artifact
+caching was enabled. This closes the public-source acquisition gate at that scope,
+not all-package unseeded, offline, geometry/retention/mobile or Slides CI gates.
+Exact pair is VIRbda79d5c/runtimee415/programba684; formatter bytes/API unchanged.
+The former four-patch576295f and supplied37d2/d72 history remain preserved.
+Final production/test bytes match executed925c4b4; only short review notes differ.
+The Demo source-location prerequisite stays in commit4. Formatting-only noise is
 dropped. Basic readiness/error reporting and the existing panel resize behavior
 stay; cleanup of an already-detached measurement probe is required by readiness/
 failure redraw and stays with the formatter integration.
@@ -48,8 +54,8 @@ Those results qualify that full baseline, not future changes or the reduced tree
 
 All above are Slides-owned or independently owned drafts as noted; this checklist
 does not transfer ownership or merge other worktrees. Producer source/runtime
-publication is an external first-landing gate, not an optional feature: current
-qualified VIR37d2/runtime d72/programba684 remains a supplied local pair.
+publication is now available for the qualified bda79d5c/e415/ba684 pair. New producer
+registration/include UX experiments remain separate; no adoption is implied.
 
 ## Related upstream issues to keep visible
 
