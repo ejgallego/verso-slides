@@ -9,24 +9,32 @@ landed head. Preserve mandatory VIR and full Lean-name/typed-array contracts.
 ## Active landing and retained work
 
 Active landing candidate:
-[`feat/vir-prettym-public-four-patch`](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...235aac8),
-exactly four commits: essential integration; JavaScript formatter removal/readiness;
-shared panel/lightbox rendering refactor; focused tests/docs/examples. Executed
-source925c4b4 and [public-pair evidence2c06928](https://github.com/ejgallego/verso-slides/tree/2c06928/docs/evidence/public-pair-adoption)
+[`feat/vir-prettym-config-four-patch`](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...af261da24b96530e8d49dc6b8faf123124f91524),
+exactly four commits: essential integration with smaller needs/context inclusion;
+JavaScript formatter removal/readiness; shared panel/lightbox rendering refactor;
+focused tests/docs/examples. Executed source0b5e4c2 and
+[small-config evidence3fcb265](https://github.com/ejgallego/verso-slides/tree/3fcb265/docs/evidence/small-config-adoption)
 record20 Node checks, TypeScript, native/publication/fixture tests and30 focused
-Chromium/Firefox checks. Root and ordinary downstream cold/warm builds pass742
-jobs each. Both owning VIR source/cache/stage started fresh with no supplied
-runtime; each cold build made one anonymous public download and warm builds reused
-unchanged packs. Unrelated dependency/toolchain caches were shared; Lake artifact
-caching was enabled. This closes the public-source acquisition gate at that scope,
-not all-package unseeded, offline, geometry/retention/mobile or Slides CI gates.
-Exact pair is VIRbda79d5c/runtimee415/programba684; formatter bytes/API unchanged.
-The former four-patch576295f and supplied37d2/d72 history remain preserved.
-Final production/test bytes match executed925c4b4; only short review notes differ.
-The Demo source-location prerequisite stays in commit4. Formatting-only noise is
-dropped. Basic readiness/error reporting and the existing panel resize behavior
-stay; cleanup of an already-detached measurement probe is required by readiness/
-failure redraw and stays with the formatter integration.
+Chromium/Firefox checks. Ordinary root/downstream cold and warm builds pass741
+jobs each; new owning VIR runtime cache/stage acquire the publice415 pack once,
+then reuse unchanged bytes. Unrelated caches/toolchain were shared, parent app
+output shared via ordinary path dependency, Lake artifact caching enabled. This
+closes the selected public acquisition/build gate at that explicit scope, not
+all-package unseeded, offline, geometry/retention/mobile or Slides CI gates.
+
+Exact selected pair is VIRcfa6ece0/runtimee415/programba684. Remove virPrograms,
+select one bare Module need plus fixed library preparation, use include_vir_program.
+Regenerated program/runtime and selected emitted HTML/JS are byte-identical to235/bda.
+Keep the preparation prerequisite; inclusion is not a current-config validator.
+Previous235/bda,576 and supplied37d2/d72 history remain preserved. Final source/tests
+match executed0b5e4c2; only short review notes differ. Required Demo location fix
+stays in commit4. Basic readiness/error reporting, existing panel resize and
+already-detached probe cleanup stay with the formatter integration.
+
+Upstream exactcfa CI37779304197 finished FAILURE at Chromium launch (no DevTools
+port within30s), before browser assertions; dependent jobs skipped. Existing VIR
+owner notified and retains retry/diagnostic work. Local Slides checks above pass;
+no upstream green claim, oldbda CI reuse or fresh Slides CI claimed.
 
 This follow-up branch retains the implemented additions at
 [`c4c136a`](https://github.com/ejgallego/verso-slides/tree/c4c136a1b40f05bf9b65213e5940eee869803cf5).
@@ -54,8 +62,8 @@ Those results qualify that full baseline, not future changes or the reduced tree
 
 All above are Slides-owned or independently owned drafts as noted; this checklist
 does not transfer ownership or merge other worktrees. Producer source/runtime
-publication is now available for the qualified bda79d5c/e415/ba684 pair. New producer
-registration/include UX experiments remain separate; no adoption is implied.
+publication is now available for the qualified cfa6ece0/e415/ba684 pair. The agreed smaller registration/include is adopted in this candidate; further
+producer/native/config experiments remain separate, with no automatic adoption.
 
 ## Related upstream issues to keep visible
 
