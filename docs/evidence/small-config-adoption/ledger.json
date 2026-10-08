@@ -1,7 +1,7 @@
 {
   "README.md": {
-    "sha256": "5d141c999d2707fb56f1f123ecb735f6dd0923d2a70b7a5588ad0181c4a185f7",
-    "byteLength": 6795
+    "sha256": "d58e1edb335befc4d49955eed96fb54e80f84ebb1436005274e44ee0db97a40c",
+    "byteLength": 7264
   },
   "browser.log": {
     "sha256": "211e3cdd6f68eb00a3a7e992454c9c681880edd80983e8fe111effa0cc32a982",
@@ -158,6 +158,10 @@
   "typescript.log": {
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "byteLength": 0
+  },
+  "upstream-ci-at-publication.json": {
+    "sha256": "db64b56396d23d1ac641ab6d3c8743ccbd5abe37090523f43875d7d98f273946",
+    "byteLength": 7106
   },
   "upstream-ci-failed.log": {
     "sha256": "fbd27c3e6ed90ab3d5b2b63ca68d782bde574e37efde4bcc54d8d1fa9e2a0630",

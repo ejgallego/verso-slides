@@ -69,13 +69,20 @@ Pretty.Segment with exact BigInt tags. No budget layer/Except/JSON/backend fallb
 
 ## Upstream readback versus local execution
 
-Exactcfa run37779304197 independently read back FAILURE: build-demo fails launching
+The first exactcfa attempt of run37779304197 independently read back FAILURE: build-demo fails launching
 Chromium (no DevTools port within30000ms) in test:surface:browser before assertions;
 three dependent jobs skipped. Raw failed log and both readback snapshots retained.
 The existing VIR owner was notified; no green claim or reuse of oldbda CI. This
 failure does not establish a cause in the config change, and local Slides browser
 acceptance is a separate observation. No upstream rerun or source fix performed
 by the Slides owner. No fresh Slides CI triggered/claimed.
+
+At review-branch publication, a further independent readback found the same exactcfa
+run being retried: status in_progress, no conclusion. Its raw job/readback metadata
+is retained in upstream-ci-at-publication.json. This is not a new source or a CI
+success claim. The immutable first evidence checkpoint3fcb265 and review notes
+record the earlier failed attempt; the later retry state does not change local
+execution or four-commit review bytes.
 
 Producer's smaller-config cold/cache/editor/shared/quoted/root gates remain another
 agent's inspected reported evidence, not fresh Slides test execution. No native223,
