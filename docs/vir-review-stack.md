@@ -1,7 +1,7 @@
 # Four-commit first Slides formatter patch
 
-Branch: `feat/vir-prettym-public-four-patch`.
-Successor of the preserved `feat/vir-prettym-four-patch`.
+Execution successor of preserved public235aac8.
+The final review successor retains the four-commit layout below.
 Base: `a51f7e581893042eb317edf50216060a26f38ac3`.
 
 1. `cb45212`: essential Lean/VIR integration, stock typed Lake registration,
@@ -25,38 +25,33 @@ annotation supplies HTML/classes/bindings. Detached-probe cleanup is required
 when readiness/error notifications redraw during formatting. There is one
 mandatory Lean formatter, no recipe/export table, extra library or JS fallback.
 
-## Qualification
+## Smaller configuration qualification in progress
 
-Final production/test bytes match executed source `925c4b4`; only these review
-notes differ after regrouping. Intermediate commits are not separately qualified.
-[Immutable commands/logs/oracle/JUnit/manifests/packs](https://github.com/ejgallego/verso-slides/tree/2c06928/docs/evidence/public-pair-adoption)
-are retained outside the landing diff. Historical supplied-pair branches remain.
+The adoption selects exact public VIRcfa6ece0, removes virPrograms, adds one bare
+formatter Module key to the existing asset library needs, and uses contextual
+include_vir_program at the existing Bundle declaration. No extra library, recipe,
+key, alias, loader/runtime option, formatting/presentation/lifecycle change.
+Private preparation remains owned by VIR; its fixed prerequisite stays required.
 
-Ordinary root/downstream cold and warm builds each pass742 jobs. Owned VIR source,
-runtime cache/stage and application build output started fresh; each cold build
-made one anonymous download from the public lock. Warm builds kept the same pack
-hash/inode/mtime without another download. Other dependency caches and toolchain
-were shared, with ordinary Lake artifact caching enabled. No supplied runtime or
-Wasm source build was used; this is not an all-package unseeded installation.
+Ordinary root/downstream cold builds pass741 jobs each. Owned VIR source/runtime
+cache/stage started fresh with no supplied runtime; each acquired publice415 once.
+Other dependency/toolchain caches were shared and Lake artifact caching remained
+ordinary. Root warm reuse and20 Node/TypeScript pass; remaining focused native/
+browser/publication and downstream warm checks are in progress before publication.
+The actual regeneratedba684 program and selectede415 pack are byte-identical to
+previous qualified235/bda. Its history and evidence remain preserved separately.
 
-20 Node checks, TypeScript and the ordinary native/publication/fixture driver pass.
-30 focused Chromium/Firefox checks pass against newly emitted pages: complete
-native segments/BigInt tags, exact full names, HTML/classes/bindings, numeric
-rejection/recovery, ordinary downstream, existing panel resize, slow/failing
-initialization and pending lightbox readiness. Six manifests/42 payloads match.
-
-## Exact public pair
-
-VIR `bda79d5c4ab7d061c971fcd8917f536393ec03ee`, Lean4.34.0/compiler
+VIR `cfa6ece02c1d1b24cb4ee623632a560c25018d08`, Lean4.34.0/compiler
 `293d5d0c0c3f3dded4688b3ccd6a33939ac5102b`; descriptor2/resource3/ABI4/manifest9/IR11.
 Runtime CID `e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd`;
 pack SHA256 `3910c29e40ee68c3b110355fa1d30dae3029f2b34967269642521fc8409848d7`.
-Regenerated program CID `ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a`;
+Program CID `ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a`;
 pack SHA256 `2516a1e9560673b45a63a61a1b6d7a8b33843e39c4331c5760ff5afc84b28150`.
-Program bytes and client API are unchanged. Both dependency pin fields agree.
+Both root pin fields and downstream manifest agree. No native223 adoption.
 
-Upstream CI run37681767020 was independently read back at exactbda: all four
-jobs SUCCESS. Other producer acquisition results are reported evidence, not local
-Slides execution. No fresh Slides CI, cold-offline, mobile/advanced-geometry/
-retention gate, official Slides PR, merge or release is claimed. Unsigned commits;
-signing configuration unchanged. Registration/include UX remains separate VIR work.
+Exact upstream CI37779304197 finished FAILURE: Chromium did not publish its
+DevTools port within30s in test:surface:browser, before assertions; dependent jobs
+were skipped. That result is separate from local Slides qualification, and no
+upstream green claim is made. Existing VIR owner retains CI diagnostics/retry.
+No fresh Slides CI, network-isolated/offline, mobile/advanced geometry/retention,
+official Slides PR, merge or release claimed. Commits unsigned; config unchanged.

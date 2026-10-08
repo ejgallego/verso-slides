@@ -217,4 +217,4 @@ end VersoSlides
 is embedded as compiled Lean data. Rendering uses this value independently of
 the build directories. -/
 public def VersoSlides.VirPrettyMResources.bundle : Vir.Resources.Bundle :=
-  include_vir_library VersoSlidesVendored
+  include_vir_program

@@ -11,13 +11,19 @@ python3 -m http.server --directory _slides
 
 Downstream decks keep ordinary `slidesMain`/`Config.outputDir`; see
 `examples/default-deck`. The existing `VersoSlides` library owns the formatter,
-and `VersoSlidesVendored` embeds it through `include_vir_library` and its
-`virResourcePack` prerequisite. The stock registration is:
+and `VersoSlidesVendored` embeds the prepared pack through `include_vir_program`.
+Its stock Lake configuration selects the formatter once:
 
 ```lean
-target virPrograms (_pkg) : Array (Lean.Name × Lean.Name) := do
-  return Job.pure #[(`VersoSlidesVendored, `VersoSlides.VirPrettyM)]
+lean_lib VersoSlidesVendored where
+  needs := #[vendorAssets, `+VersoSlides.VirPrettyM,
+    `@«verso-slides»/VersoSlidesVendored:virResourcePack]
 ```
+
+The bare module key selects the program; the library's fixed prerequisite prepares
+it before embedding. Keep that prerequisite: inclusion reads prepared input, not
+current Lake configuration, and cannot detect its later removal. Downstream decks
+need no registration or generated-path settings.
 
 VIR prepares resources and supplies files/URLs through `ResourceSet.forSite`.
 Slides uses its existing writer. No application recipe, export list, producer
@@ -41,7 +47,7 @@ without retry or a JavaScript formatter fallback. Document teardown/disposal,
 font listeners, additional UI/selector changes and measurement campaigns are
 recorded in the [post-landing queue](vir-followups.md).
 
-The exact VIR `bda79d5c` pin selects public runtime `e415e41a`. Its owning
+The exact VIR `cfa6ece0` pin selects public runtime `e415e41a`. Its owning
 library acquires and verifies the prebuilt runtime during the ordinary build;
 applications use the URLs returned by `forSite`. No supplied pack or Wasm source
 build is required. The review notes record the exact acquisition/test scope.
