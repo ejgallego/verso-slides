@@ -1,0 +1,101 @@
+{
+  "manifests": 6,
+  "payloads": 42,
+  "routes": [
+    {
+      "route": "",
+      "kind": "program",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+      "payloads": 8
+    },
+    {
+      "route": "",
+      "kind": "runtime",
+      "contentId": "e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd",
+      "payloads": 6
+    },
+    {
+      "route": "nested/deck",
+      "kind": "program",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+      "payloads": 8
+    },
+    {
+      "route": "nested/deck",
+      "kind": "runtime",
+      "contentId": "e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd",
+      "payloads": 6
+    },
+    {
+      "route": "downstream/custom",
+      "kind": "program",
+      "contentId": "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
+      "payloads": 8
+    },
+    {
+      "route": "downstream/custom",
+      "kind": "runtime",
+      "contentId": "e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd",
+      "payloads": 6
+    }
+  ],
+  "independentlyVerifiedPins": [
+    "root",
+    "downstream"
+  ],
+  "programSet": {
+    "format": "lean-vir-ir-package-set",
+    "version": 2,
+    "packages": [
+      {
+        "module": "Init.Prelude",
+        "role": "dependency",
+        "path": "parts/0.irpkg",
+        "byteLength": 670,
+        "sha256": "b2ccf89ee4778f1880f3f30a796cb7c1956fccff0f06c47b674c06297ac013c2"
+      },
+      {
+        "module": "Init.Control.Id",
+        "role": "dependency",
+        "path": "parts/1.irpkg",
+        "byteLength": 1976,
+        "sha256": "359f8fc1c73ad5951db2f2ca7840ef7ac6b82442914b7bfaf0b77c6c2b12ffeb"
+      },
+      {
+        "module": "Init.Data.Int.Basic",
+        "role": "dependency",
+        "path": "parts/2.irpkg",
+        "byteLength": 900,
+        "sha256": "07eb3ea68d1df4d730c71c0583e2ec5be195fa0cffab315522af653193c45e28"
+      },
+      {
+        "module": "Init.Control.State",
+        "role": "dependency",
+        "path": "parts/3.irpkg",
+        "byteLength": 5934,
+        "sha256": "5c2d76ebca92de975ca6ed39e7c240d3a7b8c79a41c714ebf6659fa60eb42826"
+      },
+      {
+        "module": "Init.Data.Format.Basic",
+        "role": "dependency",
+        "path": "parts/4.irpkg",
+        "byteLength": 11228,
+        "sha256": "c188d5e9c5cd46cad47950c7f929c55d6f1d85b64870afe56e2b615693401e13"
+      },
+      {
+        "module": "VersoSlides.Pretty",
+        "role": "dependency",
+        "path": "parts/5.irpkg",
+        "byteLength": 48707,
+        "sha256": "3a8cc6ffb0b1fad2e757e507ae4dc2deec71e2850155aaf7c5505a0b65dc9cfe"
+      },
+      {
+        "module": "VersoSlides.VirPrettyM",
+        "role": "root",
+        "path": "program.irpkg",
+        "byteLength": 5512,
+        "sha256": "2a659dcda6a67180ae97554b4bae4d3e3203568167e3612efcfe79a1097e1078"
+      }
+    ]
+  }
+}

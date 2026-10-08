@@ -1,0 +1,9 @@
+{
+  "runtimeCacheExists": false,
+  "runtimeStageExists": false,
+  "suppliedPack": false,
+  "source": "https://github.com/ejgallego/lean-vir/releases/download/resource-e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd/e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd.virres",
+  "lakeArtifactCacheDisabled": false,
+  "otherDependencyCaches": "copied",
+  "rootBuildCacheExists": false
+}

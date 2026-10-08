@@ -1,0 +1,12 @@
+{
+  ".lake/packages/lean_vir/.vir-generated/VirResourceRuntime.virres": {
+    "inode": 114045794,
+    "mtime_ns": 1791446358850057982,
+    "sha256": "3910c29e40ee68c3b110355fa1d30dae3029f2b34967269642521fc8409848d7"
+  },
+  ".lake/packages/lean_vir/.lake/build/vir/resources/runtime/e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd.virres": {
+    "inode": 114045777,
+    "mtime_ns": 1791446358849683906,
+    "sha256": "3910c29e40ee68c3b110355fa1d30dae3029f2b34967269642521fc8409848d7"
+  }
+}

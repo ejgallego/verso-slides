@@ -1,0 +1,162 @@
+{
+  "README.md": {
+    "sha256": "285a14d03b54398f78e05fc2c7ca13b87067aa359ec19bccdfe015196f0ddc3a",
+    "byteLength": 5615
+  },
+  "browser.log": {
+    "sha256": "b1d9d39f55055eda46f5b81269315890e039d40c0bd8ac5e2925bea31929f47b",
+    "byteLength": 4284
+  },
+  "browser.xml": {
+    "sha256": "175bc49244fb231fe7bceca54a7a4a64cdad5d7af2c54c5cdd54590e3456c362",
+    "byteLength": 4180
+  },
+  "dependency-update.log": {
+    "sha256": "4f9b26b6abde7a9b00a78af7b0bb852324e4fda6f3cefc92b5247140f3e7d3c4",
+    "byteLength": 354
+  },
+  "downstream-before.json": {
+    "sha256": "95c4f939aa6cadf10e6a9abdf50e373cd398e28e31760340ddd2b30b9063b228",
+    "byteLength": 220
+  },
+  "downstream-cold-after.json": {
+    "sha256": "8ac90a0bae44ab2eaecbe960621c7976634c4d430c3e3a7572f2bc71948e8ad9",
+    "byteLength": 506
+  },
+  "downstream-cold-build.log": {
+    "sha256": "22a3269261963e2d3da80ce9f26b3ccc2c9b99e13e1809fa4717102cb281b245",
+    "byteLength": 6289
+  },
+  "downstream-downloads.log": {
+    "sha256": "be8498bc1cf2fdbcf10a78248a082a0aceaa989e6958829266cfb7f84a88c9d5",
+    "byteLength": 33
+  },
+  "downstream-render.log": {
+    "sha256": "2df96b685506080d783adb8e66e124a9864b91332696ca35cdf5c51d435ea1c1",
+    "byteLength": 941
+  },
+  "downstream-update.log": {
+    "sha256": "951c5fe21f387021ac10103ae4167599d74624deccecb5b037e0bca07d73b474",
+    "byteLength": 439
+  },
+  "downstream-warm-after.json": {
+    "sha256": "8ac90a0bae44ab2eaecbe960621c7976634c4d430c3e3a7572f2bc71948e8ad9",
+    "byteLength": 506
+  },
+  "downstream-warm-build.log": {
+    "sha256": "fbda69c0b0070aef7bbc780c76ffd39ef13926fb1a6045820469ed1529831658",
+    "byteLength": 944
+  },
+  "executed-source.json": {
+    "sha256": "2be55f2f207b0d3809240fcf7d867982b244fb665e169cb6d5b7a77f80f4e813",
+    "byteLength": 6136
+  },
+  "identities.json": {
+    "sha256": "1632121a0d9ed77de7e164477ff906e0bcaf7ce42955525f00621786d837bf29",
+    "byteLength": 4420
+  },
+  "manifests/downstream/ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a/bundle.json": {
+    "sha256": "31e0f1d0a8b4850055a40d1334a984dfc321f21abc07fca8d98a0e10eb48d236",
+    "byteLength": 1680
+  },
+  "manifests/downstream/e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd/bundle.json": {
+    "sha256": "fe1421e25a171bd34b2a7b4a468205d7dc934c86d296f4d5764ab4d852c8d6c1",
+    "byteLength": 1223
+  },
+  "manifests/nested/ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a/bundle.json": {
+    "sha256": "31e0f1d0a8b4850055a40d1334a984dfc321f21abc07fca8d98a0e10eb48d236",
+    "byteLength": 1680
+  },
+  "manifests/nested/e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd/bundle.json": {
+    "sha256": "fe1421e25a171bd34b2a7b4a468205d7dc934c86d296f4d5764ab4d852c8d6c1",
+    "byteLength": 1223
+  },
+  "manifests/root/ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a/bundle.json": {
+    "sha256": "31e0f1d0a8b4850055a40d1334a984dfc321f21abc07fca8d98a0e10eb48d236",
+    "byteLength": 1680
+  },
+  "manifests/root/e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd/bundle.json": {
+    "sha256": "fe1421e25a171bd34b2a7b4a468205d7dc934c86d296f4d5764ab4d852c8d6c1",
+    "byteLength": 1223
+  },
+  "native-corpus.json": {
+    "sha256": "6ab31d5760987f8848958694996e54cf1e674fb4288c0f54139dd9531b741210",
+    "byteLength": 1634
+  },
+  "native-oracle.log": {
+    "sha256": "c5d5428419a948aca0ded8a66071493dcf30ef27acef099776946cfce3672d14",
+    "byteLength": 372
+  },
+  "node.log": {
+    "sha256": "a88416ed644b785719bb2d10eefb8a1189a80d3c33d9f797e7546ee921d251fc",
+    "byteLength": 1841
+  },
+  "observe/curl": {
+    "sha256": "75b0adc5fdbc7ab342ca4c6abfb36c0ed604fd85673dd56f583ef1d5d55fb059",
+    "byteLength": 396
+  },
+  "ordinary-tests.log": {
+    "sha256": "19672439d3fa7827cd7a3849a4374c6777bddcf89fb118c251939572576bf5fd",
+    "byteLength": 11564
+  },
+  "packs/downstream-program.virres": {
+    "sha256": "2516a1e9560673b45a63a61a1b6d7a8b33843e39c4331c5760ff5afc84b28150",
+    "byteLength": 77764
+  },
+  "packs/downstream-runtime.virres": {
+    "sha256": "3910c29e40ee68c3b110355fa1d30dae3029f2b34967269642521fc8409848d7",
+    "byteLength": 1120065
+  },
+  "packs/root-program.virres": {
+    "sha256": "2516a1e9560673b45a63a61a1b6d7a8b33843e39c4331c5760ff5afc84b28150",
+    "byteLength": 77764
+  },
+  "packs/root-runtime.virres": {
+    "sha256": "3910c29e40ee68c3b110355fa1d30dae3029f2b34967269642521fc8409848d7",
+    "byteLength": 1120065
+  },
+  "publication-verification.json": {
+    "sha256": "6914f298d47c51228736a66012a5d2063bd91c6a584d0dc7bc8b2fca23d03270",
+    "byteLength": 2894
+  },
+  "root-before.json": {
+    "sha256": "58a6741b3fd3a2adba401f3e2abb183e96e3d922ab6a992ebf7bf16315b074e4",
+    "byteLength": 415
+  },
+  "root-cold-after.json": {
+    "sha256": "9920bf2643351aa85577fb8c15fccfe1a17d424c7bbf33f92b3e6f5aaac6c46f",
+    "byteLength": 506
+  },
+  "root-cold-build.log": {
+    "sha256": "29e1dcfd2319d9f8057f1fd7f9a5583531c76a3e3605eae8ccc76a936233c4a9",
+    "byteLength": 8280
+  },
+  "root-downloads.log": {
+    "sha256": "be8498bc1cf2fdbcf10a78248a082a0aceaa989e6958829266cfb7f84a88c9d5",
+    "byteLength": 33
+  },
+  "root-render.log": {
+    "sha256": "5b744487812dcea67f50f7b18de6a5e70f2e61b42b527e0960bcf00f407a996f",
+    "byteLength": 941
+  },
+  "root-warm-after.json": {
+    "sha256": "9920bf2643351aa85577fb8c15fccfe1a17d424c7bbf33f92b3e6f5aaac6c46f",
+    "byteLength": 506
+  },
+  "root-warm-build.log": {
+    "sha256": "2825ce9e3f4e9fde96333cd3db26ab68bd5ecbd8c6da46be5b259bb2e83cdf04",
+    "byteLength": 889
+  },
+  "runtime-lock.json": {
+    "sha256": "aea4cc587cfc26a7967399bbcfd2d53e422221def57801f6f4671228181257da",
+    "byteLength": 325
+  },
+  "typescript.log": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "byteLength": 0
+  },
+  "upstream-ci.json": {
+    "sha256": "daa4f5a998cdef62f42e76ae07c18a039951fa5a9fa6feb5e25c311ec36d8da3",
+    "byteLength": 15626
+  }
+}

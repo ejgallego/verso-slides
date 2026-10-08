@@ -1,0 +1,42 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.19, pytest-9.0.2, pluggy-1.6.0 -- /home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/browser-tests/.venv/bin/python
+cachedir: .pytest_cache
+browsers: chromium, firefox (--browser=all)
+rootdir: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-public-pair/browser-tests
+configfile: pyproject.toml
+plugins: xdist-3.8.0
+collecting ... collected 30 items
+
+browser-tests/test_vir_prettym_site.py::test_published_bundles_and_urls PASSED [  3%]
+browser-tests/test_vir_prettym_site.py::test_same_wrapper_native_corpus[chromium-root] PASSED [  6%]
+browser-tests/test_vir_prettym_site.py::test_same_wrapper_native_corpus[chromium-nested] PASSED [ 10%]
+browser-tests/test_vir_prettym_site.py::test_published_host_call[chromium] PASSED [ 13%]
+browser-tests/test_vir_prettym_site.py::test_only_full_root_declaration_is_callable[chromium] PASSED [ 16%]
+browser-tests/test_vir_prettym_site.py::test_default_panel_reflows_with_wasm[chromium] PASSED [ 20%]
+browser-tests/test_vir_prettym_site.py::test_independent_deck_uses_published_runtime[chromium] PASSED [ 23%]
+browser-tests/test_vir_prettym_presentation.py::test_complete_native_segments_tags_classes_and_bindings_in_dom[chromium] PASSED [ 26%]
+browser-tests/test_vir_prettym_presentation.py::test_existing_text_and_binding_escaping_with_large_tags[chromium] PASSED [ 30%]
+browser-tests/test_vir_prettym_presentation.py::test_shared_goal_preserves_ordinary_binding_interaction[chromium] PASSED [ 33%]
+browser-tests/test_vir_prettym_presentation.py::test_rejected_format_is_visible_without_static_layout_substitution_or_probe_retention[chromium] PASSED [ 36%]
+browser-tests/test_vir_prettym_presentation.py::test_vir_numeric_admission_keeps_the_same_program_usable[chromium] PASSED [ 40%]
+browser-tests/test_vir_prettym_initialization.py::test_pending_formatter_keeps_navigation_and_current_selection_usable[chromium] PASSED [ 43%]
+browser-tests/test_vir_prettym_initialization.py::test_initialization_failure_reports_without_replacing_the_formatter[chromium] PASSED [ 46%]
+browser-tests/test_lightbox.py::TestLightboxReadiness::test_pending_signature_formats_on_readiness[chromium] PASSED [ 50%]
+browser-tests/test_vir_prettym_site.py::test_same_wrapper_native_corpus[firefox-root] PASSED [ 53%]
+browser-tests/test_vir_prettym_site.py::test_same_wrapper_native_corpus[firefox-nested] PASSED [ 56%]
+browser-tests/test_vir_prettym_site.py::test_published_host_call[firefox] PASSED [ 60%]
+browser-tests/test_vir_prettym_site.py::test_only_full_root_declaration_is_callable[firefox] PASSED [ 63%]
+browser-tests/test_vir_prettym_site.py::test_default_panel_reflows_with_wasm[firefox] PASSED [ 66%]
+browser-tests/test_vir_prettym_site.py::test_independent_deck_uses_published_runtime[firefox] PASSED [ 70%]
+browser-tests/test_vir_prettym_presentation.py::test_complete_native_segments_tags_classes_and_bindings_in_dom[firefox] PASSED [ 73%]
+browser-tests/test_vir_prettym_presentation.py::test_existing_text_and_binding_escaping_with_large_tags[firefox] PASSED [ 76%]
+browser-tests/test_vir_prettym_presentation.py::test_shared_goal_preserves_ordinary_binding_interaction[firefox] PASSED [ 80%]
+browser-tests/test_vir_prettym_presentation.py::test_rejected_format_is_visible_without_static_layout_substitution_or_probe_retention[firefox] PASSED [ 83%]
+browser-tests/test_vir_prettym_presentation.py::test_vir_numeric_admission_keeps_the_same_program_usable[firefox] PASSED [ 86%]
+browser-tests/test_vir_prettym_initialization.py::test_pending_formatter_keeps_navigation_and_current_selection_usable[firefox] PASSED [ 90%]
+browser-tests/test_vir_prettym_initialization.py::test_initialization_failure_reports_without_replacing_the_formatter[firefox] PASSED [ 93%]
+browser-tests/test_lightbox.py::TestLightboxReadiness::test_pending_signature_formats_on_readiness[firefox] PASSED [ 96%]
+browser-tests/test_vir_prettym_presentation.py::test_published_formatter_has_one_mandatory_path PASSED [100%]
+
+- generated xml file: /home/egallego/lean/verso-slides/.worktrees/vir-prettym-public-pair/.qualification-public-pair-20261008/browser.xml -
+============================= 30 passed in 17.21s ==============================
