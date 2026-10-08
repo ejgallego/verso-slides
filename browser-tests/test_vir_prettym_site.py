@@ -33,7 +33,7 @@ def test_published_bundles_and_urls(site_dir):
             "runtime", "program"
         }
         assert {json.loads(m.read_text())["contentId"] for m in manifests} == {
-            "d72d5c8fb8daf0247663eb34bb30abdc2d211927e15836b633ee940830d6150c",
+            "e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd",
             "ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a",
         }
         compatibilities = []

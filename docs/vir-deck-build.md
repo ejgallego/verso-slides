@@ -41,9 +41,10 @@ without retry or a JavaScript formatter fallback. Document teardown/disposal,
 font listeners, additional UI/selector changes and measurement campaigns are
 recorded in the [post-landing queue](vir-followups.md).
 
-The exact VIR37d2 source/runtime d72 currently requires a verified supplied pack;
-the runtime lock source is `-`. This review does not claim fresh public acquisition.
-Producer publication is a separate prerequisite before landing.
+The exact VIR `bda79d5c` pin selects public runtime `e415e41a`. Its owning
+library acquires and verifies the prebuilt runtime during the ordinary build;
+applications use the URLs returned by `forSite`. No supplied pack or Wasm source
+build is required. The review notes record the exact acquisition/test scope.
 
 ## Focused checks
 
