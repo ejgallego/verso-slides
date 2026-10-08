@@ -1,0 +1,9 @@
+{
+  "selected": "49445aa0063639af99e3b820da0d4f1457b01ca6",
+  "previous": "cfa6ece02c1d1b24cb4ee623632a560c25018d08",
+  "differingFiles": [
+    "docs/guides/BUILD_WORKFLOWS.md",
+    "docs/guides/EMBEDDED_RESOURCES.md"
+  ],
+  "productionTreeEqual": true
+}

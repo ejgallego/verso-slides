@@ -1,0 +1,6 @@
+info: my-talk: no previous manifest, creating one from scratch
+info: toolchain not updated; already up-to-date
+info: lean_vir: cloning https://github.com/ejgallego/lean-vir.git
+info: lean_vir: checking out revision '49445aa0063639af99e3b820da0d4f1457b01ca6'
+warning: subverso: ignoring missing manifest:
+  /home/egallego/lean/verso-slides/.worktrees/vir-prettym-dedicated-config-integration/examples/default-deck/.lake/packages/subverso/lake-manifest.json

@@ -1,0 +1,10 @@
+{
+  "sourceRevision": "49445aa0063639af99e3b820da0d4f1457b01ca6",
+  "runtimeCacheExists": false,
+  "runtimeStageExists": false,
+  "suppliedPack": false,
+  "otherDependencyCaches": "copied",
+  "parentApplicationOutput": "shared via ordinary path dependency",
+  "leafBuildCacheExists": false,
+  "lakeArtifactCacheDisabled": false
+}

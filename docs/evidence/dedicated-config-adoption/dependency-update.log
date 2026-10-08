@@ -1,0 +1,5 @@
+info: lean_vir: cloning https://github.com/ejgallego/lean-vir.git
+info: lean_vir: checking out revision '49445aa0063639af99e3b820da0d4f1457b01ca6'
+info: toolchain not updated; already up-to-date
+warning: subverso: ignoring missing manifest:
+  /home/egallego/lean/verso-slides/.worktrees/vir-prettym-dedicated-config-integration/.lake/packages/subverso/lake-manifest.json
