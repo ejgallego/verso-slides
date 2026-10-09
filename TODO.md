@@ -3,18 +3,27 @@
 Authoritative queue: branch `todo-after-vir-merge`, worktree
 `.worktrees/todo-after-vir-merge`; existing Slides integration owner maintains it.
 **Start these PRs after the first Slides formatter integration patch lands.**
-No follow-up PR has been opened. Use one focused PR per item, based on the actual
-landed head. Preserve mandatory VIR and full Lean-name/typed-array contracts.
+None of the deferred PRs below has been opened. The separate shared rendering
+refactor is open as PR83 before the formatter integration. Use one focused PR
+per item, based on the actual landed head. Preserve mandatory VIR and full Lean-name/typed-array contracts.
 
 ## Active landing and retained work
 
 Active landing candidate:
-[`feat/vir-prettym-main435-four-patch`](https://github.com/ejgallego/verso-slides/compare/682186a561a5d55116969f39bb0699986c3c7fba...daa96fee635f289e2be95982418483bfb4351402),
-exactly four commits on upstream main682186a: essential integration/explicit assets;
-JS formatter removal/readiness; shared panel/lightbox refactor; tests/docs/example.
-Exact VIR PR2293e7dbcf0, Lean4.35rc4/runtime6cdd/program00c4. Main's Verso and
-transitive dependency records are retained; Demo's prior line correction is already
-upstream. Application formatting/presentation is unchanged from accepted08e.
+[`feat/vir-prettym-main435-stacked`](https://github.com/ejgallego/verso-slides/compare/23daa2e3eb45c5838bd7860cc21d06d5089515d7...b232e7393bb21c8d98e78c078f1f16b2077c0092),
+three formatter commits on the standalone
+[shared rendering refactor PR83](https://github.com/leanprover/verso-slides/pull/83),
+23daa2e on main682186a. Four commits total from main. PR83 is non-draft;
+its three-file JavaScript refactor has syntax/TypeScript checks, no fresh native/
+browser campaign. The formatter PR is unsubmitted and waits for lean-vir's tag;
+update both dependency pin records deliberately before opening it.
+
+The stack's application/dependency/test bytes equal the accepted
+[daa96fee four-commit candidate](https://github.com/ejgallego/verso-slides/tree/daa96fee635f289e2be95982418483bfb4351402);
+only review notes differ. No new execution is claimed for the rearrangement.
+Exact VIR PR2293e7dbcf0, Lean4.35rc4/runtime6cdd/program00c4 remains selected
+pending the tag. Main's Verso/transitive records are retained; Demo's prior line
+correction is already upstream. All old branches remain preserved.
 
 Executed99ec093 and
 [evidence6f36530](https://github.com/ejgallego/verso-slides/tree/6f3653037663f529fb8ffb64ebe2cb227d0fe886/docs/evidence/main435-adoption)
@@ -31,8 +40,10 @@ The asset library needs one +Module:virResourcePack. Vir.Resources.Assets and
 include_vir_assets produce one compiled ResourceSet for renderer/tests. Program
 inputs use normal Lean library outputs; no extra key/recipe/path settings.
 Basic readiness/error reporting, panel resize and detached-probe cleanup stay.
-Application/tests match executed99ec093; only review notes differ. No official PR,
-force-push, merge, release, cleanup or separate native-provider adoption.
+Application/tests match executed99ec093; only review notes differ. The only
+official PR opened is the explicitly authorized independent refactor83; formatter
+submission remains gated on the tag. No force-push, merge, release, cleanup or
+separate native-provider adoption.
 
 Historical accepted
 [08e/c227/e415/ba684](https://github.com/ejgallego/verso-slides/tree/08e72838b517189a3ac5567ff03779265986821b)
