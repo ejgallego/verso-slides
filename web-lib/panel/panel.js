@@ -443,27 +443,7 @@
                         return;
                     }
                     panel._richFormatSource = ts;
-                    try {
-                        var rich = ts.getAttribute("data-rich-format");
-                        if (!rich) throw new PrettyFormatError("invalidInput");
-                        var parsed = JSON.parse(rich);
-                        if (Array.isArray(parsed)) {
-                            var result = goalsToHtml(parsed);
-                            panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                            var measurer = createDOMMeasurer(panel);
-                            try { fillReflowedSpans(panel, result.formats, measurer); }
-                            finally { measurer.cleanup(); }
-                        } else {
-                            var measurer = createDOMMeasurer(panel);
-                            try {
-                                var style = getComputedStyle(panel);
-                                var width = Math.max(0, panel.clientWidth -
-                                    parseFloat(style.paddingLeft || "0") - parseFloat(style.paddingRight || "0"));
-                                ts.innerHTML = '<span class="reflowed">' +
-                                    formatToHtml(parsed.fmt, parsed.annotations, width, measurer) + "</span>";
-                            } finally { measurer.cleanup(); }
-                        }
-                    }
+                    try { renderRichFormat(panel, ts); }
                     catch (error) { showFormattingFailure(panel, error); }
                     html = null; // already set innerHTML
                 } else {
@@ -489,27 +469,7 @@
                 sigCode.textContent = "";
                 showFormattingStatus(/** @type {HTMLElement} */ (sigCode));
             } else {
-                try {
-                    var rich = sigCode.getAttribute("data-rich-format");
-                    if (!rich) throw new PrettyFormatError("invalidInput");
-                    var parsed = JSON.parse(rich);
-                    if (Array.isArray(parsed)) {
-                        var result = goalsToHtml(parsed);
-                        panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                        var measurer = createDOMMeasurer(panel);
-                        try { fillReflowedSpans(panel, result.formats, measurer); }
-                        finally { measurer.cleanup(); }
-                    } else {
-                        var measurer = createDOMMeasurer(panel);
-                        try {
-                            var style = getComputedStyle(panel);
-                            var width = Math.max(0, panel.clientWidth -
-                                parseFloat(style.paddingLeft || "0") - parseFloat(style.paddingRight || "0"));
-                            sigCode.innerHTML = '<span class="reflowed">' +
-                                formatToHtml(parsed.fmt, parsed.annotations, width, measurer) + "</span>";
-                        } finally { measurer.cleanup(); }
-                    }
-                }
+                try { renderRichFormat(panel, sigCode); }
                 catch (error) { showFormattingFailure(/** @type {HTMLElement} */ (sigCode), error); }
             }
         }
@@ -531,27 +491,7 @@
         if (!formatterIsReady()) return;
         var source = panel._richFormatSource;
         if (!source) return;
-        try {
-            var rich = source.getAttribute("data-rich-format");
-            if (!rich) throw new PrettyFormatError("invalidInput");
-            var parsed = JSON.parse(rich);
-            if (Array.isArray(parsed)) {
-                var result = goalsToHtml(parsed);
-                panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                var measurer = createDOMMeasurer(panel);
-                try { fillReflowedSpans(panel, result.formats, measurer); }
-                finally { measurer.cleanup(); }
-            } else {
-                var measurer = createDOMMeasurer(panel);
-                try {
-                    var style = getComputedStyle(panel);
-                    var width = Math.max(0, panel.clientWidth -
-                        parseFloat(style.paddingLeft || "0") - parseFloat(style.paddingRight || "0"));
-                    source.innerHTML = '<span class="reflowed">' +
-                        formatToHtml(parsed.fmt, parsed.annotations, width, measurer) + "</span>";
-                } finally { measurer.cleanup(); }
-            }
-        }
+        try { renderRichFormat(panel, source); }
         catch (error) {
             showFormattingFailure(source.tagName === "CODE" ?
                 /** @type {HTMLElement} */ (source) : panel, error);
