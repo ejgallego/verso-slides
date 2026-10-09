@@ -59,6 +59,20 @@ def expectFailMentioning (desc : String) (cfg : Config)
 
 public def main : IO UInt32 := do
   let cases : List (IO (Except String Unit)) := [
+    expectOk "builtin theme with independent binary asset"
+      { theme := "white", extraAssets := #[dummyAsset "run/worker.js" "worker"] },
+    expectOk "repeated identical extraAssets deduplicate"
+      { extraAssets := #[dummyAsset "same.bin" "same", dummyAsset "same.bin" "same"] },
+    expectFailMentioning "diverging extraAssets collide"
+      { extraAssets := #[dummyAsset "same.bin" "one", dummyAsset "same.bin" "two"] }
+      ["same.bin", "extraAssets"],
+    expectFailMentioning "extraAssets collide with custom theme assets"
+      { theme := .custom (dummyBundle (dummyCss "theme.css") #[dummyAsset "same.bin" "one"]),
+        extraAssets := #[dummyAsset "same.bin" "two"] }
+      ["same.bin", "theme asset", "extraAssets"],
+    expectFailMentioning "extraAssets cannot replace builtin theme CSS"
+      { theme := "white", extraAssets := #[dummyAsset "lib/reveal.js/dist/theme/white.css" "wrong"] }
+      ["white.css", "builtin theme stylesheet", "extraAssets"],
     expectOk "builtin theme + no extraCss" { theme := "black" },
     expectOk "builtin theme + unique extraCss"
       { extraCss := #[dummyCss "a.css", dummyCss "b.css"] },
