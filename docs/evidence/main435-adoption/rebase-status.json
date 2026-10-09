@@ -1,0 +1,15 @@
+{
+  "upstreamSlides": "682186a561a5d55116969f39bb0699986c3c7fba",
+  "slidesExecuted": "99ec093deef6021960d3e7638c6a3718762d6677",
+  "vir": "3e7dbcf0615305c83bdcb9aa1892ac8b22087d8e",
+  "toolchain": "leanprover/lean4:v4.35.0-rc4",
+  "builds": "root cold/warm and downstream cold/warm ordinary Lake builds PASS, 620 jobs each",
+  "tests": "native/Node/publication/fixtures/TSC PASS; 30 focused Chromium/Firefox PASS in 22.40s",
+  "oldPairPreserved": true,
+  "publicRuntimeSource": {
+    "schemaVersion": 1,
+    "contentId": "6cddc4b897410d7524a69bdaff0327d9f07916735078a0b12d548e2f88c23d20",
+    "source": "https://github.com/ejgallego/lean-vir/releases/download/resource-6cddc4b897410d7524a69bdaff0327d9f07916735078a0b12d548e2f88c23d20/6cddc4b897410d7524a69bdaff0327d9f07916735078a0b12d548e2f88c23d20.virres"
+  },
+  "limits": "Existing toolchain/test environment reused; ordinary artifact caching enabled. No network isolation, fresh offline, broad geometry/retention/mobile campaign, merge/release/cleanup. Initial browser server setup failed because python was absent from PATH; activated existing venv replay passed without source change."
+}

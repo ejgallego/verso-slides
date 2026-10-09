@@ -1,0 +1,42 @@
+{
+  "manifests": [
+    {
+      "site": "root",
+      "kind": "program",
+      "contentId": "00c4cc5794f68178e57d5e37d7b36889abf708abc0ac300337068930db4dd48b",
+      "payloadCount": 8
+    },
+    {
+      "site": "root",
+      "kind": "runtime",
+      "contentId": "6cddc4b897410d7524a69bdaff0327d9f07916735078a0b12d548e2f88c23d20",
+      "payloadCount": 6
+    },
+    {
+      "site": "nested",
+      "kind": "program",
+      "contentId": "00c4cc5794f68178e57d5e37d7b36889abf708abc0ac300337068930db4dd48b",
+      "payloadCount": 8
+    },
+    {
+      "site": "nested",
+      "kind": "runtime",
+      "contentId": "6cddc4b897410d7524a69bdaff0327d9f07916735078a0b12d548e2f88c23d20",
+      "payloadCount": 6
+    },
+    {
+      "site": "leaf",
+      "kind": "program",
+      "contentId": "00c4cc5794f68178e57d5e37d7b36889abf708abc0ac300337068930db4dd48b",
+      "payloadCount": 8
+    },
+    {
+      "site": "leaf",
+      "kind": "runtime",
+      "contentId": "6cddc4b897410d7524a69bdaff0327d9f07916735078a0b12d548e2f88c23d20",
+      "payloadCount": 6
+    }
+  ],
+  "manifestCount": 6,
+  "payloadCount": 42
+}

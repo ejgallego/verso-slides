@@ -1,0 +1,21 @@
+ℹ [127/133] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [131/153] Replayed «verso-slides»/VersoSlides.VirPrettyM:virProgram
+info: stdout:
+wrote /tmp/tmp.XXOwNxf7/program.irpkg-set.json
+wrote /tmp/tmp.XXOwNxf7/program.irpkg
+wrote /tmp/tmp.XXOwNxf7/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [132/153] Replayed «verso-slides»/VersoSlides.VirPrettyM:virResourcePack
+info: stdout:
+00c4cc5794f68178e57d5e37d7b36889abf708abc0ac300337068930db4dd48b
+⚠ [590/620] Replayed Demo
+warning: Demo.lean: missing `module` header as required by the `requiresModuleSystem` option
+warning: Demo.lean: missing `module` header as required by the `requiresModuleSystem` option
+⚠ [591/620] Replayed Main
+warning: Main.lean: missing `module` header as required by the `requiresModuleSystem` option
+warning: Main.lean: missing `module` header as required by the `requiresModuleSystem` option
+Slides written to _slides/index.html

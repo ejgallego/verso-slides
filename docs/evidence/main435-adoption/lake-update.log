@@ -1,0 +1,24 @@
+info: lean_vir: materializing new dependency
+info: lean_vir: fetching revision '3e7dbcf0615305c83bdcb9aa1892ac8b22087d8e' from https://github.com/ejgallego/lean-vir.git
+info: lean_vir: checking out revision '3e7dbcf0615305c83bdcb9aa1892ac8b22087d8e'
+info: verso: materializing new dependency
+info: verso: fetching revision '01a09f320122475119588526857a07d218aef600' from https://github.com/leanprover/verso.git
+info: verso: checking out revision '01a09f320122475119588526857a07d218aef600'
+info: toolchain not updated; already up-to-date
+info: Cli: materializing new dependency
+info: Cli: fetching revision '82c11b9717083154aefc5fe8d4cba4bbf046298f' from https://github.com/leanprover/lean4-cli
+info: Cli: checking out revision '82c11b9717083154aefc5fe8d4cba4bbf046298f'
+info: illuminate: materializing new dependency
+info: illuminate: fetching revision '86aa7e62f42b2a82daf9692b191febde1f3d65f9' from https://github.com/leanprover/illuminate
+info: illuminate: checking out revision '86aa7e62f42b2a82daf9692b191febde1f3d65f9'
+info: plausible: materializing new dependency
+info: plausible: fetching revision 'aef59637faa9e85fa2486acaaf906ce3f572af7c' from https://github.com/leanprover-community/plausible
+info: plausible: checking out revision 'aef59637faa9e85fa2486acaaf906ce3f572af7c'
+info: MD4Lean: materializing new dependency
+info: MD4Lean: fetching revision '31907cc18f48a95384f99cee5582c00fb39e0f67' from https://github.com/acmepjz/md4lean
+info: MD4Lean: checking out revision '31907cc18f48a95384f99cee5582c00fb39e0f67'
+info: subverso: materializing new dependency
+info: subverso: fetching revision '892d6dc520270b5fb8c1291dd1b131e8c16255ed' from https://github.com/leanprover/subverso
+info: subverso: checking out revision '892d6dc520270b5fb8c1291dd1b131e8c16255ed'
+warning: subverso: ignoring missing manifest:
+  /home/egallego/lean/verso-slides/.worktrees/vir-prettym-main435-integration/.lake/packages/subverso/lake-manifest.json

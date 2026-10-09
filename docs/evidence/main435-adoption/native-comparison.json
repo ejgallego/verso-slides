@@ -1,0 +1,6 @@
+{
+  "oldEvidence": "c1f722480b7bab55c5c8ad06bc0d22e525e8134e",
+  "caseCount": 8,
+  "completeNativeCorpusEqual": true,
+  "scope": "Eight existing cases; not complete Lean formatting equivalence"
+}
