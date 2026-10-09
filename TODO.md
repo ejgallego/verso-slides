@@ -9,33 +9,31 @@ landed head. Preserve mandatory VIR and full Lean-name/typed-array contracts.
 ## Active landing and retained work
 
 Active landing candidate:
-[`feat/vir-prettym-dedicated-four-patch`](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...35b5d14bc97d71981d01957f8a6fc6ea7470a6e4),
-exactly four commits: essential integration with smaller needs/context inclusion;
-JavaScript formatter removal/readiness; shared panel/lightbox refactor; tests/docs/
-examples. Exact selected VIR49445aa0/runtimee415/programba684. Current executed
-source0fbe34c and [dedicated-source evidence73a78d7](https://github.com/ejgallego/verso-slides/tree/73a78d7/docs/evidence/dedicated-config-adoption)
-record fresh ordinary root/downstream cold+warm builds741 jobs, actual anonymous
-acquisition (one per cold), own program regeneration, eight native checks, renderer
-publication and full emitted-site comparison. Root113/leaf112 files plus eight-case
-native oracle match qualifiedcfa bytes exactly. Unrelated caches/toolchain shared,
-parent application output shared through path dependency; no all-package unseeded,
-network-isolated/offline or new CI claim.
+[`feat/vir-prettym-assets-four-patch`](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...08e72838b517189a3ac5567ff03779265986821b),
+exactly four commits: essential integration/explicit module assets; JS formatter
+removal/readiness; shared panel/lightbox refactor; tests/docs/example. Exact VIR
+c2278f36/runtimee415/programba684. Executedec267f4 and
+[evidencec1f7224](https://github.com/ejgallego/verso-slides/tree/c1f7224/docs/evidence/explicit-assets-adoption)
+record fresh root/downstream public cold+warm743-job builds, anonymous acquisition
+and actual program regeneration,20 Node/TypeScript/native/publication/fixtures and
+30 focused Chromium/Firefox checks. Six manifests/42 payloads match; full113 root/
+112 downstream files remain equal to accepted35b/494. One initial overlapping
+shared-parent fixture build failed on missing .olean; retained sequential driver
+rerun passes with no source change. Shared parent build operations serialized.
 
-Producer494 and previouscfa differ only in two guides; application/test bytes,
-regenerated program and acquired runtime are unchanged. This justifies retaining
-[prior evidenceeb5163f](https://github.com/ejgallego/verso-slides/tree/eb5163f74863eed9083104307f7355c06ed0410c/docs/evidence/small-config-adoption):
-20 Node, TypeScript, ordinary test driver and30 Chromium/Firefox checks. Those
-checks were not rerun at494. Root/nested/downstream browser paths use identical
-resources and URLs; no broader geometry/retention/mobile acceptance is inferred.
-No exact494 CI success or cfa/bda CI result reused;217/223 CI remain producer-owned.
-Previous235/bda and af261da/cfa and supplied37/d72 candidates remain preserved.
-Final source/tests match executed0fbe34c; only short review notes differ.
+The asset library needs one +Module:virResourcePack. Ordinary Vir.Resources.Assets
+import and include_vir_assets produce one compiled ResourceSet for renderer/tests.
+No self-library facet/bare marker/contextual include/repeated assembly. Program
+inputs use normal Lean library outputs, so root .vir-generated ignore is removed.
+Existing source pairs/candidates/evidence preserved. Final application/tests match
+executedec267f4; only review notes differ, intermediate commits unqualified.
+Unrelated caches/toolchain/path-parent output shared, ordinary Lake cache enabled;
+no all-package unseeded/offline/new exactc227 CI or old CI reuse claimed.
 
-Smaller configuration deletes virPrograms, selects one bare Module need plus
-fixed preparation facet, and uses include_vir_program. Keep the preparation
-prerequisite; inclusion is not a current-config validator. Required Demo line fix
-stays in commit4. Existing readiness/error reporting, panel resize and detached
-probe cleanup remain; every postponed feature below still waits for first landing.
+Required Demo line fix stays in commit4. Existing readiness/error reporting,
+panel resize and detached-probe cleanup remain. No native/main/alias/runtime
+composition or geometry/retention/mobile product claim; all postponed items below
+still wait until first Slides landing.
 
 This follow-up branch retains the implemented additions at
 [`c4c136a`](https://github.com/ejgallego/verso-slides/tree/c4c136a1b40f05bf9b65213e5940eee869803cf5).
@@ -63,7 +61,7 @@ Those results qualify that full baseline, not future changes or the reduced tree
 
 All above are Slides-owned or independently owned drafts as noted; this checklist
 does not transfer ownership or merge other worktrees. Producer source/runtime
-publication is now available for the qualified 49445aa0/e415/ba684 pair. The agreed smaller registration/include is adopted in this candidate; further
+publication is now available for the qualified c2278f36/e415/ba684 pair. The agreed explicit-assets registration/include is adopted in this candidate; further
 producer/native/config experiments remain separate, with no automatic adoption.
 
 ## Related upstream issues to keep visible
