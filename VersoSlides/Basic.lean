@@ -174,6 +174,9 @@ public structure Config where
   Additional CSS files that are added to the output and linked from the slide HTML.
   -/
   extraCss : Array CssFile := #[]
+  /-- Binary files published independently of the selected theme. They share the
+  filename collision plan with theme assets, CSS, and formatter resources. -/
+  extraAssets : Array ThemeAsset := #[]
   /-- Extra elements to add to the page's {lit}`head` tag. -/
   extraHead : Array Html := #[]
   extraJs : Array String := #[]

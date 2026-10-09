@@ -542,22 +542,13 @@ private def writeBinFileWithDirs (path : System.FilePath) (content : ByteArray) 
   IO.FS.writeBinFile path content
 
 /-- Writes all vendored library assets to the output directory. -/
-def writeVendoredAssets (outputDir : System.FilePath) (theme : Theme) : IO Unit := do
+def writeVendoredAssets (outputDir : System.FilePath) : IO Unit := do
   let libDir := outputDir / libPrefix
   let revealDir := libDir / "reveal.js"
   -- Reveal.js core
   writeFileWithDirs (revealDir / "dist" / "reset.css") Vendor.resetCss
   writeFileWithDirs (revealDir / "dist" / "reveal.css") Vendor.revealCss
   writeFileWithDirs (revealDir / "dist" / "reveal.js") Vendor.revealJs
-  -- Selected theme: write the vendored stylesheet (with Google-Fonts `@import` lines rewritten to
-  -- local equivalents) and the font files it references, so slides render correctly without network
-  -- access. Custom themes are written separately alongside index.html.
-  if let .builtin name := theme then
-    let themeCss := Vendor.themeCSS name |>.getD Vendor.themeBlack
-    let themeDir := revealDir / "dist" / "theme"
-    writeFileWithDirs (themeDir / s!"{name}.css") (Vendor.rewriteGoogleFontImports themeCss)
-    for (relPath, data) in Vendor.themeFonts name do
-      writeBinFileWithDirs (themeDir / relPath) data
   -- Plugins
   writeFileWithDirs (revealDir / "plugin" / "notes" / "notes.js") Vendor.notesJs
   writeFileWithDirs (revealDir / "plugin" / "highlight" / "highlight.js") Vendor.highlightJs
@@ -635,10 +626,18 @@ private def recordAsset (seen : Std.HashMap String (String × AssetPayload))
       throw <| IO.userError
         s!"Filename collision in config: \"{filename}\" is claimed by {prevSource} ({prev.kind}) and {source} ({payload.kind}) with different contents."
 
+private def builtinThemeStylesheet (name : String) : CssFile := {
+  filename := s!"{libPrefix}/reveal.js/dist/theme/{name}.css"
+  contents := ⟨Vendor.rewriteGoogleFontImports (Vendor.themeCSS name |>.getD Vendor.themeBlack)⟩ }
+
+private def builtinThemeFonts (name : String) : Array ThemeAsset :=
+  (Vendor.themeFonts name).map fun (path, bytes) => {
+    filename := s!"{libPrefix}/reveal.js/dist/theme/{path}", contents := bytes }
+
 /--
 Builds the deduplicated asset plan for a {name}`Config`: the custom
-theme's stylesheet (if any), every bundled theme asset, and every
-{lit}`extraCss` entry. When two entries share a filename their contents
+theme's stylesheet and bundled fonts/assets, every {lit}`extraAssets` entry,
+and every {lit}`extraCss` entry. When two entries share a filename their contents
 must match; otherwise {name}`IO.userError` is raised.
 
 Returns the map of filenames to (source, payload) pairs so
@@ -648,12 +647,19 @@ re-deduplicating.
 def Config.collectAssets (config : Config) :
     IO (Std.HashMap String (String × AssetPayload)) := do
   let mut seen : Std.HashMap String (String × AssetPayload) := {}
-  if let .custom theme := config.theme then
+  match config.theme with
+  | .builtin name =>
+    let css := builtinThemeStylesheet name
+    seen ← recordAsset seen css.filename "builtin theme stylesheet" (.text css.contents.css)
+    for asset in builtinThemeFonts name do
+      seen ← recordAsset seen asset.filename "builtin theme font" (.binary asset.contents)
+  | .custom theme =>
     seen ← recordAsset seen theme.stylesheet.filename
       "theme stylesheet" (.text theme.stylesheet.contents.css)
     for asset in theme.assets do
-      seen ← recordAsset seen asset.filename
-        "theme asset" (.binary asset.contents)
+      seen ← recordAsset seen asset.filename "theme asset" (.binary asset.contents)
+  for asset in config.extraAssets do
+    seen ← recordAsset seen asset.filename "extraAssets" (.binary asset.contents)
   seen ← recordAsset seen config.highlightTheme.filename
     "highlight.js theme" (.text config.highlightTheme.contents.css)
   for css in config.extraCss do
@@ -663,7 +669,7 @@ def Config.collectAssets (config : Config) :
 
 /--
 Checks that every filename supplied through {lit}`Config.theme` (when
-{lit}`.custom`), its bundled assets, and {lit}`extraCss` either is unique
+{lit}`.custom`), its bundled assets, {lit}`extraAssets`, and {lit}`extraCss` either is unique
 or is repeated with identical contents. Raises {name}`IO.userError` on
 divergent-contents clashes; duplicates with identical contents are
 silently deduplicated.
@@ -722,7 +728,7 @@ def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWit
   IO.FS.writeFile docsJsonPath (toString hoverState.dedup.docJson)
 
   -- Write vendored library assets to the output directory
-  writeVendoredAssets dir config.theme
+  writeVendoredAssets dir
 
   -- Write the user-supplied custom-theme stylesheet, theme assets, and
   -- extraCss entries. The plan has already been deduplicated by filename
