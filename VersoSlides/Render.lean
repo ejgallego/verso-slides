@@ -9,7 +9,6 @@ public import VersoSlides.Attributes
 public import VersoSlides.SlideCode.Render
 public import VersoSlides.SlideCode.Export
 public import Vir.Resources
-public import Vir.Resources.Runtime
 public import VersoSlidesVendored
 public import Verso.Doc.Html
 import Verso.Code.Highlighted.WebAssets
@@ -674,11 +673,8 @@ def Config.validateFilenames (config : Config) : IO Unit := do
 
 /-- Generates a {lit}`reveal.js` slide presentation from a Verso document. -/
 def slidesMain (config : Config := {}) (doc : Part Slides) : IO UInt32 := runWithLogger do
-  -- VIR supplies the embedded runtime; Slides supplies its embedded formatter.
-  let resources : Vir.Resources.ResourceSet := {
-    runtime := Vir.Resources.Runtime.bundle
-    programs := #[VersoSlides.VirPrettyMResources.bundle]
-  }
+  -- The asset module already embeds both the formatter and its runtime.
+  let resources := VersoSlides.VirPrettyMResources.resources
   -- Prepare output files and relative loader URLs together, then feed the files
   -- through the existing asset plan and its filename-collision checks.
   let resourcePlan ← IO.ofExcept <| (resources.forSite "lib/vir").mapError reprStr

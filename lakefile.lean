@@ -10,7 +10,7 @@ open System Lake DSL
 require verso from git "https://github.com/leanprover/verso.git"@
   "cad4b633e75ea769b851f12f9ca3b4f0dfcc625f"
 require lean_vir from git "https://github.com/ejgallego/lean-vir.git" @
-  "49445aa0063639af99e3b820da0d4f1457b01ca6"
+  "c2278f3679ceefc067b9db4c74692dca0bc43a03"
 
 package «verso-slides» where
   version := v!"0.1.0"
@@ -19,11 +19,10 @@ package «verso-slides» where
 input_dir vendorAssets where
   path := "vendor"
 
--- The bare module key selects the formatter; VIR's prerequisite prepares its
--- pack before this asset library embeds it. The formatter cannot import its carrier.
+-- Prepare the formatter's resources before the asset module embeds them.
+-- The formatter cannot import this carrier library.
 lean_lib VersoSlidesVendored where
-  needs := #[vendorAssets, `+VersoSlides.VirPrettyM,
-    `@«verso-slides»/VersoSlidesVendored:virResourcePack]
+  needs := #[vendorAssets, `+VersoSlides.VirPrettyM:virResourcePack]
 
 input_dir webLibAssets where
   path := "web-lib"

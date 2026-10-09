@@ -14,7 +14,7 @@ public import Verso.Output.Html.KaTeX
 public import VersoManual.Html.CssFile
 public meta import VersoUtil.BinFiles
 public import VersoUtil.BinFiles.Z85
-public import Vir.Resources.Embed
+public import Vir.Resources.Assets
 
 namespace VersoSlides.Vendor
 
@@ -213,8 +213,7 @@ public instance : Inhabited HighlightTheme := ⟨.monokai⟩
 
 end VersoSlides
 
-/-- The formatter pack prepared by this library's `virResourcePack` prerequisite
-is embedded as compiled Lean data. Rendering uses this value independently of
-the build directories. -/
-public def VersoSlides.VirPrettyMResources.bundle : Vir.Resources.Bundle :=
-  include_vir_program
+/-- Embedded formatter assets and VIR's library-owned runtime. Rendering uses
+these compiled resources independently of the build directories. -/
+public def VersoSlides.VirPrettyMResources.resources : Vir.Resources.ResourceSet :=
+  include_vir_assets (modules := #[VersoSlides.VirPrettyM])

@@ -1,6 +1,4 @@
 /.lake
-# VIR stages binary packs here for Lean to embed in the asset library.
-.vir-generated/
 */__pycache__/*
 /_slides/
 /_test/

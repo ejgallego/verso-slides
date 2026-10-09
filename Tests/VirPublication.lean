@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 module
 
-import Vir.Resources.Runtime
 import VersoSlidesVendored
 import VersoSlides.Render
 
@@ -23,10 +22,7 @@ private def tests (dir : System.FilePath) : IO Unit := do
   let config : VersoSlides.Config := { outputDir := dir / "site" }
   let doc : Verso.Doc.Part VersoSlides.Slides := .mk #[] "publication" none #[] #[]
   check ((← VersoSlides.slidesMain config doc) == 0) "initial render failed"
-  let resources : ResourceSet := {
-    runtime := Vir.Resources.Runtime.bundle
-    programs := #[VersoSlides.VirPrettyMResources.bundle]
-  }
+  let resources := VersoSlides.VirPrettyMResources.resources
   let builtin ← IO.ofExcept <| (resources.forSite "lib/vir").mapError reprStr
   for file in builtin.files do
     check ((← IO.FS.readBinFile (config.outputDir / file.path)) == file.bytes)

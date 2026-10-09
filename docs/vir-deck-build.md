@@ -11,19 +11,23 @@ python3 -m http.server --directory _slides
 
 Downstream decks keep ordinary `slidesMain`/`Config.outputDir`; see
 `examples/default-deck`. The existing `VersoSlides` library owns the formatter,
-and `VersoSlidesVendored` embeds the prepared pack through `include_vir_program`.
-Its stock Lake configuration selects the formatter once:
+and `VersoSlidesVendored` embeds its assets with VIR's library-owned runtime:
 
 ```lean
 lean_lib VersoSlidesVendored where
-  needs := #[vendorAssets, `+VersoSlides.VirPrettyM,
-    `@«verso-slides»/VersoSlidesVendored:virResourcePack]
+  needs := #[vendorAssets, `+VersoSlides.VirPrettyM:virResourcePack]
 ```
 
-The bare module key selects the program; the library's fixed prerequisite prepares
-it before embedding. Keep that prerequisite: inclusion reads prepared input, not
-current Lake configuration, and cannot detect its later removal. Downstream decks
-need no registration or generated-path settings.
+```lean
+public import Vir.Resources.Assets
+
+public def VersoSlides.VirPrettyMResources.resources : Vir.Resources.ResourceSet :=
+  include_vir_assets (modules := #[VersoSlides.VirPrettyM])
+```
+
+The Lake dependency prepares the selected module's pack; the Lean include uses
+those prepared assets. Keep the preparation dependency configured. Downstream
+decks need no registration or generated-path settings.
 
 VIR prepares resources and supplies files/URLs through `ResourceSet.forSite`.
 Slides uses its existing writer. No application recipe, export list, producer
@@ -47,7 +51,7 @@ without retry or a JavaScript formatter fallback. Document teardown/disposal,
 font listeners, additional UI/selector changes and measurement campaigns are
 recorded in the [post-landing queue](vir-followups.md).
 
-The exact VIR `49445aa0` pin selects public runtime `e415e41a`. Its owning
+The exact VIR `c2278f36` pin selects public runtime `e415e41a`. Its owning
 library acquires and verifies the prebuilt runtime during the ordinary build;
 applications use the URLs returned by `forSite`. No supplied pack or Wasm source
 build is required. The review notes record the exact acquisition/test scope.
