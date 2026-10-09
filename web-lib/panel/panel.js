@@ -26,6 +26,15 @@
 
         document.querySelectorAll(".code-with-panel").forEach(setupBlock);
 
+        window.addEventListener("verso-vir-statechange", function () {
+            // Initial readiness renders the current selection, not a saved request.
+            document.querySelectorAll(".code-with-panel").forEach(function (el) {
+                var block = /** @type {PanelBlock} */ (el);
+                var panel = /** @type {InfoPanel | null} */ (block.querySelector(".info-panel"));
+                if (panel && block._activeSource) updatePanel(panel, block._activeSource, block);
+            });
+        });
+
         Reveal.on("fragmentshown", onFragmentShown);
         Reveal.on("fragmenthidden", onFragmentHidden);
         Reveal.on("slidechanged", onSlideChanged);
@@ -427,15 +436,16 @@
             var ts = el.querySelector(":scope > .tactic-state");
             if (ts) {
                 var richFmt = ts.getAttribute("data-rich-format");
-                if (richFmt && typeof goalsToHtml === "function") {
-                    panel._richFormatSource = ts;
-                    try {
-                        renderRichFormat(panel, ts);
-                        html = null; // already set innerHTML
-                    } catch (e) {
-                        html = '<span class="hl lean">' + ts.innerHTML + "</span>";
-                        panel._richFormatSource = null;
+                if (richFmt) {
+                    if (!formatterIsReady()) {
+                        panel.innerHTML = "";
+                        showFormattingStatus(panel);
+                        return;
                     }
+                    panel._richFormatSource = ts;
+                    try { renderRichFormat(panel, ts); }
+                    catch (error) { showFormattingFailure(panel, error); }
+                    html = null; // already set innerHTML
                 } else {
                     html = '<span class="hl lean">' + ts.innerHTML + "</span>";
                 }
@@ -453,13 +463,14 @@
 
         // Check for reflowable signature format data in hover content
         var sigCode = panel.querySelector("code[data-rich-format]");
-        if (sigCode && typeof formatToHtml === "function") {
-            try {
-                panel._richFormatSource = sigCode;
-                renderRichFormat(panel, sigCode);
-            } catch (e) {
-                // Fall back to plain text signature on error
-                panel._richFormatSource = null;
+        if (sigCode) {
+            panel._richFormatSource = sigCode;
+            if (!formatterIsReady()) {
+                sigCode.textContent = "";
+                showFormattingStatus(/** @type {HTMLElement} */ (sigCode));
+            } else {
+                try { renderRichFormat(panel, sigCode); }
+                catch (error) { showFormattingFailure(/** @type {HTMLElement} */ (sigCode), error); }
             }
         }
 
@@ -477,14 +488,13 @@
      * @param {InfoPanel} panel
      */
     function reflowPanel(panel) {
+        if (!formatterIsReady()) return;
         var source = panel._richFormatSource;
         if (!source) return;
-        var richFmt = source.getAttribute("data-rich-format");
-        if (!richFmt) return;
-        try {
-            renderRichFormat(panel, source);
-        } catch (e) {
-            // Fall back to pre-rendered HTML on error
+        try { renderRichFormat(panel, source); }
+        catch (error) {
+            showFormattingFailure(source.tagName === "CODE" ?
+                /** @type {HTMLElement} */ (source) : panel, error);
         }
     }
 
