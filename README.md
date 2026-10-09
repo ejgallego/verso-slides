@@ -743,6 +743,10 @@ becomes `data-transition="zoom"`.
 
 - `extraCss : Array CssFile` — overlay stylesheets, see
   [Custom CSS](#custom-css).
+- `extraAssets : Array ThemeAsset` — additional files, each with a
+  filename and binary contents. Files are written under `outputDir`
+  with either a built-in or custom theme. Use this for images, data,
+  or resources supplied by an extension.
 - `extraJs : Array String` — extra `<script src=…>` tags appended to
   the page.
 - `outputDir : System.FilePath` — where to write `index.html` and the
@@ -951,9 +955,9 @@ and each entry layers on top of it (and on top of each earlier
 
 ## Filename Collisions
 
-`slidesMain` compiles the custom theme's stylesheet, every bundled
-asset, and every `extraCss` entry into a single deduplicated write
-plan before touching the filesystem:
+`slidesMain` collects the selected theme's stylesheet and bundled
+assets, `extraAssets`, formatter resources, and `extraCss` into a
+deduplicated write plan before touching the filesystem:
 
 - If two entries share a filename **and** have identical contents,
   they are merged: the file is written once and linked once. This is
