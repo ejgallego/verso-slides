@@ -51,7 +51,7 @@ without retry or a JavaScript formatter fallback. Document teardown/disposal,
 font listeners, additional UI/selector changes and measurement campaigns are
 recorded in the [post-landing queue](vir-followups.md).
 
-The exact VIR `c2278f36` pin selects public runtime `e415e41a`. Its owning
+The exact VIR `3e7dbcf0` pin selects public Lean 4.35 runtime `6cddc4b8`. Its owning
 library acquires and verifies the prebuilt runtime during the ordinary build;
 applications use the URLs returned by `forSite`. No supplied pack or Wasm source
 build is required. The review notes record the exact acquisition/test scope.

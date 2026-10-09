@@ -25,44 +25,21 @@ annotation supplies HTML/classes/bindings. Detached-probe cleanup is required
 when readiness/error notifications redraw during formatting. There is one
 mandatory Lean formatter, no recipe/export table, extra library or JS fallback.
 
-## Explicit-assets qualification
+## Main / Lean 4.35 adoption
 
-Application/test bytes match executed source `ec267f4`; only these review notes
-differ after regrouping. Intermediate commits not separately qualified.
-[Actual logs/packs/oracle/JUnit/manifests](https://github.com/ejgallego/verso-slides/tree/c1f7224/docs/evidence/explicit-assets-adoption)
-are outside the landing diff. Current35b/494 and all prior evidence remain preserved.
+The four commits are rebased onto upstream Slides main
+`682186a561a5d55116969f39bb0699986c3c7fba`. Main's Lean 4.35.0-rc4 toolchain,
+Verso revision and transitive dependencies are retained. The old Demo source-line
+correction is already upstream and drops out of the candidate diff. The downstream
+example uses the same toolchain.
 
-One +Module:virResourcePack need prepares the formatter. Ordinary
-Vir.Resources.Assets import provides include_vir_assets and the library-owned
-runtime. The asset module returns one ResourceSet, shared by renderer/tests;
-self-library prerequisite, contextual include and duplicate assembly removed.
-Program inputs live under normal Lean library outputs; no source-root staging
-in Slides, so its obsolete .vir-generated ignore is removed. No extra library,
-carrier key/recipe/alias/options or private loader. Existing writer/presentation stay.
+VIR PR229 is pinned consistently to public
+`3e7dbcf0615305c83bdcb9aa1892ac8b22087d8e`, rebased onto VIR main
+`8da385661dbed7942456aa9b96bfe14ce7981d6c`. Its public runtime lock selects
+`6cddc4b897410d7524a69bdaff0327d9f07916735078a0b12d548e2f88c23d20`.
+The explicit module asset API and pure formatter signature are unchanged.
 
-Fresh ordinary root/downstream cold+warm builds743 jobs each pass. Owning VIR
-source/runtime cache/stage initially empty, one anonymous public download each,
-no supplied runtime/source Wasm build; warm pack/input bytes and metadata stable.
-Unrelated dependency/toolchain caches and path-dependency parent output shared;
-ordinary Lake artifact caching, not all-package unseeded/network isolation.
-TypeScript and sequential native driver pass20 Node, native formatter/publication/
-configuration and fixture checks. Initial overlapping shared-cache fixture failure
-is retained; complete sequential rerun passes without source change.
-
-30 fresh focused Chromium/Firefox checks pass: full native segments/BigInt tags,
-FQName/no aliases, HTML/classes/bindings/escaping, numeric rejection/recovery,
-root/nested/downstream, existing panel resize and slow/failing readiness.
-Six manifests/42 payloads verified; entire113 root/112 downstream outputs and
-actual regenerated program/runtime equal accepted35b/494 bytes.
-
-## Exact pair
-
-VIR `c2278f3679ceefc067b9db4c74692dca0bc43a03`, Lean4.34.0/compiler
-`293d5d0c0c3f3dded4688b3ccd6a33939ac5102b`; descriptor2/resource3/ABI4/manifest9/IR11.
-Runtime CID `e415e41a43eccf298b710056efccf6c3d436d5fceb4e130fb06cb09d12d027dd`;
-pack SHA256 `3910c29e40ee68c3b110355fa1d30dae3029f2b34967269642521fc8409848d7`.
-Program CID `ba68416b65643b594d5a21cbdcf893bc41b80d0df8f2d4e5e1c60fb24145862a`;
-pack SHA256 `2516a1e9560673b45a63a61a1b6d7a8b33843e39c4331c5760ff5afc84b28150`.
-Root pin fields/downstream manifest agree. No exactc227 CI success/old CI reuse,
-native/main/alias adoption or broader geometry/mobile/retention acceptance.
-All postponed features stay after first landing. No official PR/force/merge/release.
+The previous 08e/c227/e415/ba684 pair and its execution evidence remain preserved
+as historical Lean 4.34 qualification. They do not qualify the new compiler/runtime
+pair. Current local build and affected client qualification are in progress.
+No merge, release, native-provider migration or cleanup is included.
