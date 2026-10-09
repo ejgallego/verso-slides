@@ -1,7 +1,21 @@
-{"version": "1.3.0",
+{
+ "version": "1.3.0",
  "packagesDir": ".lake/packages",
- "packages":
- [{"url": "https://github.com/leanprover/verso.git",
+ "packages": [
+  {
+   "url": "https://github.com/ejgallego/lean-vir.git",
+   "type": "git",
+   "subDir": null,
+   "scope": "",
+   "rev": "c2278f3679ceefc067b9db4c74692dca0bc43a03",
+   "name": "lean_vir",
+   "manifestFile": "lake-manifest.json",
+   "inputRev": "c2278f3679ceefc067b9db4c74692dca0bc43a03",
+   "inherited": false,
+   "configFile": "lakefile.lean"
+  },
+  {
+   "url": "https://github.com/leanprover/verso.git",
    "type": "git",
    "subDir": null,
    "scope": "",
@@ -10,8 +24,10 @@
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
    "inherited": false,
-   "configFile": "lakefile.lean"},
-  {"url": "https://github.com/leanprover/lean4-cli",
+   "configFile": "lakefile.lean"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4-cli",
    "type": "git",
    "subDir": null,
    "scope": "",
@@ -20,8 +36,10 @@
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
    "inherited": true,
-   "configFile": "lakefile.toml"},
-  {"url": "https://github.com/leanprover/illuminate",
+   "configFile": "lakefile.toml"
+  },
+  {
+   "url": "https://github.com/leanprover/illuminate",
    "type": "git",
    "subDir": null,
    "scope": "",
@@ -30,8 +48,10 @@
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
    "inherited": true,
-   "configFile": "lakefile.lean"},
-  {"url": "https://github.com/leanprover-community/plausible",
+   "configFile": "lakefile.lean"
+  },
+  {
+   "url": "https://github.com/leanprover-community/plausible",
    "type": "git",
    "subDir": null,
    "scope": "",
@@ -40,8 +60,10 @@
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
    "inherited": true,
-   "configFile": "lakefile.toml"},
-  {"url": "https://github.com/acmepjz/md4lean",
+   "configFile": "lakefile.toml"
+  },
+  {
+   "url": "https://github.com/acmepjz/md4lean",
    "type": "git",
    "subDir": null,
    "scope": "",
@@ -50,8 +72,10 @@
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
    "inherited": true,
-   "configFile": "lakefile.lean"},
-  {"url": "https://github.com/leanprover/subverso",
+   "configFile": "lakefile.lean"
+  },
+  {
+   "url": "https://github.com/leanprover/subverso",
    "type": "git",
    "subDir": null,
    "scope": "",
@@ -60,7 +84,10 @@
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
    "inherited": true,
-   "configFile": "lakefile.lean"}],
- "name": "«verso-slides»",
+   "configFile": "lakefile.lean"
+  }
+ ],
+ "name": "\u00abverso-slides\u00bb",
  "lakeDir": ".lake",
- "fixedToolchain": false}
+ "fixedToolchain": false
+}
