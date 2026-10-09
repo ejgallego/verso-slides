@@ -63,6 +63,9 @@
 
         // Rescale lightbox content when viewport changes
         Reveal.on("resize", applyScale);
+        window.addEventListener("verso-vir-statechange", function () {
+            if (currentInner) reflowLightboxSignatures(currentInner);
+        });
 
         // Close on Escape — use capture phase to intercept before reveal.js
         document.addEventListener(
@@ -205,21 +208,34 @@
      * @param {HTMLElement} container
      */
     function reflowLightboxSignatures(container) {
-        var sigCode = container.querySelector("code[data-rich-format]");
-        if (!sigCode || typeof formatToHtml !== "function") return;
-        try {
-            var fmtData = JSON.parse(sigCode.getAttribute("data-rich-format") || "{}");
-            var measurer = createDOMMeasurer(container);
-            var width =
-                container.clientWidth -
-                parseFloat(getComputedStyle(container).paddingLeft || "0") -
-                parseFloat(getComputedStyle(container).paddingRight || "0");
-            if (width <= 0) width = 600; // fallback
-            var rendered = formatToHtml(fmtData.fmt, fmtData.annotations, width, measurer);
-            sigCode.innerHTML = '<span class="reflowed">' + rendered + "</span>";
-            measurer.cleanup();
-        } catch (e) {
-            // Fall back to plain text signature
+        var source = container.querySelector("code[data-rich-format]");
+        if (!source) return;
+        if (!formatterIsReady()) {
+            source.textContent = "";
+            showFormattingStatus(/** @type {HTMLElement} */ (source));
+        } else {
+            try {
+                var rich = source.getAttribute("data-rich-format");
+                if (!rich) throw new PrettyFormatError("invalidInput");
+                var parsed = JSON.parse(rich);
+                if (Array.isArray(parsed)) {
+                    var result = goalsToHtml(parsed);
+                    container.innerHTML = '<span class="hl lean">' + result.html + "</span>";
+                    var measurer = createDOMMeasurer(container);
+                    try { fillReflowedSpans(container, result.formats, measurer); }
+                    finally { measurer.cleanup(); }
+                } else {
+                    var measurer = createDOMMeasurer(container);
+                    try {
+                        var style = getComputedStyle(container);
+                        var width = Math.max(0, container.clientWidth -
+                            parseFloat(style.paddingLeft || "0") - parseFloat(style.paddingRight || "0"));
+                        source.innerHTML = '<span class="reflowed">' +
+                            formatToHtml(parsed.fmt, parsed.annotations, width, measurer) + "</span>";
+                    } finally { measurer.cleanup(); }
+                }
+            }
+            catch (error) { showFormattingFailure(/** @type {HTMLElement} */ (source), error); }
         }
     }
 
