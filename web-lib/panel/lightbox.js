@@ -214,27 +214,7 @@
             source.textContent = "";
             showFormattingStatus(/** @type {HTMLElement} */ (source));
         } else {
-            try {
-                var rich = source.getAttribute("data-rich-format");
-                if (!rich) throw new PrettyFormatError("invalidInput");
-                var parsed = JSON.parse(rich);
-                if (Array.isArray(parsed)) {
-                    var result = goalsToHtml(parsed);
-                    container.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-                    var measurer = createDOMMeasurer(container);
-                    try { fillReflowedSpans(container, result.formats, measurer); }
-                    finally { measurer.cleanup(); }
-                } else {
-                    var measurer = createDOMMeasurer(container);
-                    try {
-                        var style = getComputedStyle(container);
-                        var width = Math.max(0, container.clientWidth -
-                            parseFloat(style.paddingLeft || "0") - parseFloat(style.paddingRight || "0"));
-                        source.innerHTML = '<span class="reflowed">' +
-                            formatToHtml(parsed.fmt, parsed.annotations, width, measurer) + "</span>";
-                    } finally { measurer.cleanup(); }
-                }
-            }
+            try { renderRichFormat(container, source); }
             catch (error) { showFormattingFailure(/** @type {HTMLElement} */ (source), error); }
         }
     }
