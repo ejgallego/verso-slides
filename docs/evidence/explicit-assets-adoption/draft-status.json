@@ -1,0 +1,16 @@
+{
+  "base": "35b5d14bc97d71981d01957f8a6fc6ea7470a6e4",
+  "sourcePin": "49445aa0063639af99e3b820da0d4f1457b01ca6",
+  "proposedApiNotImplementedAtPin": true,
+  "requiredHandoff": "real Pack/ResourceSet module facet and exact macro/runtime public import, immutable public source",
+  "draftFiles": [
+    "Tests/VirPublication.lean",
+    "VersoSlides/Render.lean",
+    "VersoSlidesVendored.lean",
+    "docs/vir-deck-build.md",
+    "lakefile.lean"
+  ],
+  "buildsRun": false,
+  "testsRun": false,
+  "published": false
+}

@@ -1,0 +1,11 @@
+{
+  "sourceRevision": "c2278f3679ceefc067b9db4c74692dca0bc43a03",
+  "runtimeCacheExists": false,
+  "runtimeStageExists": false,
+  "rootSourceStageExists": false,
+  "suppliedPack": false,
+  "otherDependencyCaches": "copied",
+  "toolchain": "shared",
+  "lakeArtifactCacheDisabled": false,
+  "rootBuildCacheExists": false
+}

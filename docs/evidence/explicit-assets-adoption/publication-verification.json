@@ -1,0 +1,49 @@
+{
+  "manifests": 6,
+  "payloads": 42,
+  "routes": [
+    {
+      "route": "",
+      "kind": "program",
+      "payloads": 8
+    },
+    {
+      "route": "",
+      "kind": "runtime",
+      "payloads": 6
+    },
+    {
+      "route": "nested/deck",
+      "kind": "program",
+      "payloads": 8
+    },
+    {
+      "route": "nested/deck",
+      "kind": "runtime",
+      "payloads": 6
+    },
+    {
+      "route": "downstream/custom",
+      "kind": "program",
+      "payloads": 8
+    },
+    {
+      "route": "downstream/custom",
+      "kind": "runtime",
+      "payloads": 6
+    }
+  ],
+  "fullSiteComparison": [
+    {
+      "route": "",
+      "files": 113,
+      "byteEqual": true
+    },
+    {
+      "route": "downstream/custom",
+      "files": 112,
+      "byteEqual": true
+    }
+  ],
+  "rootSourceStageAbsent": true
+}
