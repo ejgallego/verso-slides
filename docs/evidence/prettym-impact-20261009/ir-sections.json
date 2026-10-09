@@ -1,0 +1,191 @@
+[
+  {
+    "module": "Init.Prelude",
+    "path": "parts/0.irpkg",
+    "bytes": 678,
+    "sections": [
+      {
+        "name": "declarations",
+        "bytes": 158
+      },
+      {
+        "name": "initGlobals",
+        "bytes": 4
+      },
+      {
+        "name": "hostImports",
+        "bytes": 4
+      },
+      {
+        "name": "exportSummaries",
+        "bytes": 4
+      },
+      {
+        "name": "interfaceManifest",
+        "bytes": 413
+      }
+    ]
+  },
+  {
+    "module": "Init.Control.Id",
+    "path": "parts/1.irpkg",
+    "bytes": 1984,
+    "sections": [
+      {
+        "name": "declarations",
+        "bytes": 1461
+      },
+      {
+        "name": "initGlobals",
+        "bytes": 4
+      },
+      {
+        "name": "hostImports",
+        "bytes": 4
+      },
+      {
+        "name": "exportSummaries",
+        "bytes": 4
+      },
+      {
+        "name": "interfaceManifest",
+        "bytes": 416
+      }
+    ]
+  },
+  {
+    "module": "Init.Data.Int.Basic",
+    "path": "parts/2.irpkg",
+    "bytes": 908,
+    "sections": [
+      {
+        "name": "declarations",
+        "bytes": 381
+      },
+      {
+        "name": "initGlobals",
+        "bytes": 4
+      },
+      {
+        "name": "hostImports",
+        "bytes": 4
+      },
+      {
+        "name": "exportSummaries",
+        "bytes": 4
+      },
+      {
+        "name": "interfaceManifest",
+        "bytes": 420
+      }
+    ]
+  },
+  {
+    "module": "Init.Control.State",
+    "path": "parts/3.irpkg",
+    "bytes": 5942,
+    "sections": [
+      {
+        "name": "declarations",
+        "bytes": 5416
+      },
+      {
+        "name": "initGlobals",
+        "bytes": 4
+      },
+      {
+        "name": "hostImports",
+        "bytes": 4
+      },
+      {
+        "name": "exportSummaries",
+        "bytes": 4
+      },
+      {
+        "name": "interfaceManifest",
+        "bytes": 419
+      }
+    ]
+  },
+  {
+    "module": "Init.Data.Format.Basic",
+    "path": "parts/4.irpkg",
+    "bytes": 11314,
+    "sections": [
+      {
+        "name": "declarations",
+        "bytes": 10784
+      },
+      {
+        "name": "initGlobals",
+        "bytes": 4
+      },
+      {
+        "name": "hostImports",
+        "bytes": 4
+      },
+      {
+        "name": "exportSummaries",
+        "bytes": 4
+      },
+      {
+        "name": "interfaceManifest",
+        "bytes": 423
+      }
+    ]
+  },
+  {
+    "module": "VersoSlides.Pretty",
+    "path": "parts/5.irpkg",
+    "bytes": 48708,
+    "sections": [
+      {
+        "name": "declarations",
+        "bytes": 48182
+      },
+      {
+        "name": "initGlobals",
+        "bytes": 4
+      },
+      {
+        "name": "hostImports",
+        "bytes": 4
+      },
+      {
+        "name": "exportSummaries",
+        "bytes": 4
+      },
+      {
+        "name": "interfaceManifest",
+        "bytes": 419
+      }
+    ]
+  },
+  {
+    "module": "VersoSlides.VirPrettyM",
+    "path": "program.irpkg",
+    "bytes": 5520,
+    "sections": [
+      {
+        "name": "declarations",
+        "bytes": 1293
+      },
+      {
+        "name": "initGlobals",
+        "bytes": 4
+      },
+      {
+        "name": "hostImports",
+        "bytes": 4
+      },
+      {
+        "name": "exportSummaries",
+        "bytes": 61
+      },
+      {
+        "name": "interfaceManifest",
+        "bytes": 4063
+      }
+    ]
+  }
+]

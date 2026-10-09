@@ -1,0 +1,63 @@
+✔ [128/133] Built VersoSlides.ImgSrc (254ms)
+✔ [129/133] Built VersoSlides.Pretty (567ms)
+ℹ [130/133] Built VersoSlides.VirPrettyM (516ms)
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [131/133] Built «verso-slides»/VersoSlides.VirPrettyM:virProgram (990ms)
+info: stdout:
+wrote /tmp/tmp.XXlSG0PT/program.irpkg-set.json
+wrote /tmp/tmp.XXlSG0PT/program.irpkg
+wrote /tmp/tmp.XXlSG0PT/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [132/153] Built «verso-slides»/VersoSlides.VirPrettyM:virResourcePack (49ms)
+info: stdout:
+00c4cc5794f68178e57d5e37d7b36889abf708abc0ac300337068930db4dd48b
+✔ [571/589] Built VersoSlides.ImageWidget (607ms)
+✔ [572/589] Built VersoSlides.SlideCode.CommentParsers (920ms)
+✔ [573/589] Built VersoSlidesVendored (1.1s)
+✔ [574/589] Built VersoSlides.SlideCode (1.3s)
+✔ [575/589] Built VersoSlides.SlideCode.Export (922ms)
+✔ [576/589] Built VersoSlides.SlideCode.Render (1.0s)
+✔ [577/589] Built VersoSlides.Basic (2.4s)
+✔ [578/589] Built VersoSlides.Attributes (814ms)
+✔ [579/589] Built VersoSlides.OtherLanguages (1.1s)
+✔ [580/589] Built VersoSlides.Diagram (1.1s)
+✔ [581/589] Built VersoSlides.InlineLean (2.2s)
+✔ [582/589] Built VersoSlides.Animate (1.3s)
+✔ [583/614] Built verso/Verso.Code.External:highlighted (5.8s)
+✔ [592/620] Built VersoSlides.ImgSrc:c.o (226ms)
+✔ [593/620] Built VersoSlides.ImageWidget:c.o (271ms)
+✔ [594/620] Built VersoSlides.Attributes:c.o (308ms)
+✔ [595/620] Built VersoSlides.Directives (2.9s)
+✔ [596/620] Built VersoSlides.SlideCode.Render:c.o (646ms)
+✔ [597/620] Built VersoSlides.Pretty:c.o (528ms)
+✔ [598/620] Built VersoSlidesVendored:c.o (876ms)
+✔ [599/620] Built VersoSlides.SlideCode.CommentParsers:c.o (916ms)
+✔ [600/620] Built VersoSlides.SlideCode.Export:c.o (1.1s)
+✔ [601/620] Built VersoSlides.Render (2.9s)
+✔ [602/620] Built VersoSlides.OtherLanguages:c.o (1.9s)
+✔ [603/620] Built VersoSlides.Diagram:c.o (2.4s)
+✔ [604/620] Built VersoSlides.Animate:c.o (2.6s)
+✔ [605/620] Built VersoSlides.ModuleExample (2.0s)
+✔ [606/620] Built VersoSlides.SlideCode:c.o (2.8s)
+✔ [607/620] Built VersoSlides.Basic:c.o (3.2s)
+✔ [608/620] Built VersoSlides.Directives:c.o (3.9s)
+✔ [609/620] Built VersoSlides.Render:c.o (3.6s)
+✔ [610/620] Built VersoSlides.InlineLean:c.o (5.3s)
+✔ [611/620] Built VersoSlides.LibModule (3.3s)
+✔ [612/620] Built VersoSlides (666ms)
+✔ [613/620] Built VersoSlides:c.o (76ms)
+✔ [614/620] Built VersoSlides.ModuleExample:c.o (5.3s)
+✔ [615/620] Built VersoSlides.LibModule:c.o (3.6s)
+⚠ [616/620] Built Demo (12s)
+warning: Demo.lean: missing `module` header as required by the `requiresModuleSystem` option
+warning: Demo.lean: missing `module` header as required by the `requiresModuleSystem` option
+⚠ [617/620] Built Main (764ms)
+warning: Main.lean: missing `module` header as required by the `requiresModuleSystem` option
+warning: Main.lean: missing `module` header as required by the `requiresModuleSystem` option
+✔ [618/620] Built Demo:c.o (782ms)
+✔ [619/620] Built Main:c.o (70ms)
+✔ [620/620] Built «demo-slides»:exe (455ms)
+Build completed successfully (620 jobs).

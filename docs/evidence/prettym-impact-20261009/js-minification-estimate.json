@@ -1,0 +1,22 @@
+{
+  "esbuildVersion": "0.27.7",
+  "results": [
+    {
+      "variant": "published",
+      "bytes": 239305,
+      "gzipBytes": 46896
+    },
+    {
+      "variant": "minified",
+      "bytes": 127333,
+      "gzipBytes": 33861
+    },
+    {
+      "variant": "minified-keep-names",
+      "bytes": 140760,
+      "gzipBytes": 37117
+    }
+  ],
+  "scope": "Offline transform of exact published JS only. No regenerated runtime pack, source change, adoption or behavioral qualification.",
+  "compression": "Python gzip level9, mtime0; same compressor as earlier file inventory"
+}

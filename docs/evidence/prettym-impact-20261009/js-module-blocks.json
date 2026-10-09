@@ -1,0 +1,158 @@
+[
+  {
+    "module": "web/src/runtime/interface-effects.js",
+    "bytes": 613
+  },
+  {
+    "module": "web/src/runtime/vir-codec.js",
+    "bytes": 3423
+  },
+  {
+    "module": "web/src/runtime/cleanup.js",
+    "bytes": 817
+  },
+  {
+    "module": "web/src/host-boundary.js",
+    "bytes": 1521
+  },
+  {
+    "module": "web/src/runtime/interface-tags.js",
+    "bytes": 527
+  },
+  {
+    "module": "web/src/runtime/module-name.js",
+    "bytes": 377
+  },
+  {
+    "module": "web/src/runtime/package-targets.js",
+    "bytes": 3251
+  },
+  {
+    "module": "web/src/runtime/interface-manifest.js",
+    "bytes": 25371
+  },
+  {
+    "module": "web/src/runtime/host-state.js",
+    "bytes": 10860
+  },
+  {
+    "module": "web/src/runtime/ir-package.js",
+    "bytes": 9988
+  },
+  {
+    "module": "web/src/runtime/factory-core.js",
+    "bytes": 15084
+  },
+  {
+    "module": "web/src/runtime/object-boundary.js",
+    "bytes": 831
+  },
+  {
+    "module": "web/src/runtime/package-contract.js",
+    "bytes": 983
+  },
+  {
+    "module": "web/src/runtime/call-timing.js",
+    "bytes": 1704
+  },
+  {
+    "module": "web/src/runtime/primitive-value-normalizers.js",
+    "bytes": 2082
+  },
+  {
+    "module": "web/src/runtime/js-value-support.js",
+    "bytes": 716
+  },
+  {
+    "module": "web/src/runtime/object-abi-exports.js",
+    "bytes": 1979
+  },
+  {
+    "module": "web/src/runtime/object-core.js",
+    "bytes": 9200
+  },
+  {
+    "module": "web/src/runtime/primitive-values.js",
+    "bytes": 7062
+  },
+  {
+    "module": "web/src/runtime/managed-core.js",
+    "bytes": 17352
+  },
+  {
+    "module": "web/src/runtime/vir-value-normalizers.js",
+    "bytes": 8497
+  },
+  {
+    "module": "web/src/runtime/object-abi.js",
+    "bytes": 15224
+  },
+  {
+    "module": "web/src/runtime/object-values.js",
+    "bytes": 44208
+  },
+  {
+    "module": "web/src/runtime/core.js",
+    "bytes": 97
+  },
+  {
+    "module": "web/src/runtime/factory.js",
+    "bytes": 162
+  },
+  {
+    "module": "web/src/host/vir-active-host-bindings.js",
+    "bytes": 4893
+  },
+  {
+    "module": "web/src/host/vir-dom-host-bindings.js",
+    "bytes": 5398
+  },
+  {
+    "module": "web/src/host/vir-infoview-host-bindings.js",
+    "bytes": 830
+  },
+  {
+    "module": "web/src/host/vir-infoview-panel-bindings.js",
+    "bytes": 5339
+  },
+  {
+    "module": "web/src/host/vir-js-value-bindings.js",
+    "bytes": 5602
+  },
+  {
+    "module": "web/src/host/vir-js-collection-bindings.js",
+    "bytes": 3683
+  },
+  {
+    "module": "web/src/host/vir-common-host-bindings.js",
+    "bytes": 652
+  },
+  {
+    "module": "web/src/vir-host-bindings.js",
+    "bytes": 6014
+  },
+  {
+    "module": "web/src/vir-runtime.js",
+    "bytes": 338
+  },
+  {
+    "module": "web/src/resources/descriptor.js",
+    "bytes": 9785
+  },
+  {
+    "module": "web/src/resources/program-exports.js",
+    "bytes": 1704
+  },
+  {
+    "module": "web/src/runtime/versions.js",
+    "bytes": 324
+  },
+  {
+    "module": "web/src/resources/compatibility.js",
+    "bytes": 457
+  },
+  {
+    "module": "web/src/resource-program.js",
+    "bytes": 12357
+  }
+]

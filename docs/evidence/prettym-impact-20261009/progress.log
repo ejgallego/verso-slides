@@ -1,0 +1,76 @@
+setup 0 old: 32.648s exit=0
+setup 0 new: 40.542s exit=0
+project-clean 1 old: 26.769s exit=0
+project-clean 2 new: 30.215s exit=0
+project-clean 3 new: 32.538s exit=0
+project-clean 4 old: 26.783s exit=0
+warm 1 old: 0.712s exit=0
+warm 2 new: 1.092s exit=0
+warm 3 new: 1.096s exit=0
+warm 4 old: 0.712s exit=0
+warm 5 old: 0.718s exit=0
+warm 6 new: 1.080s exit=0
+warm 7 new: 1.077s exit=0
+warm 8 old: 0.743s exit=0
+warm 9 old: 0.738s exit=0
+warm 10 new: 1.080s exit=0
+warm 11 new: 1.067s exit=0
+warm 12 old: 0.723s exit=0
+warm 13 old: 0.742s exit=0
+warm 14 new: 1.069s exit=0
+warm 15 new: 1.038s exit=0
+warm 16 old: 0.737s exit=0
+{
+  "sizes": {
+    "old": {
+      "siteBytes": 3680917,
+      "siteGzipBytes": 1867581,
+      "fileCount": 97,
+      "prettyBytes": 24812,
+      "prettyGzipBytes": 6210,
+      "virBytes": 0,
+      "virGzipBytes": 0,
+      "nativeBinaryBytes": 129025696
+    },
+    "new": {
+      "siteBytes": 4863875,
+      "siteGzipBytes": 2137196,
+      "fileCount": 113,
+      "prettyBytes": 12533,
+      "prettyGzipBytes": 3553,
+      "virBytes": 1192171,
+      "virGzipBytes": 271191,
+      "nativeBinaryBytes": 130732536
+    }
+  },
+  "timing": {
+    "project-clean": {
+      "old": {
+        "medianSeconds": 26.775850391510176,
+        "minSeconds": 26.768956108018756,
+        "maxSeconds": 26.782744675001595,
+        "count": 2
+      },
+      "new": {
+        "medianSeconds": 31.376647360477364,
+        "minSeconds": 30.215048811980523,
+        "maxSeconds": 32.538245908974204,
+        "count": 2
+      }
+    },
+    "warm": {
+      "old": {
+        "medianSeconds": 0.7300803335092496,
+        "minSeconds": 0.7116695320000872,
+        "maxSeconds": 0.7425549009931274,
+        "count": 8
+      },
+      "new": {
+        "medianSeconds": 1.0787026735197287,
+        "minSeconds": 1.0377119370386936,
+        "maxSeconds": 1.0958896650117822,
+        "count": 8
+      }
+    }
+  }
+}

@@ -1,0 +1,194 @@
+[
+  {
+    "name": "callClosure",
+    "bytes": 2046
+  },
+  {
+    "name": "lastClosureCallError",
+    "bytes": 199
+  },
+  {
+    "name": "makeObjectStringConstructor",
+    "bytes": 489
+  },
+  {
+    "name": "ownedObjectField",
+    "bytes": 228
+  },
+  {
+    "name": "withOwnedObjectField",
+    "bytes": 235
+  },
+  {
+    "name": "withOwnedObjectFields",
+    "bytes": 317
+  },
+  {
+    "name": "objectArgumentSupported",
+    "bytes": 86
+  },
+  {
+    "name": "objectResultSupported",
+    "bytes": 82
+  },
+  {
+    "name": "makeObjectValue",
+    "bytes": 1606
+  },
+  {
+    "name": "liftObjectValue",
+    "bytes": 1553
+  },
+  {
+    "name": "makeObjectSequenceValue",
+    "bytes": 1097
+  },
+  {
+    "name": "makeObjectOptionValue",
+    "bytes": 542
+  },
+  {
+    "name": "makeObjectProdValue",
+    "bytes": 678
+  },
+  {
+    "name": "makeObjectStructureValue",
+    "bytes": 570
+  },
+  {
+    "name": "makeObjectTaggedUnionValue",
+    "bytes": 367
+  },
+  {
+    "name": "makeObjectCustomInductiveValue",
+    "bytes": 424
+  },
+  {
+    "name": "makeObjectCtorFromLayout",
+    "bytes": 643
+  },
+  {
+    "name": "writeObjectLayoutField",
+    "bytes": 915
+  },
+  {
+    "name": "makeObjectExpr",
+    "bytes": 3907
+  },
+  {
+    "name": "makeObjectLevel",
+    "bytes": 1877
+  },
+  {
+    "name": "makeObjectLevelList",
+    "bytes": 413
+  },
+  {
+    "name": "makeObjectLiteral",
+    "bytes": 678
+  },
+  {
+    "name": "makeObjectLevelBinary",
+    "bytes": 586
+  },
+  {
+    "name": "makeObjectExprBinary",
+    "bytes": 582
+  },
+  {
+    "name": "makeObjectExprBinding",
+    "bytes": 947
+  },
+  {
+    "name": "makeObjectExprLet",
+    "bytes": 1041
+  },
+  {
+    "name": "makeObjectExprProj",
+    "bytes": 1102
+  },
+  {
+    "name": "makeObjectArrayFromOwnedElements",
+    "bytes": 771
+  },
+  {
+    "name": "makeObjectListFromOwnedElements",
+    "bytes": 669
+  },
+  {
+    "name": "makeObjectCtorFromOwnedFields",
+    "bytes": 705
+  },
+  {
+    "name": "makeObjectCtorFromOwnedLayout",
+    "bytes": 2154
+  },
+  {
+    "name": "readObjectName",
+    "bytes": 446
+  },
+  {
+    "name": "liftObjectExpr",
+    "bytes": 3961
+  },
+  {
+    "name": "liftObjectLevel",
+    "bytes": 1604
+  },
+  {
+    "name": "liftObjectLevelList",
+    "bytes": 200
+  },
+  {
+    "name": "liftObjectLiteral",
+    "bytes": 603
+  },
+  {
+    "name": "liftObjectFunction",
+    "bytes": 213
+  },
+  {
+    "name": "liftObjectArrayValue",
+    "bytes": 909
+  },
+  {
+    "name": "liftObjectListValue",
+    "bytes": 307
+  },
+  {
+    "name": "liftObjectConstructorList",
+    "bytes": 1561
+  },
+  {
+    "name": "liftObjectOptionValue",
+    "bytes": 597
+  },
+  {
+    "name": "liftObjectProdValue",
+    "bytes": 723
+  },
+  {
+    "name": "liftObjectStructureValue",
+    "bytes": 799
+  },
+  {
+    "name": "liftObjectTaggedUnionValue",
+    "bytes": 516
+  },
+  {
+    "name": "liftObjectCustomInductiveValue",
+    "bytes": 743
+  },
+  {
+    "name": "liftObjectLayoutField",
+    "bytes": 850
+  },
+  {
+    "name": "readObjectUSizeField",
+    "bytes": 484
+  },
+  {
+    "name": "readObjectScalarField",
+    "bytes": 471
+  }
+]

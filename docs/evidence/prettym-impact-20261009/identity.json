@@ -1,0 +1,43 @@
+{
+  "old": "23daa2e3eb45c5838bd7860cc21d06d5089515d7",
+  "new": "b232e7393bb21c8d98e78c078f1f16b2077c0092",
+  "command": [
+    "lake",
+    "--no-cache",
+    "build"
+  ],
+  "toolchain": "leanprover/lean4:v4.35.0-rc4",
+  "compiler": "c29b6dda4f7c20e3eeaa717c4e565663c5cfa364",
+  "cachePolicy": "Private copies of already-built exact pinned dependencies and VIR runtime; root app .lake/build moved aside before each project-clean sample. No artifact-cache download. OS page cache not cleared. Warm samples preserve build state.",
+  "plan": {
+    "setup": [
+      "old",
+      "new"
+    ],
+    "projectClean": [
+      "old",
+      "new",
+      "new",
+      "old"
+    ],
+    "warm": [
+      "old",
+      "new",
+      "new",
+      "old",
+      "old",
+      "new",
+      "new",
+      "old",
+      "old",
+      "new",
+      "new",
+      "old",
+      "old",
+      "new",
+      "new",
+      "old"
+    ]
+  },
+  "measurementBoundary": "Public lake --no-cache build to native demo executable; rendering/output sizes measured separately. Not first installation, runtime acquisition, all-dependency clean or OS-cold."
+}

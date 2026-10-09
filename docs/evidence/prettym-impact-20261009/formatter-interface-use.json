@@ -1,0 +1,48 @@
+{
+  "exports": [
+    {
+      "entry": "VersoSlides.VirPrettyM.formatSegments",
+      "effect": "pure"
+    }
+  ],
+  "hostImports": [],
+  "interfaceTags": [
+    {
+      "tag": 0,
+      "name": "NAT"
+    },
+    {
+      "tag": 1,
+      "name": "INT"
+    },
+    {
+      "tag": 2,
+      "name": "BOOL"
+    },
+    {
+      "tag": 3,
+      "name": "STRING"
+    },
+    {
+      "tag": 14,
+      "name": "SIMPLE_ENUM"
+    },
+    {
+      "tag": 16,
+      "name": "ARRAY"
+    },
+    {
+      "tag": 20,
+      "name": "STRUCTURE"
+    },
+    {
+      "tag": 25,
+      "name": "CUSTOM_INDUCTIVE"
+    },
+    {
+      "tag": 26,
+      "name": "RECURSIVE_SELF"
+    }
+  ],
+  "scope": "All embedded type descriptors of the admitted root exports; internal Lean closures are distinct from functions crossing the host ABI."
+}
