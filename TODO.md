@@ -9,31 +9,36 @@ landed head. Preserve mandatory VIR and full Lean-name/typed-array contracts.
 ## Active landing and retained work
 
 Active landing candidate:
-[`feat/vir-prettym-assets-four-patch`](https://github.com/ejgallego/verso-slides/compare/a51f7e581893042eb317edf50216060a26f38ac3...08e72838b517189a3ac5567ff03779265986821b),
-exactly four commits: essential integration/explicit module assets; JS formatter
-removal/readiness; shared panel/lightbox refactor; tests/docs/example. Exact VIR
-c2278f36/runtimee415/programba684. Executedec267f4 and
-[evidencec1f7224](https://github.com/ejgallego/verso-slides/tree/c1f7224/docs/evidence/explicit-assets-adoption)
-record fresh root/downstream public cold+warm743-job builds, anonymous acquisition
-and actual program regeneration,20 Node/TypeScript/native/publication/fixtures and
-30 focused Chromium/Firefox checks. Six manifests/42 payloads match; full113 root/
-112 downstream files remain equal to accepted35b/494. One initial overlapping
-shared-parent fixture build failed on missing .olean; retained sequential driver
-rerun passes with no source change. Shared parent build operations serialized.
+[`feat/vir-prettym-main435-four-patch`](https://github.com/ejgallego/verso-slides/compare/682186a561a5d55116969f39bb0699986c3c7fba...daa96fee635f289e2be95982418483bfb4351402),
+exactly four commits on upstream main682186a: essential integration/explicit assets;
+JS formatter removal/readiness; shared panel/lightbox refactor; tests/docs/example.
+Exact VIR PR2293e7dbcf0, Lean4.35rc4/runtime6cdd/program00c4. Main's Verso and
+transitive dependency records are retained; Demo's prior line correction is already
+upstream. Application formatting/presentation is unchanged from accepted08e.
 
-The asset library needs one +Module:virResourcePack. Ordinary Vir.Resources.Assets
-import and include_vir_assets produce one compiled ResourceSet for renderer/tests.
-No self-library facet/bare marker/contextual include/repeated assembly. Program
-inputs use normal Lean library outputs, so root .vir-generated ignore is removed.
-Existing source pairs/candidates/evidence preserved. Final application/tests match
-executedec267f4; only review notes differ, intermediate commits unqualified.
-Unrelated caches/toolchain/path-parent output shared, ordinary Lake cache enabled;
-no all-package unseeded/offline/new exactc227 CI or old CI reuse claimed.
+Executed99ec093 and
+[evidence6f36530](https://github.com/ejgallego/verso-slides/tree/6f3653037663f529fb8ffb64ebe2cb227d0fe886/docs/evidence/main435-adoption)
+retain root/downstream ordinary cold+warm620-job builds, regenerated packs,
+20 Node/TypeScript/native/publication/fixtures and30 fresh Chromium/Firefox checks.
+Six manifests/42 payloads verified. Initial browser test-server setup lacked python
+on PATH; activated existing venv replay passed with no source change. Both logs
+are retained. Builds sharing parent app outputs were serialized. Existing toolchain/
+ordinary artifact caches were available; no global isolation/anonymous-count,
+fresh offline/geometry/retention/mobile or new Slides CI claim. Producer CI was
+running at the retained readback.
 
-Required Demo line fix stays in commit4. Existing readiness/error reporting,
-panel resize and detached-probe cleanup remain. No native/main/alias/runtime
-composition or geometry/retention/mobile product claim; all postponed items below
-still wait until first Slides landing.
+The asset library needs one +Module:virResourcePack. Vir.Resources.Assets and
+include_vir_assets produce one compiled ResourceSet for renderer/tests. Program
+inputs use normal Lean library outputs; no extra key/recipe/path settings.
+Basic readiness/error reporting, panel resize and detached-probe cleanup stay.
+Application/tests match executed99ec093; only review notes differ. No official PR,
+force-push, merge, release, cleanup or separate native-provider adoption.
+
+Historical accepted
+[08e/c227/e415/ba684](https://github.com/ejgallego/verso-slides/tree/08e72838b517189a3ac5567ff03779265986821b)
+and [evidencec1f7224](https://github.com/ejgallego/verso-slides/tree/c1f722480b7bab55c5c8ad06bc0d22e525e8134e/docs/evidence/explicit-assets-adoption)
+remain preserved. Their Lean4.34 acceptance does not qualify the new435 pair.
+Other source pairs/candidates/evidence and all deferred items below are preserved.
 
 This follow-up branch retains the implemented additions at
 [`c4c136a`](https://github.com/ejgallego/verso-slides/tree/c4c136a1b40f05bf9b65213e5940eee869803cf5).
@@ -61,7 +66,7 @@ Those results qualify that full baseline, not future changes or the reduced tree
 
 All above are Slides-owned or independently owned drafts as noted; this checklist
 does not transfer ownership or merge other worktrees. Producer source/runtime
-publication is now available for the qualified c2278f36/e415/ba684 pair. The agreed explicit-assets registration/include is adopted in this candidate; further
+publication is available for the qualified PR2293e7dbcf0/6cdd/00c4 pair. The agreed explicit-assets registration/include is adopted in this candidate; further
 producer/native/config experiments remain separate, with no automatic adoption.
 
 ## Related upstream issues to keep visible
