@@ -1,0 +1,4 @@
+db12f3a9bce3a4a202df0c5809b1aaf0464026ba Test mandatory VIR formatting and ordinary downstream publication
+4a4af796f5467a2d957957623695b590af19bbaa Remove JavaScript prettyM and connect existing views to VIR readiness
+dcc82c49eb94bdc3d24e8734048220fd93dcad64 Integrate Lean PrettyM using explicit module assets
+23daa2e3eb45c5838bd7860cc21d06d5089515d7 Share rich-format rendering between panels and lightboxes

@@ -1,0 +1,71 @@
+ℹ [132/138] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [136/138] Replayed «verso-slides»/VersoSlides.VirPrettyM:virProgram
+info: stdout:
+wrote /tmp/tmp.XXzfE24v/program.irpkg-set.json
+wrote /tmp/tmp.XXzfE24v/program.irpkg
+wrote /tmp/tmp.XXzfE24v/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [137/138] Replayed «verso-slides»/VersoSlides.VirPrettyM:virResourcePack
+info: stdout:
+249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945
+ℹ [132/138] Replayed VersoSlides.VirPrettyM
+info: VersoSlides/VirPrettyM.lean:14:2: deferred validation of imported dependency `VersoSlides.Pretty.formatSegments` (via VersoSlides.VirPrettyM.formatSegments -> VersoSlides.Pretty.formatSegments) because its compiled IR is opaque in this module; `:vir` package generation loads and validates the owning module's compiled IR
+ℹ [136/138] Replayed «verso-slides»/VersoSlides.VirPrettyM:virProgram
+info: stdout:
+wrote /tmp/tmp.XXzfE24v/program.irpkg-set.json
+wrote /tmp/tmp.XXzfE24v/program.irpkg
+wrote /tmp/tmp.XXzfE24v/report.md
+package set members: 7
+package format: 11
+declarations: 93 (72 Lean IR, 21 native externs)
+interface exports: 1
+ℹ [137/138] Replayed «verso-slides»/VersoSlides.VirPrettyM:virResourcePack
+info: stdout:
+249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945
+✖ [2/4] Building Tests.Pretty (110ms)
+trace: .> LEAN_PATH=/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/packages/subverso/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/packages/MD4Lean/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/packages/plausible/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/packages/illuminate/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/packages/Cli/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/packages/verso/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/packages/lean_vir/.lake/build/lib/lean:/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/build/lib/lean /home/egallego/.elan/toolchains/leanprover--lean4---v4.35.0-rc4/bin/lean /home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/Tests/Pretty.lean -o /home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/build/lib/lean/Tests/Pretty.olean -i /home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/build/lib/lean/Tests/Pretty.ilean -c /home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/build/ir/Tests/Pretty.c --setup /home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/build/ir/Tests/Pretty.setup.json --json
+error: Tests/Pretty.lean:6:0: object file '/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/build/lib/lean/Tests/PrettyFixtures.olean' of module Tests.PrettyFixtures does not exist
+Some required targets logged failures:
+- Tests.Pretty
+error: build failed
+[test] Running prettyM segment tests failed (exit code 1)
+[test] Running formatter presentation and initialization tests...
+✔ plain text and hard lines survive HTML escaping exactly (3.118796ms)
+✔ exact tags select the nearest registered annotation (1.779708ms)
+✔ goal structure shares indexed formats and escapes names/prefixes (1.181913ms)
+✔ pixel-to-column conversion calls only the typed VIR facade without changing text (1.474523ms)
+✔ one DOM measurer accounts for Reveal scaling and releases its probe (1.070553ms)
+✔ shared signature rendering always releases measurement (success) (1.760451ms)
+✔ shared signature rendering always releases measurement (failure) (1.343266ms)
+✔ shared goal rendering always releases measurement (success) (2.437865ms)
+✔ shared goal rendering always releases measurement (failure) (1.465707ms)
+✔ terminal redraw during shared rendering preserves the original formatting failure (1.861641ms)
+✔ formatting failure reports raw evidence and deliberate presentation (1.38245ms)
+✔ compact adapter passes scalar values and dimensions unchanged to VIR (1.959446ms)
+✔ initialization publishes readiness and resolves library-owned relative URLs (4.496708ms)
+✔ import failure preserves primary diagnostics and closes initialization (2.325695ms)
+✔ creation failure preserves primary diagnostics and closes initialization (1.208754ms)
+✔ malformed compact input leaves the same initialized program usable (1.451379ms)
+✔ active request failure (object) preserves raw evidence and same-program recovery (1.98292ms)
+✔ active request failure (object) preserves raw evidence and same-program recovery (1.464735ms)
+✔ active request failure (undefined) preserves raw evidence and same-program recovery (2.56251ms)
+✔ failed runtime closes formatting without recreation or replay (1.476417ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 84.144146
+[test] Running fragmentize unit tests...
+All 51 tests passed.
+[test] Running rendering unit tests...
+All 24 tests passed.
+[test] Running comment-parser unit tests...
+All 36 tests passed.
+[test] Running prettyM segment tests...
