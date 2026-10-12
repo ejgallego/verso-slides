@@ -1,0 +1,134 @@
+{
+  "runtime": {
+    "contentId": "092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1",
+    "sha256": "02c4a12f6dd4aed6de5cf6abcdde61d4a1f02fb5f9e55159683eb591e4ee4f90",
+    "byteLength": 1016086,
+    "descriptor": {
+      "compatibility": {
+        "leanRevision": "c29b6dda4f7c20e3eeaa717c4e565663c5cfa364",
+        "virVersion": 6
+      },
+      "fileEntries": [
+        {
+          "path": "runtime.js",
+          "role": "runtimeModule"
+        },
+        {
+          "path": "runtime.wasm",
+          "role": "wasm"
+        }
+      ],
+      "files": [
+        {
+          "byteLength": 10318,
+          "mediaType": "text/plain",
+          "path": "LICENSE",
+          "sha256": "6f306db6390c163410b41f6517867b756207212736b31e50b2639710ccd706d8"
+        },
+        {
+          "byteLength": 725,
+          "mediaType": "text/plain",
+          "path": "NOTICE",
+          "sha256": "ec9f9f0edffd4204177a59e36ae91454029334b410f2b87f4477bad349da23c2"
+        },
+        {
+          "byteLength": 9160,
+          "mediaType": "text/plain",
+          "path": "lean-LICENSE",
+          "sha256": "8b28515ffffc5c0fe2807d8ae3735b00b324d9b7ce807dd63ff6ac8922fbce7e"
+        },
+        {
+          "byteLength": 81940,
+          "mediaType": "text/plain",
+          "path": "lean-LICENSES",
+          "sha256": "0af1535aa474a58f5d21b2f4b503bb91cad4ff34fec0f10dc776a0a041795fd8"
+        },
+        {
+          "byteLength": 119478,
+          "mediaType": "text/javascript",
+          "path": "runtime.js",
+          "sha256": "07996fa1b5410f258206f5d8e1f1c3d3a3d896098c02f12688440290562d2d41"
+        },
+        {
+          "byteLength": 793324,
+          "mediaType": "application/wasm",
+          "path": "runtime.wasm",
+          "sha256": "86c3a14bcda19a8d77481c1cdc7203018abb12f0a34bd2ca48239aa070488f6f"
+        }
+      ],
+      "kind": "runtime",
+      "logicalId": "lean-vir/runtime",
+      "schemaVersion": 2
+    }
+  },
+  "program": {
+    "contentId": "249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945",
+    "sha256": "0a4a2ddba702d9b2fbbe0a04b59232371b86d952a9c6061e47372309e29489d5",
+    "byteLength": 78829,
+    "descriptor": {
+      "compatibility": {
+        "leanRevision": "c29b6dda4f7c20e3eeaa717c4e565663c5cfa364",
+        "virVersion": 6
+      },
+      "fileEntries": [
+        {
+          "path": "program.irpkg-set.json",
+          "role": "programSet"
+        }
+      ],
+      "files": [
+        {
+          "byteLength": 696,
+          "mediaType": "application/vnd.lean-vir.ir-package",
+          "path": "parts/0.irpkg",
+          "sha256": "9234048bad07bcc9c37c935de54f7ddf7a941982bc00225f17b55303702596c2"
+        },
+        {
+          "byteLength": 2002,
+          "mediaType": "application/vnd.lean-vir.ir-package",
+          "path": "parts/1.irpkg",
+          "sha256": "5927846a9e88a10d49f4a12d1fc2982c1331f63ef0a5efcb6474c1815130845b"
+        },
+        {
+          "byteLength": 926,
+          "mediaType": "application/vnd.lean-vir.ir-package",
+          "path": "parts/2.irpkg",
+          "sha256": "e8ace92b905f3cf04bca5865943debd7d7fea5944a5e7e214595bd49e47fc663"
+        },
+        {
+          "byteLength": 5960,
+          "mediaType": "application/vnd.lean-vir.ir-package",
+          "path": "parts/3.irpkg",
+          "sha256": "1b441f539fa7379d560bb9c95556aa2f285a60890c1734cc0b4e157c0f02c18d"
+        },
+        {
+          "byteLength": 11332,
+          "mediaType": "application/vnd.lean-vir.ir-package",
+          "path": "parts/4.irpkg",
+          "sha256": "4f132cab01a170eca5d7ec06a0d4e646dec33c9ce7d76dcc560148ab1d131e44"
+        },
+        {
+          "byteLength": 48726,
+          "mediaType": "application/vnd.lean-vir.ir-package",
+          "path": "parts/5.irpkg",
+          "sha256": "d1ac24e34b86378a11bf0dda3e7b8aab932f42ddf0b0d382e568db028fb37e3d"
+        },
+        {
+          "byteLength": 6350,
+          "mediaType": "application/vnd.lean-vir.ir-package",
+          "path": "program.irpkg",
+          "sha256": "aa193e31d6c37465fc053739af41075c2015c77f825ebe89bfdf53712221cfd6"
+        },
+        {
+          "byteLength": 1239,
+          "mediaType": "application/json",
+          "path": "program.irpkg-set.json",
+          "sha256": "8ae2479d594fd51dc065ca325990f8a6bdbe44ed9fc041d5d5927f23b1b8da56"
+        }
+      ],
+      "kind": "program",
+      "logicalId": "VersoSlides.VirPrettyM",
+      "schemaVersion": 2
+    }
+  }
+}

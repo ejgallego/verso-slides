@@ -1,0 +1,4 @@
+Checking formatting...
+[warn] examples/default-deck/talk-build/ir/Main.setup.json
+[warn] examples/default-deck/talk-build/ir/MyTalk/Slides.setup.json
+[warn] Code style issues found in 2 files. Run Prettier with --write to fix.

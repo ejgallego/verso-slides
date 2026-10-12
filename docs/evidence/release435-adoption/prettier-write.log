@@ -1,0 +1,11 @@
+README.md 185ms
+docs/vir-deck-build.md 12ms
+docs/vir-followups.md 4ms
+docs/vir-review-stack.md 18ms
+web-lib/panel/lightbox.js 82ms
+web-lib/panel/panel.css 42ms
+web-lib/panel/panel.js 56ms
+web-lib/panel/pretty-init.js 12ms
+web-lib/panel/pretty.js 36ms
+Tests/pretty-presentation.test.cjs 52ms
+Tests/vir-bootstrap.test.cjs 20ms

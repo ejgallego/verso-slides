@@ -1,0 +1,13 @@
+Checking formatting...
+[warn] README.md
+[warn] docs/vir-deck-build.md
+[warn] docs/vir-followups.md
+[warn] docs/vir-review-stack.md
+[warn] web-lib/panel/lightbox.js
+[warn] web-lib/panel/panel.css
+[warn] web-lib/panel/panel.js
+[warn] web-lib/panel/pretty-init.js
+[warn] web-lib/panel/pretty.js
+[warn] Tests/pretty-presentation.test.cjs
+[warn] Tests/vir-bootstrap.test.cjs
+[warn] Code style issues found in 11 files. Run Prettier with --write to fix.

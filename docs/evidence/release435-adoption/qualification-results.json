@@ -1,0 +1,106 @@
+[
+  {
+    "name": "native",
+    "command": [
+      "lake",
+      "--no-cache",
+      "test",
+      "--",
+      "--no-playwright"
+    ],
+    "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+    "seconds": 26.403509799041785,
+    "exit": 0
+  },
+  {
+    "name": "root-render",
+    "command": [
+      "lake",
+      "--no-cache",
+      "exe",
+      "demo-slides"
+    ],
+    "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+    "seconds": 1.7849840150447562,
+    "exit": 0
+  },
+  {
+    "name": "native-corpus",
+    "command": [
+      "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/build/bin/test-pretty",
+      "--host-abi-corpus"
+    ],
+    "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+    "seconds": 0.03992573800496757,
+    "exit": 0
+  },
+  {
+    "name": "typescript",
+    "command": [
+      "/home/egallego/lean/verso-slides/node_modules/.bin/tsc",
+      "--noEmit",
+      "-p",
+      "web-lib/panel/jsconfig.json"
+    ],
+    "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+    "seconds": 0.8166119559900835,
+    "exit": 0
+  },
+  {
+    "name": "downstream-cold",
+    "command": [
+      "lake",
+      "--no-cache",
+      "build"
+    ],
+    "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/examples/default-deck",
+    "seconds": 220.17011406400707,
+    "exit": 0
+  },
+  {
+    "name": "downstream-warm",
+    "command": [
+      "lake",
+      "--no-cache",
+      "build"
+    ],
+    "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/examples/default-deck",
+    "seconds": 3.218602010048926,
+    "exit": 0
+  },
+  {
+    "name": "downstream-render",
+    "command": [
+      "lake",
+      "--no-cache",
+      "exe",
+      "my-talk"
+    ],
+    "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/examples/default-deck",
+    "seconds": 1.4256074769655243,
+    "exit": 0
+  },
+  {
+    "name": "browser",
+    "command": [
+      "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-434-minimal/browser-tests/.venv/bin/python",
+      "-m",
+      "pytest",
+      "browser-tests/test_vir_prettym_site.py",
+      "browser-tests/test_vir_prettym_presentation.py",
+      "browser-tests/test_vir_prettym_initialization.py",
+      "browser-tests/test_lightbox.py::TestLightboxReadiness",
+      "--vir-site-acceptance",
+      "--site-dir",
+      "/home/egallego/lean/verso-slides/build/reviews/prettym-release-20261012/site",
+      "--browser",
+      "all",
+      "-v",
+      "--junitxml",
+      "/home/egallego/lean/verso-slides/build/reviews/prettym-release-20261012/browser.xml"
+    ],
+    "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+    "seconds": 21.560744971968234,
+    "exit": 0
+  }
+]

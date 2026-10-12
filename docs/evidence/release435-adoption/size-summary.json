@@ -1,0 +1,44 @@
+{
+  "old": {
+    "siteBytes": 3680917,
+    "siteGzipBytes": 1867581,
+    "prettyBytes": 24812,
+    "prettyGzipBytes": 6210,
+    "fileCount": 97,
+    "nativeBinaryBytes": 129025696,
+    "virBytes": 0,
+    "virGzipBytes": 0
+  },
+  "new": {
+    "siteBytes": 4767365,
+    "siteGzipBytes": 2136353,
+    "prettyBytes": 12824,
+    "prettyGzipBytes": 3591,
+    "fileCount": 113,
+    "nativeBinaryBytes": 130611768,
+    "virBytes": 1095079,
+    "virGzipBytes": 270304
+  },
+  "components": {
+    "notices": {
+      "bytes": 102143,
+      "gzipBytes": 30985
+    },
+    "manifests": {
+      "bytes": 4142,
+      "gzipBytes": 1915
+    },
+    "javascript": {
+      "bytes": 119478,
+      "gzipBytes": 33942
+    },
+    "wasm": {
+      "bytes": 793324,
+      "gzipBytes": 190688
+    },
+    "ir": {
+      "bytes": 75992,
+      "gzipBytes": 12774
+    }
+  }
+}

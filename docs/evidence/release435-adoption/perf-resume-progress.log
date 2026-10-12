@@ -1,0 +1,47 @@
+project-clean old 32.545 0
+warm old 0.741 0
+warm new 1.155 0
+warm new 1.153 0
+warm old 0.714 0
+warm old 0.681 0
+warm new 1.144 0
+warm new 1.123 0
+warm old 0.719 0
+warm old 0.71 0
+warm new 1.133 0
+warm new 1.174 0
+warm old 0.694 0
+warm old 0.757 0
+warm new 1.125 0
+warm new 1.12 0
+warm old 0.735 0
+{
+  "project-clean": {
+    "old": {
+      "medianSeconds": 33.07516618754016,
+      "minSeconds": 32.545470922021195,
+      "maxSeconds": 33.60486145305913,
+      "count": 2
+    },
+    "new": {
+      "medianSeconds": 32.43417289847275,
+      "minSeconds": 30.544198549934663,
+      "maxSeconds": 34.32414724701084,
+      "count": 2
+    }
+  },
+  "warm": {
+    "old": {
+      "medianSeconds": 0.7163859469583258,
+      "minSeconds": 0.6813671169802547,
+      "maxSeconds": 0.7570332390023395,
+      "count": 8
+    },
+    "new": {
+      "medianSeconds": 1.138484071008861,
+      "minSeconds": 1.1199150750180706,
+      "maxSeconds": 1.174093347042799,
+      "count": 8
+    }
+  }
+}

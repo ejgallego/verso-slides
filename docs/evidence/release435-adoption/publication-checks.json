@@ -1,0 +1,32 @@
+[
+  {
+    "manifest": "lib/vir/092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1/bundle.json",
+    "contentId": "092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1",
+    "payloads": 6
+  },
+  {
+    "manifest": "lib/vir/249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945/bundle.json",
+    "contentId": "249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945",
+    "payloads": 8
+  },
+  {
+    "manifest": "nested/deck/lib/vir/092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1/bundle.json",
+    "contentId": "092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1",
+    "payloads": 6
+  },
+  {
+    "manifest": "nested/deck/lib/vir/249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945/bundle.json",
+    "contentId": "249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945",
+    "payloads": 8
+  },
+  {
+    "manifest": "downstream/custom/lib/vir/092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1/bundle.json",
+    "contentId": "092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1",
+    "payloads": 6
+  },
+  {
+    "manifest": "downstream/custom/lib/vir/249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945/bundle.json",
+    "contentId": "249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945",
+    "payloads": 8
+  }
+]

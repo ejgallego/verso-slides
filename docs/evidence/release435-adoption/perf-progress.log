@@ -1,0 +1,20 @@
+setup old 1.05 0
+setup new 16.417 0
+project-clean old 33.605 0
+project-clean new 34.324 0
+project-clean new 30.544 0
+Traceback (most recent call last):
+  File "/home/egallego/lean/verso-slides/build/reviews/prettym-release-20261012/measure-release.py", line 20, in <module>
+    record('project-clean',label,number)
+  File "/home/egallego/lean/verso-slides/build/reviews/prettym-release-20261012/measure-release.py", line 13, in record
+    data=json.loads(metric.read_text()); data.update(phase=phase,label=label,number=number,monotonicWallSeconds=time.perf_counter()-start,binarySha256=hashlib.sha256((work/'.lake/build/bin/demo-slides').read_bytes()).hexdigest() if r.returncode==0 else None)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)

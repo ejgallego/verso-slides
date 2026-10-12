@@ -1,0 +1,16 @@
+{
+  "rootNativeHead": "db3b10d4816826482f180970fb90f29c9bffa487",
+  "downstreamBrowserHead": "059658e2cdfc153ea3f10842653dca0a94e38da9",
+  "base": "23daa2e3eb45c5838bd7860cc21d06d5089515d7",
+  "virTag": "4.35-rc4",
+  "virRevision": "be01a69de96c49bde7863baf82e3cc4b7cc904fd",
+  "leanToolchain": "leanprover/lean4:v4.35.0-rc4",
+  "betweenPhaseChanges": [
+    "copyright headers in three downstream example files",
+    "release review notes"
+  ],
+  "suppliedRuntime": false,
+  "implicitWasmSourceBuild": false,
+  "ordinaryLakeCacheDisabled": true,
+  "globalCachesIsolated": false
+}

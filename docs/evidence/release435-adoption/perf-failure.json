@@ -1,0 +1,11 @@
+{
+  "wallSeconds": 28.1,
+  "userSeconds": 79.79,
+  "systemSeconds": 11.09,
+  "peakRssKiB": 1779756,
+  "exit": 1,
+  "phase": "project-clean",
+  "label": "old",
+  "number": 4,
+  "reason": "LLVM linker bus error while building extract-lakefile during Demo external-code extraction; measurement script then failed parsing GNU time nonzero-status prefix"
+}
