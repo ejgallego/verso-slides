@@ -1,0 +1,38 @@
+[
+  {
+    "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/_test/code/lib/vir/092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1/bundle.json",
+    "kind": "runtime",
+    "contentId": "092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1",
+    "compatibility": {
+      "leanRevision": "c29b6dda4f7c20e3eeaa717c4e565663c5cfa364",
+      "virVersion": 6
+    }
+  },
+  {
+    "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/_test/code/lib/vir/249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945/bundle.json",
+    "kind": "program",
+    "contentId": "249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945",
+    "compatibility": {
+      "leanRevision": "c29b6dda4f7c20e3eeaa717c4e565663c5cfa364",
+      "virVersion": 6
+    }
+  },
+  {
+    "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/_test/code/lib/vir/8b168629f82e2c893a59d1eab6f126ccf7e327ae23f651d9ba001a3cf913cca3/bundle.json",
+    "kind": "program",
+    "contentId": "8b168629f82e2c893a59d1eab6f126ccf7e327ae23f651d9ba001a3cf913cca3",
+    "compatibility": {
+      "leanRevision": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+      "virVersion": 6
+    }
+  },
+  {
+    "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/_test/code/lib/vir/c9ecb67aefdddf171f948591c170f36b293a6113fb97f6de1e893e9657daba60/bundle.json",
+    "kind": "runtime",
+    "contentId": "c9ecb67aefdddf171f948591c170f36b293a6113fb97f6de1e893e9657daba60",
+    "compatibility": {
+      "leanRevision": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+      "virVersion": 6
+    }
+  }
+]

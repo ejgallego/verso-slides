@@ -1,0 +1,10 @@
+{
+  "command": [
+    "scripts/check-jsconfig-coverage.sh"
+  ],
+  "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+  "startedUtc": "2026-10-13T10:10:11Z",
+  "elapsedSeconds": 0.032141923904418945,
+  "exitCode": 0,
+  "clearedOverrideNames": []
+}

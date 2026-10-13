@@ -1,0 +1,13 @@
+npm error code EROFS
+npm error syscall open
+npm error path /home/egallego/.npm/_cacache/tmp/***
+npm error errno EROFS
+npm error rofs Invalid response body while trying to fetch https://registry.npmjs.org/prettier: EROFS: read-only file system, open '/home/egallego/.npm/_cacache/tmp/***'
+npm error rofs Often virtualized file systems, or other file systems that don't support symlinks, give this error.
+npm notice
+npm notice New minor version of npm available! 12.0.2 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+npm error Log files were not written due to an error writing to the directory: /home/egallego/.npm/_logs
+npm error You can rerun the command with `--loglevel=verbose` to see the logs in your terminal

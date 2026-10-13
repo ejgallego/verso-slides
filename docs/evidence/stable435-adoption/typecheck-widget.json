@@ -1,0 +1,15 @@
+{
+  "command": [
+    "npx",
+    "--no-install",
+    "tsc",
+    "--noEmit",
+    "-p",
+    "web-lib/widget/jsconfig.json"
+  ],
+  "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+  "startedUtc": "2026-10-13T10:10:11Z",
+  "elapsedSeconds": 0.6097352504730225,
+  "exitCode": 0,
+  "clearedOverrideNames": []
+}

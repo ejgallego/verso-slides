@@ -1,0 +1,14 @@
+{
+  "command": [
+    "uv",
+    "run",
+    "pytest",
+    "-v",
+    "--junitxml=/home/egallego/lean/verso-slides/build/reviews/prettym-stable-20261013/final-browser-suite.xml"
+  ],
+  "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/browser-tests",
+  "startedUtc": "2026-10-13T10:41:01Z",
+  "elapsedSeconds": 166.06924104690552,
+  "exitCode": 0,
+  "clearedOverrideNames": []
+}

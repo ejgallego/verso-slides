@@ -1,0 +1,63 @@
+1:  23daa2e = 1:  25666f1 Share rich-format rendering between panels and lightboxes
+2:  dcc82c4 ! 2:  02f9154 Integrate Lean PrettyM using explicit module assets
+    @@ lake-manifest.json
+     +   "type": "git",
+     +   "subDir": null,
+     +   "scope": "",
+    -+   "rev": "be01a69de96c49bde7863baf82e3cc4b7cc904fd",
+    ++   "rev": "225218e18a3ae554acc571a93aab484453d857a6",
+     +   "name": "lean_vir",
+     +   "manifestFile": "lake-manifest.json",
+    -+   "inputRev": "4.35-rc4",
+    ++   "inputRev": "4.35",
+     +   "inherited": false,
+     +   "configFile": "lakefile.lean"},
+     +  {"url": "https://github.com/leanprover/verso.git",
+    @@ lakefile.lean: import Lake
+      
+      require verso from git "https://github.com/leanprover/verso.git"@"main"
+     +require lean_vir from git "https://github.com/ejgallego/lean-vir.git" @
+    -+  "4.35-rc4"
+    ++  "4.35"
+      
+      package «verso-slides» where
+        version := v!"0.1.0"
+3:  4a4af79 = 3:  5595261 Remove JavaScript prettyM and connect existing views to VIR readiness
+4:  db12f3a ! 4:  78331bc Test mandatory VIR formatting and ordinary downstream publication
+    @@ browser-tests/test_vir_prettym_site.py (new)
+     +        "runtime", "program"
+     +    }
+     +    assert {json.loads(m.read_text())["contentId"] for m in manifests} == {
+    -+        "092a746684d66b2c0eea7975a96eecd3f59cd7ec4e4255ffb5092a72e1af70f1",
+    -+        "249096a96d990daaf5d5f9dfb88d2b5dfcbb7ab2a3f53b6f384e79e64c05a945",
+    ++        "c9ecb67aefdddf171f948591c170f36b293a6113fb97f6de1e893e9657daba60",
+    ++        "8b168629f82e2c893a59d1eab6f126ccf7e327ae23f651d9ba001a3cf913cca3",
+     +    }
+     +    compatibilities = []
+     +    for manifest in manifests:
+    @@ docs/vir-deck-build.md (new)
+     +failed runtime closes formatting without retry or a JavaScript
+     +formatter fallback.
+     +
+    -+The VIR `4.35-rc4` tag pins source `be01a69d` and selects public Lean
+    -+4.35 runtime `092a7466` (resource compatibility 6). Its owning library
+    -+acquires and verifies the prebuilt runtime during the ordinary build;
+    -+applications use the URLs returned by `forSite`. No supplied pack or
+    -+Wasm source build is required.
+    ++The VIR `4.35` tag pins source `225218e1` and selects public Lean
+    ++4.35.0 runtime `c9ecb67a` (resource compatibility 6). Its owning
+    ++library acquires and verifies the prebuilt runtime during the ordinary
+    ++build; applications use the URLs returned by `forSite`. No supplied
+    ++pack or Wasm source build is required.
+     +
+     +## Tests
+     +
+    @@ examples/default-deck/lakefile.lean (new)
+     
+      ## examples/default-deck/lean-toolchain (new) ##
+     @@
+    -+leanprover/lean4:v4.35.0-rc4
+    ++leanprover/lean4:v4.35.0
+     
+      ## lakefile.lean ##
+     @@ lakefile.lean: lean_exe «test-comment-parsers» where

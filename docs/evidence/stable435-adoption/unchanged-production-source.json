@@ -1,0 +1,106 @@
+[
+  {
+    "path": "web-lib/animate/illuminate-anim.css",
+    "sha256": "1417d0c4a9a53473f6d7f1180a5d2891853a1833962d081fbd86904336f7dd97"
+  },
+  {
+    "path": "web-lib/animate/illuminate-reveal-init.js",
+    "sha256": "12c0ac10918695bbd4bfbb9b5241af5686ffd56bba67df09acf294a84a99bac4"
+  },
+  {
+    "path": "web-lib/animate/jsconfig.json",
+    "sha256": "7339aa6deb243c43a4558954d0b5f7df693430afa6a248fd75271607debbb5e0"
+  },
+  {
+    "path": "web-lib/diagrams/diagram.css",
+    "sha256": "1ec840470144a7ffd72ace2c11b7936128b303f56218941c05e9c08e60e00b9a"
+  },
+  {
+    "path": "web-lib/math/globals.d.ts",
+    "sha256": "7391fa59c2daedb47993a47a75c4b01fe1b5c3df2c0da3d8be6a05d2a01d9208"
+  },
+  {
+    "path": "web-lib/math/jsconfig.json",
+    "sha256": "192e6043f71fe62f004d521dc25dc406a0351ec52be6c31b8ec8aac1807f9acb"
+  },
+  {
+    "path": "web-lib/math/math.js",
+    "sha256": "a379484633eb6f42ecec1dd989de05a4910e9615b4c616100bb94323493e5972"
+  },
+  {
+    "path": "web-lib/panel/code-block-bg.js",
+    "sha256": "4022d9e9e5b5bf64b1d479dfd6158bc93f0b86c8ab05d98f1075bb3d88e57159"
+  },
+  {
+    "path": "web-lib/panel/globals.d.ts",
+    "sha256": "a933a35790406a3acffea51a54682bc76981f858882516020547a8f1476f5b54"
+  },
+  {
+    "path": "web-lib/panel/jsconfig.json",
+    "sha256": "4e5f8a4e9495c72df4a944b98ba80460717e90f6aaaaecf4adaec48206c26c82"
+  },
+  {
+    "path": "web-lib/panel/lightbox.css",
+    "sha256": "7977f08a13fa9324093f329d05564defc5637df69dfb32f5e72858d716e536e7"
+  },
+  {
+    "path": "web-lib/panel/lightbox.js",
+    "sha256": "67d034f9370b7733317d398f4e042fd9d69e71f425acfdcbbaffd504cad4ffc3"
+  },
+  {
+    "path": "web-lib/panel/panel.css",
+    "sha256": "1ab57c321003821a77dfd7f946426b303905ead6d8dea3804a9db92ada822350"
+  },
+  {
+    "path": "web-lib/panel/panel.js",
+    "sha256": "9dcf1ccd6bc02f8a93dfe2dba4866309c59c22656c40933758f9bd381888e9d6"
+  },
+  {
+    "path": "web-lib/panel/pretty-init.js",
+    "sha256": "f3553d152ac75430cf62ab4a6b7be7ad3a6ed7a80fc91514dd27258fb0b21ce4"
+  },
+  {
+    "path": "web-lib/panel/pretty.js",
+    "sha256": "2a5584935604e7c8a423ff77880a650ae464a8005b78607d3b6d1601c0c60163"
+  },
+  {
+    "path": "web-lib/panel/slides-highlight.css",
+    "sha256": "64704cd9754366ad143e8994638daa1594d40a9f757016fe16c58bf324ddc67f"
+  },
+  {
+    "path": "web-lib/panel/tippy-panel-filter.js",
+    "sha256": "e7753fe9957941c3a70a2453f17b63b9ba660d0da0b8fbaf980a021249a8c40a"
+  },
+  {
+    "path": "web-lib/table/table.css",
+    "sha256": "48bf0c9295948e24ea505161182f88ae17bc92c17ad32755147a0308c180602c"
+  },
+  {
+    "path": "web-lib/widget/image-preview.js",
+    "sha256": "dac731f449c96ba8211d871c49b9baa69d47c60ecd5ba610ad4dbad5268c542d"
+  },
+  {
+    "path": "web-lib/widget/jsconfig.json",
+    "sha256": "5ed0ff29e0a093f0d27e12c2418b7ca8a4baecbb594a6bed9cc337f9672a2d3c"
+  },
+  {
+    "path": "web-lib/widget/react.d.ts",
+    "sha256": "b6c488becb73dd5c97f668fb2dc98868acd62d0880b8ff661ffd96ab97c7a95c"
+  },
+  {
+    "path": "VersoSlides/Pretty.lean",
+    "sha256": "229bbea61c71c8c8f06129d50091ff8f81df9ebf07bde4902d4255a7d659dfd2"
+  },
+  {
+    "path": "VersoSlides/VirPrettyM.lean",
+    "sha256": "2a203e2541a9020f63f2d8ea6300294f566bfe3cf1aa3314fb930fb5620446ea"
+  },
+  {
+    "path": "VersoSlides/Render.lean",
+    "sha256": "548c7fc8aa8cc2960d28f6f0b4d79a07efc4166e989f8b3900c13bcb294f2580"
+  },
+  {
+    "path": "VersoSlidesVendored.lean",
+    "sha256": "bdb296df27cd5c84f72e44af4ed271d70b01990819f6ae7b90acce2c2d007374"
+  }
+]

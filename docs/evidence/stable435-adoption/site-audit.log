@@ -1,0 +1,48 @@
+{
+  "manifests": [
+    {
+      "site": "parent",
+      "kind": "runtime",
+      "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/_slides/lib/vir/c9ecb67aefdddf171f948591c170f36b293a6113fb97f6de1e893e9657daba60/bundle.json",
+      "contentId": "c9ecb67aefdddf171f948591c170f36b293a6113fb97f6de1e893e9657daba60",
+      "payloads": 6
+    },
+    {
+      "site": "parent",
+      "kind": "program",
+      "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/_slides/lib/vir/8b168629f82e2c893a59d1eab6f126ccf7e327ae23f651d9ba001a3cf913cca3/bundle.json",
+      "contentId": "8b168629f82e2c893a59d1eab6f126ccf7e327ae23f651d9ba001a3cf913cca3",
+      "payloads": 8
+    },
+    {
+      "site": "fixture",
+      "kind": "runtime",
+      "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/_test/code/lib/vir/c9ecb67aefdddf171f948591c170f36b293a6113fb97f6de1e893e9657daba60/bundle.json",
+      "contentId": "c9ecb67aefdddf171f948591c170f36b293a6113fb97f6de1e893e9657daba60",
+      "payloads": 6
+    },
+    {
+      "site": "fixture",
+      "kind": "program",
+      "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/_test/code/lib/vir/8b168629f82e2c893a59d1eab6f126ccf7e327ae23f651d9ba001a3cf913cca3/bundle.json",
+      "contentId": "8b168629f82e2c893a59d1eab6f126ccf7e327ae23f651d9ba001a3cf913cca3",
+      "payloads": 8
+    },
+    {
+      "site": "downstream",
+      "kind": "runtime",
+      "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/examples/default-deck/_slides/lib/vir/c9ecb67aefdddf171f948591c170f36b293a6113fb97f6de1e893e9657daba60/bundle.json",
+      "contentId": "c9ecb67aefdddf171f948591c170f36b293a6113fb97f6de1e893e9657daba60",
+      "payloads": 6
+    },
+    {
+      "site": "downstream",
+      "kind": "program",
+      "path": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/examples/default-deck/_slides/lib/vir/8b168629f82e2c893a59d1eab6f126ccf7e327ae23f651d9ba001a3cf913cca3/bundle.json",
+      "contentId": "8b168629f82e2c893a59d1eab6f126ccf7e327ae23f651d9ba001a3cf913cca3",
+      "payloads": 8
+    }
+  ],
+  "totalManifestChecks": 6,
+  "totalPayloadChecks": 42
+}

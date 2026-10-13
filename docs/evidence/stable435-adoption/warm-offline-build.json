@@ -1,0 +1,21 @@
+{
+  "command": [
+    "env",
+    "http_proxy=http://127.0.0.1:9",
+    "https_proxy=http://127.0.0.1:9",
+    "HTTP_PROXY=http://127.0.0.1:9",
+    "HTTPS_PROXY=http://127.0.0.1:9",
+    "ALL_PROXY=http://127.0.0.1:9",
+    "all_proxy=http://127.0.0.1:9",
+    "NO_PROXY=",
+    "no_proxy=",
+    "lake",
+    "--no-cache",
+    "build"
+  ],
+  "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+  "startedUtc": "2026-10-13T10:45:29Z",
+  "elapsedSeconds": 12.593977212905884,
+  "exitCode": 0,
+  "clearedOverrideNames": []
+}

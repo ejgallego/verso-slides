@@ -1,0 +1,13 @@
+{
+  "command": [
+    "node",
+    "--test",
+    "Tests/pretty-presentation.test.cjs",
+    "Tests/vir-bootstrap.test.cjs"
+  ],
+  "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+  "startedUtc": "2026-10-13T09:04:38Z",
+  "elapsedSeconds": 0.7894487380981445,
+  "exitCode": 0,
+  "clearedOverrideNames": []
+}

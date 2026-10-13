@@ -1,0 +1,16 @@
+[
+  {
+    "browser": "chromium",
+    "url": "http://127.0.0.1:36815/examples/default-deck/_slides/index.html",
+    "nativeCases": 8,
+    "goalPanel": "PASS",
+    "pageErrors": []
+  },
+  {
+    "browser": "firefox",
+    "url": "http://127.0.0.1:36815/examples/default-deck/_slides/index.html",
+    "nativeCases": 8,
+    "goalPanel": "PASS",
+    "pageErrors": []
+  }
+]

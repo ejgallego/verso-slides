@@ -1,0 +1,11 @@
+{
+  "command": [
+    "browser-tests/.venv/bin/python",
+    "/home/egallego/lean/verso-slides/build/reviews/prettym-stable-20261013/nested_downstream.py"
+  ],
+  "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+  "startedUtc": "2026-10-13T11:14:26Z",
+  "elapsedSeconds": 3.297504186630249,
+  "exitCode": 0,
+  "clearedOverrideNames": []
+}

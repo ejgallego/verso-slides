@@ -1,0 +1,12 @@
+{
+  "command": [
+    "lake",
+    "--no-cache",
+    "build"
+  ],
+  "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+  "startedUtc": "2026-10-13T09:03:52Z",
+  "elapsedSeconds": 310.79505038261414,
+  "exitCode": 0,
+  "clearedOverrideNames": []
+}

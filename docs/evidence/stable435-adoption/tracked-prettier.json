@@ -1,0 +1,12 @@
+{
+  "command": [
+    "bash",
+    "-c",
+    "git ls-files -z | xargs -0 npx --no-install prettier --check --ignore-unknown"
+  ],
+  "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release",
+  "startedUtc": "2026-10-13T10:22:34Z",
+  "elapsedSeconds": 6.061425447463989,
+  "exitCode": 123,
+  "clearedOverrideNames": []
+}

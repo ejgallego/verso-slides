@@ -1,0 +1,12 @@
+{
+  "command": [
+    "lake",
+    "exe",
+    "my-talk"
+  ],
+  "cwd": "/home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/examples/default-deck",
+  "startedUtc": "2026-10-13T10:43:14Z",
+  "elapsedSeconds": 12.209697246551514,
+  "exitCode": 0,
+  "clearedOverrideNames": []
+}

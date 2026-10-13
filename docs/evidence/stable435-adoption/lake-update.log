@@ -1,0 +1,9 @@
+info: lean_vir: fetching revision '4.35' from https://github.com/ejgallego/lean-vir.git
+info: lean_vir: checking out revision '225218e18a3ae554acc571a93aab484453d857a6'
+info: verso: checking out revision '304b8561790c50222551c937ce02928df0d5b445'
+info: toolchain not updated; already up-to-date
+info: Cli: checking out revision 'c24fe6078c630e89b489bffe59b3e20ac30d12c8'
+info: illuminate: checking out revision 'f77493ba242e94f518b125ef2e538cd4ab0ca678'
+info: plausible: checking out revision 'dfa4f38190d07c37e315953e08b90fe2d95b3c24'
+warning: subverso: ignoring missing manifest:
+  /home/egallego/lean/verso-slides/.worktrees/vir-prettym-435rc4-release/.lake/packages/subverso/lake-manifest.json
