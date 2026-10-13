@@ -10,22 +10,25 @@ per item, based on the actual landed head. Preserve mandatory VIR and full Lean-
 ## Active landing and retained work
 
 [Formatter PR85](https://github.com/leanprover/verso-slides/pull/85) is open,
-non-draft, at `db12f3a9bce3a4a202df0c5809b1aaf0464026ba`, with three formatter
+non-draft, at `78331bcf9c04047a6853be8103c75842c53833bd`, with three formatter
 commits stacked on the separate [shared rendering PR83](https://github.com/leanprover/verso-slides/pull/83).
 Its retained worktree is `.worktrees/vir-prettym-435rc4-release`, branch
 `feat/lean-prettym`. The primary checkout holds `feat/vir-pretty-lab`, the
 historical Lean4.34rc2 lab and comparison panel. This is the third, deferred-work tree.
 
-The submitted pair uses VIR's released `4.35-rc4` source `be01a69d`, runtime
-`092a7466`, and program `249096a9`. Local qualification at the submitted head
-passed the ordinary native/Node tests and 310 Chromium/Firefox tests. Raw logs,
-identities and earlier qualification are retained on
-[archive/vir-prettym-main435](https://github.com/ejgallego/verso-slides/tree/59a8ffd1f2c867a2660fe403f0ccb4971931844a/docs/evidence).
-These are executed local results, not a statement of current CI status.
+The submitted pair uses VIR's public `4.35` tag, exact source `225218e1`,
+Lean4.35.0 (`eb6cafb`), runtime `c9ecb67a`, and regenerated program `8b168629`.
+It is rebased on current Slides main `b43d452`. Fresh local acceptance passed
+310 Chromium/Firefox tests, native/Node/publication checks, ordinary parent and
+downstream builds, warm offline builds, and nested downstream corpus/panel checks.
+[Stable source and executed evidence](https://github.com/ejgallego/verso-slides/blob/21a7f00b2ef34f1f2710fffc8c17883ee4095ebe/docs/evidence/stable435-adoption/RESULT.md)
+retains complete identities, commands, logs and limits. These are local results,
+not a current CI/merge claim. Producer SDK/both-profile gates are reported
+producer evidence. PR83 and PR85 still require human review and landing.
 
-Upstream Slides main has moved to stable Lean4.35.0. Landing PR85 waits for the
-matching VIR source/runtime, then a deliberate rebase and affected qualification.
-Do not relabel the rc4 pack or port deferred features during that adoption.
+Historical rc4 `db12/be01/092/249` and its310 checks remain preserved by public
+tag `archive/slides-pr85-rc4`, earlier archive refs and the cleanup Git bundle.
+Stable checks were executed anew; no rc4 result was relabeled as stable.
 
 The stock `+Module:virResourcePack` prerequisite and `include_vir_assets` supply
 one compiled ResourceSet. Lean owns formatting; JavaScript measures and presents
@@ -58,10 +61,11 @@ remain available; filesystem paths to retired trees are not prerequisites.
 | F09 | Asset filename/prefix/case policy — prototype retained | tag `archive/asset-filename-validation` (bc453b5); [older reserved-prefix implementation](https://github.com/ejgallego/verso-slides/tree/edf3fdb2ffe719eefddf222e6512676a729314d5). Review general writer path/namespace/casing policy separately. Existing exact collision/in-place/stale behavior stays in the first patch. |
 | F10 | Output CLI / reusable directory assets — prototype retained | tag `archive/reusable-deck-assets` (cf9ba9c). Reconcile only selected output/custom-assets changes with actual landed runtime/build APIs; no old backend or producer-path workaround. Related managed-build improvements need a demonstrated use case/measurement. |
 | F11 | Module-system compatibility — tracked separately | Tag `archive/modules-docs` (268257a) records experimental support and [subverso239](https://github.com/leanprover/subverso/pull/239). Reconcile actual upstream support before further module changes; do not silently combine that branch with the formatter candidate. |
+| F12 | Fixture inventory across resource-pin changes — reproduced, postponed | Stable acceptance first run found stale rc4 bundle directories:308 browser checks passed and two static inventory assertions failed. The ordinary writer preserves stale files; fresh scratch fixtures pass310 unchanged assertions. Review selected-bootstrap inventory checks or fixture output isolation in a separate test-only patch after landing; [retained red/green evidence](https://github.com/ejgallego/verso-slides/blob/21a7f00b2ef34f1f2710fffc8c17883ee4095ebe/docs/evidence/stable435-adoption/RESULT.md). |
 
 All above are Slides-owned or independently owned drafts as noted; this checklist
-does not transfer ownership or merge other worktrees. The rc4 source/runtime are publicly released; stable4.35 adoption remains gated
-on the matching VIR release. Further producer/native/config experiments remain
+does not transfer ownership or merge other worktrees. The stable4.35 producer prerequisite and bounded consumer adoption are complete;
+landing and deferred follow-up selection remain separate. Further producer/native/config experiments remain
 separate, with no automatic adoption.
 
 ## Related upstream issues to keep visible
