@@ -1,10 +1,10 @@
 // @ts-check
-// pretty.js — Direct port of Lean 4's Std.Format pretty printer
-// Source: Init/Data/Format/Basic.lean (leanprover/lean4-nightly:nightly-2026-02-23-rev2)
+// pretty.js: layout of Lean pretty-printer output for the info panel and the lightbox.
 //
-// Renders a serialized Std.Format tree at a given pixel width,
-// producing an array of output segments with tag annotations.
-// Uses DOM-based measurement for accurate pixel widths.
+// The core is a direct port of Lean 4's Std.Format pretty printer
+// (Init/Data/Format/Basic.lean). It lays out a serialized Std.Format tree at a
+// given pixel width, measuring text in the DOM, and emits HTML carrying the
+// token annotations.
 
 "use strict";
 
@@ -43,9 +43,9 @@
  *
  * @typedef {{ fmt: *, annotations: Record<string, TokenAnnotation> }} FormatData
  *
- * @typedef {{ names: string[], ppType?: string | FormatData }} Hypothesis
+ * @typedef {{ names: string[], ppType: string | null }} Hypothesis
  *
- * @typedef {{ name?: string, hypotheses: Hypothesis[], goalPrefix: string, ppConclusion?: string | FormatData }} GoalData
+ * @typedef {{ name: string | null, hypotheses: Hypothesis[], goalPrefix: string, ppConclusion: string | null }} GoalData
  *
  * @typedef {{ html: string, formats: FormatData[] }} GoalsResult
  */
@@ -595,10 +595,8 @@ function goalsToHtml(goalsJson) {
                 var hyp = goal.hypotheses[hi];
                 var typeHtml;
                 if (hyp.ppType) {
-                    var fmtData =
-                        typeof hyp.ppType === "string" ? JSON.parse(hyp.ppType) : hyp.ppType;
                     var idx = formats.length;
-                    formats.push({ fmt: fmtData.fmt, annotations: fmtData.annotations || {} });
+                    formats.push(goalFormatData(hyp.ppType));
                     typeHtml = '<span class="reflowed" data-fmt-idx="' + idx + '"></span>';
                 } else {
                     typeHtml = '<span class="no-format">(no format data)</span>';
@@ -618,12 +616,8 @@ function goalsToHtml(goalsJson) {
         var vdash = escapeHtml(goal.goalPrefix);
         var conclHtml;
         if (goal.ppConclusion) {
-            var conclData =
-                typeof goal.ppConclusion === "string"
-                    ? JSON.parse(goal.ppConclusion)
-                    : goal.ppConclusion;
             var idx = formats.length;
-            formats.push({ fmt: conclData.fmt, annotations: conclData.annotations || {} });
+            formats.push(goalFormatData(goal.ppConclusion));
             conclHtml = '<span class="reflowed" data-fmt-idx="' + idx + '"></span>';
         } else {
             conclHtml = '<span class="no-format">(no format data)</span>';
@@ -662,49 +656,120 @@ function fillReflowedSpans(container, formats, measurer) {
 }
 
 /**
- * Lay out the pretty printing data in the `data-rich-format`
- * attribute of `source` so that it fits `container`.
- *
- * The attribute can have one of two kinds of data.  Goal data (a JSON
- * array) replaces the contents of `container`, with each hypothesis
- * type and conclusion fitted to its table cell. Signature data (a
- * JSON object with `fmt` and `annotations`) replaces the contents of
- * `source`, fitted to `signatureWidth` pixels, or to the inner width
- * of `container` when no width is given. Parse and layout errors
- * propagate to the caller.
- *
- * @param {HTMLElement} container  receives rendered goals and hosts text measurement
- * @param {Element} source  carries the `data-rich-format` attribute
- * @param {number} [signatureWidth]  pixel width for signature layout
+ * Checks whether `v` is a `FormatData`.
+ * @param {*} v
+ * @return {v is FormatData}
  */
-function renderRichFormat(container, source, signatureWidth) {
-    var parsed = JSON.parse(source.getAttribute("data-rich-format") || "{}");
-    if (Array.isArray(parsed)) {
-        var result = goalsToHtml(parsed);
-        container.innerHTML = '<span class="hl lean">' + result.html + "</span>";
-        var measurer = createDOMMeasurer(container);
-        try {
-            fillReflowedSpans(container, result.formats, measurer);
-        } finally {
-            measurer.cleanup();
-        }
-    } else {
-        var measurer = createDOMMeasurer(container);
-        try {
-            var width = signatureWidth;
-            if (width === undefined) {
-                var style = getComputedStyle(container);
-                width =
-                    container.clientWidth -
-                    parseFloat(style.paddingLeft || "0") -
-                    parseFloat(style.paddingRight || "0");
-            }
-            source.innerHTML =
-                '<span class="reflowed">' +
-                formatToHtml(parsed.fmt, parsed.annotations, width, measurer) +
-                "</span>";
-        } finally {
-            measurer.cleanup();
-        }
+function isFormatData(v) {
+    if (typeof v !== "object" || v === null || !("fmt" in v)) return false;
+    const annotations = v.annotations;
+    if (typeof annotations !== "object" || annotations === null) return false;
+    return Object.values(annotations).every(
+        (a) => typeof a === "object" && a !== null && typeof a.cssClass === "string",
+    );
+}
+
+/**
+ * Whether `v` is a `Hypothesis`.
+ * @param {*} v
+ * @return {v is Hypothesis}
+ */
+function isHypothesis(v) {
+    return (
+        typeof v === "object" &&
+        v !== null &&
+        Array.isArray(v.names) &&
+        v.names.every((/** @type {*} */ n) => typeof n === "string") &&
+        (v.ppType === null || typeof v.ppType === "string")
+    );
+}
+
+/**
+ * Whether `v` is a `GoalData`.
+ * @param {*} v
+ * @return {v is GoalData}
+ */
+function isGoalData(v) {
+    return (
+        typeof v === "object" &&
+        v !== null &&
+        typeof v.goalPrefix === "string" &&
+        (v.name === null || typeof v.name === "string") &&
+        Array.isArray(v.hypotheses) &&
+        v.hypotheses.every(isHypothesis) &&
+        (v.ppConclusion === null || typeof v.ppConclusion === "string")
+    );
+}
+
+/**
+ * The `FormatData` encoded by a goal's `ppType` or `ppConclusion` string.
+ * @param {string} json
+ * @return {FormatData}
+ */
+function goalFormatData(json) {
+    /** @type {unknown} */
+    const parsed = JSON.parse(json);
+    if (!isFormatData(parsed)) throw new Error("goal ppType/ppConclusion: expected FormatData");
+    return parsed;
+}
+
+/**
+ * Run `layout` with a text measurer attached to `container`. The measurer is
+ * removed from the DOM once `layout` returns or throws.
+ * @template T
+ * @param {HTMLElement} container
+ * @param {function(DOMMeasurer): T} layout
+ * @return {T}
+ */
+function withMeasurer(container, layout) {
+    const measurer = createDOMMeasurer(container);
+    try {
+        return layout(measurer);
+    } finally {
+        measurer.cleanup();
     }
+}
+
+/**
+ * Width of `el`'s content box in CSS pixels.
+ * @param {HTMLElement} el
+ * @return {number}
+ */
+function contentWidth(el) {
+    const style = getComputedStyle(el);
+    return (
+        el.clientWidth -
+        parseFloat(style.paddingLeft || "0") -
+        parseFloat(style.paddingRight || "0")
+    );
+}
+
+/**
+ * Replace the contents of `panel` with `goals`, each hypothesis type and
+ * conclusion laid out to fit its table cell.
+ * @param {HTMLElement} panel
+ * @param {GoalData[]} goals
+ */
+function renderGoals(panel, goals) {
+    const result = goalsToHtml(goals);
+    panel.innerHTML = '<span class="hl lean">' + result.html + "</span>";
+    withMeasurer(panel, (measurer) => fillReflowedSpans(panel, result.formats, measurer));
+}
+
+/**
+ * Replace the contents of `codeEl` with `format` laid out to `width` pixels.
+ * Text is measured inside `container`, which must share `codeEl`'s font.
+ * @param {HTMLElement} container
+ * @param {Element} codeEl
+ * @param {FormatData} format
+ * @param {number} width
+ */
+function renderFormat(container, codeEl, format, width) {
+    codeEl.innerHTML = withMeasurer(
+        container,
+        (measurer) =>
+            '<span class="reflowed">' +
+            formatToHtml(format.fmt, format.annotations, width, measurer) +
+            "</span>",
+    );
 }
