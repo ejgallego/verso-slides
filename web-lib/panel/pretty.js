@@ -662,12 +662,20 @@ function fillReflowedSpans(container, formats, measurer) {
 }
 
 /**
- * Render goal or signature metadata using the same measurement and cleanup path.
- * Goal structure is inserted before measuring its type cells. A caller can pass
- * a signature width to retain its own layout fallback (as the lightbox does).
- * @param {HTMLElement} container
- * @param {Element} source
- * @param {number} [signatureWidth]
+ * Lay out the pretty printing data in the `data-rich-format`
+ * attribute of `source` so that it fits `container`.
+ *
+ * The attribute can have one of two kinds of data.  Goal data (a JSON
+ * array) replaces the contents of `container`, with each hypothesis
+ * type and conclusion fitted to its table cell. Signature data (a
+ * JSON object with `fmt` and `annotations`) replaces the contents of
+ * `source`, fitted to `signatureWidth` pixels, or to the inner width
+ * of `container` when no width is given. Parse and layout errors
+ * propagate to the caller.
+ *
+ * @param {HTMLElement} container  receives rendered goals and hosts text measurement
+ * @param {Element} source  carries the `data-rich-format` attribute
+ * @param {number} [signatureWidth]  pixel width for signature layout
  */
 function renderRichFormat(container, source, signatureWidth) {
     var parsed = JSON.parse(source.getAttribute("data-rich-format") || "{}");
