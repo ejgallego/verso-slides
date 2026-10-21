@@ -219,15 +219,41 @@ def browser(request, playwright_instance):
 
 
 @pytest.fixture
-def page(browser):
-    """A fresh page that fails the test if the browser reports an error during it."""
+def browser_errors():
+    """Errors the browser reported during the test. A test that provokes an
+    error on purpose removes it from this list; anything left fails the test."""
+    return []
+
+
+@pytest.fixture
+def page(browser, browser_errors):
+    """A fresh page that records browser errors in ``browser_errors``."""
     page = browser.new_page()
-    errors = []
-    page.on("console", lambda msg: errors.append(f"console.error: {msg.text}") if msg.type == "error" else None)
-    page.on("pageerror", lambda exc: errors.append(f"uncaught: {exc}"))
+    page.on("console", lambda msg: browser_errors.append(f"console.error: {msg.text}") if msg.type == "error" else None)
+    page.on("pageerror", lambda exc: browser_errors.append(f"uncaught: {exc}"))
     yield page
     page.close()
-    assert not errors, "Browser errors during test:\n" + "\n".join(errors)
+    assert not browser_errors, "Browser errors during test:\n" + "\n".join(browser_errors)
+
+
+FORCED_LAYOUT_FAILURE = "forced layout failure"
+
+
+def break_layout(page):
+    """Make every layout of Lean format data on ``page`` throw, so that rendering
+    has to fall back to the static content."""
+    page.evaluate(
+        f"() => {{ window.formatToHtml = () => {{ throw new Error('{FORCED_LAYOUT_FAILURE}'); }}; }}"
+    )
+
+
+def take_forced_errors(browser_errors):
+    """Remove the errors caused by ``break_layout`` from ``browser_errors`` and
+    return how many there were."""
+    forced = [e for e in browser_errors if FORCED_LAYOUT_FAILURE in e]
+    for e in forced:
+        browser_errors.remove(e)
+    return len(forced)
 
 
 _REVEAL_READY_EXPR = "() => !!(window.Reveal && window.Reveal.isReady && window.Reveal.isReady())"

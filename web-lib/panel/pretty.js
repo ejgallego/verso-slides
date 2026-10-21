@@ -665,7 +665,11 @@ function isFormatData(v) {
     const annotations = v.annotations;
     if (typeof annotations !== "object" || annotations === null) return false;
     return Object.values(annotations).every(
-        (a) => typeof a === "object" && a !== null && typeof a.cssClass === "string",
+        (a) =>
+            typeof a === "object" &&
+            a !== null &&
+            typeof a.cssClass === "string" &&
+            (a.binding === undefined || typeof a.binding === "string"),
     );
 }
 
